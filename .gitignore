@@ -36,7 +36,8 @@ test-results/
 # ── Personal / workflow files ────────────────────────────────
 # Developer setup notes — not project source
 note.md
-
+CLAUDE.md
+AGENTS.md
 
 # ── IDEs & OS ────────────────────────────────────────────────
 .vscode/
