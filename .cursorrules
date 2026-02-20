@@ -1,0 +1,160 @@
+# Cursor Rules for Ordio
+
+## Project Context
+
+**App:** Ordio — Browser-based audiogram generator for social media creators
+**Stack:** Next.js (App Router), React 19, Tailwind CSS 4, Zustand, Web Audio API, Canvas, MediaRecorder
+**Architecture:** Client-side first ($0 hosting). v1 server stack (Convex, Remotion, Clerk) exists but is P1 fallback.
+**Monorepo:** pnpm workspaces + Turborepo — 4 packages: `apps/web`, `apps/renderer`, `packages/shared`, `packages/convex`
+
+## Directives
+
+1. **Master Plan:** ALWAYS read `AGENTS.md` first. It has current phase, architecture direction, and what's built.
+
+2. **Documentation:** Load relevant `agent_docs/` files based on task:
+   - Implementation → `tech_stack.md`, `code_patterns.md`
+   - Testing → `testing.md`
+   - Architecture → `architecture.md`
+   - Requirements → `product_requirements.md`
+
+3. **Plan-First Workflow:**
+   - Propose a brief implementation plan with architectural implications
+   - Wait for approval before writing code
+   - Ask one specific question if requirements are ambiguous
+
+4. **Incremental Build:**
+   - One feature at a time
+   - Follow existing patterns in the codebase
+   - Test after each change — `pnpm test`
+   - Commit when verification passes
+
+5. **Type Safety (STRICT):**
+   - NEVER use `any` — use `unknown` with type guards
+   - All exported functions must have explicit return types
+   - Zod for runtime validation of external data
+   - TypeScript strict mode everywhere
+
+6. **Testing Discipline:**
+   - TDD preferred — write tests with or before implementation
+   - Fix failing tests immediately before proceeding
+   - 80% coverage target on critical paths
+
+7. **Pre-Commit Verification:**
+   - `pnpm lint && pnpm type-check && pnpm test`
+   - Pre-commit hooks (Husky + lint-staged) enforce this automatically
+
+8. **Communication Style:**
+   - Concise and solution-focused
+   - No apologies — fix errors immediately
+   - One specific question if context is missing
+   - Explain trade-offs when recommending approaches
+
+## Actual File Structure
+
+```
+ordio-v1/
+├── apps/
+│   ├── web/src/
+│   │   ├── app/
+│   │   │   ├── page.tsx              # Main page (Clerk auth + component wiring)
+│   │   │   ├── layout.tsx            # Root layout
+│   │   │   └── ConvexClientProvider.tsx
+│   │   ├── components/
+│   │   │   ├── AudioPlayer.tsx       # Upload, playback, export trigger
+│   │   │   └── Waveform.tsx          # Canvas bar visualization
+│   │   └── lib/
+│   │       └── store.ts              # Zustand store (audio, playback, timeline, style)
+│   └── renderer/src/
+│       ├── server.ts                 # Express POST /render endpoint
+│       ├── Composition.tsx           # Remotion composition (1080×1920, 30fps)
+│       └── Root.tsx
+├── packages/
+│   ├── shared/src/
+│   │   ├── schemas.ts               # Zod: Word, Timeline, StyleConfig, JobConfig
+│   │   ├── waveform.ts              # waveformSampler() — RMS loudness normalization
+│   │   ├── layout.ts                # layoutCaption() — deterministic text layout
+│   │   ├── time.ts                  # timeToFrame, frameToTime, formatTime (30fps)
+│   │   ├── tokens.ts                # COLORS, FONTS, RESOLUTIONS design tokens
+│   │   └── index.ts
+│   └── convex/convex/
+│       ├── schema.ts                # jobs + users tables
+│       ├── jobs.ts                  # generateUploadUrl, createJob, listJobs
+│       ├── actions.ts               # scheduleRender (HTTP to renderer)
+│       ├── http.ts                  # POST /updateStatus webhook
+│       └── auth.ts                  # Clerk JWT helpers
+├── agent_docs/                      # Detailed specs and architecture docs
+├── AGENTS.md                        # Master plan — READ THIS FIRST
+├── CLAUDE.md                        # Claude Code rules
+└── .cursorrules                     # This file
+```
+
+## Critical Constraints (DO NOT VIOLATE)
+
+### Client-Side Parity (Core Value Prop)
+- ALL rendering math lives in `packages/shared` — same code runs in browser preview AND renderer
+- Use **bundled fonts** (WOFF2), NEVER system fonts — breaks rendering determinism
+- Use `AudioContext.currentTime` for A/V sync timing — NEVER `Date.now()`
+- Manual text layout via `layoutCaption()` — never CSS word-wrap for rendered output
+
+### Architectural Boundaries
+- `apps/web` routes: request/response ONLY
+- Business logic: `packages/shared` or React hooks
+- No direct DB calls from React components
+- Zustand store for all client UI state
+
+### v2 Priority (Client-Side First)
+- The MVP exports video entirely in the browser — no server required
+- `canvas.captureStream()` + `MediaRecorder` for video muxing
+- `Web Speech API` for transcription
+- Convex/Remotion/Clerk are P1 server fallback — don't require them for v2 features
+
+### Budget
+- MVP target: $0/month (Vercel free tier)
+- Server fallback (P1): <$15/month
+
+## Key Commands
+
+### Development
+```bash
+pnpm dev                   # Start all dev servers (Next.js + Convex + renderer)
+pnpm dev --filter=web      # Next.js only
+npx convex dev             # Convex only (from packages/convex/)
+```
+
+### Testing & Verification
+```bash
+pnpm test                  # Run all unit tests (Vitest)
+pnpm lint                  # ESLint across all packages
+pnpm type-check            # TypeScript strict check
+pnpm format                # Prettier format
+pnpm build                 # Build all packages
+```
+
+### Convex (from packages/convex/)
+```bash
+npx convex deploy          # Deploy backend
+npx convex dev             # Dev server with hot reload
+```
+
+## What NOT To Do
+
+- ❌ Delete files without explicit confirmation
+- ❌ Modify Convex schema without a migration plan
+- ❌ Add features not in current phase
+- ❌ Skip tests for "simple" changes
+- ❌ Use `--no-verify` to bypass hooks
+- ❌ Use system fonts (breaks determinism)
+- ❌ Use `Date.now()` for A/V sync
+- ❌ Use `any` type anywhere
+- ❌ Put business logic in Next.js routes
+
+## Session Memory Pattern
+
+After implementing a feature, update `AGENTS.md` Current State:
+```markdown
+## Current State
+**Last Updated:** [date]
+**Working On:** [next task]
+**Recently Completed:** [what you just finished]
+**Blocked By:** [blockers or "None"]
+```

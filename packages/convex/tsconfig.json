@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@Ordio/shared/*": ["../shared/src/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["convex/**/*"],
+  "exclude": ["node_modules"]
+}

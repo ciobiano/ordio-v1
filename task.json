@@ -1,0 +1,451 @@
+{
+  "version": "2.0",
+  "project": "Ordio v2 \u2014 UI Implementation",
+  "updated": "2026-02-20",
+  "designReference": "ordio-ui-states-v2.jsx",
+  "designStyle": "Apple/OpenAI \u2014 minimal, dark (#0A0A0A), generous whitespace, subtle gradients, smooth transitions, font-extralight headings, pill buttons, circular record button, progress rings",
+  "notes": "The UI states JSX at the root is the visual source of truth. All components should match its aesthetic: dark bg, blue-to-purple gradients on active waveform, white text, rounded-full pill buttons, fade-in animations, tabular-nums for timers.",
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Expand Zustand store to full v2 state",
+      "description": "Rewrite apps/web/src/lib/store.ts. Add: theme ('dark'|'light'), audioBlob (Blob|null), isRecording, recordingTime, transcript (Word[] from @Ordio/shared), isTranscribing, currentState ('idle'|'recording'|'processing'|'export'), exportProgress (0-100), waveformStyle ('bars'|'circle'|'line'), captionStyle ('bottom'|'center'|'karaoke'), format ('vertical'|'horizontal'). Remove Convex job dependencies. Keep audioBuffer, isPlaying, currentTime, style. Add all setters. Match state shape from ordio-ui-states-v2.jsx.",
+      "category": "infrastructure",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/lib/store.ts"
+      ]
+    },
+    {
+      "id": "T002",
+      "title": "Remove Clerk/Convex auth wall \u2014 anonymous access",
+      "description": "Rewrite apps/web/src/app/page.tsx to remove all Clerk SignedIn/SignedOut/SignInButton/SignOutButton. Remove ConvexClientProvider from layout.tsx. The app should load directly into the idle state UI with no auth requirement. Keep @Ordio/convex and @clerk/nextjs as dependencies but don't import them in the main page flow.",
+      "category": "infrastructure",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/app/page.tsx",
+        "apps/web/src/app/layout.tsx",
+        "apps/web/src/app/ConvexClientProvider.tsx"
+      ]
+    },
+    {
+      "id": "T003",
+      "title": "Set up dark theme with CSS variables and globals",
+      "description": "Update apps/web/src/app/globals.css with design tokens from ordio-ui-states-v2.jsx. Primary bg: #0A0A0A. Text: white. Accent: blue-500 (#3B82F6) \u2192 purple-500 (#8B5CF6) gradient. Surface: white/5, white/10. Border: white/10. Add @keyframes fadeIn and popIn from the JSX reference. Set font-family to var(--font-geist-sans). Add data-theme='dark' support on html element. localStorage persistence for theme toggle.",
+      "category": "infrastructure",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/app/globals.css",
+        "apps/web/src/app/layout.tsx"
+      ]
+    },
+    {
+      "id": "T004",
+      "title": "Build the main page layout \u2014 state machine shell",
+      "description": "Rewrite apps/web/src/app/page.tsx as a state-machine driven page matching ordio-ui-states-v2.jsx. Renders different UI based on store.currentState: 'idle' shows logo + idle waveform + record button + upload link, 'recording' shows timer + active waveform + live captions + stop button, 'processing' shows progress ring + processing steps, 'export' shows video preview + format toggle + download button. Include brand watermark 'ordio' at bottom-left. Include waveform style selector at bottom-right (appears on hover). Full-screen centered layout. Apple-minimal aesthetic: font-extralight headings, tracking-tight, white/30 secondary text.",
+      "category": "page",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001",
+        "T002",
+        "T003",
+        "T005",
+        "T006",
+        "T007",
+        "T008",
+        "T009",
+        "T010"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T005",
+      "title": "Build WaveformDisplay component \u2014 bars, circle, line variants",
+      "description": "Create apps/web/src/components/WaveformDisplay.tsx. Port BarsWaveform, CircleWaveform, LineWaveform from ordio-ui-states-v2.jsx. Props: level (0-1 audio level), isRecording (boolean), compact (boolean for smaller size), variant ('bars'|'circle'|'line'). BarsWaveform: 24 bars (16 compact), div-based with rounded-full, blue\u2192purple gradient fill when recording, #333 when idle. CircleWaveform: pulsing circle with radial gradient and glow. LineWaveform: SVG path with sinusoidal wave. All use transition-all duration-75 for smooth updates. Convert to TypeScript with explicit prop types.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/components/WaveformDisplay.tsx"
+      ]
+    },
+    {
+      "id": "T006",
+      "title": "Build LiveCaption component \u2014 karaoke, bottom, center styles",
+      "description": "Create apps/web/src/components/LiveCaption.tsx. Port LiveCaption from ordio-ui-states-v2.jsx. Props: words (string[]), style ('bottom'|'center'|'karaoke'). Karaoke mode: latest word highlighted in blue-400 with scale-110 + popIn animation, cursor blinking. Bottom/center: joined words with blinking cursor. Shows last 8 words. TypeScript with explicit types.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/components/LiveCaption.tsx"
+      ]
+    },
+    {
+      "id": "T007",
+      "title": "Build RecordingTimer component",
+      "description": "Create apps/web/src/components/RecordingTimer.tsx. Port RecordingTimer from ordio-ui-states-v2.jsx. Uses useEffect interval to count seconds. Displays MM:SS with padStart(2,'0'). Styled: text-5xl font-extralight tabular-nums tracking-tight. Resets when unmounted (recording stopped). TypeScript.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/components/RecordingTimer.tsx"
+      ]
+    },
+    {
+      "id": "T008",
+      "title": "Build ProcessingStep component and processing state UI",
+      "description": "Create apps/web/src/components/ProcessingStep.tsx. Port ProcessingStep from ordio-ui-states-v2.jsx. Props: done (boolean), active (boolean), children. Shows: checkmark (green) when done, spinner when active, empty circle when pending. Processing state shows progress ring (SVG circle with strokeDashoffset) and 5 steps: Analyzing audio, Generating transcript, Rendering waveform, Encoding video, Finalizing. Progress ring uses blue\u2192purple gradient stroke. TypeScript.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/components/ProcessingStep.tsx"
+      ]
+    },
+    {
+      "id": "T009",
+      "title": "Build VideoPreview component for export state",
+      "description": "Create apps/web/src/components/VideoPreview.tsx. Port VideoPreview from ordio-ui-states-v2.jsx. Props: format ('vertical'|'horizontal'), waveformStyle, captionStyle. Renders a mock video frame: vertical (w-56 h-96) or horizontal (w-96 h-56), gradient bg from-zinc-900 to-black, rounded-xl, border-white/10. Contains: compact waveform at center, caption text at bottom (or center based on captionStyle), format badge at top-right. TypeScript.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T005"
+      ],
+      "files": [
+        "apps/web/src/components/VideoPreview.tsx"
+      ]
+    },
+    {
+      "id": "T010",
+      "title": "Build waveform style selector icons",
+      "description": "Create apps/web/src/components/WaveformStyleSelector.tsx. Port BarsIcon, CircleIcon, LineIcon and the selector UI from ordio-ui-states-v2.jsx. Three icon buttons in a row, each 40x40 rounded-lg. Active state: bg-white/20 border-white/40. Inactive: bg-white/5 border-white/10. Shows on hover (controlled by showControls state). Reads/writes waveformStyle in store.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/components/WaveformStyleSelector.tsx"
+      ]
+    },
+    {
+      "id": "T011",
+      "title": "Build caption style selector",
+      "description": "Create apps/web/src/components/CaptionStyleSelector.tsx. Port the caption style selector from ordio-ui-states-v2.jsx (top-right controls). Three pill buttons: 'bottom', 'center', 'karaoke'. Active: bg-blue-500 text-white. Inactive: bg-white/10 text-white/50. Label 'Caption:' in white/30. Reads/writes captionStyle in store.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/components/CaptionStyleSelector.tsx"
+      ]
+    },
+    {
+      "id": "T012",
+      "title": "Build format toggle for export (vertical/horizontal)",
+      "description": "Create apps/web/src/components/FormatToggle.tsx. Port the format toggle from ordio-ui-states-v2.jsx export state. Pill-shaped container: bg-white/5 border-white/10 rounded-lg p-1. Two buttons: 'Vertical \u00b7 9:16' and 'Horizontal \u00b7 16:9'. Active: bg-white text-black. Inactive: text-white/50 hover:text-white. Reads/writes format in store.",
+      "category": "components",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/components/FormatToggle.tsx"
+      ]
+    },
+    {
+      "id": "T013",
+      "title": "Create useAudioRecorder hook",
+      "description": "Create apps/web/src/hooks/useAudioRecorder.ts. State machine: idle \u2192 recording \u2192 paused \u2192 stopped. Uses navigator.mediaDevices.getUserMedia({ audio: true }) \u2192 MediaRecorder. Returns: { isRecording, isPaused, recordingTime, audioBlob, error, startRecording, stopRecording, pauseRecording, resumeRecording, resetRecording }. Accumulates chunks on dataavailable, creates Blob on stop. Updates recordingTime via setInterval (1s). Cleans up stream tracks on unmount. TypeScript, explicit return type.",
+      "category": "hooks",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/hooks/useAudioRecorder.ts"
+      ]
+    },
+    {
+      "id": "T014",
+      "title": "Create useAudioAnalyser hook",
+      "description": "Create apps/web/src/hooks/useAudioAnalyser.ts. Accepts audioBlob or audioBuffer and AudioContext ref. Creates source \u2192 AnalyserNode (fftSize 256). Returns { analyserRef, getFrequencyData: () => Uint8Array, audioLevel: number (0-1 normalized RMS) }. Disconnects and cleans up on unmount or input change. Used to feed real-time audio levels to WaveformDisplay during recording/playback.",
+      "category": "hooks",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/hooks/useAudioAnalyser.ts"
+      ]
+    },
+    {
+      "id": "T015",
+      "title": "Create useTranscription hook",
+      "description": "Create apps/web/src/hooks/useTranscription.ts. Uses Web Speech API (SpeechRecognition / webkitSpeechRecognition). Returns: { isTranscribing, transcript: Word[], liveWords: string[], error, startTranscription: (stream: MediaStream) => void, stopTranscription: () => void }. During recording: feeds live interim words to liveWords (for LiveCaption component). After recording stops: provides final transcript with word timing. Falls back gracefully for unsupported browsers.",
+      "category": "hooks",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/hooks/useTranscription.ts"
+      ]
+    },
+    {
+      "id": "T016",
+      "title": "Create useVideoExporter hook",
+      "description": "Create apps/web/src/hooks/useVideoExporter.ts. Orchestrates client-side video export. Uses canvas.captureStream(30) + AudioContext \u2192 MediaStreamDestination \u2192 MediaRecorder. Returns: { isExporting, exportProgress, exportedUrl, error, startExport: (canvas, audioBuffer) => Promise<void>, cancelExport }. Updates exportProgress based on audioContext.currentTime / duration. Creates object URL on completion. Revokes previous URL. Plays audio through invisible AudioContext to canvas for waveform rendering during export.",
+      "category": "hooks",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/hooks/useVideoExporter.ts"
+      ]
+    },
+    {
+      "id": "T017",
+      "title": "Create useCapabilities hook",
+      "description": "Create apps/web/src/hooks/useCapabilities.ts. Detects browser support on mount. Returns: { canRecord: boolean (getUserMedia), canExport: boolean (captureStream + MediaRecorder), canTranscribe: boolean (SpeechRecognition), warnings: string[], isLoading: boolean }. Human-readable warnings array for unsupported features. Runs once. Memoized.",
+      "category": "hooks",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [],
+      "files": [
+        "apps/web/src/hooks/useCapabilities.ts"
+      ]
+    },
+    {
+      "id": "T018",
+      "title": "Wire recording flow \u2014 idle \u2192 recording \u2192 processing",
+      "description": "In the main page, connect the record button (idle state) to useAudioRecorder.startRecording(). On recording, show RecordingTimer, active WaveformDisplay with real audio levels from useAudioAnalyser, and LiveCaption with live words from useTranscription. Stop button calls stopRecording(), transitions to 'processing' state, decodes audioBlob into AudioBuffer, runs transcription. Match the exact UI from ordio-ui-states-v2.jsx recording state.",
+      "category": "integration",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004",
+        "T005",
+        "T006",
+        "T007",
+        "T013",
+        "T014",
+        "T015"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T019",
+      "title": "Wire processing flow \u2014 progress ring + steps",
+      "description": "In the processing state, simulate progress (or track real export progress). Show SVG progress ring with blue\u2192purple gradient. Show ProcessingStep components matching ordio-ui-states-v2.jsx steps: Analyzing audio (0-15%), Generating transcript (15-35%), Rendering waveform (35-60%), Encoding video (60-85%), Finalizing (85-100%). On completion, transition to 'export' state. Connect to useVideoExporter for real export.",
+      "category": "integration",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004",
+        "T008",
+        "T016"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T020",
+      "title": "Wire export state \u2014 preview + download",
+      "description": "In the export state, show success indicator (green checkmark circle), VideoPreview component, FormatToggle, 'Download MP4' pill button (bg-white text-black rounded-full, shadow-lg), and 'Create another' reset link. Download button triggers download of the exported blob URL from useVideoExporter. 'Create another' resets all state to idle. Match ordio-ui-states-v2.jsx export state exactly.",
+      "category": "integration",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004",
+        "T009",
+        "T012",
+        "T016"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T021",
+      "title": "Add file upload flow to idle state",
+      "description": "In the idle state, add the 'or upload audio file' link that appears on hover (matching ordio-ui-states-v2.jsx showControls pattern). On click, opens a file input (accept audio/*, max 50MB). On file select: decode with AudioContext.decodeAudioData(), set audioBuffer and audioBlob in store, run transcription, transition to processing state. Show error toast for invalid files.",
+      "category": "integration",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004",
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T022",
+      "title": "Add playback controls for preview before export",
+      "description": "Between recording stop and export, add a preview/playback mode. User can play back the recorded audio with synchronized waveform animation and caption display. Play/pause button, time scrubber, time display. Uses AudioContext.currentTime for sync (never Date.now()). This extends the processing\u2192export flow with an intermediate preview step.",
+      "category": "integration",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T018",
+        "T005",
+        "T006"
+      ],
+      "files": [
+        "apps/web/src/components/PlaybackControls.tsx",
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T023",
+      "title": "Add caption editor for transcript editing",
+      "description": "Create apps/web/src/components/CaptionEditor.tsx. After transcription completes, show an editable transcript view where users can click to edit any word, see timestamps. Highlights the active word during playback. Empty state: 'Your words will appear here'. Loading state: 'Listening...' with pulse animation. Edits update store transcript. Available in an intermediate editing state before export.",
+      "category": "components",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T001",
+        "T015"
+      ],
+      "files": [
+        "apps/web/src/components/CaptionEditor.tsx"
+      ]
+    },
+    {
+      "id": "T024",
+      "title": "Add style controls panel",
+      "description": "Create apps/web/src/components/StyleControls.tsx. Expandable panel for: waveColor (color input), backgroundColor (color input), textColor (color input), fontFamily (select: Inter/Roboto/Outfit), fontSize (range slider 24-96). Reads/writes via store.setStyle(). Design: collapsible section with white/10 borders, minimal labels in white/40. Only accessible before export (idle or editing state).",
+      "category": "components",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T001"
+      ],
+      "files": [
+        "apps/web/src/components/StyleControls.tsx"
+      ]
+    },
+    {
+      "id": "T025",
+      "title": "Add capability fallback banner",
+      "description": "When useCapabilities detects missing features, show a dismissible top banner. Example: 'Video export is not supported in Safari. Try Chrome or Edge.' Non-blocking \u2014 doesn't prevent using supported features. Subtle: bg-white/5 border-white/10, text-white/50, small close button. Stores dismissal in sessionStorage.",
+      "category": "components",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T017"
+      ],
+      "files": [
+        "apps/web/src/components/CapabilityBanner.tsx",
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T026",
+      "title": "Clean up old v1 components",
+      "description": "Delete apps/web/src/components/AudioPlayer.tsx (replaced by recording + playback flows). Delete or archive apps/web/src/components/Waveform.tsx (replaced by WaveformDisplay.tsx). Remove unused Clerk/Convex imports from any remaining files. Keep ConvexClientProvider.tsx but don't import it in layout.tsx.",
+      "category": "cleanup",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004",
+        "T005",
+        "T018",
+        "T019",
+        "T020",
+        "T021"
+      ],
+      "files": [
+        "apps/web/src/components/AudioPlayer.tsx",
+        "apps/web/src/components/Waveform.tsx"
+      ]
+    },
+    {
+      "id": "T027",
+      "title": "Add smooth transitions and animations",
+      "description": "Ensure all state transitions use the animate-fadeIn animation from the design reference. Add transition-all duration-300 on interactive elements. Hover states: hover:scale-105 active:scale-95 on primary buttons. Pulse on recording indicator. Spin on processing spinners. Progress ring should have transition-all duration-100 on strokeDashoffset. All timing from ordio-ui-states-v2.jsx.",
+      "category": "polish",
+      "priority": "P0",
+      "status": "completed",
+      "dependencies": [
+        "T004"
+      ],
+      "files": [
+        "apps/web/src/app/globals.css",
+        "apps/web/src/app/page.tsx"
+      ]
+    },
+    {
+      "id": "T028",
+      "title": "Responsive layout \u2014 mobile viewport support",
+      "description": "Ensure the page works on mobile viewports (375px+). The centered layout should scale. Record button, timer, waveform, and captions should stack vertically. Video preview in export state should scale down. Controls should be touch-friendly (min 44px touch targets). Test at 375px, 768px, 1024px widths.",
+      "category": "polish",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T004"
+      ],
+      "files": [
+        "apps/web/src/app/page.tsx",
+        "apps/web/src/app/globals.css"
+      ]
+    },
+    {
+      "id": "T029",
+      "title": "Unit tests for hooks",
+      "description": "Write Vitest tests for: useCapabilities (mock present/absent APIs), useAudioRecorder (state machine transitions), useVideoExporter (progress updates, blob URL creation). Use @testing-library/react renderHook. Mock MediaRecorder, getUserMedia, SpeechRecognition globally in test setup.",
+      "category": "testing",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T013",
+        "T014",
+        "T015",
+        "T016",
+        "T017"
+      ],
+      "files": [
+        "apps/web/src/__tests__/hooks.test.ts"
+      ]
+    },
+    {
+      "id": "T030",
+      "title": "E2E smoke test \u2014 full flow",
+      "description": "Set up Playwright in apps/web/. Write one E2E test: load page (no auth wall), verify idle state shows logo and record button, upload a short audio fixture, verify processing state appears, verify export state shows download button. Chromium only for MVP.",
+      "category": "testing",
+      "priority": "P1",
+      "status": "completed",
+      "dependencies": [
+        "T004"
+      ],
+      "files": [
+        "apps/web/e2e/smoke.spec.ts",
+        "apps/web/playwright.config.ts"
+      ]
+    }
+  ]
+}
