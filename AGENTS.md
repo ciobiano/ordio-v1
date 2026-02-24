@@ -4,7 +4,7 @@
 
 **App:** Ordio — Browser-based audiogram generator for social media creators
 **Goal:** Free, client-side-first video export. No server required for MVP.
-**Stack:** Next.js (App Router), React 19, Tailwind CSS 4, Zustand, Web Audio API, Canvas, MediaRecorder
+**Stack:** Next.js 15 (App Router), React 19, Tailwind CSS 4, Zustand, Web Audio API, Canvas, MediaRecorder
 **Current Phase:** v2 — Client-Side MVP
 **Budget Constraint:** $0 hosting for MVP (Vercel free tier)
 **Architecture:** Shifting from v1 (Convex + Remotion server) → v2 (pure client-side export)
@@ -41,10 +41,11 @@
 
 ## Current State (UPDATE THIS REGULARLY!)
 
-**Last Updated:** 2026-02-19
+**Last Updated:** 2026-02-24
 **Architecture:** v1 monorepo is built (Convex, Remotion, Clerk); pivoting to v2 client-side
 **v1 Status:** Complete — monorepo scaffold, packages/shared, packages/convex, apps/renderer, apps/web shell
-**Working On:** v2 client-side export pipeline (MediaRecorder + captureStream)
+**Next.js:** Downgraded from 16 → 15 (15.3.3) for dependency compatibility. Uses webpack (not Turbopack).
+**Working On:** v2 client-side export pipeline — integrating Mediabunny + wavesurfer.js
 **Blocked By:** None
 
 ## What's Built (v1 — Substantially Complete)

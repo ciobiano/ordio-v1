@@ -11,6 +11,7 @@ interface RecordingStateProps {
   liveWords: string[];
   captionStyle: CaptionVariant;
   waveformStyle: WaveformVariant;
+  isSpeaking?: boolean;
 }
 
 export default function RecordingState({
@@ -19,13 +20,19 @@ export default function RecordingState({
   liveWords,
   captionStyle,
   waveformStyle,
+  isSpeaking = false,
 }: RecordingStateProps) {
   return (
     <div className="flex flex-col items-center gap-6 animate-fadeIn w-full max-w-sm">
       <div className="flex items-center gap-2.5" role="status" aria-live="polite">
-        <div className="w-2 h-2 rounded-full bg-[#e11d48] animate-pulse" aria-hidden="true" />
+        <div
+          className={`w-2 h-2 rounded-full bg-[#e11d48] transition-all duration-150 ${
+            isSpeaking ? 'scale-150 opacity-100' : 'animate-pulse opacity-70'
+          }`}
+          aria-hidden="true"
+        />
         <span className="text-white/40 text-[0.6875rem] tracking-[0.18em] uppercase">
-          recording
+          {isSpeaking ? 'speaking' : 'listening'}
         </span>
       </div>
 

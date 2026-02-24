@@ -9,6 +9,7 @@ import { useTranscription } from '@/hooks/useTranscription';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
+import { useVAD } from '@/hooks/useVAD';
 import { cn } from '@/lib/cn';
 
 import { CapabilityBanner } from '@/components/primitives';
@@ -43,6 +44,7 @@ export default function Home() {
 
   const [audioLevel, setAudioLevel] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
@@ -55,6 +57,7 @@ export default function Home() {
   const exporter = useVideoExporter();
   const capabilities = useCapabilities();
   const playback = usePlayback();
+  const vad = useVAD(currentState === 'recording');
 
   const decodeAudioBlob = useCallback(async (blob: Blob): Promise<void> => {
     const audioCtx = new AudioContext();
@@ -99,19 +102,28 @@ export default function Home() {
     const processRecordedAudio = async () => {
       setCurrentState('processing');
       setProcessingProgress(0);
+      setProcessingStep(0);
       try {
+        // Step 1: Analyze audio
+        setProcessingStep(0);
         setProcessingProgress(10);
         await decodeAudioBlob(recorder.audioBlob!);
-        setProcessingProgress(45);
+        setProcessingProgress(30);
+
+        // Step 2: Transcribe with Whisper API
+        setProcessingStep(1);
+        setProcessingProgress(35);
         transcription.stopLiveTranscription();
-        setTranscript(transcription.transcript);
-        setProcessingProgress(70);
-        await new Promise((r) => setTimeout(r, 350));
-        setProcessingProgress(90);
-        await new Promise((r) => setTimeout(r, 250));
+        const whisperWords = await transcription.transcribeAudio(recorder.audioBlob!);
+        setProcessingProgress(85);
+
+        // Step 3: Prepare captions
+        setProcessingStep(2);
+        setTranscript(whisperWords.length > 0 ? whisperWords : transcription.transcript);
         setProcessingProgress(100);
         setTimeout(() => setCurrentState('export'), 300);
-      } catch {
+      } catch (err) {
+        console.error('Processing failed:', err);
         setCurrentState('idle');
       }
     };
@@ -123,6 +135,7 @@ export default function Home() {
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
     await recorder.startRecording();
+    transcription.startLiveTranscription();
     setCurrentState('recording');
   }, [recorder, transcription, setCurrentState]);
 
@@ -143,13 +156,23 @@ export default function Home() {
 
       setCurrentState('processing');
       setProcessingProgress(0);
+      setProcessingStep(0);
       try {
-        setProcessingProgress(15);
+        // Step 1: Analyze audio
+        setProcessingStep(0);
+        setProcessingProgress(10);
         await decodeAudioBlob(file);
-        setProcessingProgress(70);
-        await new Promise((r) => setTimeout(r, 500));
-        setProcessingProgress(90);
-        await new Promise((r) => setTimeout(r, 300));
+        setProcessingProgress(30);
+
+        // Step 2: Transcribe with Whisper API
+        setProcessingStep(1);
+        setProcessingProgress(35);
+        const whisperWords = await transcription.transcribeAudio(file);
+        setProcessingProgress(85);
+
+        // Step 3: Prepare captions
+        setProcessingStep(2);
+        setTranscript(whisperWords);
         setProcessingProgress(100);
         setTimeout(() => setCurrentState('export'), 300);
       } catch {
@@ -241,11 +264,12 @@ export default function Home() {
             liveWords={liveWords}
             captionStyle={captionStyle}
             waveformStyle={waveformStyle}
+            isSpeaking={vad.isSpeaking}
           />
         )}
 
         {currentState === 'processing' && (
-          <ProcessingState progress={processingProgress} />
+          <ProcessingState progress={processingProgress} step={processingStep} />
         )}
 
         {currentState === 'export' && (

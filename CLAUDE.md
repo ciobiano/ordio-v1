@@ -2,86 +2,121 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project
+## Project Overview
 
-Ordio is a browser-based audiogram generator that lets creators produce captioned waveform videos for social media. The architecture is shifting from server-side rendering (v1) to client-side first (v2, $0 hosting). See `agent_docs/` for detailed specs.
+Ordio is a browser-based audiogram generator for social media creators. Users record/upload audio, get live transcription, and export waveform videos — all client-side with zero server cost. The v1 server stack (Convex, Remotion, Clerk) exists as P1 fallback but the **v2 client-side MVP is the current focus**.
+
+## Monorepo Structure
+
+pnpm workspaces + Turborepo with 4 packages:
+
+- **`apps/web`** — Next.js 15 App Router (React 19, Tailwind 4, Zustand)
+- **`apps/renderer`** — Express + Remotion server-side renderer (P1 fallback)
+- **`packages/shared`** — Shared utilities: waveform sampling, text layout, time utils, Zod schemas, design tokens
+- **`packages/convex`** — Convex backend: jobs, auth, webhooks (P1 fallback)
 
 ## Commands
 
 ```bash
-# Development (Turborepo orchestrates all workspaces)
-pnpm dev                          # Start all dev servers (Next.js + Convex + renderer)
-pnpm dev --filter=web             # Start only the Next.js frontend
-pnpm dev --filter=@ordio/shared   # Watch shared package only
+# Development
+pnpm dev                        # All dev servers via Turborepo
+pnpm dev --filter=web           # Next.js only
 
-# Build & Verify
-pnpm build                        # Build all packages
-pnpm lint                         # ESLint across all packages
-pnpm type-check                   # TypeScript strict check across all packages
-pnpm format                       # Prettier format all files
+# Quality
+pnpm test                       # All unit tests (Vitest)
+pnpm test --filter=web          # Web tests only
+pnpm --filter=web test:watch    # Watch mode
+pnpm --filter=web test:e2e      # Playwright E2E tests
+pnpm lint                       # ESLint across all packages
+pnpm type-check                 # TypeScript strict check
+pnpm format                     # Prettier format
+pnpm build                      # Build all packages
 
-# Testing
-pnpm test                         # Run all tests via Turborepo
+# Single test file
+pnpm --filter=web vitest run src/__tests__/cn.test.ts
 
-# Convex (from packages/convex/)
-npx convex dev                    # Start Convex dev server with hot reload
-npx convex deploy                 # Deploy Convex backend to production
+# Pre-commit (enforced by Husky + lint-staged)
+pnpm lint && pnpm type-check && pnpm test
 ```
 
 ## Architecture
 
-**Monorepo** using pnpm workspaces + Turborepo with 4 packages:
+### Web App Data Flow
+```
+Recording → useAudioRecorder (MediaRecorder + Web Audio decode)
+         → useTranscription (Web Speech API live + Whisper fallback)
+         → useVideoExporter (Canvas.captureStream + MediaRecorder mux)
+         → Zustand store (all UI state)
+```
 
-### `apps/web/` — Next.js frontend
-- Next.js with App Router, React 19, Tailwind CSS 4
-- Clerk for auth, Convex React hooks for data
-- Zustand store in `src/lib/store.ts` (audioBuffer, playback, timeline, style)
-- Components: `Waveform.tsx` (Canvas-based bar visualization), `AudioPlayer.tsx` (upload + playback + export trigger)
-- `src/app/ConvexClientProvider.tsx` wraps Clerk + Convex providers
+### Key Directories (`apps/web/src/`)
+- `app/` — Next.js routes and pages; `page.tsx` orchestrates all UI states (idle→recording→processing→export)
+- `app/api/transcribe/` — OpenAI Whisper API route (only server dependency)
+- `components/soul/` — State-driven UI components (IdleState, RecordingState, ProcessingState, ExportState, StyleControls, CaptionEditor)
+- `components/primitives/` — Reusable visual components (WaveformDisplay, PlaybackControls, VideoPreview)
+- `hooks/` — Business logic hooks (useAudioRecorder, useTranscription, useVideoExporter, usePlayback, useVAD, useAnalyzer, useCapabilities)
+- `lib/store.ts` — Zustand store for all app state
+- `__tests__/` — Vitest unit tests
 
-### `apps/renderer/` — Remotion video renderer
-- Express server with POST `/render` endpoint in `src/server.ts`
-- Remotion composition in `src/Composition.tsx` (1080x1920 portrait, 30fps)
-- Uses `packages/shared` for waveform sampling (same algorithm as client preview)
-- Dockerized for Railway deployment
-
-### `packages/shared/` — Shared rendering logic
-The critical parity layer — same code runs on client and server:
-- `schemas.ts` — Zod schemas: `WordSchema`, `TimelineSchema`, `StyleConfigSchema`, `JobConfigSchema`
-- `waveform.ts` — `waveformSampler()` using RMS loudness, normalizes to 0-1
-- `layout.ts` — `layoutCaption()` deterministic text layout with injected `measureText`
-- `time.ts` — `timeToFrame()`, `frameToTime()`, `formatTime()` at 30fps
+### Shared Package (`packages/shared/src/`)
+Core rendering logic shared between client and server:
+- `waveform.ts` — RMS-based audio downsampling for visualization
+- `layout.ts` — Deterministic text layout (DOM-independent, injected `measureText`)
+- `time.ts` — Frame/time conversion utilities (30fps)
+- `schemas.ts` — Zod schemas (Word, Timeline, StyleConfig, JobConfig)
 - `tokens.ts` — Design tokens (colors, fonts, resolutions)
 
-### `packages/convex/` — Backend
-- Schema: `jobs` table (status: uploading→pending→processing→completed→failed), `users` table (usage tracking)
-- `jobs.ts`: `generateUploadUrl`, `createJob` (with rate limiting: 20/day), `listJobs`, `updateStatus`
-- `actions.ts`: `scheduleRender` calls renderer service via HTTP
-- `http.ts`: POST `/updateStatus` webhook for renderer callbacks
-- Auth via Clerk JWT (`auth.config.ts`)
+### Reference Docs
+- `AGENTS.md` — Master plan, current phase, roadmap, success criteria
+- `agent_docs/` — Detailed specs: `architecture.md`, `code_patterns.md`, `tech_stack.md`, `testing.md`, `product_requirements.md`
 
-## Data Flow
+## Critical Constraints
 
-1. User uploads audio → Convex signed URL → `storageId`
-2. Web Audio API decodes → `AudioBuffer` → waveform preview via Canvas
-3. User clicks Export → `createJob` mutation → Convex scheduler → `scheduleRender` action
-4. Action POSTs to renderer → Remotion renders MP4 → uploads result → webhook updates status
-5. Client receives update via Convex WebSocket subscription
+### Client-Server Parity
+- ALL rendering math in `packages/shared` — same code runs in browser and server
+- Bundled fonts only (WOFF2) — never system fonts (breaks determinism)
+- `AudioContext.currentTime` for A/V sync — never `Date.now()`
+- `layoutCaption()` for text layout — never CSS word-wrap in rendered output
 
-## Key Conventions
+### Architectural Boundaries
+- Next.js routes: request/response handling only
+- Business logic: `packages/shared` or React hooks
+- No direct DB calls from components
+- Zustand for all client UI state
 
-- **TypeScript strict mode** everywhere. `@typescript-eslint/no-explicit-any: "error"` in ESLint.
-- **Path alias:** `@Ordio/shared/*` maps to `packages/shared/src/*`
-- **Prettier:** single quotes, trailing commas (es5), 100 char width, 2-space tabs
-- **Pre-commit:** Husky + lint-staged runs ESLint fix + Prettier on staged `.ts`/`.tsx` files
-- **Timing:** Always use `AudioContext.currentTime`, never `Date.now()` for A/V sync
-- **Conventional commits:** `feat:`, `fix:`, `refactor:`, `test:`
+### Type Safety
+- No `any` — use `unknown` with type guards
+- All exported functions need explicit return types
+- Zod for runtime validation of external data
+- TypeScript strict mode enforced
 
-## Architecture Direction (v2)
+### Anti-Patterns
+- Don't require Convex/Remotion/Clerk for v2 features
+- Don't modify Convex schema without a migration plan
+- Don't use `--no-verify` to bypass git hooks
+- Don't put business logic in Next.js route handlers
 
-The `agent_docs/` folder has been updated to reflect a v2 client-side-first architecture. Key shift: MVP should work with $0 hosting (no Convex, no server rendering needed). The existing code still has v1 patterns (Clerk, Convex, Remotion server). The v2 approach uses:
-- MediaRecorder + `canvas.captureStream()` for client-side video export
-- Web Speech API for transcription (instead of Whisper)
-- No authentication required for MVP
+## Workflow Orchestration
 
-Read `agent_docs/product_requirements.md` and `agent_docs/architecture.md` for the target v2 design.
+### Plan Mode Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately
+- Write detailed specs upfront to reduce ambiguity
+
+### Task Management
+1. Write plan to `tasks/todo.md` with checkable items
+2. Check in before starting implementation
+3. Track progress — mark items complete as you go
+4. Document results — add review section to `tasks/todo.md`
+5. After corrections from user: update `tasks/lessons.md` with rules to prevent the same mistake
+
+### Verification Before Done
+- Never mark a task complete without proving it works
+- Run tests, check logs, demonstrate correctness
+- Ask: "Would a staff engineer approve this?"
+
+### Core Principles
+- **Simplicity First**: Make every change as simple as possible
+- **No Laziness**: Find root causes, no temporary fixes
+- **Minimal Impact**: Only touch what's necessary
+- **Autonomous Bug Fixing**: Given a bug report, just fix it — zero context switching from the user
