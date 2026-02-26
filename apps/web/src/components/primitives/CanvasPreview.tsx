@@ -1,0 +1,138 @@
+'use client';
+
+import { useRef, useEffect, useCallback } from 'react';
+import { useStore } from '@/lib/store';
+import { waveformSampler } from '@Ordio/shared/waveform';
+import { FPS } from '@Ordio/shared/time';
+import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
+import type { UsePlaybackReturn } from '@/hooks/usePlayback';
+import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import { cn } from '@/lib/cn';
+
+interface CanvasPreviewProps {
+  playback: UsePlaybackReturn;
+  format: FormatVariant;
+  waveformStyle: WaveformVariant;
+  captionStyle: CaptionVariant;
+  className?: string;
+}
+
+function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
+  switch (format) {
+    case 'square':
+      return { width: 1080, height: 1080 };
+    case 'vertical':
+      return { width: 1080, height: 1920 };
+    case 'horizontal':
+      return { width: 1920, height: 1080 };
+  }
+}
+
+function getFormatLabel(format: FormatVariant): string {
+  switch (format) {
+    case 'square':
+      return '1:1';
+    case 'vertical':
+      return '9:16';
+    case 'horizontal':
+      return '16:9';
+  }
+}
+
+function getContainerClass(format: FormatVariant): string {
+  switch (format) {
+    case 'square':
+      return 'w-72 h-72 sm:w-80 sm:h-80';
+    case 'vertical':
+      return 'w-56 h-96';
+    case 'horizontal':
+      return 'w-96 h-56';
+  }
+}
+
+export default function CanvasPreview({
+  playback,
+  format,
+  waveformStyle,
+  captionStyle,
+  className,
+}: CanvasPreviewProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const waveformDataRef = useRef<number[]>([]);
+  const rafRef = useRef<number | null>(null);
+
+  const { transcript, style, audioBuffer } = useStore();
+
+  // Pre-compute waveform data when audio changes
+  useEffect(() => {
+    if (audioBuffer) {
+      waveformDataRef.current = waveformSampler(audioBuffer, 200);
+    } else {
+      waveformDataRef.current = [];
+    }
+  }, [audioBuffer]);
+
+  const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions(format);
+
+  const drawCurrentFrame = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const duration = playback.duration || 1;
+    const totalFrames = Math.ceil(duration * FPS);
+    const frameIndex = Math.min(
+      Math.floor(playback.currentTime * FPS),
+      totalFrames - 1
+    );
+
+    const frameOptions: FrameOptions = {
+      waveformData: waveformDataRef.current,
+      transcript,
+      style: { ...style, width: canvasWidth, height: canvasHeight },
+      waveformStyle,
+      captionStyle,
+    };
+
+    renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
+  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle]);
+
+  // Render loop: animate during playback, single frame when paused
+  useEffect(() => {
+    if (playback.isPlaying) {
+      const tick = () => {
+        drawCurrentFrame();
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
+    } else {
+      // Single render when paused or seeking
+      drawCurrentFrame();
+    }
+  }, [playback.isPlaying, drawCurrentFrame]);
+
+  return (
+    <div className={cn('relative rounded-xl overflow-hidden shadow-2xl', getContainerClass(format), className)}>
+      <canvas
+        ref={canvasRef}
+        width={canvasWidth}
+        height={canvasHeight}
+        className="w-full h-full object-contain"
+        aria-label="Video preview"
+      />
+      <span
+        className="absolute top-2 right-2 text-[0.625rem] font-medium tracking-wider uppercase
+                   text-white/40 bg-black/40 px-1.5 py-0.5 rounded"
+        aria-hidden="true"
+      >
+        {getFormatLabel(format)}
+      </span>
+    </div>
+  );
+}
