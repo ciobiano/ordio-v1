@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { Word } from '@Ordio/shared/schemas';
 
-interface UseTranscriptionReturn {
+export interface UseTranscriptionReturn {
   isTranscribing: boolean;
   isProcessing: boolean;
   transcript: Word[];
@@ -12,6 +12,7 @@ interface UseTranscriptionReturn {
   isSupported: boolean;
   startLiveTranscription: () => void;
   stopLiveTranscription: () => void;
+  transcribeAudio: (blob: Blob) => Promise<Word[]>;
   clearTranscript: () => void;
   transcribeAudio: (blob: Blob) => Promise<Word[]>;
 }
@@ -152,6 +153,35 @@ export function useTranscription(): UseTranscriptionReturn {
     setIsTranscribing(false);
   }, []);
 
+  const transcribeAudio = useCallback(async (blob: Blob): Promise<Word[]> => {
+    setIsTranscribing(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('audio', blob);
+
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Transcription failed' }));
+        throw new Error(body.error ?? `Transcription failed (${res.status})`);
+      }
+
+      const { words } = (await res.json()) as { words: Word[] };
+      setTranscript(words);
+      return words;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Transcription failed';
+      setError(message);
+      return [];
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, []);
+
   const clearTranscript = useCallback(() => {
     setTranscript([]);
     setLiveWords([]);
@@ -196,6 +226,7 @@ export function useTranscription(): UseTranscriptionReturn {
     isSupported,
     startLiveTranscription,
     stopLiveTranscription,
+    transcribeAudio,
     clearTranscript,
     transcribeAudio,
   };
