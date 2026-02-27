@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────
+# CI — runs lint, type-check, and tests on every push / PR
+# ─────────────────────────────────────────────────────────────
+name: CI
+
+# When does this workflow run?
+on:
+  push:
+    branches: [main, v2]
+  pull_request:
+    branches: [main, v2]
+
+# Cancel in-progress runs when a new commit is pushed to the same PR/branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Types · Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install pnpm (must happen before Node setup for caching)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      # 3. Set up Node.js with pnpm dependency caching
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # 4. Install all workspace dependencies (frozen lockfile = no surprise updates)
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 5. Quality gates (fastest → slowest for quick feedback)
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Tests
+        run: pnpm test
