@@ -5,6 +5,7 @@ import type { Word } from '@Ordio/shared/schemas';
 
 interface UseTranscriptionReturn {
   isTranscribing: boolean;
+  isProcessing: boolean;
   transcript: Word[];
   liveWords: string[];
   error: string | null;
@@ -12,6 +13,7 @@ interface UseTranscriptionReturn {
   startLiveTranscription: () => void;
   stopLiveTranscription: () => void;
   clearTranscript: () => void;
+  transcribeAudio: (blob: Blob) => Promise<Word[]>;
 }
 
 // Minimal types for cross-browser SpeechRecognition
@@ -62,6 +64,7 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
 
 export function useTranscription(): UseTranscriptionReturn {
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState<Word[]>([]);
   const [liveWords, setLiveWords] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -155,8 +158,38 @@ export function useTranscription(): UseTranscriptionReturn {
     setError(null);
   }, []);
 
+  const transcribeAudio = useCallback(async (blob: Blob): Promise<Word[]> => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('audio', blob, 'audio.webm');
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Transcription failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      const words: Word[] = data.words ?? [];
+      return words;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Transcription failed';
+      setError(message);
+      return [];
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
+
   return {
     isTranscribing,
+    isProcessing,
     transcript,
     liveWords,
     error,
@@ -164,5 +197,6 @@ export function useTranscription(): UseTranscriptionReturn {
     startLiveTranscription,
     stopLiveTranscription,
     clearTranscript,
+    transcribeAudio,
   };
 }

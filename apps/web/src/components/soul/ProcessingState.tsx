@@ -5,9 +5,16 @@ import ProcessingStep from '@/components/primitives/ProcessingStep';
 
 interface ProcessingStateProps {
   progress: number;
+  step: number;
 }
 
-export default function ProcessingState({ progress }: ProcessingStateProps) {
+const STEPS = [
+  'Analyzing audio',
+  'Transcribing with AI',
+  'Preparing captions',
+] as const;
+
+export default function ProcessingState({ progress, step }: ProcessingStateProps) {
   return (
     <div
       className="flex flex-col items-center gap-10 animate-fadeIn"
@@ -24,21 +31,11 @@ export default function ProcessingState({ progress }: ProcessingStateProps) {
       <ProgressRing progress={progress} />
 
       <div className="flex flex-col items-start gap-3 w-[13rem]">
-        <ProcessingStep done={progress > 25} active={progress <= 25 && progress > 0}>
-          Analyzing audio
-        </ProcessingStep>
-        <ProcessingStep done={progress > 45} active={progress > 25 && progress <= 45}>
-          Generating transcript
-        </ProcessingStep>
-        <ProcessingStep done={progress > 70} active={progress > 45 && progress <= 70}>
-          Rendering waveform
-        </ProcessingStep>
-        <ProcessingStep done={progress > 90} active={progress > 70 && progress <= 90}>
-          Encoding video
-        </ProcessingStep>
-        <ProcessingStep done={progress === 100} active={progress > 90 && progress < 100}>
-          Finalizing
-        </ProcessingStep>
+        {STEPS.map((label, i) => (
+          <ProcessingStep key={label} done={step > i} active={step === i && progress < 100}>
+            {label}
+          </ProcessingStep>
+        ))}
       </div>
     </div>
   );
