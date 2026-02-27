@@ -28,8 +28,6 @@ jobs:
       # 2. Install pnpm (must happen before Node setup for caching)
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       # 3. Set up Node.js with pnpm dependency caching
       - name: Setup Node.js
