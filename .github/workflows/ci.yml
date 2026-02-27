@@ -41,11 +41,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # 5. Quality gates (fastest → slowest for quick feedback)
+      #    Convex package excluded — _generated/ types require `npx convex dev`
       - name: Lint
-        run: pnpm lint
+        run: pnpm lint --filter='!@Ordio/convex'
 
       - name: Type check
-        run: pnpm type-check
+        run: pnpm type-check --filter='!@Ordio/convex'
 
       - name: Tests
-        run: pnpm test
+        run: pnpm test --filter='!@Ordio/convex'
