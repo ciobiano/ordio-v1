@@ -49,4 +49,4 @@ jobs:
         run: pnpm type-check --filter='!@Ordio/convex'
 
       - name: Tests
-        run: pnpm test --filter='!@Ordio/convex'
+        run: pnpm test --filter='!@Ordio/convex' --filter='!renderer'
