@@ -76,6 +76,9 @@ export function usePlayback(): UsePlaybackReturn {
     playStartTimeRef.current = ctx.currentTime;
 
     source.onended = () => {
+      // Guard: ignore stale onended from a source that was already replaced
+      // (e.g., seek stopped the old source, but onended fires after a new source started)
+      if (sourceRef.current !== source) return;
       if (playingRef.current) {
         playingRef.current = false;
         setIsPlaying(false);
@@ -110,16 +113,15 @@ export function usePlayback(): UsePlaybackReturn {
       setCurrentTime(clamped);
 
       if (playingRef.current) {
-        // Restart from new position
+        // Pause at new position — user clicks Play to resume
         sourceRef.current?.stop();
         sourceRef.current = null;
         playingRef.current = false;
+        setIsPlaying(false);
         stopTimeLoop();
-        // Re-start after a micro-tick to allow state to settle
-        setTimeout(() => play(), 0);
       }
     },
-    [play, stopTimeLoop]
+    [stopTimeLoop]
   );
 
   const stop = useCallback(() => {
@@ -135,7 +137,10 @@ export function usePlayback(): UsePlaybackReturn {
   useEffect(() => {
     return () => {
       sourceRef.current?.stop();
-      ctxRef.current?.close();
+      if (ctxRef.current && ctxRef.current.state !== 'closed') {
+        ctxRef.current.close();
+      }
+      ctxRef.current = null;
       stopTimeLoop();
     };
   }, [stopTimeLoop]);

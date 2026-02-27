@@ -10,6 +10,7 @@ import {
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
+import { loadFont } from '@/lib/fontLoader';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { WaveformVariant, CaptionVariant } from '@/lib/store';
 
@@ -58,6 +59,9 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     onProgress,
     signal,
   } = options;
+
+  // Load font before rendering
+  await loadFont(style.fontFamily);
 
   // Ensure canvas dimensions match style
   canvas.width = style.width;
@@ -110,6 +114,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
   };
 
   // Render and encode frame by frame
+  let lastProgressPct = -1;
   for (let i = 0; i < totalFrames; i++) {
     if (signal?.aborted) {
       throw new DOMException('Export cancelled', 'AbortError');
@@ -122,9 +127,13 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     const timestamp = i * frameDuration;
     await videoSource.add(timestamp, frameDuration);
 
-    // Report progress
+    // Report progress — deduplicated to at most one call per integer percent
     if (onProgress) {
-      onProgress((i + 1) / totalFrames);
+      const pct = Math.floor(((i + 1) / totalFrames) * 100);
+      if (pct !== lastProgressPct) {
+        onProgress((i + 1) / totalFrames);
+        lastProgressPct = pct;
+      }
     }
   }
 

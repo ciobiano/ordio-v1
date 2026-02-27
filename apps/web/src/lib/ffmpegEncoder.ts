@@ -1,6 +1,7 @@
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
+import { loadFont } from '@/lib/fontLoader';
 import type { EncodeVideoOptions, EncodeResult } from '@/lib/videoEncoder';
 
 /**
@@ -34,6 +35,9 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
   });
 
+  // Load font before rendering
+  await loadFont(style.fontFamily);
+
   // Ensure canvas dimensions match style
   canvas.width = style.width;
   canvas.height = style.height;
@@ -54,6 +58,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
   };
 
   // Render frames to JPEG and write to ffmpeg virtual FS
+  let lastProgressPct = -1;
   for (let i = 0; i < totalFrames; i++) {
     if (signal?.aborted) {
       throw new DOMException('Export cancelled', 'AbortError');
@@ -68,7 +73,12 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     const filename = `frame${String(i).padStart(6, '0')}.jpg`;
     await ffmpeg.writeFile(filename, await blobToUint8Array(jpeg));
 
-    onProgress?.((i + 1) / totalFrames * 0.9);
+    // Deduplicate to at most one call per integer percent of the 0–90% range
+    const pct = Math.floor(((i + 1) / totalFrames) * 90);
+    if (onProgress && pct !== lastProgressPct) {
+      onProgress((i + 1) / totalFrames * 0.9);
+      lastProgressPct = pct;
+    }
   }
 
   // Write audio as WAV
