@@ -5,7 +5,6 @@ import ProcessingStep from '@/components/primitives/ProcessingStep';
 
 interface ProcessingStateProps {
   progress: number;
-  step: number;
 }
 
 const STEPS = [
@@ -14,7 +13,14 @@ const STEPS = [
   'Preparing captions',
 ] as const;
 
-export default function ProcessingState({ progress, step }: ProcessingStateProps) {
+function deriveStep(progress: number): number {
+  if (progress < 25) return 0;
+  if (progress < 70) return 1;
+  return 2;
+}
+
+export default function ProcessingState({ progress }: ProcessingStateProps) {
+  const step = deriveStep(progress);
   return (
     <div
       className="flex flex-col items-center gap-10 animate-fadeIn"
