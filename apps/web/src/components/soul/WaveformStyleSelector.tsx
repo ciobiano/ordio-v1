@@ -38,10 +38,13 @@ function CircleIcon() {
   );
 }
 
-function LineIcon() {
+function SpectrogramIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" className="text-white/60" aria-hidden="true">
-      <path d="M1 8 Q4 4, 8 8 T15 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="1" y="2" width="2" height="12" fill="currentColor" rx="1" opacity="0.4" />
+      <rect x="4.5" y="4" width="2" height="8" fill="currentColor" rx="1" opacity="0.6" />
+      <rect x="8" y="1" width="2" height="14" fill="currentColor" rx="1" opacity="0.8" />
+      <rect x="11.5" y="3" width="2" height="10" fill="currentColor" rx="1" opacity="0.5" />
     </svg>
   );
 }
@@ -49,13 +52,13 @@ function LineIcon() {
 const icons: Record<WaveformVariant, () => React.ReactElement> = {
   bars: BarsIcon,
   circle: CircleIcon,
-  line: LineIcon,
+  spectrogram: SpectrogramIcon,
 };
 
 const labels: Record<WaveformVariant, string> = {
   bars: 'Bar waveform',
   circle: 'Circle waveform',
-  line: 'Line waveform',
+  spectrogram: 'Spectrogram waveform',
 };
 
 export default function WaveformStyleSelector() {
@@ -65,7 +68,7 @@ export default function WaveformStyleSelector() {
   return (
     <div className="flex items-center gap-2" role="group" aria-label="Waveform style">
       <span className="text-white/20 text-xs mr-1" aria-hidden="true">Wave:</span>
-      {(['bars', 'circle', 'line'] as WaveformVariant[]).map((style) => {
+      {(['bars', 'circle', 'spectrogram'] as WaveformVariant[]).map((style) => {
         const Icon = icons[style];
         return (
           <button

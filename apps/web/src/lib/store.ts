@@ -4,10 +4,11 @@ import { create } from 'zustand';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 
 export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
-export type WaveformVariant = 'bars' | 'circle' | 'line';
+export type WaveformVariant = 'bars' | 'circle' | 'spectrogram';
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal';
 export type Theme = 'dark' | 'light';
+export type TranscriptionSource = 'whisper' | 'webspeech' | null;
 
 interface AppState {
   // Phase
@@ -33,6 +34,7 @@ interface AppState {
   transcript: Word[];
   isTranscribing: boolean;
   liveWords: string[];
+  transcriptionSource: TranscriptionSource;
 
   // Export
   isExporting: boolean;
@@ -61,6 +63,7 @@ interface AppState {
   setTranscript: (transcript: Word[]) => void;
   setIsTranscribing: (isTranscribing: boolean) => void;
   setLiveWords: (words: string[]) => void;
+  setTranscriptionSource: (source: TranscriptionSource) => void;
   setIsExporting: (isExporting: boolean) => void;
   setExportProgress: (progress: number) => void;
   setExportedUrl: (url: string | null) => void;
@@ -85,6 +88,7 @@ const initialState = {
   transcript: [] as Word[],
   isTranscribing: false,
   liveWords: [] as string[],
+  transcriptionSource: null as TranscriptionSource,
   isExporting: false,
   exportProgress: 0,
   exportedUrl: null,
@@ -94,7 +98,7 @@ const initialState = {
     backgroundColor: '#000000',
     textColor: '#ffffff',
     fontFamily: 'Inter' as const,
-    fontSize: 42,
+    fontSize: 72,
     waveColor: '#ffffff',
   },
   waveformStyle: 'bars' as WaveformVariant,
@@ -118,6 +122,7 @@ export const useStore = create<AppState>((set) => ({
   setTranscript: (transcript) => set({ transcript }),
   setIsTranscribing: (isTranscribing) => set({ isTranscribing }),
   setLiveWords: (liveWords) => set({ liveWords }),
+  setTranscriptionSource: (transcriptionSource) => set({ transcriptionSource }),
   setIsExporting: (isExporting) => set({ isExporting }),
   setExportProgress: (exportProgress) => set({ exportProgress }),
   setExportedUrl: (exportedUrl) => set({ exportedUrl }),
@@ -125,7 +130,16 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({ style: { ...state.style, ...newStyle } })),
   setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
   setCaptionStyle: (captionStyle) => set({ captionStyle }),
-  setFormat: (format) => set({ format }),
+  setFormat: (format) =>
+    set((state) => {
+      const dims =
+        format === 'square'
+          ? { width: 1080, height: 1080 }
+          : format === 'vertical'
+            ? { width: 1080, height: 1920 }
+            : { width: 1920, height: 1080 };
+      return { format, style: { ...state.style, ...dims } };
+    }),
   setShowControls: (showControls) => set({ showControls }),
   reset: () => set(initialState),
 }));

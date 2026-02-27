@@ -76,7 +76,7 @@ describe('renderFrame', () => {
   });
 
   it('renders without crashing for all waveform variants', () => {
-    const variants = ['bars', 'line', 'circle'] as const;
+    const variants = ['bars', 'spectrogram', 'circle'] as const;
     for (const variant of variants) {
       const ctx = createMockCtx();
       expect(() =>

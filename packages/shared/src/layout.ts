@@ -1,7 +1,4 @@
-/**
- * Deterministic text layout engine.
- * Decouples layout logic from the DOM to ensure server-side parity.
- */
+
 
 import { StyleConfig } from './schemas';
 

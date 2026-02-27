@@ -3,7 +3,7 @@
 import type { WaveformVariant } from '@/lib/store';
 import BarsWaveform from './BarsWaveform';
 import CircleWaveform from './CircleWaveform';
-import LineWaveform from './LineWaveform';
+import SpectrogramWaveform from './SpectrogramWaveform';
 
 interface WaveformDisplayProps {
   variant: WaveformVariant;
@@ -21,8 +21,8 @@ export default function WaveformDisplay({
   switch (variant) {
     case 'circle':
       return <CircleWaveform level={level} isRecording={isRecording} compact={compact} />;
-    case 'line':
-      return <LineWaveform level={level} isRecording={isRecording} compact={compact} />;
+    case 'spectrogram':
+      return <SpectrogramWaveform level={level} isRecording={isRecording} compact={compact} />;
     default:
       return <BarsWaveform level={level} isRecording={isRecording} compact={compact} />;
   }
