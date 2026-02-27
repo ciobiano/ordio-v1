@@ -5,6 +5,7 @@ import PlaybackControls from '@/components/primitives/PlaybackControls';
 import CaptionEditor from './CaptionEditor';
 import StyleControls from './StyleControls';
 import FormatToggle from './FormatToggle';
+import { primaryBtn, ghostBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
 
@@ -71,15 +72,7 @@ export default function ExportState({
       <FormatToggle />
 
       {!exporter.exportedUrl && !exporter.isExporting && (
-        <button
-          onClick={onExport}
-          aria-label="Export video"
-          className="w-full sm:w-auto px-10 py-3.5 bg-white text-black rounded-full
-                     text-[0.9375rem] font-[600] tracking-[-0.01em]
-                     hover:bg-white/92 transition-all duration-200
-                     hover:scale-[1.02] active:scale-[0.98] cursor-pointer
-                     shadow-[0_8px_32px_rgba(255,255,255,0.08)]"
-        >
+        <button onClick={onExport} aria-label="Export video" className={primaryBtn}>
           Export MP4
         </button>
       )}
@@ -106,12 +99,7 @@ export default function ExportState({
             <span className="text-white/35 text-xs">
               Exporting&nbsp;{Math.round(exporter.exportProgress)}%
             </span>
-            <button
-              onClick={exporter.cancelExport}
-              className="text-white/25 text-xs hover:text-white/55
-                         transition-colors duration-150 cursor-pointer"
-              aria-label="Cancel export"
-            >
+            <button onClick={exporter.cancelExport} aria-label="Cancel export" className={ghostBtn}>
               Cancel
             </button>
           </div>
@@ -119,15 +107,7 @@ export default function ExportState({
       )}
 
       {exporter.exportedUrl && (
-        <button
-          onClick={onDownload}
-          aria-label="Download exported video"
-          className="w-full sm:w-auto px-10 py-3.5 bg-white text-black rounded-full
-                     text-[0.9375rem] font-[600] tracking-[-0.01em]
-                     hover:bg-white/92 transition-all duration-200
-                     hover:scale-[1.02] active:scale-[0.98] cursor-pointer
-                     shadow-[0_8px_32px_rgba(255,255,255,0.08)]"
-        >
+        <button onClick={onDownload} aria-label="Download exported video" className={primaryBtn}>
           Download
         </button>
       )}
@@ -138,12 +118,7 @@ export default function ExportState({
         </p>
       )}
 
-      <button
-        onClick={onReset}
-        aria-label="Create another video"
-        className="text-white/28 text-sm hover:text-white/55
-                   transition-colors duration-150 cursor-pointer"
-      >
+      <button onClick={onReset} aria-label="Create another video" className={ghostBtn}>
         Create another
       </button>
     </div>

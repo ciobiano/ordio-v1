@@ -81,7 +81,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
         <div className="absolute inset-y-0 left-0 right-0 my-auto h-[3px] rounded-full bg-white/10" />
         {/* Fill */}
         <div
-          className="absolute inset-y-0 left-0 my-auto h-[3px] rounded-full bg-gradient-to-r from-blue-500 to-purple-500 pointer-events-none"
+          className="absolute inset-y-0 left-0 my-auto h-[3px] rounded-full bg-gray-600 pointer-events-none"
           style={{ width: `${progress}%` }}
         />
         {/* Range input (transparent — sits on top) */}

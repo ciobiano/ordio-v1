@@ -6,10 +6,10 @@ import { useStore } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
 import { useTranscription } from '@/hooks/useTranscription';
+import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
-import { useVAD } from '@/hooks/useVAD';
 import { cn } from '@/lib/cn';
 
 import { CapabilityBanner } from '@/components/primitives';
@@ -33,42 +33,25 @@ export default function Home() {
     showControls,
     liveWords,
     setCurrentState,
-    setAudioBuffer,
-    setAudioBlob,
-    setAudioDuration,
-    setTranscript,
     setLiveWords,
     setShowControls,
     reset,
   } = useStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingStep, setProcessingStep] = useState(0);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const exportCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
+  const { processingProgress, processAudio } = useAudioProcessing(transcription);
   const exporter = useVideoExporter();
   const capabilities = useCapabilities();
   const playback = usePlayback();
-  const vad = useVAD(currentState === 'recording');
 
-  const decodeAudioBlob = useCallback(async (blob: Blob): Promise<void> => {
-    const audioCtx = new AudioContext();
-    audioContextRef.current = audioCtx;
-    const arrayBuffer = await blob.arrayBuffer();
-    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-    setAudioBuffer(decoded);
-    setAudioBlob(blob);
-    setAudioDuration(decoded.duration);
-  }, [setAudioBuffer, setAudioBlob, setAudioDuration]);
-
+  // Audio level animation during recording
   useEffect(() => {
     if (!recorder.isRecording) {
       setAudioLevel(0);
@@ -85,10 +68,12 @@ export default function Home() {
     };
   }, [recorder.isRecording, analyser]);
 
+  // Sync live transcription words to store
   useEffect(() => {
     setLiveWords(transcription.liveWords);
   }, [transcription.liveWords, setLiveWords]);
 
+  // Load audio into playback when entering export phase
   useEffect(() => {
     if (currentState !== 'export') return;
     const { audioBuffer } = useStore.getState();
@@ -96,46 +81,15 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentState]);
 
+  // Process recorded audio when recording stops
   useEffect(() => {
     if (recorder.state !== 'stopped' || !recorder.audioBlob) return;
-
-    const processRecordedAudio = async () => {
-      setCurrentState('processing');
-      setProcessingProgress(0);
-      setProcessingStep(0);
-      try {
-        // Step 1: Analyze audio
-        setProcessingStep(0);
-        setProcessingProgress(10);
-        await decodeAudioBlob(recorder.audioBlob!);
-        setProcessingProgress(30);
-
-        // Step 2: Transcribe with Whisper API
-        setProcessingStep(1);
-        setProcessingProgress(35);
-        transcription.stopLiveTranscription();
-        const whisperWords = await transcription.transcribeAudio(recorder.audioBlob!);
-        setProcessingProgress(85);
-
-        // Step 3: Prepare captions
-        setProcessingStep(2);
-        setTranscript(whisperWords.length > 0 ? whisperWords : transcription.transcript);
-        setProcessingProgress(100);
-        setTimeout(() => setCurrentState('export'), 300);
-      } catch (err) {
-        console.error('Processing failed:', err);
-        setCurrentState('idle');
-      }
-    };
-
-    processRecordedAudio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorder.state, recorder.audioBlob]);
+    processAudio(recorder.audioBlob, true).catch(() => {});
+  }, [recorder.state, recorder.audioBlob, processAudio]);
 
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
     await recorder.startRecording();
-    transcription.startLiveTranscription();
     setCurrentState('recording');
   }, [recorder, transcription, setCurrentState]);
 
@@ -154,35 +108,15 @@ export default function Home() {
         return;
       }
 
-      setCurrentState('processing');
-      setProcessingProgress(0);
-      setProcessingStep(0);
       try {
-        // Step 1: Analyze audio
-        setProcessingStep(0);
-        setProcessingProgress(10);
-        await decodeAudioBlob(file);
-        setProcessingProgress(30);
-
-        // Step 2: Transcribe with Whisper API
-        setProcessingStep(1);
-        setProcessingProgress(35);
-        const whisperWords = await transcription.transcribeAudio(file);
-        setProcessingProgress(85);
-
-        // Step 3: Prepare captions
-        setProcessingStep(2);
-        setTranscript(whisperWords);
-        setProcessingProgress(100);
-        setTimeout(() => setCurrentState('export'), 300);
+        await processAudio(file);
       } catch {
         alert('Failed to load audio file. Please try MP3, WAV, or M4A.');
-        setCurrentState('idle');
       }
 
       if (e.target) e.target.value = '';
     },
-    [setCurrentState, decodeAudioBlob]
+    [processAudio]
   );
 
   const handleExport = useCallback(async () => {
@@ -190,15 +124,19 @@ export default function Home() {
     if (!audioBuffer) return;
 
     const canvas = document.createElement('canvas');
-    const dims = format === 'square' ? [1080, 1080] : format === 'vertical' ? [1080, 1920] : [1920, 1080];
+    const dims =
+      format === 'square'
+        ? [1080, 1080]
+        : format === 'vertical'
+          ? [1080, 1920]
+          : [1920, 1080];
     canvas.width = dims[0];
     canvas.height = dims[1];
-    exportCanvasRef.current = canvas;
 
-    const canvasCtx = canvas.getContext('2d');
-    if (canvasCtx) {
-      canvasCtx.fillStyle = '#000000';
-      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     await exporter.startExport(canvas, audioBuffer);
@@ -218,8 +156,6 @@ export default function Home() {
     transcription.clearTranscript();
     exporter.cancelExport();
     playback.stop();
-    audioContextRef.current?.close();
-    audioContextRef.current = null;
     reset();
   }, [recorder, transcription, exporter, playback, reset]);
 
@@ -265,12 +201,11 @@ export default function Home() {
             liveWords={liveWords}
             captionStyle={captionStyle}
             waveformStyle={waveformStyle}
-            isSpeaking={vad.isSpeaking}
           />
         )}
 
         {currentState === 'processing' && (
-          <ProcessingState progress={processingProgress} step={processingStep} />
+          <ProcessingState progress={processingProgress} />
         )}
 
         {currentState === 'export' && (

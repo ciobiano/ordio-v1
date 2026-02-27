@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/cn';
+import { panelCard } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 
@@ -87,8 +88,7 @@ export default function StyleControls() {
       {isExpanded && (
         <div
           id="style-controls-panel"
-          className="mt-3 w-full rounded-2xl bg-white/[0.03] border border-white/[0.06]
-                     px-4 py-4 flex flex-col gap-4 animate-fadeIn"
+          className={cn(panelCard, 'mt-3 w-full px-4 py-4 flex flex-col gap-4 animate-fadeIn')}
         >
           {/* Colors */}
           <div className="flex flex-col gap-2.5">

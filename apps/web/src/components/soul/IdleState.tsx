@@ -3,6 +3,7 @@
 import type { ChangeEvent, RefObject } from 'react';
 import { cn } from '@/lib/cn';
 import WaveformDisplay from '@/components/primitives/waveform/WaveformDisplay';
+import { ghostBtn, roundIconBtn } from '@/lib/variants';
 import type { WaveformVariant } from '@/lib/store';
 
 interface IdleStateProps {
@@ -45,13 +46,10 @@ export default function IdleState({
         onClick={onStartRecording}
         disabled={!canRecord && !isLoading}
         aria-label="Start recording"
-        className="group relative w-[4.5rem] h-[4.5rem] rounded-full
-                   bg-white/[0.04] border border-white/[0.08]
-                   hover:bg-white/[0.08] hover:border-white/[0.15]
-                   transition-all duration-200
-                   hover:scale-105 active:scale-[0.96]
-                   disabled:opacity-30 disabled:cursor-not-allowed
-                   cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
+        className={cn(
+          roundIconBtn({ intent: 'idle' }),
+          'disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2'
+        )}
       >
         <span className="sr-only">Start recording</span>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -77,9 +75,7 @@ export default function IdleState({
         <button
           onClick={() => fileInputRef.current?.click()}
           aria-label="Upload audio file"
-          className="text-white/30 text-sm hover:text-white/60
-                     transition-colors duration-150 cursor-pointer
-                     underline underline-offset-4 decoration-white/20"
+          className={cn(ghostBtn, 'underline underline-offset-4 decoration-white/20')}
         >
           or upload audio file
         </button>

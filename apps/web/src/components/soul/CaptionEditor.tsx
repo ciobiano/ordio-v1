@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/cn';
+import { panelCard } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { Word } from '@Ordio/shared/schemas';
 
@@ -34,6 +35,7 @@ interface CaptionEditorProps {
 export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProps) {
   const transcript = useStore((s) => s.transcript);
   const setTranscript = useStore((s) => s.setTranscript);
+  const transcriptionSource = useStore((s) => s.transcriptionSource);
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -137,8 +139,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   if (transcript.length === 0) {
     return (
       <div
-        className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.06]
-                   px-4 py-5 flex items-center justify-center min-h-[4.5rem]"
+        className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-[4.5rem]')}
         aria-label="Caption editor — empty"
       >
         <p className="text-white/25 text-sm">No transcript yet</p>
@@ -149,13 +150,27 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   return (
     <div
       ref={containerRef}
-      className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.06] px-4 py-4"
+      className={cn(panelCard, 'w-full px-4 py-4')}
       aria-label="Caption editor"
       onKeyDown={handleContainerKeyDown}
     >
-      <p className="text-white/20 text-[0.625rem] uppercase tracking-[0.18em] mb-3">
-        Transcript — click to seek, double-click to edit
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white/20 text-[0.625rem] uppercase tracking-[0.18em]">
+          Transcript — click to seek, double-click to edit
+        </p>
+        {transcriptionSource && (
+          <span
+            className={cn(
+              'text-[0.5625rem] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded font-medium',
+              transcriptionSource === 'whisper'
+                ? 'bg-green-500/15 text-green-400/80'
+                : 'bg-yellow-500/15 text-yellow-400/80'
+            )}
+          >
+            {transcriptionSource === 'whisper' ? 'OpenAI Whisper' : 'Web Speech'}
+          </span>
+        )}
+      </div>
       <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto" role="list">
         {transcript.map((word, i) => {
           const active = isActive(word);

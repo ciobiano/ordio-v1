@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { roundIconBtn } from '@/lib/variants';
 import type { WaveformVariant, CaptionVariant } from '@/lib/store';
 
 interface RecordingStateProps {
@@ -170,11 +171,7 @@ export default function RecordingState({
         <button
           onClick={onStopRecording}
           aria-label="Stop recording"
-          className="group relative w-[4.5rem] h-[4.5rem] rounded-full
-                     bg-[#e11d48]/[0.12] border-2 border-[#e11d48]/30
-                     hover:bg-[#e11d48]/20 hover:border-[#e11d48]/50
-                     transition-all duration-200
-                     hover:scale-105 active:scale-[0.96] cursor-pointer"
+          className={roundIconBtn({ intent: 'stop' })}
         >
           <span className="sr-only">Stop recording</span>
           <div className="absolute inset-0 flex items-center justify-center">
