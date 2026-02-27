@@ -93,6 +93,12 @@ importers:
       '@clerk/nextjs':
         specifier: ^6.9.0
         version: 6.36.8(next@15.3.3)(react-dom@19.2.3)(react@19.2.3)
+      '@ffmpeg/core-st':
+        specifier: ^0.11.1
+        version: 0.11.1
+      '@ffmpeg/ffmpeg':
+        specifier: ^0.12.15
+        version: 0.12.15
       '@ricky0123/vad-web':
         specifier: ^0.0.30
         version: 0.0.30
@@ -108,6 +114,9 @@ importers:
       copy-webpack-plugin:
         specifier: ^12.0.2
         version: 12.0.2(webpack@5.96.1)
+      mediabunny:
+        specifier: ^1.34.5
+        version: 1.34.5
       next:
         specifier: 15.3.3
         version: 15.3.3(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@19.2.3)(react@19.2.3)
@@ -1296,6 +1305,22 @@ packages:
       '@noble/hashes':
         optional: true
     dev: true
+
+  /@ffmpeg/core-st@0.11.1:
+    resolution: {integrity: sha512-8R0kdXjQjjOgVaChDMUx/abrTD5/g9JFnuZLqB+lvzJbfNpNEFEZPxFR1Fu4eoON+fVq3K3URVKZcHEEGKZVTQ==}
+    dev: false
+
+  /@ffmpeg/ffmpeg@0.12.15:
+    resolution: {integrity: sha512-1C8Obr4GsN3xw+/1Ww6PFM84wSQAGsdoTuTWPOj2OizsRDLT4CXTaVjPhkw6ARyDus1B9X/L2LiXHqYYsGnRFw==}
+    engines: {node: '>=18.x'}
+    dependencies:
+      '@ffmpeg/types': 0.12.4
+    dev: false
+
+  /@ffmpeg/types@0.12.4:
+    resolution: {integrity: sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==}
+    engines: {node: '>=16.x'}
+    dev: false
 
   /@humanwhocodes/config-array@0.13.0:
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -5778,6 +5803,13 @@ packages:
 
   /mediabunny@1.27.3:
     resolution: {integrity: sha512-hlzmgzMznp9DhA5fMJKS5yEAyfCUMxAc+DbSPxD4J1J2cYVl1L+pZLndkt5xLlD5aB5eHEnphHMW14ammMlUXg==}
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.11
+      '@types/dom-webcodecs': 0.1.13
+    dev: false
+
+  /mediabunny@1.34.5:
+    resolution: {integrity: sha512-Hs31rd+ane6GQJClM77KfNnf49DenK7yRU9MC4JeHwpNIFCSww/XUoGyKleAVrylw6Snrep2Sm+BhD2CS5ARkg==}
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13

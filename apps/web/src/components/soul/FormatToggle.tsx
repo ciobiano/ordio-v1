@@ -19,8 +19,9 @@ const formatBtn = cva(
 );
 
 const formats: { value: FormatVariant; label: string }[] = [
-  { value: 'vertical', label: 'Vertical · 9:16' },
-  { value: 'horizontal', label: 'Horizontal · 16:9' },
+  { value: 'square', label: '1:1' },
+  { value: 'vertical', label: '9:16' },
+  { value: 'horizontal', label: '16:9' },
 ];
 
 export default function FormatToggle() {

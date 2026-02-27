@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useStore } from '@/lib/store';
+import { encodeVideo, hasWebCodecsSupport } from '@/lib/videoEncoder';
+import { encodeVideoFFmpeg } from '@/lib/ffmpegEncoder';
 
 interface UseVideoExporterReturn {
   isExporting: boolean;
@@ -10,30 +13,6 @@ interface UseVideoExporterReturn {
   error: string | null;
   startExport: (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer) => Promise<void>;
   cancelExport: () => void;
-}
-
-/**
- * Prefer MP4 (H.264/AAC) — the universal social media format.
- * MediaRecorder supports `video/mp4` in Chrome 130+ on most platforms.
- * Falls back to WebM if MP4 is unavailable (Firefox, older Chrome).
- */
-function detectMimeType(): string {
-  const candidates = [
-    'video/mp4;codecs=h264,aac',
-    'video/mp4;codecs=avc1',
-    'video/mp4',
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
-  ];
-
-  for (const type of candidates) {
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
-      return type;
-    }
-  }
-
-  return 'video/webm'; // last resort
 }
 
 function fileExtension(mimeType: string): string {
@@ -47,16 +26,14 @@ export function useVideoExporter(): UseVideoExporterReturn {
   const [exportMimeType, setExportMimeType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const prevUrlRef = useRef<string | null>(null);
-  const cancelledRef = useRef(false);
 
   const startExport = useCallback(
     async (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer) => {
       try {
         setError(null);
         setExportProgress(0);
-        cancelledRef.current = false;
 
         if (prevUrlRef.current) {
           URL.revokeObjectURL(prevUrlRef.current);
@@ -65,75 +42,45 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
         setIsExporting(true);
 
-        const mimeType = detectMimeType();
-        const duration = audioBuffer.duration;
-        const fps = 30;
+        const abortController = new AbortController();
+        abortRef.current = abortController;
 
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
+        // Read current style/variant state from store
+        const { transcript, style, waveformStyle, captionStyle } = useStore.getState();
 
-        const audioDestination = audioCtx.createMediaStreamDestination();
-        source.connect(audioDestination);
+        const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
+        const result = await encode({
+          canvas,
+          audioBuffer,
+          transcript,
+          style,
+          waveformStyle,
+          captionStyle,
+          onProgress: (progress) => setExportProgress(progress * 100),
+          signal: abortController.signal,
+        });
 
-        const videoStream = canvas.captureStream(fps);
-        audioDestination.stream.getAudioTracks().forEach((track) =>
-          videoStream.addTrack(track)
-        );
-
-        const recorder = new MediaRecorder(videoStream, { mimeType });
-        recorderRef.current = recorder;
-
-        const chunks: Blob[] = [];
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.push(e.data);
-        };
-
-        recorder.onstop = () => {
-          audioCtx.close();
-          if (!cancelledRef.current) {
-            const blob = new Blob(chunks, { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            prevUrlRef.current = url;
-            setExportedUrl(url);
-            setExportMimeType(mimeType);
-            setExportProgress(100);
-          }
-          setIsExporting(false);
-        };
-
-        recorder.start(100);
-        source.start();
-
-        // Progress tracking via AudioContext time
-        const startTime = audioCtx.currentTime;
-        const updateProgress = () => {
-          if (cancelledRef.current) return;
-          const elapsed = audioCtx.currentTime - startTime;
-          const pct = Math.min((elapsed / duration) * 100, 99);
-          setExportProgress(pct);
-          if (elapsed < duration) requestAnimationFrame(updateProgress);
-        };
-        requestAnimationFrame(updateProgress);
-
-        source.onended = () => {
-          if (!cancelledRef.current && recorder.state === 'recording') {
-            recorder.stop();
-          }
-        };
+        const url = URL.createObjectURL(result.blob);
+        prevUrlRef.current = url;
+        setExportedUrl(url);
+        setExportMimeType(result.mimeType);
+        setExportProgress(100);
       } catch (err) {
-        setIsExporting(false);
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          // Cancelled by user — not an error
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Export failed');
+      } finally {
+        setIsExporting(false);
+        abortRef.current = null;
       }
     },
     []
   );
 
   const cancelExport = useCallback(() => {
-    cancelledRef.current = true;
-    if (recorderRef.current?.state === 'recording') {
-      recorderRef.current.stop();
-    }
+    abortRef.current?.abort();
     setIsExporting(false);
     setExportProgress(0);
   }, []);

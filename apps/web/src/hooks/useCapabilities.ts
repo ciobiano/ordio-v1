@@ -6,6 +6,7 @@ interface Capabilities {
   canRecord: boolean;
   canExport: boolean;
   canTranscribe: boolean;
+  hasWebCodecs: boolean;
   warnings: string[];
   isLoading: boolean;
 }
@@ -15,6 +16,7 @@ export function useCapabilities(): Capabilities {
     canRecord: false,
     canExport: false,
     canTranscribe: false,
+    hasWebCodecs: false,
     warnings: [],
     isLoading: true,
   });
@@ -54,6 +56,18 @@ export function useCapabilities(): Capabilities {
         );
       }
 
+      // WebCodecs: VideoEncoder + AudioEncoder (required for Mediabunny MP4 export)
+      const hasWebCodecs =
+        typeof window !== 'undefined' &&
+        typeof (window as unknown as Record<string, unknown>)['VideoEncoder'] !== 'undefined' &&
+        typeof (window as unknown as Record<string, unknown>)['AudioEncoder'] !== 'undefined';
+
+      if (!hasWebCodecs) {
+        warnings.push(
+          'Using compatibility mode — export will be slower on this browser.'
+        );
+      }
+
       // Transcription: SpeechRecognition
       const w = window as unknown as Record<string, unknown>;
       const canTranscribe =
@@ -71,6 +85,7 @@ export function useCapabilities(): Capabilities {
         canRecord,
         canExport,
         canTranscribe,
+        hasWebCodecs,
         warnings,
         isLoading: false,
       });

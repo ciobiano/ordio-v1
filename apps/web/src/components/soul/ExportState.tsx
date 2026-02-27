@@ -1,6 +1,6 @@
 'use client';
 
-import VideoPreview from '@/components/primitives/VideoPreview';
+import CanvasPreview from '@/components/primitives/CanvasPreview';
 import PlaybackControls from '@/components/primitives/PlaybackControls';
 import CaptionEditor from './CaptionEditor';
 import StyleControls from './StyleControls';
@@ -55,11 +55,16 @@ export default function ExportState({
         <h2 className="text-[1.375rem] font-[300] tracking-[-0.02em]">Ready to share</h2>
       </div>
 
-      <VideoPreview format={format} waveformStyle={waveformStyle} captionStyle={captionStyle} />
+      <CanvasPreview
+        playback={playback}
+        format={format}
+        waveformStyle={waveformStyle}
+        captionStyle={captionStyle}
+      />
 
       <PlaybackControls playback={playback} className="w-full" />
 
-      <CaptionEditor currentTime={playback.currentTime} />
+      <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
 
       <StyleControls />
 

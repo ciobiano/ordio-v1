@@ -10,6 +10,10 @@ const vadWebDist = path.dirname(
   require.resolve("@ricky0123/vad-web/dist/vad.worklet.bundle.min.js")
 );
 const onnxDist = path.dirname(require.resolve("onnxruntime-web"));
+const ffmpegCoreDist = path.join(
+  path.dirname(require.resolve("@ffmpeg/core-st/package.json")),
+  "dist"
+);
 
 const nextConfig: NextConfig = {
   webpack: (config) => {
@@ -33,6 +37,14 @@ const nextConfig: NextConfig = {
           {
             from: path.join(onnxDist, "*.mjs"),
             to: "../public/vad/[name][ext]",
+          },
+          {
+            from: path.join(ffmpegCoreDist, "ffmpeg-core.js"),
+            to: "../public/ffmpeg/ffmpeg-core.js",
+          },
+          {
+            from: path.join(ffmpegCoreDist, "ffmpeg-core.wasm"),
+            to: "../public/ffmpeg/ffmpeg-core.wasm",
           },
         ],
       })

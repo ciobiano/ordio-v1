@@ -37,3 +37,12 @@ When evaluating open-source libraries for Ordio:
 4. **SSR safety** — must handle server-side rendering gracefully (dynamic import or feature detection).
 5. **Maintenance** — prefer actively maintained (commits within 6 months), >500 stars, >1 contributor.
 6. **Web API preference** — if a native Web API (WebCodecs, MediaRecorder, Web Audio) does the job, prefer it over a library.
+
+## Caption Editor — UX Pattern: Click vs Double-Click
+- Single click for the most common action (seek/navigate), double-click for destructive/edit action.
+- Keep `focusedIndex` (keyboard nav) separate from `editingIndex` (inline edit mode). They serve different purposes.
+- For scrollable word chips: `max-h-*` + `overflow-y-auto` on the container, `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` on the active element.
+
+## Always Cross-Check TODO Before Planning
+- Before recommending "next steps", always read `tasks/todo.md` and cross-check against actual files in the codebase. Previous sessions may have completed work that wasn't marked in the TODO.
+- Check: is the package installed? Does the file exist? Is the hook wired up? Don't trust the checklist alone.

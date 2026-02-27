@@ -190,8 +190,9 @@ export default function Home() {
     if (!audioBuffer) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = format === 'vertical' ? 1080 : 1920;
-    canvas.height = format === 'vertical' ? 1920 : 1080;
+    const dims = format === 'square' ? [1080, 1080] : format === 'vertical' ? [1080, 1920] : [1920, 1080];
+    canvas.width = dims[0];
+    canvas.height = dims[1];
     exportCanvasRef.current = canvas;
 
     const canvasCtx = canvas.getContext('2d');

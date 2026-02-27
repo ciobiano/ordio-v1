@@ -6,7 +6,7 @@ import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
 export type WaveformVariant = 'bars' | 'circle' | 'line';
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
-export type FormatVariant = 'vertical' | 'horizontal';
+export type FormatVariant = 'square' | 'vertical' | 'horizontal';
 export type Theme = 'dark' | 'light';
 
 interface AppState {
@@ -90,16 +90,16 @@ const initialState = {
   exportedUrl: null,
   style: {
     width: 1080,
-    height: 1920,
+    height: 1080,
     backgroundColor: '#000000',
     textColor: '#ffffff',
     fontFamily: 'Inter' as const,
-    fontSize: 48,
-    waveColor: '#3B82F6',
+    fontSize: 42,
+    waveColor: '#ffffff',
   },
   waveformStyle: 'bars' as WaveformVariant,
-  captionStyle: 'bottom' as CaptionVariant,
-  format: 'vertical' as FormatVariant,
+  captionStyle: 'center' as CaptionVariant,
+  format: 'square' as FormatVariant,
   showControls: false,
 };
 

@@ -9,8 +9,9 @@ build/
 dist/
 *.tsbuildinfo
 
-# ── VAD assets (copied by webpack during build) ─────────────
+# ── Assets copied by webpack during build ───────────────────
 apps/web/public/vad/
+apps/web/public/ffmpeg/
 
 # ── Generated code ───────────────────────────────────────────
 # Convex auto-generates these on `npx convex dev/deploy`
