@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { toast } from 'sonner';
 import { useStore } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
@@ -10,10 +11,10 @@ import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
-import { cn } from '@/lib/cn';
 
 import { CapabilityBanner } from '@/components/primitives';
 import {
+  AudioSettings,
   CaptionStyleSelector,
   WaveformStyleSelector,
   IdleState,
@@ -30,11 +31,7 @@ export default function Home() {
     waveformStyle,
     captionStyle,
     format,
-    showControls,
-    liveWords,
     setCurrentState,
-    setLiveWords,
-    setShowControls,
     reset,
   } = useStore();
 
@@ -68,11 +65,6 @@ export default function Home() {
     };
   }, [recorder.isRecording, analyser]);
 
-  // Sync live transcription words to store
-  useEffect(() => {
-    setLiveWords(transcription.liveWords);
-  }, [transcription.liveWords, setLiveWords]);
-
   // Load audio into playback when entering export phase
   useEffect(() => {
     if (currentState !== 'export') return;
@@ -84,19 +76,20 @@ export default function Home() {
   // Process recorded audio when recording stops
   useEffect(() => {
     if (recorder.state !== 'stopped' || !recorder.audioBlob) return;
-    processAudio(recorder.audioBlob, true).catch(() => {});
+    processAudio(recorder.audioBlob).catch(() => {});
   }, [recorder.state, recorder.audioBlob, processAudio]);
 
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
-    await recorder.startRecording();
+    const stream = await recorder.startRecording();
+    if (stream) analyser.connectStream(stream);
     setCurrentState('recording');
-  }, [recorder, transcription, setCurrentState]);
+  }, [recorder, analyser, transcription, setCurrentState]);
 
   const handleStopRecording = useCallback(() => {
     recorder.stopRecording();
-    transcription.stopLiveTranscription();
-  }, [recorder, transcription]);
+    analyser.disconnect();
+  }, [recorder, analyser]);
 
   const handleFileUpload = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -104,14 +97,14 @@ export default function Home() {
       if (!file) return;
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        alert('File too large. Maximum 50MB.');
+        toast.error('File too large. Maximum 50 MB.');
         return;
       }
 
       try {
         await processAudio(file);
       } catch {
-        alert('Failed to load audio file. Please try MP3, WAV, or M4A.');
+        toast.error('Failed to load audio file. Try MP3, WAV, or M4A.');
       }
 
       if (e.target) e.target.value = '';
@@ -160,47 +153,42 @@ export default function Home() {
   }, [recorder, transcription, exporter, playback, reset]);
 
   return (
-    <div
-      className="min-h-screen bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
+    <div className="min-h-dvh bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]">
       {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
 
-      <div
-        className={cn(
-          'fixed top-4 right-4 z-40 transition-opacity duration-200',
-          showControls && (currentState === 'recording' || currentState === 'export')
-            ? 'opacity-100'
-            : 'opacity-0 pointer-events-none'
-        )}
-      >
-        <CaptionStyleSelector />
-      </div>
+      {(currentState === 'recording' || currentState === 'export') && (
+        <div className="fixed top-4 right-4 z-40">
+          <CaptionStyleSelector />
+        </div>
+      )}
 
       <main
-        className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
-        role="main"
+        id="main-content"
+        className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
       >
         {currentState === 'idle' && (
-          <IdleState
-            onStartRecording={handleStartRecording}
-            onFileUpload={handleFileUpload}
-            canRecord={capabilities.canRecord}
-            isLoading={capabilities.isLoading}
-            showControls={showControls}
-            waveformStyle={waveformStyle}
-            fileInputRef={fileInputRef}
-          />
+          <>
+            <IdleState
+              onStartRecording={handleStartRecording}
+              onFileUpload={handleFileUpload}
+              canRecord={capabilities.canRecord}
+              isLoading={capabilities.isLoading}
+              waveformStyle={waveformStyle}
+              fileInputRef={fileInputRef}
+            />
+            <div className="mt-6 w-full max-w-xs">
+              <AudioSettings />
+            </div>
+          </>
         )}
 
         {currentState === 'recording' && (
           <RecordingState
             onStopRecording={handleStopRecording}
             audioLevel={audioLevel}
-            liveWords={liveWords}
             captionStyle={captionStyle}
             waveformStyle={waveformStyle}
+            isSpeaking={audioLevel > 0.05}
           />
         )}
 
@@ -220,18 +208,24 @@ export default function Home() {
             onReset={handleReset}
           />
         )}
+
+        {/* Phase transition announcer for screen readers */}
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {currentState === 'recording' && 'Recording started'}
+          {currentState === 'processing' && 'Processing audio'}
+          {currentState === 'export' && 'Export ready'}
+        </div>
       </main>
 
-      <div
-        className={cn(
-          'fixed bottom-6 right-6 sm:bottom-8 sm:right-8 transition-all duration-200',
-          showControls && (currentState === 'idle' || currentState === 'recording')
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-1 pointer-events-none'
-        )}
-      >
-        <WaveformStyleSelector />
-      </div>
+      {(currentState === 'idle' || currentState === 'recording') && captionStyle !== 'karaoke' && (
+        <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8">
+          <WaveformStyleSelector />
+        </div>
+      )}
 
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/[0.08] text-[0.6875rem]

@@ -40,6 +40,12 @@ function getFormatLabel(format: FormatVariant): string {
   }
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
 function getContainerClass(format: FormatVariant): string {
   switch (format) {
     case 'square':
@@ -132,7 +138,9 @@ export default function CanvasPreview({
         width={canvasWidth}
         height={canvasHeight}
         className="w-full h-full object-contain"
-        aria-label="Video preview"
+        role="img"
+        tabIndex={-1}
+        aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
       <span
         className="absolute top-2 right-2 text-[0.625rem] font-medium tracking-wider uppercase

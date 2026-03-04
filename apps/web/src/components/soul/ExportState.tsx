@@ -96,7 +96,7 @@ export default function ExportState({
             />
           </div>
           <div className="flex items-center justify-between w-full">
-            <span className="text-white/35 text-xs">
+            <span className="text-white/60 text-xs">
               Exporting&nbsp;{Math.round(exporter.exportProgress)}%
             </span>
             <button onClick={exporter.cancelExport} aria-label="Cancel export" className={ghostBtn}>

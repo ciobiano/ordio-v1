@@ -7,6 +7,9 @@ interface Capabilities {
   canExport: boolean;
   canTranscribe: boolean;
   hasWebCodecs: boolean;
+  hasAudioWorklet: boolean;
+  hasWebAssembly: boolean;
+  canUseRnnoise: boolean;
   warnings: string[];
   isLoading: boolean;
 }
@@ -17,6 +20,9 @@ export function useCapabilities(): Capabilities {
     canExport: false,
     canTranscribe: false,
     hasWebCodecs: false,
+    hasAudioWorklet: false,
+    hasWebAssembly: false,
+    canUseRnnoise: false,
     warnings: [],
     isLoading: true,
   });
@@ -34,18 +40,18 @@ export function useCapabilities(): Capabilities {
         warnings.push('Microphone recording is not supported in this browser.');
       }
 
-      // Export: captureStream + MediaRecorder
+      // Export: WebCodecs (primary) or MediaRecorder (fallback)
       let canExport = false;
       try {
-        const canvas = document.createElement('canvas');
-        const hasCapture = typeof canvas.captureStream === 'function';
+        const hasWebCodecsExport =
+          typeof (window as unknown as Record<string, unknown>)['VideoEncoder'] !== 'undefined';
         const hasRecorder = typeof window.MediaRecorder !== 'undefined';
         const hasMime =
           hasRecorder &&
           (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ||
             MediaRecorder.isTypeSupported('video/webm') ||
             MediaRecorder.isTypeSupported('video/mp4'));
-        canExport = hasCapture && hasMime;
+        canExport = hasWebCodecsExport || hasMime;
       } catch {
         canExport = false;
       }
@@ -68,24 +74,29 @@ export function useCapabilities(): Capabilities {
         );
       }
 
-      // Transcription: SpeechRecognition
-      const w = window as unknown as Record<string, unknown>;
-      const canTranscribe =
-        typeof window !== 'undefined' &&
-        (typeof w['SpeechRecognition'] !== 'undefined' ||
-          typeof w['webkitSpeechRecognition'] !== 'undefined');
+      // Transcription is handled server-side via Whisper API
+      const canTranscribe = true;
 
-      if (!canTranscribe) {
-        warnings.push(
-          'Live transcription is not supported in this browser. You can still edit captions manually.'
-        );
-      }
+      // AudioWorklet + WebAssembly (required for RNNoise)
+      const hasAudioWorklet =
+        typeof window !== 'undefined' &&
+        typeof window.AudioContext !== 'undefined' &&
+        typeof AudioWorkletNode !== 'undefined';
+
+      const hasWebAssembly =
+        typeof WebAssembly !== 'undefined' &&
+        typeof WebAssembly.instantiate === 'function';
+
+      const canUseRnnoise = hasAudioWorklet && hasWebAssembly;
 
       setCapabilities({
         canRecord,
         canExport,
         canTranscribe,
         hasWebCodecs,
+        hasAudioWorklet,
+        hasWebAssembly,
+        canUseRnnoise,
         warnings,
         isLoading: false,
       });

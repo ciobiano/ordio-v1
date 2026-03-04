@@ -21,7 +21,7 @@ export default function LiveCaption({ words, style }: LiveCaptionProps) {
               className={cn(
                 'inline-block mr-2 transition-all duration-200',
                 i === displayWords.length - 1
-                  ? 'text-blue-400 scale-110 animate-popIn'
+                  ? 'text-blue-300 scale-110 animate-popIn'
                   : 'text-white'
               )}
             >

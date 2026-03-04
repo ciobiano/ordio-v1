@@ -25,14 +25,14 @@ export default function CapabilityBanner({ warnings }: CapabilityBannerProps) {
     <div
       role="alert"
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
-                 px-4 py-2.5 bg-[#0f0f23] border-b border-white/[0.06]"
+                 min-h-[44px] px-4 py-2.5 bg-[#0f0f23] border-b border-white/[0.06]"
     >
-      <p className="text-white/40 text-xs flex-1 text-center">{warnings[0]}</p>
+      <p className="text-white/60 text-xs flex-1 text-center">{warnings[0]}</p>
       <button
         onClick={handleDismiss}
         aria-label="Dismiss warning"
-        className="ml-4 text-white/25 hover:text-white/60 transition-colors duration-150
-                   cursor-pointer shrink-0 p-1 rounded"
+        className="ml-4 text-white/50 hover:text-white/80 transition-colors duration-150
+                   cursor-pointer shrink-0 p-1 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path

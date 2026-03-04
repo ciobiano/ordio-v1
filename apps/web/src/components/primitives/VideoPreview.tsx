@@ -18,10 +18,13 @@ export default function VideoPreview({
 
   return (
     <div
+      role="img"
+      aria-label="Video format preview"
       className={`relative bg-gradient-to-b from-zinc-900 to-black rounded-xl overflow-hidden border border-white/10 ${
         isVertical ? 'w-56 h-96' : 'w-96 h-56'
       }`}
     >
+      <div aria-hidden="true">
       {/* Waveform area */}
       <div
         className={`absolute ${
@@ -66,6 +69,7 @@ export default function VideoPreview({
       <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 rounded text-xs text-white/50">
         {isVertical ? '9:16' : '16:9'}
       </div>
+      </div>{/* end aria-hidden */}
     </div>
   );
 }

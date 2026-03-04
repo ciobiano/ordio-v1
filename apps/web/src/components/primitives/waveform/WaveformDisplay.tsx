@@ -19,11 +19,13 @@ export default function WaveformDisplay({
   compact = false,
 }: WaveformDisplayProps) {
   switch (variant) {
+    case 'none':
+      return null;
     case 'circle':
       return <CircleWaveform level={level} isRecording={isRecording} compact={compact} />;
     case 'spectrogram':
       return <SpectrogramWaveform level={level} isRecording={isRecording} compact={compact} />;
-    default:
+    case 'bars':
       return <BarsWaveform level={level} isRecording={isRecording} compact={compact} />;
   }
 }

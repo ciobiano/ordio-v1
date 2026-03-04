@@ -39,11 +39,18 @@ export function renderFrame(
   ctx.fillStyle = style.backgroundColor;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Waveform — dense mirrored bars, full width, at ~72% down
-  drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle);
+  // 2. Waveform — skip for karaoke (text-only) and 'none' variant
+  const showWaveform = captionStyle !== 'karaoke' && waveformStyle !== 'none';
+  if (showWaveform) {
+    drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle);
+  }
 
-  // 3. Captions — current phrase centered above waveform
-  drawCaptions(ctx, currentTime, transcript, style, captionStyle);
+  // 3. Captions
+  if (captionStyle === 'karaoke') {
+    drawKaraokeCaptions(ctx, currentTime, transcript, style);
+  } else {
+    drawCaptions(ctx, currentTime, transcript, style, captionStyle, showWaveform);
+  }
 }
 
 // ── Waveform Drawing ────────────────────────────────────────────────
@@ -56,7 +63,7 @@ function drawWaveform(
   style: StyleConfig,
   variant: WaveformVariant
 ): void {
-  if (waveformData.length === 0) return;
+  if (waveformData.length === 0 || variant === 'none') return;
   switch (variant) {
     case 'circle':
       drawCircleWaveform(ctx, currentTime, duration, waveformData, style);
@@ -65,7 +72,6 @@ function drawWaveform(
       drawSpectrogram(ctx, currentTime, duration, waveformData, style);
       break;
     case 'bars':
-    default:
       drawPillBars(ctx, currentTime, duration, waveformData, style);
       break;
   }
@@ -313,7 +319,8 @@ function drawCaptions(
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  captionStyle: CaptionVariant
+  captionStyle: CaptionVariant,
+  showWaveform: boolean
 ): void {
   if (transcript.length === 0) return;
 
@@ -338,16 +345,21 @@ function drawCaptions(
   const lineHeight = fontSize * 1.4;
   const totalHeight = lines.length * lineHeight;
 
-  // Waveform sits at 72% down — place captions well above it with clear gap
-  // The gap scales with height so it works for both 1:1 and 9:16
-  const waveformTop = height * 0.72 - height * 0.07; // top of tallest bar
-  const gapAboveWaveform = height * 0.06;
-  const captionBottom = waveformTop - gapAboveWaveform;
+  let textY: number;
+  if (!showWaveform) {
+    // No waveform — vertically center captions on the full canvas
+    textY = (height - totalHeight) / 2;
+  } else {
+    // Waveform sits at 72% down — place captions well above it with clear gap
+    const waveformTop = height * 0.72 - height * 0.07;
+    const gapAboveWaveform = height * 0.06;
+    const captionBottom = waveformTop - gapAboveWaveform;
 
-  const textY =
-    captionStyle === 'bottom'
-      ? captionBottom - totalHeight
-      : (captionBottom - totalHeight) / 2;
+    textY =
+      captionStyle === 'bottom'
+        ? captionBottom - totalHeight
+        : (captionBottom - totalHeight) / 2;
+  }
 
   // Draw centered text
   ctx.textAlign = 'center';
@@ -356,6 +368,65 @@ function drawCaptions(
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], centerX, textY + i * lineHeight + lineHeight / 2);
   }
+}
+
+// ── Karaoke Caption Drawing ──────────────────────────────────────────
+
+/**
+ * Typewriter word-by-word reveal — text only, no waveform.
+ * Shows the current phrase with words appearing as they're spoken:
+ *   - Not yet spoken → hidden (typewriter reveal)
+ *   - Active word → full textColor
+ *   - Already spoken → textColor at 40% alpha (faded)
+ * Vertically centered on canvas.
+ */
+function drawKaraokeCaptions(
+  ctx: CanvasRenderingContext2D,
+  currentTime: number,
+  transcript: Word[],
+  style: StyleConfig
+): void {
+  if (transcript.length === 0) return;
+
+  const { width, height, textColor, fontFamily, fontSize } = style;
+  const padding = width * 0.08;
+  const maxWidth = width - padding * 2;
+
+  const phrase = getCurrentPhrase(transcript, currentTime);
+  if (!phrase || phrase.length === 0) return;
+
+  const fontWeight = '600';
+  ctx.font = `${fontWeight} ${fontSize}px "${fontFamily}", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = textColor;
+
+  const spaceWidth = ctx.measureText(' ').width;
+
+  // Typewriter reveal: only show words whose start time has passed
+  const visible = phrase
+    .filter((w) => w.start <= currentTime)
+    .map((w) => ({
+      text: w.text,
+      width: ctx.measureText(w.text).width,
+      isActive: currentTime < w.end,
+    }));
+
+  // Center the visible block horizontally
+  const totalWidth =
+    visible.reduce((sum, w) => sum + w.width, 0) +
+    spaceWidth * Math.max(0, visible.length - 1);
+  let x = (width - totalWidth) / 2;
+  const y = height / 2;
+
+  // Draw each word with per-word opacity
+  for (const w of visible) {
+    ctx.globalAlpha = w.isActive ? 1.0 : 0.4;
+    ctx.fillText(w.text, x, y);
+    x += w.width + spaceWidth;
+  }
+
+  ctx.globalAlpha = 1.0;
 }
 
 // ── Utilities ───────────────────────────────────────────────────────

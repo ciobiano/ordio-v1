@@ -1,3 +1,4 @@
+export { default as AudioSettings } from './AudioSettings';
 export { default as CaptionEditor } from './CaptionEditor';
 export { default as CaptionStyleSelector } from './CaptionStyleSelector';
 export { default as ExportState } from './ExportState';

@@ -11,7 +11,6 @@ interface IdleStateProps {
   onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   canRecord: boolean;
   isLoading: boolean;
-  showControls: boolean;
   waveformStyle: WaveformVariant;
   fileInputRef: RefObject<HTMLInputElement | null>;
 }
@@ -21,7 +20,6 @@ export default function IdleState({
   onFileUpload,
   canRecord,
   isLoading,
-  showControls,
   waveformStyle,
   fileInputRef,
 }: IdleStateProps) {
@@ -31,7 +29,7 @@ export default function IdleState({
         <h1 className="text-[2.625rem] font-[200] tracking-[-0.04em] leading-none">
           ord<span className="text-blue-500 font-[300]">io</span>
         </h1>
-        <p className="text-white/25 text-[0.6875rem] mt-2.5 tracking-[0.2em] uppercase">
+        <p className="text-white/50 text-[0.6875rem] mt-2.5 tracking-[0.2em] uppercase">
           audio → video
         </p>
       </div>
@@ -39,7 +37,7 @@ export default function IdleState({
       <WaveformDisplay variant={waveformStyle} level={0.2} isRecording={false} />
 
       <div className="h-10 flex items-center justify-center">
-        <p className="text-white/18 text-sm">Your words will appear here</p>
+        <p className="text-white/40 text-sm">Your words will appear here</p>
       </div>
 
       <button
@@ -61,17 +59,11 @@ export default function IdleState({
         </div>
       </button>
 
-      <p className="text-white/18 text-[0.6875rem] tracking-[0.18em] uppercase">
+      <p className="text-white/40 text-[0.6875rem] tracking-[0.18em] uppercase">
         tap to record
       </p>
 
-      {/* Upload link — revealed on hover */}
-      <div
-        className={cn(
-          'transition-all duration-200',
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}
-      >
+      <div>
         <button
           onClick={() => fileInputRef.current?.click()}
           aria-label="Upload audio file"

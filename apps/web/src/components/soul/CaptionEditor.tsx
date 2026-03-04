@@ -10,13 +10,13 @@ import type { Word } from '@Ordio/shared/schemas';
 const WORDS_PER_PHRASE = 6;
 
 const chip = cva(
-  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none',
+  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
   {
     variants: {
       active: {
-        true: 'bg-blue-500/20 border-blue-500/40 text-white px-2 py-0.5',
+        true: 'bg-blue-500/20 border-blue-500/40 text-white px-2.5 py-1',
         false:
-          'bg-white/[0.04] border-white/[0.08] text-white/50 hover:text-white/80 hover:bg-white/[0.08] px-2 py-0.5',
+          'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/80 hover:bg-white/[0.08] px-2.5 py-1',
       },
       focused: {
         true: 'ring-1 ring-blue-400/60',
@@ -139,10 +139,11 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   if (transcript.length === 0) {
     return (
       <div
+        role="region"
         className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-[4.5rem]')}
         aria-label="Caption editor — empty"
       >
-        <p className="text-white/25 text-sm">No transcript yet</p>
+        <p className="text-white/50 text-sm">No transcript yet</p>
       </div>
     );
   }
@@ -150,12 +151,13 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   return (
     <div
       ref={containerRef}
+      role="region"
       className={cn(panelCard, 'w-full px-4 py-4')}
       aria-label="Caption editor"
       onKeyDown={handleContainerKeyDown}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white/20 text-[0.625rem] uppercase tracking-[0.18em]">
+        <p className="text-white/50 text-[0.625rem] uppercase tracking-[0.18em]">
           Transcript — click to seek, double-click to edit
         </p>
         {transcriptionSource && (
@@ -171,15 +173,16 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
           </span>
         )}
       </div>
-      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto" role="list">
+      <ul className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto list-none p-0 m-0">
         {transcript.map((word, i) => {
           const active = isActive(word);
           const isFocused = focusedIndex === i;
+          const isTabStop = isFocused || (focusedIndex === null && i === 0);
           const showSeparator = i > 0 && i % WORDS_PER_PHRASE === 0;
 
           if (editingIndex === i) {
             return (
-              <span key={i} className="inline-flex items-center">
+              <li key={i} className="inline-flex items-center">
                 {showSeparator && (
                   <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
                 )}
@@ -196,31 +199,30 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
                   style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
                   autoFocus
                 />
-              </span>
+              </li>
             );
           }
 
           return (
-            <span key={i} className="inline-flex items-center">
+            <li key={i} className="inline-flex items-center">
               {showSeparator && (
                 <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
               )}
               <button
                 ref={(el) => setChipRef(i, el)}
-                tabIndex={isFocused ? 0 : -1}
+                tabIndex={isTabStop ? 0 : -1}
                 onClick={() => handleChipClick(i)}
                 onDoubleClick={() => handleChipDoubleClick(i)}
                 onFocus={() => setFocusedIndex(i)}
                 aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}`}
                 className={cn(chip({ active, focused: isFocused }))}
-                role="listitem"
               >
                 {word.text}
               </button>
-            </span>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

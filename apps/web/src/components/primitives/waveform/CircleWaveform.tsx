@@ -28,7 +28,7 @@ export default function CircleWaveform({ level, isRecording, compact = false }: 
   const glowIntensity = isRecording ? level * 30 : 0;
 
   return (
-    <div className={waveformWrapper({ compact })}>
+    <div className={waveformWrapper({ compact })} aria-hidden="true">
       <div
         className={circleSize({ compact })}
         style={{

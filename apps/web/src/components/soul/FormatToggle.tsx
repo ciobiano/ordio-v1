@@ -1,22 +1,10 @@
 'use client';
 
-import { cva } from 'class-variance-authority';
+import { useRef } from 'react';
 import { cn } from '@/lib/cn';
+import { optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { FormatVariant } from '@/lib/store';
-
-const formatBtn = cva(
-  'px-5 py-2 rounded-md text-sm font-medium transition-all duration-150 cursor-pointer',
-  {
-    variants: {
-      active: {
-        true: 'bg-white text-black',
-        false: 'text-white/50 hover:text-white hover:bg-white/5',
-      },
-    },
-    defaultVariants: { active: false },
-  }
-);
 
 const formats: { value: FormatVariant; label: string }[] = [
   { value: 'square', label: '1:1' },
@@ -27,19 +15,45 @@ const formats: { value: FormatVariant; label: string }[] = [
 export default function FormatToggle() {
   const format = useStore((s) => s.format);
   const setFormat = useStore((s) => s.setFormat);
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleKeyDown = (e: React.KeyboardEvent, i: number) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = (i + 1) % formats.length;
+      setFormat(formats[next].value);
+      btnRefs.current[next]?.focus();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = (i - 1 + formats.length) % formats.length;
+      setFormat(formats[prev].value);
+      btnRefs.current[prev]?.focus();
+    }
+  };
 
   return (
-    <div className="flex gap-1 p-1 bg-white/5 rounded-lg border border-white/10" role="group" aria-label="Video format">
-      {formats.map(({ value, label }) => (
-        <button
-          key={value}
-          onClick={() => setFormat(value)}
-          aria-pressed={format === value}
-          className={cn(formatBtn({ active: format === value }))}
-        >
-          {label}
-        </button>
-      ))}
+    <div
+      className="flex gap-1 p-1 bg-white/5 rounded-lg border border-white/10"
+      role="radiogroup"
+      aria-label="Video format"
+    >
+      {formats.map(({ value, label }, i) => {
+        const isSelected = format === value;
+        return (
+          <button
+            key={value}
+            ref={(el) => { btnRefs.current[i] = el; }}
+            role="radio"
+            aria-checked={isSelected}
+            tabIndex={isSelected ? 0 : -1}
+            onClick={() => setFormat(value)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            className={cn(optionBtn({ shape: 'rect', tone: 'white', active: isSelected }))}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }

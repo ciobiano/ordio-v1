@@ -7,7 +7,6 @@ import type { WaveformVariant, CaptionVariant } from '@/lib/store';
 interface RecordingStateProps {
   onStopRecording: () => void;
   audioLevel: number;
-  liveWords: string[];
   captionStyle: CaptionVariant;
   waveformStyle: WaveformVariant;
   isSpeaking?: boolean;
@@ -22,7 +21,6 @@ function FlowingWaveform({ level }: { level: number }) {
   const timeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const smoothLevelRef = useRef(0);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -132,37 +130,21 @@ function FlowingWaveform({ level }: { level: number }) {
 export default function RecordingState({
   onStopRecording,
   audioLevel,
-  liveWords,
   captionStyle,
   waveformStyle,
   isSpeaking = false,
 }: RecordingStateProps) {
   return (
-    <div className="fixed inset-0 bg-black flex flex-col animate-fadeIn">
-      {/* Live transcript — full screen, large text */}
-      <div
-        className="flex-1 px-6 sm:px-10 pt-16 sm:pt-20 pb-48 overflow-hidden"
-        role="region"
-        aria-label="Live transcription"
-        aria-live="polite"
-      >
-        {liveWords.length > 0 ? (
-          <p className="text-[1.625rem] sm:text-[2rem] font-light leading-[1.4] tracking-[-0.01em] text-white">
-            {liveWords.join(' ')}
-            <span
-              className="inline-block w-[3px] h-[1.6em] bg-white/60 animate-pulse ml-1.5 align-middle"
-              aria-hidden="true"
-            />
-          </p>
-        ) : (
-          <p className="text-[1.625rem] sm:text-[2rem] font-light leading-[1.4] text-white/20">
-            Start speaking&hellip;
-          </p>
-        )}
-      </div>
+    <div
+      className="fixed inset-0 bg-black flex flex-col animate-fadeIn"
+      role="region"
+      aria-label="Recording in progress"
+    >
+      {/* Spacer — pushes controls to bottom */}
+      <div className="flex-1" />
 
       {/* Bottom area — flowing waveform + stop button */}
-      <div className="fixed bottom-0 inset-x-0 flex flex-col items-center gap-4 pb-8 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+      <div className="fixed bottom-0 inset-x-0 flex flex-col items-center gap-4 pb-8 safe-pb pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
         {/* Flowing waveform — responds to voice */}
         <div className="w-full px-4 sm:px-8">
           <FlowingWaveform level={audioLevel} />
@@ -186,7 +168,7 @@ export default function RecordingState({
             }`}
             aria-hidden="true"
           />
-          <span className="text-white/30 text-[0.625rem] tracking-[0.2em] uppercase">
+          <span className="text-white/60 text-[0.625rem] tracking-[0.2em] uppercase">
             {isSpeaking ? 'speaking' : 'listening'}
           </span>
         </div>

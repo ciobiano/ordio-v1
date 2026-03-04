@@ -4,6 +4,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 
 type RecorderState = 'idle' | 'recording' | 'paused' | 'stopped';
 
+interface UseAudioRecorderOptions {
+  streamTransformer?: (raw: MediaStream) => Promise<MediaStream>;
+}
+
 interface UseAudioRecorderReturn {
   state: RecorderState;
   isRecording: boolean;
@@ -11,20 +15,23 @@ interface UseAudioRecorderReturn {
   recordingTime: number;
   audioBlob: Blob | null;
   error: string | null;
-  startRecording: () => Promise<void>;
+  startRecording: () => Promise<MediaStream | undefined>;
   stopRecording: () => void;
   pauseRecording: () => void;
   resumeRecording: () => void;
   resetRecording: () => void;
 }
 
-export function useAudioRecorder(): UseAudioRecorderReturn {
+export function useAudioRecorder(
+  options?: UseAudioRecorderOptions
+): UseAudioRecorderReturn {
   const [state, setState] = useState<RecorderState>('idle');
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -43,15 +50,29 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     }, 1000);
   }, [clearTimer]);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (): Promise<MediaStream | undefined> => {
     try {
       setError(null);
       chunksRef.current = [];
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rawStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          noiseSuppression: { ideal: true },
+          echoCancellation: { ideal: true },
+          autoGainControl: { ideal: true },
+          sampleRate: { ideal: 48000 },
+        },
+      });
+      rawStreamRef.current = rawStream;
+
+      // Apply enhancement pipeline if provided
+      const stream = options?.streamTransformer
+        ? await options.streamTransformer(rawStream)
+        : rawStream;
       streamRef.current = stream;
 
       const recorder = new MediaRecorder(stream);
+      const mimeType = recorder.mimeType || 'audio/webm';
       recorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -61,7 +82,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setState('stopped');
         clearTimer();
@@ -71,10 +92,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       setState('recording');
       setRecordingTime(0);
       startTimer();
+
+      return stream;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to access microphone';
       setError(message);
+      return undefined;
     }
   }, [startTimer, clearTimer]);
 
@@ -82,6 +106,8 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
       recorderRef.current.stop();
     }
+    // Stop both raw mic tracks and any enhanced stream tracks
+    rawStreamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current?.getTracks().forEach((track) => track.stop());
     clearTimer();
   }, [clearTimer]);
@@ -114,6 +140,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      rawStreamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current?.getTracks().forEach((track) => track.stop());
       clearTimer();
     };

@@ -1,42 +1,52 @@
 'use client';
 
-import { cva } from 'class-variance-authority';
+import { useRef } from 'react';
 import { cn } from '@/lib/cn';
+import { optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { CaptionVariant } from '@/lib/store';
-
-const captionBtn = cva(
-  'px-3 py-1.5 rounded-full text-xs capitalize transition-all duration-150 cursor-pointer',
-  {
-    variants: {
-      active: {
-        true: 'bg-blue-500 text-white',
-        false: 'bg-white/10 text-white/50 hover:bg-white/20 hover:text-white/80',
-      },
-    },
-    defaultVariants: { active: false },
-  }
-);
 
 const styles: CaptionVariant[] = ['bottom', 'center', 'karaoke'];
 
 export default function CaptionStyleSelector() {
   const captionStyle = useStore((s) => s.captionStyle);
   const setCaptionStyle = useStore((s) => s.setCaptionStyle);
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleKeyDown = (e: React.KeyboardEvent, i: number) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = (i + 1) % styles.length;
+      setCaptionStyle(styles[next]);
+      btnRefs.current[next]?.focus();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = (i - 1 + styles.length) % styles.length;
+      setCaptionStyle(styles[prev]);
+      btnRefs.current[prev]?.focus();
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2" role="group" aria-label="Caption style">
-      <span className="text-white/30 text-xs mr-1" aria-hidden="true">Caption:</span>
-      {styles.map((style) => (
-        <button
-          key={style}
-          onClick={() => setCaptionStyle(style)}
-          aria-pressed={captionStyle === style}
-          className={cn(captionBtn({ active: captionStyle === style }))}
-        >
-          {style}
-        </button>
-      ))}
+    <div className="flex items-center gap-2" role="radiogroup" aria-label="Caption style">
+      <span className="text-white/50 text-xs mr-1" aria-hidden="true">Caption:</span>
+      {styles.map((style, i) => {
+        const isSelected = captionStyle === style;
+        return (
+          <button
+            key={style}
+            ref={(el) => { btnRefs.current[i] = el; }}
+            role="radio"
+            aria-checked={isSelected}
+            tabIndex={isSelected ? 0 : -1}
+            onClick={() => setCaptionStyle(style)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            className={cn(optionBtn({ shape: 'pill', tone: 'blue', active: isSelected }))}
+          >
+            {style}
+          </button>
+        );
+      })}
     </div>
   );
 }

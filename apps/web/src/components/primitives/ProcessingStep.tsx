@@ -15,7 +15,7 @@ const stepRoot = cva('flex items-center gap-3 transition-colors duration-200', {
     state: {
       done: 'text-green-400',
       active: 'text-white',
-      pending: 'text-white/25',
+      pending: 'text-white/50',
     },
   },
   defaultVariants: { state: 'pending' },

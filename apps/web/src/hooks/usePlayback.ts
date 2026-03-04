@@ -6,7 +6,7 @@ export interface UsePlaybackReturn {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  play: () => void;
+  play: () => Promise<void>;
   pause: () => void;
   seek: (time: number) => void;
   load: (buffer: AudioBuffer) => void;
@@ -59,13 +59,18 @@ export function usePlayback(): UsePlaybackReturn {
     seekPositionRef.current = 0;
   }, []);
 
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     if (!bufferRef.current || playingRef.current) return;
 
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
       ctxRef.current = new AudioContext();
     }
     const ctx = ctxRef.current;
+
+    // iOS suspends AudioContext when backgrounded — must resume on user gesture
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
 
     const source = ctx.createBufferSource();
     source.buffer = bufferRef.current;
