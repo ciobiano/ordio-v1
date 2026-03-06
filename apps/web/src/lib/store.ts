@@ -8,6 +8,17 @@ export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal';
+
+export function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
+  switch (format) {
+    case 'square':
+      return { width: 1080, height: 1080 };
+    case 'vertical':
+      return { width: 1080, height: 1920 };
+    case 'horizontal':
+      return { width: 1920, height: 1080 };
+  }
+}
 export type Theme = 'dark' | 'light';
 export type TranscriptionSource = 'whisper' | null;
 export type EnhanceTier = 'none' | 'clean' | 'hd';

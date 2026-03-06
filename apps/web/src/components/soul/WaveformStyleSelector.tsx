@@ -108,7 +108,7 @@ export default function WaveformStyleSelector() {
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'min-h-[44px] px-3 py-2 rounded-xl flex items-center gap-2',
+          'min-h-11 px-3 py-2 rounded-xl flex items-center gap-2',
           'bg-white/5 border border-white/10 backdrop-blur-md',
           'hover:bg-white/10 hover:border-white/20 transition-all duration-150',
           'cursor-pointer select-none'
@@ -157,7 +157,7 @@ export default function WaveformStyleSelector() {
                   aria-label={`${labels[variant]} waveform`}
                   aria-pressed={isActive}
                   className={cn(
-                    'min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center',
+                    'min-w-11 min-h-11 rounded-lg flex items-center justify-center',
                     'transition-all duration-150 cursor-pointer border',
                     isActive
                       ? 'bg-white/20 border-white/40 text-white/90'

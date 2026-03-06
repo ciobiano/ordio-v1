@@ -20,7 +20,7 @@ export default function VideoPreview({
     <div
       role="img"
       aria-label="Video format preview"
-      className={`relative bg-gradient-to-b from-zinc-900 to-black rounded-xl overflow-hidden border border-white/10 ${
+      className={`relative bg-linear-to-b from-zinc-900 to-black rounded-xl overflow-hidden border border-white/10 ${
         isVertical ? 'w-56 h-96' : 'w-96 h-56'
       }`}
     >

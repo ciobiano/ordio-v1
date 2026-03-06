@@ -64,10 +64,10 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
       {/* Scrubber — 44px touch target, 3px visual track */}
       <div className="relative flex-1 h-11 flex items-center group">
         {/* Track background */}
-        <div className="absolute left-0 right-0 h-[3px] rounded-full bg-white/10" />
+        <div className="absolute left-0 right-0 h-0.75 rounded-full bg-white/10" />
         {/* Fill */}
         <div
-          className="absolute left-0 h-[3px] rounded-full bg-gray-600 pointer-events-none"
+          className="absolute left-0 h-0.75 rounded-full bg-gray-600 pointer-events-none"
           style={{ width: `${progress}%` }}
         />
         {/* Range input (transparent — sits on top, full 44px height) */}
@@ -81,6 +81,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
           aria-label="Seek audio"
           aria-valuemin={0}
           aria-valuemax={Math.round(duration)}
+      
           aria-valuenow={Math.round(currentTime)}
           disabled={duration === 0}
           className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
@@ -89,7 +90,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
 
       {/* Time display */}
       <span
-        className="text-white/60 text-xs tabular-nums shrink-0 w-[4.5rem] text-right"
+        className="text-white/60 text-xs tabular-nums shrink-0 w-18 text-right"
         aria-live="off"
       >
         {formatTime(currentTime)}&nbsp;/&nbsp;{formatTime(duration)}

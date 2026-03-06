@@ -32,7 +32,7 @@ export default function BarsWaveform({ level, isRecording, compact = false }: Ba
   const t = tick * 0.08;
 
   return (
-    <div className={cn(waveformWrapper({ compact }), 'gap-[3px]')} aria-hidden="true">
+    <div className={cn(waveformWrapper({ compact }), 'gap-0.75')} aria-hidden="true">
       {Array.from({ length: bars }).map((_, i) => {
         const distance = Math.abs(i - bars / 2) / (bars / 2);
         const height = isRecording

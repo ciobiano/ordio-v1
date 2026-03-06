@@ -2,9 +2,11 @@
 
 ## Status Summary
 
-**Phase 1 is functionally complete.** All core features are built and type-check clean with 20 passing tests. The uncommitted work on the v2 branch includes: Whisper punctuation fix, audio-reactive waveforms, spectrogram variant, font loading, caption positioning, and code cleanup.
+**Phase 1 is functionally complete.** All core features are built and type-check clean with 20 passing tests. Competitive analysis scored Ordio at 62% product-ready, 85% content-flywheel-ready. Core pipeline (92%) is near-competitive with Headliner; gaps are in customization, monetization, and distribution.
 
-**Next milestone:** Commit current work, runtime test the full flow, then deploy.
+**Next milestone:** Phase A — runtime test, commit, deploy to Vercel. Then Phase B — monetization.
+**Infrastructure estimate:** $6/mo (beta) → $31/mo (100 users, optimized) → $140/mo (1,000 users)
+**See also:** `tasks/monetization.md` for pricing tiers + `tasks/infrastructure.md` for cost analysis
 
 ---
 
@@ -107,7 +109,7 @@ All the work from 2026-02-27 sessions needs to be committed:
 
 ---
 
-## Remaining
+## Phase A: Ship & Start the Flywheel (Target: 2 weeks)
 
 ### Runtime Testing (blocking deployment)
 - [ ] Full flow: record → Whisper transcribe → edit captions → export MP4 → download
@@ -117,20 +119,56 @@ All the work from 2026-02-27 sessions needs to be committed:
 - [ ] ffmpeg.wasm fallback: test on Safari or with WebCodecs disabled
 - [ ] Cross-browser: Chrome, Edge, Firefox, Safari
 
-### Polish (non-blocking)
-- [ ] Persist style preferences in localStorage
-- [ ] wavesurfer.js integration for recording/playback UI (nice-to-have)
-- [ ] Delete orphaned `LineWaveform.tsx` (replaced by SpectrogramWaveform)
-- [ ] Bundle size audit — target <500KB gzipped
-- [ ] Audit & remove v1 leftovers (Clerk, Convex deps — keep installed for future paid tier)
+### Ship It
+- [ ] Commit all uncommitted work on v2 branch
+- [ ] Deploy to Vercel (get live on a domain)
+- [ ] Add 4:5 aspect ratio (Instagram feed)
+- [ ] Add 5 more Google Fonts (Poppins, Montserrat, Space Grotesk, DM Sans, Playfair Display)
+- [ ] Delete orphaned `LineWaveform.tsx`
 
-### Phase 2: Deploy & Iterate
-- [ ] Deploy to Vercel
+### Infrastructure Optimization
+- [ ] Migrate audio enhancement from Railway → Modal (GPU serverless, zero idle cost)
+- [ ] Evaluate Groq Whisper as cheaper alternative ($0.0011/min vs $0.006/min)
+
+---
+
+## Phase B: Monetization Foundation (Target: Weeks 3-4)
+
+- [ ] Wire Clerk auth back into v2 (gate premium features)
+- [ ] Convex: user profiles + usage tracking + subscription tier
+- [ ] Define free tier vs. Creator/Pro tier feature gates
+- [ ] Stripe integration (USD pricing globally)
+- [ ] Paystack integration (Naira pricing locally)
+- [ ] Implement watermark on free tier exports
+- [ ] Usage limits: 3 exports/day for free tier
+- [ ] Subscription webhook handlers (Stripe + Paystack → Convex)
+
+---
+
+## Phase C: Product Polish (Target: Weeks 5-8)
+
+- [ ] 5-8 visual presets/templates
+- [ ] Background image support
+- [ ] More caption styles (word-highlight box, gradient bg, animated entry)
+- [ ] Audio trimming / clip selection from longer recordings
+- [ ] Brand kit saving (Convex — Pro feature)
+- [ ] Landing page with product demo
 - [ ] OG image + meta tags
 - [ ] WCAG 2.1 AA accessibility audit
+- [ ] Bundle size audit — target <500KB gzipped
+
+---
+
+## Phase D: Growth & Optimization (Ongoing)
+
 - [ ] Performance: Web Worker for encoding, OffscreenCanvas
-- [ ] Caption animation styles (karaoke highlight, typewriter)
 - [ ] Additional waveform styles
+- [ ] AI clip extraction (find best 60s from long recording)
+- [ ] Direct social publishing integrations
+- [ ] Batch export for Pro/Agency tier
+- [ ] Logo/watermark overlay support
+- [ ] Video background support
+- [ ] RSS auto-generation for podcasters
 
 ---
 

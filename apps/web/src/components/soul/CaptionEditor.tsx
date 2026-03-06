@@ -140,7 +140,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
     return (
       <div
         role="region"
-        className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-[4.5rem]')}
+        className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-18')}
         aria-label="Caption editor — empty"
       >
         <p className="text-white/50 text-sm">No transcript yet</p>
@@ -184,7 +184,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
             return (
               <li key={i} className="inline-flex items-center">
                 {showSeparator && (
-                  <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
+                  <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
                 )}
                 <input
                   ref={inputRef}
@@ -195,7 +195,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
                   aria-label={`Edit word: ${word.text}`}
                   className="px-2 py-0.5 rounded-md text-sm border
                              bg-blue-500/20 border-blue-500/60 text-white
-                             outline-none min-w-[2rem] max-w-[12rem]"
+                             outline-none min-w-8 max-w-48"
                   style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
                   autoFocus
                 />
@@ -206,7 +206,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
           return (
             <li key={i} className="inline-flex items-center">
               {showSeparator && (
-                <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
+                <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
               )}
               <button
                 ref={(el) => setChipRef(i, el)}

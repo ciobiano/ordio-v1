@@ -43,62 +43,42 @@ function FlowingWaveform({ level }: { level: number }) {
 
       ctx.clearRect(0, 0, w, h);
 
-      // Number of sample points across width
       const points = 80;
 
-      // Build top curve
+      // Pre-compute amplitudes once for both top and bottom curves
+      const amplitudes = new Float32Array(points + 1);
+      for (let i = 0; i <= points; i++) {
+        const norm = i / points;
+        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
+        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
+        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
+        const envelope = Math.sin(norm * Math.PI);
+        amplitudes[i] = (0.05 + smoothLevel * 0.95) * (wave1 + wave2 + wave3) * envelope * maxAmp;
+      }
+
+      // Build closed shape: top curve → right → mirrored bottom → left
       ctx.beginPath();
       ctx.moveTo(0, centerY);
 
       for (let i = 0; i <= points; i++) {
         const x = (i / points) * w;
-        const norm = i / points;
-
-        // Multiple sine waves layered for organic feel
-        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
-        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
-        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
-
-        // Envelope — taper at edges so wave fades near screen borders
-        const envelope = Math.sin(norm * Math.PI);
-
-        const combined = (wave1 + wave2 + wave3) * envelope;
-        const amp = (0.05 + smoothLevel * 0.95) * combined * maxAmp;
-
-        const y = centerY - Math.abs(amp);
-
+        const y = centerY - Math.abs(amplitudes[i]);
         if (i === 0) {
           ctx.lineTo(x, y);
         } else {
-          const prevX = ((i - 1) / points) * w;
-          const cpx = (prevX + x) / 2;
-          ctx.quadraticCurveTo(cpx, y, x, y);
+          ctx.quadraticCurveTo((((i - 1) / points) * w + x) / 2, y, x, y);
         }
       }
 
-      // Close across to right, then mirror bottom
       ctx.lineTo(w, centerY);
 
       for (let i = points; i >= 0; i--) {
         const x = (i / points) * w;
-        const norm = i / points;
-
-        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
-        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
-        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
-        const envelope = Math.sin(norm * Math.PI);
-
-        const combined = (wave1 + wave2 + wave3) * envelope;
-        const amp = (0.05 + smoothLevel * 0.95) * combined * maxAmp;
-
-        const y = centerY + Math.abs(amp);
-
+        const y = centerY + Math.abs(amplitudes[i]);
         if (i === points) {
           ctx.lineTo(x, y);
         } else {
-          const nextX = ((i + 1) / points) * w;
-          const cpx = (nextX + x) / 2;
-          ctx.quadraticCurveTo(cpx, y, x, y);
+          ctx.quadraticCurveTo((((i + 1) / points) * w + x) / 2, y, x, y);
         }
       }
 

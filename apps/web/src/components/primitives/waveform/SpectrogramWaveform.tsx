@@ -36,7 +36,7 @@ export default function SpectrogramWaveform({
   ];
 
   return (
-    <div className={cn(waveformWrapper({ compact }), 'gap-[2px]')} aria-hidden="true">
+    <div className={cn(waveformWrapper({ compact }), 'gap-0.5')} aria-hidden="true">
       {Array.from({ length: bands }).map((_, i) => {
         const norm = i / (bands - 1);
 

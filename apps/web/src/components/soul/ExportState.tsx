@@ -43,17 +43,17 @@ export default function ExportState({
     <div className="flex flex-col items-center gap-6 animate-fadeIn w-full max-w-sm">
       <div className="flex items-center gap-3">
         <div
-          className="w-9 h-9 rounded-full bg-green-500/[0.12] flex items-center justify-center"
+          className="w-9 h-9 rounded-full bg-green-500/12 flex items-center justify-center"
           aria-hidden="true"
         >
           <svg
-            className="w-[1.125rem] h-[1.125rem] text-green-400"
+            className="w-4.5 h-4.5 text-green-400"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-[1.375rem] font-[300] tracking-[-0.02em]">Ready to share</h2>
+        <h2 className="text-[1.375rem] font-light tracking-[-0.02em]">Ready to share</h2>
       </div>
 
       <CanvasPreview
@@ -86,7 +86,7 @@ export default function ExportState({
           aria-valuemax={100}
           aria-label="Export progress"
         >
-          <div className="w-full h-[3px] bg-white/[0.07] rounded-full overflow-hidden">
+          <div className="w-full h-0.75 bg-white/[0.07] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-150"
               style={{

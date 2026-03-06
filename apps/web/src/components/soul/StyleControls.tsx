@@ -18,7 +18,7 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-white/60 text-xs">{label}</span>
-      <label className="flex items-center gap-2 cursor-pointer group min-h-[44px]" aria-label={`${label} color`}>
+      <label className="flex items-center gap-2 cursor-pointer group min-h-11" aria-label={`${label} color`}>
         <span className="text-white/50 text-xs tabular-nums uppercase">{value}</span>
         <div
           className="w-6 h-6 rounded-md border border-white/20 overflow-hidden
@@ -51,7 +51,7 @@ export default function StyleControls() {
         aria-expanded={isExpanded}
         aria-controls="style-controls-panel"
         className="flex items-center gap-2 text-white/60 hover:text-white/80
-                   transition-colors duration-150 cursor-pointer text-xs min-h-[44px]"
+                   transition-colors duration-150 cursor-pointer text-xs min-h-11"
       >
         <svg
           className={cn('w-3.5 h-3.5 transition-transform duration-200', isExpanded && 'rotate-90')}

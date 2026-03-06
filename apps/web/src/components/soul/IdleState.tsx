@@ -26,8 +26,8 @@ export default function IdleState({
   return (
     <div className="flex flex-col items-center gap-8 sm:gap-10 animate-fadeIn w-full max-w-xs">
       <div className="text-center">
-        <h1 className="text-[2.625rem] font-[200] tracking-[-0.04em] leading-none">
-          ord<span className="text-blue-500 font-[300]">io</span>
+        <h1 className="text-[2.625rem] font-extralight tracking-[-0.04em] leading-none">
+          ord<span className="text-blue-500 font-light">io</span>
         </h1>
         <p className="text-white/50 text-[0.6875rem] mt-2.5 tracking-[0.2em] uppercase">
           audio → video
@@ -52,7 +52,7 @@ export default function IdleState({
         <span className="sr-only">Start recording</span>
         <div className="absolute inset-0 flex items-center justify-center">
           <div
-            className="w-[1.125rem] h-[1.125rem] rounded-full bg-[#e11d48]
+            className="w-4.5 h-4.5 rounded-full bg-[#e11d48]
                          group-hover:bg-red-400 transition-colors duration-150"
             aria-hidden="true"
           />

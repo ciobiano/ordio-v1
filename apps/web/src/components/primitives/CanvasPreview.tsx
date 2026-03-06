@@ -7,7 +7,7 @@ import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
 import { loadFont } from '@/lib/fontLoader';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
-import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import { getCanvasDimensions, type WaveformVariant, type CaptionVariant, type FormatVariant } from '@/lib/store';
 import { cn } from '@/lib/cn';
 
 interface CanvasPreviewProps {
@@ -16,17 +16,6 @@ interface CanvasPreviewProps {
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
   className?: string;
-}
-
-function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
-  switch (format) {
-    case 'square':
-      return { width: 1080, height: 1080 };
-    case 'vertical':
-      return { width: 1080, height: 1920 };
-    case 'horizontal':
-      return { width: 1920, height: 1080 };
-  }
 }
 
 function getFormatLabel(format: FormatVariant): string {

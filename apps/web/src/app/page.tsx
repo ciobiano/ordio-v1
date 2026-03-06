@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'sonner';
-import { useStore } from '@/lib/store';
+import { useStore, getCanvasDimensions } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
 import { useTranscription } from '@/hooks/useTranscription';
@@ -70,13 +70,14 @@ export default function Home() {
     if (currentState !== 'export') return;
     const { audioBuffer } = useStore.getState();
     if (audioBuffer) playback.load(audioBuffer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentState]);
+  }, [currentState, playback]);
 
   // Process recorded audio when recording stops
   useEffect(() => {
     if (recorder.state !== 'stopped' || !recorder.audioBlob) return;
-    processAudio(recorder.audioBlob).catch(() => {});
+    processAudio(recorder.audioBlob).catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to process audio');
+    });
   }, [recorder.state, recorder.audioBlob, processAudio]);
 
   const handleStartRecording = useCallback(async () => {
@@ -117,14 +118,9 @@ export default function Home() {
     if (!audioBuffer) return;
 
     const canvas = document.createElement('canvas');
-    const dims =
-      format === 'square'
-        ? [1080, 1080]
-        : format === 'vertical'
-          ? [1080, 1920]
-          : [1920, 1080];
-    canvas.width = dims[0];
-    canvas.height = dims[1];
+    const { width, height } = getCanvasDimensions(format);
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {

@@ -40,7 +40,7 @@ export default function ProcessingState({ progress }: ProcessingStateProps) {
   return (
     <div className="flex flex-col items-center gap-10 animate-fadeIn">
       <div className="text-center">
-        <h2 className="text-[1.5rem] font-[300] text-white/90 tracking-[-0.02em]">
+        <h2 className="text-[1.5rem] font-light text-white/90 tracking-[-0.02em]">
           Creating your video
         </h2>
         <p className="text-white/60 text-sm mt-2">This won&apos;t take long</p>
@@ -48,7 +48,7 @@ export default function ProcessingState({ progress }: ProcessingStateProps) {
 
       <ProgressRing progress={progress} />
 
-      <div className="flex flex-col items-start gap-3 w-[13rem]">
+      <div className="flex flex-col items-start gap-3 w-52">
         {steps.map((label, i) => (
           <ProcessingStep key={label} done={step > i} active={step === i && progress < 100}>
             {label}
