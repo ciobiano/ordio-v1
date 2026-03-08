@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild:rnnoise": "node ../../scripts/build-rnnoise-worklet.mjs",
     "dev": "next dev",
-    "build": "pnpm prebuild:rnnoise && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
