@@ -10,6 +10,7 @@ const formats: { value: FormatVariant; label: string }[] = [
   { value: 'square', label: '1:1' },
   { value: 'vertical', label: '9:16' },
   { value: 'horizontal', label: '16:9' },
+  { value: 'instagram', label: '4:5' },
 ];
 
 export default function FormatToggle() {

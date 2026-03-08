@@ -6,7 +6,7 @@ import { panelCard, optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 
-const FONTS: StyleConfig['fontFamily'][] = ['Inter', 'Roboto', 'Outfit'];
+const FONTS: StyleConfig['fontFamily'][] = ['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display'];
 
 interface ColorRowProps {
   label: string;

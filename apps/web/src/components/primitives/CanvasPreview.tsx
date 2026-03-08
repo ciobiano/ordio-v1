@@ -26,6 +26,8 @@ function getFormatLabel(format: FormatVariant): string {
       return '9:16';
     case 'horizontal':
       return '16:9';
+    case 'instagram':
+      return '4:5';
   }
 }
 
@@ -43,6 +45,8 @@ function getContainerClass(format: FormatVariant): string {
       return 'w-56 h-96';
     case 'horizontal':
       return 'w-96 h-56';
+    case 'instagram':
+      return 'w-72 h-[360px]';
   }
 }
 

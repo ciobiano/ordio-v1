@@ -9,4 +9,3 @@ export { default as VideoPreview } from './VideoPreview';
 export { default as WaveformDisplay } from './waveform/WaveformDisplay';
 export { default as BarsWaveform } from './waveform/BarsWaveform';
 export { default as CircleWaveform } from './waveform/CircleWaveform';
-export { default as LineWaveform } from './waveform/LineWaveform';
