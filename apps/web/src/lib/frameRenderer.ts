@@ -1,6 +1,7 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
 import type { WaveformVariant, CaptionVariant } from '@/lib/store';
+import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '@/lib/waveforms';
 
 export interface FrameOptions {
   /** Pre-computed waveform samples (0-1 normalized), typically 200+ values */
@@ -17,11 +18,6 @@ export interface FrameOptions {
 
 /**
  * Renders a single video frame to a canvas context.
- * Matches the Naval podcast audiogram style:
- *   - Black background
- *   - Centered caption text (current phrase only, ~5-7 words)
- *   - Full-width dense mirrored waveform bars at ~72% down
- *
  * Pure function — no React, no side effects.
  */
 export function renderFrame(
@@ -39,14 +35,21 @@ export function renderFrame(
   ctx.fillStyle = style.backgroundColor;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Waveform — dense mirrored bars, full width, at ~72% down
-  drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle);
+  // 2. Waveform — skip for karaoke (text-only) and 'none' variant
+  const showWaveform = captionStyle !== 'karaoke' && waveformStyle !== 'none';
+  if (showWaveform) {
+    drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle);
+  }
 
-  // 3. Captions — current phrase centered above waveform
-  drawCaptions(ctx, currentTime, transcript, style, captionStyle);
+  // 3. Captions
+  if (captionStyle === 'karaoke') {
+    drawKaraokeCaptions(ctx, currentTime, transcript, style);
+  } else {
+    drawCaptions(ctx, currentTime, transcript, style, captionStyle, showWaveform);
+  }
 }
 
-// ── Waveform Drawing ────────────────────────────────────────────────
+// ── Waveform Dispatch ───────────────────────────────────────────────
 
 function drawWaveform(
   ctx: CanvasRenderingContext2D,
@@ -54,165 +57,71 @@ function drawWaveform(
   duration: number,
   waveformData: number[],
   style: StyleConfig,
-  _variant: WaveformVariant
+  variant: WaveformVariant
 ): void {
-  if (waveformData.length === 0) return;
-  drawFlowingWave(ctx, currentTime, duration, waveformData, style);
-}
-
-/**
- * Smooth flowing waveform — a filled, organic shape that mirrors
- * vertically around a center line. No bars, no dots, no strokes.
- * Uses cubic bezier curves through the waveform samples for a
- * fluid, continuous look. The wave gently animates with time.
- */
-function drawFlowingWave(
-  ctx: CanvasRenderingContext2D,
-  currentTime: number,
-  duration: number,
-  waveformData: number[],
-  style: StyleConfig
-): void {
-  const { width, height, waveColor } = style;
-  const centerY = height * 0.72;
-  const maxAmplitude = height * 0.035;
-
-  const progress = duration > 0 ? currentTime / duration : 0;
-
-  // Sample points across the width — smooth, not dense
-  const pointCount = 120;
-  const points: Array<{ x: number; amp: number }> = [];
-
-  for (let i = 0; i <= pointCount; i++) {
-    const t = i / pointCount;
-    const x = t * width;
-
-    // Map to waveform data
-    const sampleIndex = Math.min(
-      Math.floor(t * waveformData.length),
-      waveformData.length - 1
-    );
-    const rawAmp = waveformData[sampleIndex];
-
-    // Dampen future (unplayed) portion
-    let dampening: number;
-    if (t <= progress) {
-      dampening = 1.0;
-    } else {
-      // Gentle fade from playhead forward
-      const dist = t - progress;
-      dampening = Math.max(0.15, 1.0 - dist * 3);
-    }
-
-    // Add subtle organic motion based on time
-    const timeWobble = Math.sin(currentTime * 2.5 + i * 0.15) * 0.08;
-    const amp = Math.max(0.01, (rawAmp + timeWobble) * dampening);
-
-    points.push({ x, amp });
-  }
-
-  // Draw filled shape — top half
-  ctx.beginPath();
-  ctx.moveTo(0, centerY);
-
-  for (let i = 0; i < points.length; i++) {
-    const { x, amp } = points[i];
-    const y = centerY - amp * maxAmplitude;
-
-    if (i === 0) {
-      ctx.lineTo(x, y);
-    } else {
-      // Smooth cubic bezier between points
-      const prev = points[i - 1];
-      const cpx = (prev.x + x) / 2;
-      ctx.bezierCurveTo(cpx, centerY - prev.amp * maxAmplitude, cpx, y, x, y);
-    }
-  }
-
-  // Close top half back to center
-  ctx.lineTo(width, centerY);
-
-  // Mirror: bottom half (draw right to left)
-  for (let i = points.length - 1; i >= 0; i--) {
-    const { x, amp } = points[i];
-    const y = centerY + amp * maxAmplitude;
-
-    if (i === points.length - 1) {
-      ctx.lineTo(x, y);
-    } else {
-      const next = points[i + 1];
-      const cpx = (next.x + x) / 2;
-      ctx.bezierCurveTo(cpx, centerY + next.amp * maxAmplitude, cpx, y, x, y);
-    }
-  }
-
-  ctx.closePath();
-
-  // Fill with solid color
-  ctx.fillStyle = waveColor;
-  ctx.fill();
-
-  // Playhead indicator — thin vertical line at current position
-  if (progress > 0 && progress < 1) {
-    const playheadX = progress * width;
-    ctx.beginPath();
-    ctx.moveTo(playheadX, centerY - maxAmplitude * 1.5);
-    ctx.lineTo(playheadX, centerY + maxAmplitude * 1.5);
-    ctx.strokeStyle = waveColor;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.5;
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
+  if (waveformData.length === 0 || variant === 'none') return;
+  switch (variant) {
+    case 'circle':
+      drawCircleWaveform(ctx, currentTime, duration, waveformData, style);
+      break;
+    case 'spectrogram':
+      drawSpectrogram(ctx, currentTime, duration, waveformData, style);
+      break;
+    case 'bars':
+      drawPillBars(ctx, currentTime, duration, waveformData, style);
+      break;
   }
 }
 
 // ── Caption Drawing ─────────────────────────────────────────────────
+
+const WAVEFORM_CENTER_Y = 0.72;
+const WAVEFORM_MAX_AMP = 0.07;
+const GAP_ABOVE_WAVEFORM = 0.06;
+const CAPTION_PADDING = 0.08;
+const FONT_WEIGHT = '600';
+const WORDS_PER_PHRASE = 6;
 
 function drawCaptions(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  captionStyle: CaptionVariant
+  captionStyle: CaptionVariant,
+  showWaveform: boolean
 ): void {
   if (transcript.length === 0) return;
 
   const { width, height, textColor, fontFamily, fontSize } = style;
-  const padding = width * 0.08;
+  const padding = width * CAPTION_PADDING;
   const maxWidth = width - padding * 2;
 
-  // Get the current phrase (not a rolling window — discrete phrases)
   const phrase = getCurrentPhrase(transcript, currentTime);
   if (!phrase || phrase.length === 0) return;
 
   const text = phrase.map((w) => w.text).join(' ');
 
-  // Font setup — clean, light weight
-  const fontWeight = '300';
-  ctx.font = `${fontWeight} ${fontSize}px "${fontFamily}", sans-serif`;
+  ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
   ctx.fillStyle = textColor;
 
-  // Measure and wrap text
   const lines = wrapText(ctx, text, maxWidth);
-  const lineHeight = fontSize * 1.35;
+  const lineHeight = fontSize * 1.4;
   const totalHeight = lines.length * lineHeight;
 
-  // Position: centered vertically above waveform (~50-55% down)
   let textY: number;
-  switch (captionStyle) {
-    case 'center':
-      textY = height * 0.52 - totalHeight / 2;
-      break;
-    case 'bottom':
-      textY = height * 0.52 - totalHeight / 2;
-      break;
-    case 'karaoke':
-      textY = height * 0.52 - totalHeight / 2;
-      break;
+  if (!showWaveform) {
+    textY = (height - totalHeight) / 2;
+  } else {
+    const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
+    const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
+
+    textY =
+      captionStyle === 'bottom'
+        ? captionBottom - totalHeight
+        : (captionBottom - totalHeight) / 2;
   }
 
-  // Draw centered text
   ctx.textAlign = 'center';
   const centerX = width / 2;
 
@@ -221,19 +130,61 @@ function drawCaptions(
   }
 }
 
+// ── Karaoke Caption Drawing ──────────────────────────────────────────
+
+function drawKaraokeCaptions(
+  ctx: CanvasRenderingContext2D,
+  currentTime: number,
+  transcript: Word[],
+  style: StyleConfig
+): void {
+  if (transcript.length === 0) return;
+
+  const { width, height, textColor, fontFamily, fontSize } = style;
+  const padding = width * CAPTION_PADDING;
+  const maxWidth = width - padding * 2;
+
+  const phrase = getCurrentPhrase(transcript, currentTime);
+  if (!phrase || phrase.length === 0) return;
+
+  ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = textColor;
+
+  const spaceWidth = ctx.measureText(' ').width;
+
+  // Typewriter reveal: only show words whose start time has passed
+  const visible = phrase
+    .filter((w) => w.start <= currentTime)
+    .map((w) => ({
+      text: w.text,
+      width: ctx.measureText(w.text).width,
+      isActive: currentTime < w.end,
+    }));
+
+  const totalWidth =
+    visible.reduce((sum, w) => sum + w.width, 0) +
+    spaceWidth * Math.max(0, visible.length - 1);
+
+  // Clamp to maxWidth
+  let x = Math.max(padding, (width - Math.min(totalWidth, maxWidth)) / 2);
+  const y = height / 2;
+
+  for (const w of visible) {
+    ctx.globalAlpha = w.isActive ? 1.0 : 0.4;
+    ctx.fillText(w.text, x, y);
+    x += w.width + spaceWidth;
+  }
+
+  ctx.globalAlpha = 1.0;
+}
+
 // ── Utilities ───────────────────────────────────────────────────────
 
-/**
- * Get the current phrase — a group of ~5-7 words that are currently being spoken.
- * Instead of a sliding window, this groups words into natural phrase chunks
- * and shows only the current chunk (like the Naval podcast style).
- */
 function getCurrentPhrase(transcript: Word[], currentTime: number): Word[] {
   if (transcript.length === 0) return [];
 
-  const WORDS_PER_PHRASE = 6;
-
-  // Group transcript into fixed-size phrases
   const phraseIndex = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
   if (phraseIndex < 0) return [];
 
@@ -243,29 +194,23 @@ function getCurrentPhrase(transcript: Word[], currentTime: number): Word[] {
   return transcript.slice(start, end);
 }
 
-/**
- * Find which phrase group the current time falls into.
- */
 function findCurrentPhraseIndex(
   transcript: Word[],
   currentTime: number,
   wordsPerPhrase: number
 ): number {
-  // Find the word being spoken at currentTime
   let wordIdx = -1;
   for (let i = 0; i < transcript.length; i++) {
     if (currentTime >= transcript[i].start && currentTime < transcript[i].end) {
       wordIdx = i;
       break;
     }
-    // If between words, use the most recent word
     if (currentTime >= transcript[i].end && (i === transcript.length - 1 || currentTime < transcript[i + 1].start)) {
       wordIdx = i;
       break;
     }
   }
 
-  // Before first word
   if (wordIdx < 0 && transcript.length > 0 && currentTime < transcript[0].start) {
     return 0;
   }
@@ -275,9 +220,6 @@ function findCurrentPhraseIndex(
   return Math.floor(wordIdx / wordsPerPhrase);
 }
 
-/**
- * Simple word-wrap for canvas text.
- */
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,

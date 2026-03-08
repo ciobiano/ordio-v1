@@ -3,19 +3,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/cn';
+import { panelCard } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { Word } from '@Ordio/shared/schemas';
 
 const WORDS_PER_PHRASE = 6;
 
 const chip = cva(
-  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none',
+  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
   {
     variants: {
       active: {
-        true: 'bg-blue-500/20 border-blue-500/40 text-white px-2 py-0.5',
+        true: 'bg-blue-500/20 border-blue-500/40 text-white px-2.5 py-1',
         false:
-          'bg-white/[0.04] border-white/[0.08] text-white/50 hover:text-white/80 hover:bg-white/[0.08] px-2 py-0.5',
+          'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/80 hover:bg-white/[0.08] px-2.5 py-1',
       },
       focused: {
         true: 'ring-1 ring-blue-400/60',
@@ -34,6 +35,7 @@ interface CaptionEditorProps {
 export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProps) {
   const transcript = useStore((s) => s.transcript);
   const setTranscript = useStore((s) => s.setTranscript);
+  const transcriptionSource = useStore((s) => s.transcriptionSource);
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -137,11 +139,11 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   if (transcript.length === 0) {
     return (
       <div
-        className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.06]
-                   px-4 py-5 flex items-center justify-center min-h-[4.5rem]"
+        role="region"
+        className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-18')}
         aria-label="Caption editor — empty"
       >
-        <p className="text-white/25 text-sm">No transcript yet</p>
+        <p className="text-white/50 text-sm">No transcript yet</p>
       </div>
     );
   }
@@ -149,24 +151,40 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
   return (
     <div
       ref={containerRef}
-      className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.06] px-4 py-4"
+      role="region"
+      className={cn(panelCard, 'w-full px-4 py-4')}
       aria-label="Caption editor"
       onKeyDown={handleContainerKeyDown}
     >
-      <p className="text-white/20 text-[0.625rem] uppercase tracking-[0.18em] mb-3">
-        Transcript — click to seek, double-click to edit
-      </p>
-      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto" role="list">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white/50 text-[0.625rem] uppercase tracking-[0.18em]">
+          Transcript — click to seek, double-click to edit
+        </p>
+        {transcriptionSource && (
+          <span
+            className={cn(
+              'text-[0.5625rem] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded font-medium',
+              transcriptionSource === 'whisper'
+                ? 'bg-green-500/15 text-green-400/80'
+                : 'bg-yellow-500/15 text-yellow-400/80'
+            )}
+          >
+            {transcriptionSource === 'whisper' ? 'OpenAI Whisper' : 'Web Speech'}
+          </span>
+        )}
+      </div>
+      <ul className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto list-none p-0 m-0">
         {transcript.map((word, i) => {
           const active = isActive(word);
           const isFocused = focusedIndex === i;
+          const isTabStop = isFocused || (focusedIndex === null && i === 0);
           const showSeparator = i > 0 && i % WORDS_PER_PHRASE === 0;
 
           if (editingIndex === i) {
             return (
-              <span key={i} className="inline-flex items-center">
+              <li key={i} className="inline-flex items-center">
                 {showSeparator && (
-                  <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
+                  <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
                 )}
                 <input
                   ref={inputRef}
@@ -177,35 +195,34 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
                   aria-label={`Edit word: ${word.text}`}
                   className="px-2 py-0.5 rounded-md text-sm border
                              bg-blue-500/20 border-blue-500/60 text-white
-                             outline-none min-w-[2rem] max-w-[12rem]"
+                             outline-none min-w-8 max-w-48"
                   style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
                   autoFocus
                 />
-              </span>
+              </li>
             );
           }
 
           return (
-            <span key={i} className="inline-flex items-center">
+            <li key={i} className="inline-flex items-center">
               {showSeparator && (
-                <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
+                <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
               )}
               <button
                 ref={(el) => setChipRef(i, el)}
-                tabIndex={isFocused ? 0 : -1}
+                tabIndex={isTabStop ? 0 : -1}
                 onClick={() => handleChipClick(i)}
                 onDoubleClick={() => handleChipDoubleClick(i)}
                 onFocus={() => setFocusedIndex(i)}
                 aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}`}
                 className={cn(chip({ active, focused: isFocused }))}
-                role="listitem"
               >
                 {word.text}
               </button>
-            </span>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

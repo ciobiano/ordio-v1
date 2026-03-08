@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
+import { loadFont } from '@/lib/fontLoader';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
-import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import { getCanvasDimensions, type WaveformVariant, type CaptionVariant, type FormatVariant } from '@/lib/store';
 import { cn } from '@/lib/cn';
 
 interface CanvasPreviewProps {
@@ -15,17 +16,6 @@ interface CanvasPreviewProps {
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
   className?: string;
-}
-
-function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
-  switch (format) {
-    case 'square':
-      return { width: 1080, height: 1080 };
-    case 'vertical':
-      return { width: 1080, height: 1920 };
-    case 'horizontal':
-      return { width: 1920, height: 1080 };
-  }
 }
 
 function getFormatLabel(format: FormatVariant): string {
@@ -37,6 +27,12 @@ function getFormatLabel(format: FormatVariant): string {
     case 'horizontal':
       return '16:9';
   }
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 function getContainerClass(format: FormatVariant): string {
@@ -60,8 +56,15 @@ export default function CanvasPreview({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveformDataRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
+  const [fontLoaded, setFontLoaded] = useState(false);
 
   const { transcript, style, audioBuffer } = useStore();
+
+  // Load the selected font so canvas can render it, then trigger re-draw
+  useEffect(() => {
+    setFontLoaded(false);
+    loadFont(style.fontFamily).then(() => setFontLoaded(true));
+  }, [style.fontFamily]);
 
   // Pre-compute waveform data when audio changes
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function CanvasPreview({
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle]);
+  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {
@@ -124,7 +127,9 @@ export default function CanvasPreview({
         width={canvasWidth}
         height={canvasHeight}
         className="w-full h-full object-contain"
-        aria-label="Video preview"
+        role="img"
+        tabIndex={-1}
+        aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
       <span
         className="absolute top-2 right-2 text-[0.625rem] font-medium tracking-wider uppercase

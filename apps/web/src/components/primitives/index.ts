@@ -1,4 +1,5 @@
 export { default as CapabilityBanner } from './CapabilityBanner';
+export { default as ToggleRow } from './ToggleRow';
 export { default as LiveCaption } from './LiveCaption';
 export { default as PlaybackControls } from './PlaybackControls';
 export { default as ProcessingStep } from './ProcessingStep';

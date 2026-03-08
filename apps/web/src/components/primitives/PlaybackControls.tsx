@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback } from 'react';
-import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/cn';
+import { roundIconBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 
 // Re-export so consumers can import the type from here
@@ -18,20 +18,6 @@ function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60);
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
-
-const playBtn = cva(
-  `w-10 h-10 rounded-full flex items-center justify-center
-   transition-all duration-150 cursor-pointer border shrink-0`,
-  {
-    variants: {
-      state: {
-        play: 'bg-white text-black border-white hover:bg-white/90',
-        pause: 'bg-white/10 text-white border-white/20 hover:bg-white/15',
-      },
-    },
-    defaultVariants: { state: 'play' },
-  }
-);
 
 export default function PlaybackControls({ playback, className }: PlaybackControlsProps) {
   const { isPlaying, currentTime, duration, play, pause, seek } = playback;
@@ -58,7 +44,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
         aria-label={isPlaying ? 'Pause' : 'Play'}
         disabled={duration === 0}
         className={cn(
-          playBtn({ state: isPlaying ? 'pause' : 'play' }),
+          roundIconBtn({ intent: isPlaying ? 'pause' : 'play' }),
           'disabled:opacity-30 disabled:cursor-not-allowed'
         )}
       >
@@ -75,16 +61,16 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
         )}
       </button>
 
-      {/* Scrubber */}
-      <div className="relative flex-1 h-1 group">
+      {/* Scrubber — 44px touch target, 3px visual track */}
+      <div className="relative flex-1 h-11 flex items-center group">
         {/* Track background */}
-        <div className="absolute inset-y-0 left-0 right-0 my-auto h-[3px] rounded-full bg-white/10" />
+        <div className="absolute left-0 right-0 h-0.75 rounded-full bg-white/10" />
         {/* Fill */}
         <div
-          className="absolute inset-y-0 left-0 my-auto h-[3px] rounded-full bg-gradient-to-r from-blue-500 to-purple-500 pointer-events-none"
+          className="absolute left-0 h-0.75 rounded-full bg-gray-600 pointer-events-none"
           style={{ width: `${progress}%` }}
         />
-        {/* Range input (transparent — sits on top) */}
+        {/* Range input (transparent — sits on top, full 44px height) */}
         <input
           type="range"
           min={0}
@@ -94,16 +80,17 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
           onChange={handleScrub}
           aria-label="Seek audio"
           aria-valuemin={0}
-          aria-valuemax={duration}
+          aria-valuemax={Math.round(duration)}
+      
           aria-valuenow={Math.round(currentTime)}
           disabled={duration === 0}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full disabled:cursor-not-allowed"
+          className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
       </div>
 
       {/* Time display */}
       <span
-        className="text-white/40 text-xs tabular-nums shrink-0 w-[4.5rem] text-right"
+        className="text-white/60 text-xs tabular-nums shrink-0 w-18 text-right"
         aria-live="off"
       >
         {formatTime(currentTime)}&nbsp;/&nbsp;{formatTime(duration)}

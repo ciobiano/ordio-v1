@@ -1,12 +1,12 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { roundIconBtn } from '@/lib/variants';
 import type { WaveformVariant, CaptionVariant } from '@/lib/store';
 
 interface RecordingStateProps {
   onStopRecording: () => void;
   audioLevel: number;
-  liveWords: string[];
   captionStyle: CaptionVariant;
   waveformStyle: WaveformVariant;
   isSpeaking?: boolean;
@@ -21,7 +21,6 @@ function FlowingWaveform({ level }: { level: number }) {
   const timeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const smoothLevelRef = useRef(0);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -44,62 +43,42 @@ function FlowingWaveform({ level }: { level: number }) {
 
       ctx.clearRect(0, 0, w, h);
 
-      // Number of sample points across width
       const points = 80;
 
-      // Build top curve
+      // Pre-compute amplitudes once for both top and bottom curves
+      const amplitudes = new Float32Array(points + 1);
+      for (let i = 0; i <= points; i++) {
+        const norm = i / points;
+        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
+        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
+        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
+        const envelope = Math.sin(norm * Math.PI);
+        amplitudes[i] = (0.05 + smoothLevel * 0.95) * (wave1 + wave2 + wave3) * envelope * maxAmp;
+      }
+
+      // Build closed shape: top curve → right → mirrored bottom → left
       ctx.beginPath();
       ctx.moveTo(0, centerY);
 
       for (let i = 0; i <= points; i++) {
         const x = (i / points) * w;
-        const norm = i / points;
-
-        // Multiple sine waves layered for organic feel
-        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
-        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
-        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
-
-        // Envelope — taper at edges so wave fades near screen borders
-        const envelope = Math.sin(norm * Math.PI);
-
-        const combined = (wave1 + wave2 + wave3) * envelope;
-        const amp = (0.05 + smoothLevel * 0.95) * combined * maxAmp;
-
-        const y = centerY - Math.abs(amp);
-
+        const y = centerY - Math.abs(amplitudes[i]);
         if (i === 0) {
           ctx.lineTo(x, y);
         } else {
-          const prevX = ((i - 1) / points) * w;
-          const cpx = (prevX + x) / 2;
-          ctx.quadraticCurveTo(cpx, y, x, y);
+          ctx.quadraticCurveTo((((i - 1) / points) * w + x) / 2, y, x, y);
         }
       }
 
-      // Close across to right, then mirror bottom
       ctx.lineTo(w, centerY);
 
       for (let i = points; i >= 0; i--) {
         const x = (i / points) * w;
-        const norm = i / points;
-
-        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
-        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
-        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
-        const envelope = Math.sin(norm * Math.PI);
-
-        const combined = (wave1 + wave2 + wave3) * envelope;
-        const amp = (0.05 + smoothLevel * 0.95) * combined * maxAmp;
-
-        const y = centerY + Math.abs(amp);
-
+        const y = centerY + Math.abs(amplitudes[i]);
         if (i === points) {
           ctx.lineTo(x, y);
         } else {
-          const nextX = ((i + 1) / points) * w;
-          const cpx = (nextX + x) / 2;
-          ctx.quadraticCurveTo(cpx, y, x, y);
+          ctx.quadraticCurveTo((((i + 1) / points) * w + x) / 2, y, x, y);
         }
       }
 
@@ -131,37 +110,21 @@ function FlowingWaveform({ level }: { level: number }) {
 export default function RecordingState({
   onStopRecording,
   audioLevel,
-  liveWords,
   captionStyle,
   waveformStyle,
   isSpeaking = false,
 }: RecordingStateProps) {
   return (
-    <div className="fixed inset-0 bg-black flex flex-col animate-fadeIn">
-      {/* Live transcript — full screen, large text */}
-      <div
-        className="flex-1 px-6 sm:px-10 pt-16 sm:pt-20 pb-48 overflow-hidden"
-        role="region"
-        aria-label="Live transcription"
-        aria-live="polite"
-      >
-        {liveWords.length > 0 ? (
-          <p className="text-[1.625rem] sm:text-[2rem] font-light leading-[1.4] tracking-[-0.01em] text-white">
-            {liveWords.join(' ')}
-            <span
-              className="inline-block w-[3px] h-[1.6em] bg-white/60 animate-pulse ml-1.5 align-middle"
-              aria-hidden="true"
-            />
-          </p>
-        ) : (
-          <p className="text-[1.625rem] sm:text-[2rem] font-light leading-[1.4] text-white/20">
-            Start speaking&hellip;
-          </p>
-        )}
-      </div>
+    <div
+      className="fixed inset-0 bg-black flex flex-col animate-fadeIn"
+      role="region"
+      aria-label="Recording in progress"
+    >
+      {/* Spacer — pushes controls to bottom */}
+      <div className="flex-1" />
 
       {/* Bottom area — flowing waveform + stop button */}
-      <div className="fixed bottom-0 inset-x-0 flex flex-col items-center gap-4 pb-8 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+      <div className="fixed bottom-0 inset-x-0 flex flex-col items-center gap-4 pb-8 safe-pb pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
         {/* Flowing waveform — responds to voice */}
         <div className="w-full px-4 sm:px-8">
           <FlowingWaveform level={audioLevel} />
@@ -170,11 +133,7 @@ export default function RecordingState({
         <button
           onClick={onStopRecording}
           aria-label="Stop recording"
-          className="group relative w-[4.5rem] h-[4.5rem] rounded-full
-                     bg-[#e11d48]/[0.12] border-2 border-[#e11d48]/30
-                     hover:bg-[#e11d48]/20 hover:border-[#e11d48]/50
-                     transition-all duration-200
-                     hover:scale-105 active:scale-[0.96] cursor-pointer"
+          className={roundIconBtn({ intent: 'stop' })}
         >
           <span className="sr-only">Stop recording</span>
           <div className="absolute inset-0 flex items-center justify-center">
@@ -189,7 +148,7 @@ export default function RecordingState({
             }`}
             aria-hidden="true"
           />
-          <span className="text-white/30 text-[0.625rem] tracking-[0.2em] uppercase">
+          <span className="text-white/60 text-[0.625rem] tracking-[0.2em] uppercase">
             {isSpeaking ? 'speaking' : 'listening'}
           </span>
         </div>

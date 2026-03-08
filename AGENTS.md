@@ -41,12 +41,14 @@
 
 ## Current State (UPDATE THIS REGULARLY!)
 
-**Last Updated:** 2026-02-24
-**Architecture:** v1 monorepo is built (Convex, Remotion, Clerk); pivoting to v2 client-side
-**v1 Status:** Complete — monorepo scaffold, packages/shared, packages/convex, apps/renderer, apps/web shell
-**Next.js:** Downgraded from 16 → 15 (15.3.3) for dependency compatibility. Uses webpack (not Turbopack).
-**Working On:** v2 client-side export pipeline — integrating Mediabunny + wavesurfer.js
-**Blocked By:** None
+**Last Updated:** 2026-03-04
+**Architecture:** v2 client-side MVP is feature-complete; pivoting to ship + monetize
+**v2 Status:** Core pipeline complete (record/upload → transcribe → edit → export MP4). 20 tests pass. Audio enhancement tiered (none/clean/hd). 3 waveform styles + 3 aspect ratios. Caption editing with word-level chips. Uncommitted work on v2 branch.
+**Competitive Position:** 62% product-ready vs Headliner/Descript. Core pipeline 92%. Gaps: templates, monetization, distribution.
+**Infrastructure:** $6/mo (beta) → $31/mo (100 users optimized). Modal for GPU enhance, Groq for cheaper Whisper.
+**Next Milestone:** Phase A — runtime test, commit, deploy to Vercel
+**Working On:** Infrastructure cost analysis + monetization architecture
+**Blocked By:** Runtime testing (must complete before deploy)
 
 ## What's Built (v1 — Substantially Complete)
 

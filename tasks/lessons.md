@@ -46,3 +46,23 @@ When evaluating open-source libraries for Ordio:
 ## Always Cross-Check TODO Before Planning
 - Before recommending "next steps", always read `tasks/todo.md` and cross-check against actual files in the codebase. Previous sessions may have completed work that wasn't marked in the TODO.
 - Check: is the package installed? Does the file exist? Is the hook wired up? Don't trust the checklist alone.
+
+## Whisper Word-Level Output Strips Punctuation
+- Whisper's `timestamp_granularities: ['word']` output **deliberately removes all punctuation** (periods, commas, question marks). This is by design — punctuation has no acoustic representation, and the DTW alignment algorithm drops it.
+- The `prompt` parameter only affects the full `text` and `segments` fields, NOT the `words` array.
+- **Fix:** Request both `['word', 'segment']` granularities. Segments come from the autoregressive decoder and include full punctuation. Merge segment tokens onto word timestamps with `mergePunctuation()`.
+- Zero extra API cost — same single Whisper call.
+
+## Canvas Fonts Must Be Explicitly Loaded
+- Setting `ctx.font = '600 72px "Roboto"'` does nothing if Roboto isn't loaded in the document. Canvas silently falls back to a default font.
+- **Fix:** Load Google Fonts dynamically via `<link>` injection + `document.fonts.load()` (FontFace API) before rendering. Cache loaded fonts in a `Set` to avoid duplicate fetches.
+- The font loading must complete before the canvas draws, or you'll get one frame of wrong font.
+
+## Audio-Reactive vs Timeline Waveforms
+- Timeline waveforms (bars mapping to time positions with a playhead) look like a progress indicator, not a music visualizer.
+- Audio-reactive waveforms (all bars bouncing to current amplitude) are more visually engaging and match user expectations for audiograms.
+- Per-bar variation via bell curve (center bars taller) + multiple sine waves creates organic bouncy motion without needing actual FFT data.
+
+## Duplicate Processing Logic — Extract Shared Hooks
+- Recording stop and file upload both need: decode audio → transcribe → set state → transition phase. When this logic is duplicated, bugs get fixed in one path but not the other.
+- **Fix:** Extract to a shared `useAudioProcessing` hook that both code paths call. The recording path passes `liveTranscriptFallback=true` for Web Speech fallback.

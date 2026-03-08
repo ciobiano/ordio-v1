@@ -6,7 +6,7 @@ export interface UsePlaybackReturn {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  play: () => void;
+  play: () => Promise<void>;
   pause: () => void;
   seek: (time: number) => void;
   load: (buffer: AudioBuffer) => void;
@@ -59,13 +59,18 @@ export function usePlayback(): UsePlaybackReturn {
     seekPositionRef.current = 0;
   }, []);
 
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     if (!bufferRef.current || playingRef.current) return;
 
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
       ctxRef.current = new AudioContext();
     }
     const ctx = ctxRef.current;
+
+    // iOS suspends AudioContext when backgrounded — must resume on user gesture
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
 
     const source = ctx.createBufferSource();
     source.buffer = bufferRef.current;
@@ -76,6 +81,9 @@ export function usePlayback(): UsePlaybackReturn {
     playStartTimeRef.current = ctx.currentTime;
 
     source.onended = () => {
+      // Guard: ignore stale onended from a source that was already replaced
+      // (e.g., seek stopped the old source, but onended fires after a new source started)
+      if (sourceRef.current !== source) return;
       if (playingRef.current) {
         playingRef.current = false;
         setIsPlaying(false);
@@ -110,16 +118,15 @@ export function usePlayback(): UsePlaybackReturn {
       setCurrentTime(clamped);
 
       if (playingRef.current) {
-        // Restart from new position
+        // Pause at new position — user clicks Play to resume
         sourceRef.current?.stop();
         sourceRef.current = null;
         playingRef.current = false;
+        setIsPlaying(false);
         stopTimeLoop();
-        // Re-start after a micro-tick to allow state to settle
-        setTimeout(() => play(), 0);
       }
     },
-    [play, stopTimeLoop]
+    [stopTimeLoop]
   );
 
   const stop = useCallback(() => {
@@ -135,7 +142,10 @@ export function usePlayback(): UsePlaybackReturn {
   useEffect(() => {
     return () => {
       sourceRef.current?.stop();
-      ctxRef.current?.close();
+      if (ctxRef.current && ctxRef.current.state !== 'closed') {
+        ctxRef.current.close();
+      }
+      ctxRef.current = null;
       stopTimeLoop();
     };
   }, [stopTimeLoop]);

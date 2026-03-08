@@ -10,8 +10,8 @@
   --border: rgba(255, 255, 255, 0.08);
   --border-active: rgba(255, 255, 255, 0.2);
   --foreground: #f8fafc;
-  --muted: rgba(255, 255, 255, 0.35);
-  --muted-dim: rgba(255, 255, 255, 0.18);
+  --muted: rgba(255, 255, 255, 0.60);
+  --muted-dim: rgba(255, 255, 255, 0.45);
 
   /* Accent */
   --accent: #3b82f6;
@@ -44,6 +44,15 @@
   --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
 }
 
+/* ── Safe Area ────────────────────────────────────────────── */
+@utility safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility safe-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* ── Base ──────────────────────────────────────────────────── */
 *,
 *::before,
@@ -65,11 +74,32 @@ body {
   line-height: 1.6;
 }
 
-/* ── Focus states (WCAG AA) ────────────────────────────────── */
+/* ── Focus states (WCAG AA — 3:1 against dark backgrounds) ── */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid rgba(255, 255, 255, 0.8);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
   border-radius: 4px;
+}
+
+/* ── Skip navigation (sr-only, visible on focus) ─────────── */
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 24px;
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-nav:focus {
+  top: 0;
 }
 
 /* ── Animations ────────────────────────────────────────────── */

@@ -14,7 +14,11 @@ export default function RecordingTimer() {
   const secs = seconds % 60;
 
   return (
-    <span className="text-5xl font-extralight tabular-nums tracking-tight">
+    <span
+      className="text-5xl font-extralight tabular-nums tracking-tight"
+      role="timer"
+      aria-label="Recording duration"
+    >
       {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
     </span>
   );

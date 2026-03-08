@@ -1,58 +1,167 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import type { Word } from '@Ordio/shared/schemas';
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB Whisper API limit
-
-function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+// Lazy-init — never instantiate at module level (breaks `next build`)
+let openai: OpenAI | null = null;
+function getClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is not set');
+    }
+    openai = new OpenAI({ apiKey });
   }
-  return new OpenAI({ apiKey });
+  return openai;
 }
 
-export async function POST(request: Request) {
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
+
+interface WhisperWord {
+  word: string;
+  start: number;
+  end: number;
+}
+
+interface WhisperSegment {
+  text: string;
+  start: number;
+  end: number;
+}
+
+function filterTimestamped<T extends { start: number; end: number }>(
+  items: unknown[],
+  textField: string
+): T[] {
+  return items.filter((item): item is T => {
+    if (typeof item !== 'object' || item === null) return false;
+    const rec = item as Record<string, unknown>;
+    return (
+      typeof rec[textField] === 'string' &&
+      (rec[textField] as string).trim().length > 0 &&
+      typeof rec.start === 'number' &&
+      typeof rec.end === 'number'
+    );
+  });
+}
+
+/**
+ * Merge punctuation from segment text onto bare words.
+ * Whisper's word-level output strips all punctuation (by design — punctuation
+ * has no acoustic representation). Segments keep full punctuation from the
+ * autoregressive decoder, so we align words to segment tokens and copy
+ * trailing punctuation back.
+ */
+function mergePunctuation(words: WhisperWord[], segments: WhisperSegment[]): Word[] {
+  const result: Word[] = words.map((w) => ({
+    text: w.word.trim(),
+    start: w.start,
+    end: w.end,
+  }));
+
+  for (const segment of segments) {
+    const tokens = segment.text.trim().match(/\S+/g) || [];
+
+    // Find words within this segment's time range (small tolerance for float imprecision)
+    const segWords = result.filter(
+      (w) => w.start >= segment.start - 0.05 && w.end <= segment.end + 0.05
+    );
+
+    // Walk through tokens and match to words by lowercase root
+    let tokenIdx = 0;
+    for (const sw of segWords) {
+      const wordClean = sw.text.toLowerCase().replace(/[^\w']/g, '');
+      while (tokenIdx < tokens.length) {
+        const tokenClean = tokens[tokenIdx].toLowerCase().replace(/[^\w']/g, '');
+        if (tokenClean === wordClean) {
+          // Keep the token version which includes punctuation (e.g. "Hello," or "right?")
+          sw.text = tokens[tokenIdx];
+          tokenIdx++;
+          break;
+        }
+        tokenIdx++;
+      }
+    }
+  }
+
+  return result;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const openai = getOpenAIClient();
     const formData = await request.formData();
-    const audioFile = formData.get('audio');
+    const file = formData.get('audio');
 
-    if (!audioFile || !(audioFile instanceof File)) {
+    if (!file || !(file instanceof Blob)) {
       return NextResponse.json(
-        { error: 'No audio file provided' },
+        { error: 'Missing audio file in form data' },
         { status: 400 }
       );
     }
 
-    if (audioFile.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'File too large. Maximum 25MB for transcription.' },
-        { status: 400 }
+        { error: 'Audio file exceeds 25MB Whisper limit' },
+        { status: 413 }
       );
     }
 
-    const response = await openai.audio.transcriptions.create({
-      file: audioFile,
+    const client = getClient();
+
+    // Convert Blob to File for the OpenAI SDK
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const audioFile = new File([buffer], 'audio.webm', { type: file.type || 'audio/webm' });
+
+    // Request both word + segment granularities.
+    // Words give precise per-word timestamps (but stripped punctuation).
+    // Segments give punctuated text (but coarser timestamps).
+    // We merge them to get punctuated words with precise timestamps.
+    const response = await client.audio.transcriptions.create({
       model: 'whisper-1',
+      file: audioFile,
       response_format: 'verbose_json',
-      timestamp_granularities: ['word'],
+      timestamp_granularities: ['word', 'segment'],
+      language: 'en',
     });
 
-    const words = (response.words ?? []).map((w) => ({
-      text: w.word,
-      start: w.start,
-      end: w.end,
-    }));
+    const verboseResponse = response as unknown as {
+      words?: unknown[];
+      segments?: unknown[];
+      text: string;
+      duration?: number;
+    };
 
-    return NextResponse.json({
-      words,
-      duration: response.duration ?? 0,
-      text: response.text ?? '',
-    });
-  } catch (error) {
-    console.error('Transcription error:', error);
-    const message =
-      error instanceof Error ? error.message : 'Transcription failed';
+    const rawWords = verboseResponse.words;
+    if (!rawWords || !Array.isArray(rawWords) || rawWords.length === 0) {
+      return NextResponse.json({
+        words: [{ text: response.text, start: 0, end: response.duration ?? 0 }],
+      });
+    }
+
+    const validWords = filterTimestamped<WhisperWord>(rawWords, 'word');
+    const validSegments = filterTimestamped<WhisperSegment>(
+      Array.isArray(verboseResponse.segments) ? verboseResponse.segments : [],
+      'text'
+    );
+
+    // Merge punctuation from segments onto bare words
+    const words =
+      validSegments.length > 0
+        ? mergePunctuation(validWords, validSegments)
+        : validWords.map((w) => ({ text: w.word.trim(), start: w.start, end: w.end }));
+
+    return NextResponse.json({ words });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Transcription failed';
+    console.error('[/api/transcribe]', message);
+
+    if (message.includes('OPENAI_API_KEY')) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured. Add OPENAI_API_KEY to .env.local' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

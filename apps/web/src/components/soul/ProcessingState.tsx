@@ -2,36 +2,54 @@
 
 import ProgressRing from '@/components/primitives/ProgressRing';
 import ProcessingStep from '@/components/primitives/ProcessingStep';
+import { useStore } from '@/lib/store';
+import type { EnhanceTier } from '@/lib/store';
 
 interface ProcessingStateProps {
   progress: number;
-  step: number;
 }
 
-const STEPS = [
-  'Analyzing audio',
-  'Transcribing with AI',
-  'Preparing captions',
-] as const;
+function getSteps(tier: EnhanceTier): readonly string[] {
+  if (tier === 'clean') {
+    return ['Analyzing audio', 'Removing noise', 'Transcribing with AI', 'Preparing captions'];
+  }
+  if (tier === 'hd') {
+    return ['Analyzing audio', 'Remastering audio', 'Transcribing with AI', 'Preparing captions'];
+  }
+  return ['Analyzing audio', 'Transcribing with AI', 'Preparing captions'];
+}
 
-export default function ProcessingState({ progress, step }: ProcessingStateProps) {
+function deriveStep(progress: number, tier: EnhanceTier): number {
+  if (tier !== 'none') {
+    // 4-step: decode 0-15, enhance 15-40, transcribe 40-75, finalize 75-100
+    if (progress < 15) return 0;
+    if (progress < 40) return 1;
+    if (progress < 75) return 2;
+    return 3;
+  }
+  // 3-step: decode 0-25, transcribe 25-70, finalize 70-100
+  if (progress < 25) return 0;
+  if (progress < 70) return 1;
+  return 2;
+}
+
+export default function ProcessingState({ progress }: ProcessingStateProps) {
+  const enhanceTier = useStore((s) => s.enhanceTier);
+  const steps = getSteps(enhanceTier);
+  const step = deriveStep(progress, enhanceTier);
   return (
-    <div
-      className="flex flex-col items-center gap-10 animate-fadeIn"
-      role="status"
-      aria-label={`Processing: ${Math.round(progress)}%`}
-    >
+    <div className="flex flex-col items-center gap-10 animate-fadeIn">
       <div className="text-center">
-        <h2 className="text-[1.5rem] font-[300] text-white/90 tracking-[-0.02em]">
+        <h2 className="text-[1.5rem] font-light text-white/90 tracking-[-0.02em]">
           Creating your video
         </h2>
-        <p className="text-white/35 text-sm mt-2">This won&apos;t take long</p>
+        <p className="text-white/60 text-sm mt-2">This won&apos;t take long</p>
       </div>
 
       <ProgressRing progress={progress} />
 
-      <div className="flex flex-col items-start gap-3 w-[13rem]">
-        {STEPS.map((label, i) => (
+      <div className="flex flex-col items-start gap-3 w-52">
+        {steps.map((label, i) => (
           <ProcessingStep key={label} done={step > i} active={step === i && progress < 100}>
             {label}
           </ProcessingStep>

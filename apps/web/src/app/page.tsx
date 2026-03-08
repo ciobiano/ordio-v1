@@ -2,18 +2,19 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { useStore } from '@/lib/store';
+import { toast } from 'sonner';
+import { useStore, getCanvasDimensions } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
 import { useTranscription } from '@/hooks/useTranscription';
+import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
-import { useVAD } from '@/hooks/useVAD';
-import { cn } from '@/lib/cn';
 
 import { CapabilityBanner } from '@/components/primitives';
 import {
+  AudioSettings,
   CaptionStyleSelector,
   WaveformStyleSelector,
   IdleState,
@@ -30,45 +31,24 @@ export default function Home() {
     waveformStyle,
     captionStyle,
     format,
-    showControls,
-    liveWords,
     setCurrentState,
-    setAudioBuffer,
-    setAudioBlob,
-    setAudioDuration,
-    setTranscript,
-    setLiveWords,
-    setShowControls,
     reset,
   } = useStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingStep, setProcessingStep] = useState(0);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const exportCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
+  const { processingProgress, processAudio } = useAudioProcessing(transcription);
   const exporter = useVideoExporter();
   const capabilities = useCapabilities();
   const playback = usePlayback();
-  const vad = useVAD(currentState === 'recording');
 
-  const decodeAudioBlob = useCallback(async (blob: Blob): Promise<void> => {
-    const audioCtx = new AudioContext();
-    audioContextRef.current = audioCtx;
-    const arrayBuffer = await blob.arrayBuffer();
-    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-    setAudioBuffer(decoded);
-    setAudioBlob(blob);
-    setAudioDuration(decoded.duration);
-  }, [setAudioBuffer, setAudioBlob, setAudioDuration]);
-
+  // Audio level animation during recording
   useEffect(() => {
     if (!recorder.isRecording) {
       setAudioLevel(0);
@@ -85,64 +65,32 @@ export default function Home() {
     };
   }, [recorder.isRecording, analyser]);
 
-  useEffect(() => {
-    setLiveWords(transcription.liveWords);
-  }, [transcription.liveWords, setLiveWords]);
-
+  // Load audio into playback when entering export phase
   useEffect(() => {
     if (currentState !== 'export') return;
     const { audioBuffer } = useStore.getState();
     if (audioBuffer) playback.load(audioBuffer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentState]);
+  }, [currentState, playback]);
 
+  // Process recorded audio when recording stops
   useEffect(() => {
     if (recorder.state !== 'stopped' || !recorder.audioBlob) return;
-
-    const processRecordedAudio = async () => {
-      setCurrentState('processing');
-      setProcessingProgress(0);
-      setProcessingStep(0);
-      try {
-        // Step 1: Analyze audio
-        setProcessingStep(0);
-        setProcessingProgress(10);
-        await decodeAudioBlob(recorder.audioBlob!);
-        setProcessingProgress(30);
-
-        // Step 2: Transcribe with Whisper API
-        setProcessingStep(1);
-        setProcessingProgress(35);
-        transcription.stopLiveTranscription();
-        const whisperWords = await transcription.transcribeAudio(recorder.audioBlob!);
-        setProcessingProgress(85);
-
-        // Step 3: Prepare captions
-        setProcessingStep(2);
-        setTranscript(whisperWords.length > 0 ? whisperWords : transcription.transcript);
-        setProcessingProgress(100);
-        setTimeout(() => setCurrentState('export'), 300);
-      } catch (err) {
-        console.error('Processing failed:', err);
-        setCurrentState('idle');
-      }
-    };
-
-    processRecordedAudio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorder.state, recorder.audioBlob]);
+    processAudio(recorder.audioBlob).catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to process audio');
+    });
+  }, [recorder.state, recorder.audioBlob, processAudio]);
 
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
-    await recorder.startRecording();
-    transcription.startLiveTranscription();
+    const stream = await recorder.startRecording();
+    if (stream) analyser.connectStream(stream);
     setCurrentState('recording');
-  }, [recorder, transcription, setCurrentState]);
+  }, [recorder, analyser, transcription, setCurrentState]);
 
   const handleStopRecording = useCallback(() => {
     recorder.stopRecording();
-    transcription.stopLiveTranscription();
-  }, [recorder, transcription]);
+    analyser.disconnect();
+  }, [recorder, analyser]);
 
   const handleFileUpload = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -150,39 +98,19 @@ export default function Home() {
       if (!file) return;
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        alert('File too large. Maximum 50MB.');
+        toast.error('File too large. Maximum 50 MB.');
         return;
       }
 
-      setCurrentState('processing');
-      setProcessingProgress(0);
-      setProcessingStep(0);
       try {
-        // Step 1: Analyze audio
-        setProcessingStep(0);
-        setProcessingProgress(10);
-        await decodeAudioBlob(file);
-        setProcessingProgress(30);
-
-        // Step 2: Transcribe with Whisper API
-        setProcessingStep(1);
-        setProcessingProgress(35);
-        const whisperWords = await transcription.transcribeAudio(file);
-        setProcessingProgress(85);
-
-        // Step 3: Prepare captions
-        setProcessingStep(2);
-        setTranscript(whisperWords);
-        setProcessingProgress(100);
-        setTimeout(() => setCurrentState('export'), 300);
+        await processAudio(file);
       } catch {
-        alert('Failed to load audio file. Please try MP3, WAV, or M4A.');
-        setCurrentState('idle');
+        toast.error('Failed to load audio file. Try MP3, WAV, or M4A.');
       }
 
       if (e.target) e.target.value = '';
     },
-    [setCurrentState, decodeAudioBlob]
+    [processAudio]
   );
 
   const handleExport = useCallback(async () => {
@@ -190,15 +118,14 @@ export default function Home() {
     if (!audioBuffer) return;
 
     const canvas = document.createElement('canvas');
-    const dims = format === 'square' ? [1080, 1080] : format === 'vertical' ? [1080, 1920] : [1920, 1080];
-    canvas.width = dims[0];
-    canvas.height = dims[1];
-    exportCanvasRef.current = canvas;
+    const { width, height } = getCanvasDimensions(format);
+    canvas.width = width;
+    canvas.height = height;
 
-    const canvasCtx = canvas.getContext('2d');
-    if (canvasCtx) {
-      canvasCtx.fillStyle = '#000000';
-      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     await exporter.startExport(canvas, audioBuffer);
@@ -218,59 +145,51 @@ export default function Home() {
     transcription.clearTranscript();
     exporter.cancelExport();
     playback.stop();
-    audioContextRef.current?.close();
-    audioContextRef.current = null;
     reset();
   }, [recorder, transcription, exporter, playback, reset]);
 
   return (
-    <div
-      className="min-h-screen bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
+    <div className="min-h-dvh bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]">
       {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
 
-      <div
-        className={cn(
-          'fixed top-4 right-4 z-40 transition-opacity duration-200',
-          showControls && (currentState === 'recording' || currentState === 'export')
-            ? 'opacity-100'
-            : 'opacity-0 pointer-events-none'
-        )}
-      >
-        <CaptionStyleSelector />
-      </div>
+      {(currentState === 'recording' || currentState === 'export') && (
+        <div className="fixed top-4 right-4 z-40">
+          <CaptionStyleSelector />
+        </div>
+      )}
 
       <main
-        className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
-        role="main"
+        id="main-content"
+        className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
       >
         {currentState === 'idle' && (
-          <IdleState
-            onStartRecording={handleStartRecording}
-            onFileUpload={handleFileUpload}
-            canRecord={capabilities.canRecord}
-            isLoading={capabilities.isLoading}
-            showControls={showControls}
-            waveformStyle={waveformStyle}
-            fileInputRef={fileInputRef}
-          />
+          <>
+            <IdleState
+              onStartRecording={handleStartRecording}
+              onFileUpload={handleFileUpload}
+              canRecord={capabilities.canRecord}
+              isLoading={capabilities.isLoading}
+              waveformStyle={waveformStyle}
+              fileInputRef={fileInputRef}
+            />
+            <div className="mt-6 w-full max-w-xs">
+              <AudioSettings />
+            </div>
+          </>
         )}
 
         {currentState === 'recording' && (
           <RecordingState
             onStopRecording={handleStopRecording}
             audioLevel={audioLevel}
-            liveWords={liveWords}
             captionStyle={captionStyle}
             waveformStyle={waveformStyle}
-            isSpeaking={vad.isSpeaking}
+            isSpeaking={audioLevel > 0.05}
           />
         )}
 
         {currentState === 'processing' && (
-          <ProcessingState progress={processingProgress} step={processingStep} />
+          <ProcessingState progress={processingProgress} />
         )}
 
         {currentState === 'export' && (
@@ -285,18 +204,24 @@ export default function Home() {
             onReset={handleReset}
           />
         )}
+
+        {/* Phase transition announcer for screen readers */}
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {currentState === 'recording' && 'Recording started'}
+          {currentState === 'processing' && 'Processing audio'}
+          {currentState === 'export' && 'Export ready'}
+        </div>
       </main>
 
-      <div
-        className={cn(
-          'fixed bottom-6 right-6 sm:bottom-8 sm:right-8 transition-all duration-200',
-          showControls && (currentState === 'idle' || currentState === 'recording')
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-1 pointer-events-none'
-        )}
-      >
-        <WaveformStyleSelector />
-      </div>
+      {(currentState === 'idle' || currentState === 'recording') && captionStyle !== 'karaoke' && (
+        <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8">
+          <WaveformStyleSelector />
+        </div>
+      )}
 
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/[0.08] text-[0.6875rem]

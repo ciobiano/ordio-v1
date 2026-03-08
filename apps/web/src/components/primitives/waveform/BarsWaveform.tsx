@@ -15,7 +15,7 @@ const waveformWrapper = cva('flex items-center justify-center', {
   defaultVariants: { compact: false },
 });
 
-const barStyle = cva('w-1 rounded-full transition-all duration-75', {
+const barStyle = cva('w-[5px] rounded-full transition-all duration-75', {
   variants: {
     active: {
       true: 'opacity-100',
@@ -32,12 +32,12 @@ export default function BarsWaveform({ level, isRecording, compact = false }: Ba
   const t = tick * 0.08;
 
   return (
-    <div className={cn(waveformWrapper({ compact }), 'gap-1')}>
+    <div className={cn(waveformWrapper({ compact }), 'gap-0.75')} aria-hidden="true">
       {Array.from({ length: bars }).map((_, i) => {
         const distance = Math.abs(i - bars / 2) / (bars / 2);
         const height = isRecording
-          ? Math.max(4, (1 - distance * 0.5) * level * maxHeight + Math.sin(t + i * 0.4) * 6)
-          : 4 + Math.sin(t * 0.15 + i * 0.3) * 2.5;
+          ? Math.max(6, (1 - distance * 0.5) * level * maxHeight + Math.sin(t + i * 0.4) * 8)
+          : 6 + Math.sin(t * 0.15 + i * 0.3) * 3;
 
         return (
           <div

@@ -15,7 +15,7 @@ const waveformWrapper = cva('flex items-center justify-center', {
 });
 
 const circleSize = cva('relative rounded-full transition-transform duration-75', {
-  variants: { compact: { true: 'w-12 h-12', false: 'w-20 h-20' } },
+  variants: { compact: { true: 'w-20 h-20', false: 'w-20 h-20' } },
   defaultVariants: { compact: false },
 });
 
@@ -28,7 +28,7 @@ export default function CircleWaveform({ level, isRecording, compact = false }: 
   const glowIntensity = isRecording ? level * 30 : 0;
 
   return (
-    <div className={waveformWrapper({ compact })}>
+    <div className={waveformWrapper({ compact })} aria-hidden="true">
       <div
         className={circleSize({ compact })}
         style={{
