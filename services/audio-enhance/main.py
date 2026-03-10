@@ -11,13 +11,10 @@ import soundfile as sf
 logger = logging.getLogger("audio-enhance")
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
-
-# Global model refs — loaded once at startup
-_cv_se = None   # speech enhancement (both tiers)
-_cv_sr = None   # super-resolution (HD tier only)
-
-
 TARGET_SR = 48000
+
+# Single SE model serves both tiers — ~10GB, leaves 14GB headroom on A10G
+_cv_se = None
 
 
 def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
@@ -25,7 +22,7 @@ def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
     try:
         audio_np, sr = sf.read(io.BytesIO(raw_bytes))
     except Exception:
-        # ffmpeg converts any format (WebM, MP3, etc.) to 48kHz mono WAV
+        # ffmpeg handles WebM, MP3, and any other format the browser sends
         result = subprocess.run(
             ["ffmpeg", "-i", "pipe:0", "-ar", str(TARGET_SR), "-ac", "1", "-f", "wav", "pipe:1"],
             input=raw_bytes, capture_output=True,
@@ -35,27 +32,22 @@ def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
         audio_np, sr = sf.read(io.BytesIO(result.stdout))
     if audio_np.ndim == 2:
         audio_np = audio_np.mean(axis=1)
-    # Resample to 48kHz if needed (MossFormer2 requires 48kHz input)
     if sr != TARGET_SR:
         import librosa
         audio_np = librosa.resample(audio_np, orig_sr=sr, target_sr=TARGET_SR)
         sr = TARGET_SR
     # ClearVoice expects [batch, length] float32
-    audio_np = np.reshape(audio_np, [1, audio_np.shape[0]]).astype(np.float32)
-    return audio_np, sr
+    return np.reshape(audio_np, [1, audio_np.shape[0]]).astype(np.float32), sr
 
 
-def _post_process(audio_np: np.ndarray, sr: int, target_lufs: float = -14.0) -> np.ndarray:
-    """Compression, presence boost, loudness normalization for social media (-14 LUFS)."""
+def _post_process_clean(audio_np: np.ndarray, sr: int) -> np.ndarray:
+    """Clean tier: noise removal + light mastering. Warm, natural sound."""
     import pedalboard
-    from pedalboard import (
-        Compressor, Gain, HighpassFilter, HighShelfFilter,
-        Limiter, NoiseGate, PeakFilter,
-    )
+    from pedalboard import Compressor, Gain, HighpassFilter, HighShelfFilter, Limiter, NoiseGate, PeakFilter
     import pyloudnorm
 
     if audio_np.ndim == 1:
-        audio_np = audio_np[np.newaxis, :]  # pedalboard expects (channels, samples)
+        audio_np = audio_np[np.newaxis, :]
 
     board = pedalboard.Pedalboard([
         HighpassFilter(cutoff_frequency_hz=80),
@@ -68,22 +60,47 @@ def _post_process(audio_np: np.ndarray, sr: int, target_lufs: float = -14.0) -> 
     ])
 
     processed = board(audio_np.astype(np.float32), sr)
-
     meter = pyloudnorm.Meter(sr)
-    current_lufs = meter.integrated_loudness(processed.T)
-    if not np.isinf(current_lufs):
-        processed = pyloudnorm.normalize.loudness(processed.T, current_lufs, target_lufs).T
+    lufs = meter.integrated_loudness(processed.T)
+    if not np.isinf(lufs):
+        processed = pyloudnorm.normalize.loudness(processed.T, lufs, -14.0).T
+    return processed.squeeze()
 
+
+def _post_process_hd(audio_np: np.ndarray, sr: int) -> np.ndarray:
+    """HD tier: tighter gate, broadcast compression, dual presence peaks, more air. Radio-ready."""
+    import pedalboard
+    from pedalboard import Compressor, Gain, HighpassFilter, HighShelfFilter, Limiter, NoiseGate, PeakFilter
+    import pyloudnorm
+
+    if audio_np.ndim == 1:
+        audio_np = audio_np[np.newaxis, :]
+
+    board = pedalboard.Pedalboard([
+        HighpassFilter(cutoff_frequency_hz=100),          # tighter low cut
+        NoiseGate(threshold_db=-45, ratio=3.0, release_ms=150),  # more aggressive gate
+        Compressor(threshold_db=-16, ratio=4.0, attack_ms=5, release_ms=100),  # broadcast compression
+        PeakFilter(cutoff_frequency_hz=2500, gain_db=2.0, q=1.0),  # warmth/body
+        PeakFilter(cutoff_frequency_hz=5000, gain_db=2.0, q=0.8),  # definition/clarity
+        HighShelfFilter(cutoff_frequency_hz=10000, gain_db=2.5),   # air/sparkle
+        Gain(gain_db=4.0),
+        Limiter(threshold_db=-1.0, release_ms=80),
+    ])
+
+    processed = board(audio_np.astype(np.float32), sr)
+    meter = pyloudnorm.Meter(sr)
+    lufs = meter.integrated_loudness(processed.T)
+    if not np.isinf(lufs):
+        processed = pyloudnorm.normalize.loudness(processed.T, lufs, -14.0).T
     return processed.squeeze()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _cv_se, _cv_sr
+    global _cv_se
     from clearvoice import ClearVoice
     _cv_se = ClearVoice(task='speech_enhancement', model_names=['MossFormer2_SE_48K'])
-    _cv_sr = ClearVoice(task='speech_super_resolution', model_names=['MossFormer2_SR_48K'])
-    logger.info("ClearerVoice MossFormer2 SE + SR loaded")
+    logger.info("ClearerVoice MossFormer2_SE_48K loaded (~10GB, 14GB headroom on A10G)")
     yield
 
 
@@ -106,21 +123,26 @@ async def health():
     return {"status": "ok"}
 
 
+def _run_enhance(raw: bytes, post_fn) -> StreamingResponse:
+    """Shared SE pipeline used by both tiers."""
+    audio_np, sr = _load_audio(raw)
+    enhanced = _cv_se(audio_np, False)
+    final = post_fn(enhanced[0, :], sr)
+    buf = io.BytesIO()
+    sf.write(buf, final, sr, format="WAV")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="audio/wav",
+                             headers={"Content-Disposition": "attachment; filename=enhanced.wav"})
+
+
 @app.post("/enhance/clean")
 async def enhance_clean(file: UploadFile = File(...)):
-    """MossFormer2_SE_48K — fast speech enhancement (~2-5s for 1min audio)."""
+    """MossFormer2_SE_48K + light mastering. Natural, noise-free voice."""
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        audio_np, sr = _load_audio(raw)
-        enhanced = _cv_se(audio_np, False)
-        final = _post_process(enhanced[0, :], sr)
-        buf = io.BytesIO()
-        sf.write(buf, final, sr, format="WAV")
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="audio/wav",
-                                 headers={"Content-Disposition": "attachment; filename=enhanced.wav"})
+        return _run_enhance(raw, _post_process_clean)
     except Exception as e:
         logger.exception("Clean enhance failed")
         raise HTTPException(status_code=500, detail=str(e))
@@ -128,31 +150,12 @@ async def enhance_clean(file: UploadFile = File(...)):
 
 @app.post("/enhance/hd")
 async def enhance_hd(file: UploadFile = File(...)):
-    """MossFormer2_SE_48K + SR_48K — enhancement + super-resolution (~10-15s for 1min audio)."""
+    """MossFormer2_SE_48K + broadcast mastering. Radio-ready, polished voice."""
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        import gc
-        import torch
-
-        audio_np, sr = _load_audio(raw)
-        enhanced = _cv_se(audio_np, False)
-        # Offload SE weights to CPU before SR — both models together exceed A10G VRAM
-        for m in _cv_se.models:
-            m.model.cpu()
-        gc.collect()
-        torch.cuda.empty_cache()
-        upsampled = _cv_sr(enhanced, False)
-        # Restore SE to GPU for next request
-        for m in _cv_se.models:
-            m.model.cuda()
-        final = _post_process(upsampled[0, :], sr)
-        buf = io.BytesIO()
-        sf.write(buf, final, sr, format="WAV")
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="audio/wav",
-                                 headers={"Content-Disposition": "attachment; filename=enhanced.wav"})
+        return _run_enhance(raw, _post_process_hd)
     except Exception as e:
         logger.exception("HD enhance failed")
         raise HTTPException(status_code=500, detail=str(e))

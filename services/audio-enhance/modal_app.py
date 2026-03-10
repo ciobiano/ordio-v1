@@ -36,8 +36,7 @@ image = (
     .run_commands(
         "MODELSCOPE_CACHE=/models python -c \""
         "from clearvoice import ClearVoice; "
-        "ClearVoice(task='speech_enhancement', model_names=['MossFormer2_SE_48K']); "
-        "ClearVoice(task='speech_super_resolution', model_names=['MossFormer2_SR_48K'])"
+        "ClearVoice(task='speech_enhancement', model_names=['MossFormer2_SE_48K'])"
         "\""
     )
     .add_local_file(
