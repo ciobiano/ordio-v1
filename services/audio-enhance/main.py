@@ -17,13 +17,17 @@ _cv_se = None   # speech enhancement (both tiers)
 _cv_sr = None   # super-resolution (HD tier only)
 
 
+TARGET_SR = 48000
+
+
 def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
-    """Load audio from any format, converting via ffmpeg if libsndfile can't handle it."""
+    """Load audio as 48kHz mono float32, converting via ffmpeg if libsndfile can't handle it."""
     try:
         audio_np, sr = sf.read(io.BytesIO(raw_bytes))
     except Exception:
+        # ffmpeg converts any format (WebM, MP3, etc.) to 48kHz mono WAV
         result = subprocess.run(
-            ["ffmpeg", "-i", "pipe:0", "-ar", "48000", "-ac", "1", "-f", "wav", "pipe:1"],
+            ["ffmpeg", "-i", "pipe:0", "-ar", str(TARGET_SR), "-ac", "1", "-f", "wav", "pipe:1"],
             input=raw_bytes, capture_output=True,
         )
         if result.returncode != 0:
@@ -31,6 +35,13 @@ def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
         audio_np, sr = sf.read(io.BytesIO(result.stdout))
     if audio_np.ndim == 2:
         audio_np = audio_np.mean(axis=1)
+    # Resample to 48kHz if needed (MossFormer2 requires 48kHz input)
+    if sr != TARGET_SR:
+        import librosa
+        audio_np = librosa.resample(audio_np, orig_sr=sr, target_sr=TARGET_SR)
+        sr = TARGET_SR
+    # ClearVoice expects [batch, length] float32
+    audio_np = np.reshape(audio_np, [1, audio_np.shape[0]]).astype(np.float32)
     return audio_np, sr
 
 
@@ -103,8 +114,8 @@ async def enhance_clean(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
         audio_np, sr = _load_audio(raw)
-        enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
-        final = _post_process(enhanced_np, sr)
+        enhanced = _cv_se(audio_np, False)
+        final = _post_process(enhanced[0, :], sr)
         buf = io.BytesIO()
         sf.write(buf, final, sr, format="WAV")
         buf.seek(0)
@@ -123,9 +134,9 @@ async def enhance_hd(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
         audio_np, sr = _load_audio(raw)
-        enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
-        sr_np = _cv_sr(input_path=None, audio_np=enhanced_np, sr=sr, online_write=False)
-        final = _post_process(sr_np, sr)
+        enhanced = _cv_se(audio_np, False)
+        upsampled = _cv_sr(enhanced, False)
+        final = _post_process(upsampled[0, :], sr)
         buf = io.BytesIO()
         sf.write(buf, final, sr, format="WAV")
         buf.seek(0)
