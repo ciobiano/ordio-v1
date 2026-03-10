@@ -1,5 +1,6 @@
 import io
 import logging
+import subprocess
 import numpy as np
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -14,6 +15,23 @@ MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
 # Global model refs — loaded once at startup
 _cv_se = None   # speech enhancement (both tiers)
 _cv_sr = None   # super-resolution (HD tier only)
+
+
+def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
+    """Load audio from any format, converting via ffmpeg if libsndfile can't handle it."""
+    try:
+        audio_np, sr = sf.read(io.BytesIO(raw_bytes))
+    except Exception:
+        result = subprocess.run(
+            ["ffmpeg", "-i", "pipe:0", "-ar", "48000", "-ac", "1", "-f", "wav", "pipe:1"],
+            input=raw_bytes, capture_output=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg conversion failed: {result.stderr.decode()}")
+        audio_np, sr = sf.read(io.BytesIO(result.stdout))
+    if audio_np.ndim == 2:
+        audio_np = audio_np.mean(axis=1)
+    return audio_np, sr
 
 
 def _post_process(audio_np: np.ndarray, sr: int, target_lufs: float = -14.0) -> np.ndarray:
@@ -84,9 +102,7 @@ async def enhance_clean(file: UploadFile = File(...)):
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        audio_np, sr = sf.read(io.BytesIO(raw))
-        if audio_np.ndim == 2:
-            audio_np = audio_np.mean(axis=1)  # stereo → mono
+        audio_np, sr = _load_audio(raw)
         enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
         final = _post_process(enhanced_np, sr)
         buf = io.BytesIO()
@@ -106,9 +122,7 @@ async def enhance_hd(file: UploadFile = File(...)):
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        audio_np, sr = sf.read(io.BytesIO(raw))
-        if audio_np.ndim == 2:
-            audio_np = audio_np.mean(axis=1)  # stereo → mono
+        audio_np, sr = _load_audio(raw)
         enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
         sr_np = _cv_sr(input_path=None, audio_np=enhanced_np, sr=sr, online_write=False)
         final = _post_process(sr_np, sr)
