@@ -68,7 +68,7 @@ def _post_process_clean(audio_np: np.ndarray, sr: int) -> np.ndarray:
 
 
 def _post_process_hd(audio_np: np.ndarray, sr: int) -> np.ndarray:
-    """HD tier: tighter gate, broadcast compression, dual presence peaks, more air. Radio-ready."""
+    """HD tier: transparent mastering — slow attack preserves transients, gentle ratio stays smooth."""
     import pedalboard
     from pedalboard import Compressor, Gain, HighpassFilter, HighShelfFilter, Limiter, NoiseGate, PeakFilter
     import pyloudnorm
@@ -77,14 +77,14 @@ def _post_process_hd(audio_np: np.ndarray, sr: int) -> np.ndarray:
         audio_np = audio_np[np.newaxis, :]
 
     board = pedalboard.Pedalboard([
-        HighpassFilter(cutoff_frequency_hz=100),          # tighter low cut
-        NoiseGate(threshold_db=-45, ratio=3.0, release_ms=150),  # more aggressive gate
-        Compressor(threshold_db=-16, ratio=4.0, attack_ms=5, release_ms=100),  # broadcast compression
-        PeakFilter(cutoff_frequency_hz=2500, gain_db=2.0, q=1.0),  # warmth/body
-        PeakFilter(cutoff_frequency_hz=5000, gain_db=2.0, q=0.8),  # definition/clarity
-        HighShelfFilter(cutoff_frequency_hz=10000, gain_db=2.5),   # air/sparkle
-        Gain(gain_db=4.0),
-        Limiter(threshold_db=-1.0, release_ms=80),
+        HighpassFilter(cutoff_frequency_hz=80),
+        NoiseGate(threshold_db=-42, ratio=2.0, release_ms=250),   # gentle — no chopping between words
+        Compressor(threshold_db=-20, ratio=2.5, attack_ms=15, release_ms=200),  # slow attack = transients intact
+        PeakFilter(cutoff_frequency_hz=2500, gain_db=1.5, q=0.8), # subtle warmth
+        PeakFilter(cutoff_frequency_hz=5000, gain_db=1.5, q=0.7), # subtle clarity
+        HighShelfFilter(cutoff_frequency_hz=10000, gain_db=1.5),   # gentle air
+        Gain(gain_db=2.0),
+        Limiter(threshold_db=-2.0, release_ms=150),                # more headroom, smoother ceiling
     ])
 
     processed = board(audio_np.astype(np.float32), sr)
