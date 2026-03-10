@@ -138,10 +138,15 @@ async def enhance_hd(file: UploadFile = File(...)):
 
         audio_np, sr = _load_audio(raw)
         enhanced = _cv_se(audio_np, False)
-        # Free SE activations before SR to avoid CUDA OOM on A10G
+        # Offload SE weights to CPU before SR — both models together exceed A10G VRAM
+        for m in _cv_se.models:
+            m.model.cpu()
         gc.collect()
         torch.cuda.empty_cache()
         upsampled = _cv_sr(enhanced, False)
+        # Restore SE to GPU for next request
+        for m in _cv_se.models:
+            m.model.cuda()
         final = _post_process(upsampled[0, :], sr)
         buf = io.BytesIO()
         sf.write(buf, final, sr, format="WAV")

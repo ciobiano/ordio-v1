@@ -72,6 +72,7 @@ def web():
     import os
     os.environ["MODELSCOPE_CACHE"] = MODEL_DIR
     os.environ["TORCH_HOME"] = f"{MODEL_DIR}/torch"
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     from main import app as fastapi_app
     return fastapi_app
