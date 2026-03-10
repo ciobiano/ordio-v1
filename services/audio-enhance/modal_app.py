@@ -25,6 +25,7 @@ image = (
     )
     .pip_install(
         "clearvoice>=0.1.2",
+        "librosa>=0.10.0",
         "fastapi>=0.115.0",
         "uvicorn[standard]>=0.34.0",
         "python-multipart>=0.0.18",
