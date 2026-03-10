@@ -184,7 +184,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
             return (
               <li key={i} className="inline-flex items-center">
                 {showSeparator && (
-                  <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
+                  <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
                 )}
                 <input
                   ref={inputRef}
@@ -206,7 +206,7 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
           return (
             <li key={i} className="inline-flex items-center">
               {showSeparator && (
-                <span className="w-px h-5 bg-white/12 mx-1 shrink-0" aria-hidden="true" />
+                <span className="w-px h-5 bg-white/[0.12] mx-1 shrink-0" aria-hidden="true" />
               )}
               <button
                 ref={(el) => setChipRef(i, el)}

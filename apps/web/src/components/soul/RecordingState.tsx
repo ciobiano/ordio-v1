@@ -21,6 +21,7 @@ function FlowingWaveform({ level }: { level: number }) {
   const timeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const smoothLevelRef = useRef(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -137,7 +138,7 @@ export default function RecordingState({
         >
           <span className="sr-only">Stop recording</span>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-[4px] bg-[#e11d48]" aria-hidden="true" />
+            <div className="w-6 h-6 rounded-sm bg-[#e11d48]" aria-hidden="true" />
           </div>
         </button>
 
