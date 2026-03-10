@@ -133,8 +133,14 @@ async def enhance_hd(file: UploadFile = File(...)):
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
+        import gc
+        import torch
+
         audio_np, sr = _load_audio(raw)
         enhanced = _cv_se(audio_np, False)
+        # Free SE activations before SR to avoid CUDA OOM on A10G
+        gc.collect()
+        torch.cuda.empty_cache()
         upsampled = _cv_sr(enhanced, False)
         final = _post_process(upsampled[0, :], sr)
         buf = io.BytesIO()
