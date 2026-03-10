@@ -1,29 +1,62 @@
 import io
 import logging
+import numpy as np
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import soundfile as sf
-import torch
-import torchaudio
 
 logger = logging.getLogger("audio-enhance")
 
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
 
 # Global model refs — loaded once at startup
-_df_model = None
-_df_state = None
+_cv_se = None   # speech enhancement (both tiers)
+_cv_sr = None   # super-resolution (HD tier only)
+
+
+def _post_process(audio_np: np.ndarray, sr: int, target_lufs: float = -14.0) -> np.ndarray:
+    """Compression, presence boost, loudness normalization for social media (-14 LUFS)."""
+    import pedalboard
+    from pedalboard import (
+        Compressor, Gain, HighpassFilter, HighShelfFilter,
+        Limiter, NoiseGate, PeakFilter,
+    )
+    import pyloudnorm
+
+    if audio_np.ndim == 1:
+        audio_np = audio_np[np.newaxis, :]  # pedalboard expects (channels, samples)
+
+    board = pedalboard.Pedalboard([
+        HighpassFilter(cutoff_frequency_hz=80),
+        NoiseGate(threshold_db=-40, ratio=2.0, release_ms=200),
+        Compressor(threshold_db=-18, ratio=2.5, attack_ms=10, release_ms=150),
+        PeakFilter(cutoff_frequency_hz=3000, gain_db=2.0, q=0.7),
+        HighShelfFilter(cutoff_frequency_hz=8000, gain_db=1.5),
+        Gain(gain_db=3.0),
+        Limiter(threshold_db=-1.5, release_ms=100),
+    ])
+
+    processed = board(audio_np.astype(np.float32), sr)
+
+    meter = pyloudnorm.Meter(sr)
+    current_lufs = meter.integrated_loudness(processed.T)
+    if not np.isinf(current_lufs):
+        processed = pyloudnorm.normalize.loudness(processed.T, current_lufs, target_lufs).T
+
+    return processed.squeeze()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _df_model, _df_state
-    # Load DeepFilterNet at startup
-    from df.enhance import init_df
-    _df_model, _df_state, _ = init_df()
-    logger.info("DeepFilterNet3 loaded")
+    global _cv_se, _cv_sr
+    from clearvoice import ClearVoice
+    _cv_se = ClearVoice(task='speech_enhancement', model_names=['MossFormer2_SE_48K'])
+    _cv_sr = ClearVoice(task='speech_super_resolution', model_names=['MossFormer2_SR_48K'])
+    logger.info("ClearerVoice MossFormer2 SE + SR loaded")
     yield
+
 
 app = FastAPI(title="Ordio Audio Enhance", lifespan=lifespan)
 
@@ -38,22 +71,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
 @app.post("/enhance/clean")
 async def enhance_clean(file: UploadFile = File(...)):
-    """DeepFilterNet3 — fast noise removal (~2-5s for 1min audio)."""
-    from df.enhance import enhance, load_audio, save_audio
+    """MossFormer2_SE_48K — fast speech enhancement (~2-5s for 1min audio)."""
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        audio, sr = load_audio(io.BytesIO(raw), sr=48000)
-        enhanced = enhance(_df_model, _df_state, audio)
+        audio_np, sr = sf.read(io.BytesIO(raw))
+        if audio_np.ndim == 2:
+            audio_np = audio_np.mean(axis=1)  # stereo → mono
+        enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
+        final = _post_process(enhanced_np, sr)
         buf = io.BytesIO()
-        save_audio(buf, enhanced, sr, output_format="wav")
+        sf.write(buf, final, sr, format="WAV")
         buf.seek(0)
         return StreamingResponse(buf, media_type="audio/wav",
                                  headers={"Content-Disposition": "attachment; filename=enhanced.wav"})
@@ -61,27 +98,24 @@ async def enhance_clean(file: UploadFile = File(...)):
         logger.exception("Clean enhance failed")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/enhance/hd")
 async def enhance_hd(file: UploadFile = File(...)):
-    """Resemble-enhance — denoise + super-resolution (~10-20s for 1min audio)."""
+    """MossFormer2_SE_48K + SR_48K — enhancement + super-resolution (~10-15s for 1min audio)."""
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds 100 MB limit.")
     try:
-        buf_in = io.BytesIO(raw)
-        audio, sr = torchaudio.load(buf_in)
-        audio = audio.mean(dim=0)  # mono
-
-        # Resemble-enhance: denoise then enhance
-        from resemble_enhance.enhancer.inference import denoise, enhance as res_enhance
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        denoised = denoise(audio, sr, device)
-        enhanced, new_sr = res_enhance(denoised, sr, device, nfe=32)
-
-        buf_out = io.BytesIO()
-        sf.write(buf_out, enhanced.cpu().numpy(), new_sr, format="WAV")
-        buf_out.seek(0)
-        return StreamingResponse(buf_out, media_type="audio/wav",
+        audio_np, sr = sf.read(io.BytesIO(raw))
+        if audio_np.ndim == 2:
+            audio_np = audio_np.mean(axis=1)  # stereo → mono
+        enhanced_np = _cv_se(input_path=None, audio_np=audio_np, sr=sr, online_write=False)
+        sr_np = _cv_sr(input_path=None, audio_np=enhanced_np, sr=sr, online_write=False)
+        final = _post_process(sr_np, sr)
+        buf = io.BytesIO()
+        sf.write(buf, final, sr, format="WAV")
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="audio/wav",
                                  headers={"Content-Disposition": "attachment; filename=enhanced.wav"})
     except Exception as e:
         logger.exception("HD enhance failed")
