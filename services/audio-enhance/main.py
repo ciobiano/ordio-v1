@@ -51,12 +51,12 @@ def _post_process_clean(audio_np: np.ndarray, sr: int) -> np.ndarray:
 
     board = pedalboard.Pedalboard([
         HighpassFilter(cutoff_frequency_hz=80),
-        NoiseGate(threshold_db=-40, ratio=2.0, release_ms=200),
-        Compressor(threshold_db=-18, ratio=2.5, attack_ms=10, release_ms=150),
-        PeakFilter(cutoff_frequency_hz=3000, gain_db=2.0, q=0.7),
-        HighShelfFilter(cutoff_frequency_hz=8000, gain_db=1.5),
-        Gain(gain_db=3.0),
-        Limiter(threshold_db=-1.5, release_ms=100),
+        NoiseGate(threshold_db=-42, ratio=1.5, release_ms=250),
+        Compressor(threshold_db=-20, ratio=2.0, attack_ms=15, release_ms=200),
+        PeakFilter(cutoff_frequency_hz=3000, gain_db=1.0, q=0.7),
+        HighShelfFilter(cutoff_frequency_hz=8000, gain_db=1.0),
+        Gain(gain_db=1.5),
+        Limiter(threshold_db=-2.0, release_ms=150),
     ])
 
     processed = board(audio_np.astype(np.float32), sr)
