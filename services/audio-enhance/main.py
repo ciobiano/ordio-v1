@@ -43,7 +43,7 @@ def _load_audio(raw_bytes: bytes) -> tuple[np.ndarray, int]:
 def _post_process_clean(audio_np: np.ndarray, sr: int) -> np.ndarray:
     """Clean tier: noise removal + light mastering. Warm, natural sound."""
     import pedalboard
-    from pedalboard import Compressor, Gain, HighpassFilter, HighShelfFilter, Limiter, NoiseGate, PeakFilter
+    from pedalboard import Compressor, HighpassFilter, HighShelfFilter, Limiter, NoiseGate, PeakFilter
     import pyloudnorm
 
     if audio_np.ndim == 1:
@@ -53,10 +53,10 @@ def _post_process_clean(audio_np: np.ndarray, sr: int) -> np.ndarray:
         HighpassFilter(cutoff_frequency_hz=80),
         NoiseGate(threshold_db=-42, ratio=1.5, release_ms=250),
         Compressor(threshold_db=-20, ratio=2.0, attack_ms=15, release_ms=200),
-        PeakFilter(cutoff_frequency_hz=3000, gain_db=1.0, q=0.7),
-        HighShelfFilter(cutoff_frequency_hz=8000, gain_db=1.0),
-        Gain(gain_db=1.5),
-        Limiter(threshold_db=-2.0, release_ms=150),
+        PeakFilter(cutoff_frequency_hz=3000, gain_db=1.5, q=0.7),
+        PeakFilter(cutoff_frequency_hz=5000, gain_db=1.5, q=0.7),
+        HighShelfFilter(cutoff_frequency_hz=10000, gain_db=2),
+        Limiter(threshold_db=-1.0, release_ms=150),
     ])
 
     processed = board(audio_np.astype(np.float32), sr)
@@ -77,14 +77,13 @@ def _post_process_hd(audio_np: np.ndarray, sr: int) -> np.ndarray:
         audio_np = audio_np[np.newaxis, :]
 
     board = pedalboard.Pedalboard([
-        HighpassFilter(cutoff_frequency_hz=80),
-        NoiseGate(threshold_db=-42, ratio=2.0, release_ms=250),   # gentle — no chopping between words
-        Compressor(threshold_db=-20, ratio=2.5, attack_ms=15, release_ms=200),  # slow attack = transients intact
-        PeakFilter(cutoff_frequency_hz=2500, gain_db=1.5, q=0.8), # subtle warmth
-        PeakFilter(cutoff_frequency_hz=5000, gain_db=1.5, q=0.7), # subtle clarity
-        HighShelfFilter(cutoff_frequency_hz=10000, gain_db=1.5),   # gentle air
-        Gain(gain_db=2.0),
-        Limiter(threshold_db=-2.0, release_ms=150),                # more headroom, smoother ceiling
+        HighpassFilter(cutoff_frequency_hz=85),
+        NoiseGate(threshold_db=-42, ratio=2.0, release_ms=250),
+        Compressor(threshold_db=-20, ratio=3.0, attack_ms=15, release_ms=200),
+        PeakFilter(cutoff_frequency_hz=2500, gain_db=1.5, q=0.7),
+        HighShelfFilter(cutoff_frequency_hz=8000, gain_db=1.0),
+        Gain(gain_db=2.0),       # compensates compressor gain reduction, drives limiter harder
+        Limiter(threshold_db=-2.0, release_ms=150),
     ])
 
     processed = board(audio_np.astype(np.float32), sr)

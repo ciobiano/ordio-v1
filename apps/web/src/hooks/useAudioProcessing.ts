@@ -35,6 +35,7 @@ export function useAudioProcessing(
   const processAudio = useCallback(
     async (inputBlob: Blob) => {
       let blob = inputBlob;
+      const rawBlob = inputBlob; // always transcribe original — enhancement degrades ASR accuracy
       setCurrentState('processing');
       setProcessingProgress(0);
 
@@ -81,7 +82,7 @@ export function useAudioProcessing(
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         const baseFinalize = enhanceTier !== 'none' ? 75 : 70;
         setProcessingProgress(baseTranscribe + 5);
-        const words = await transcriptionRef.current.transcribeAudio(blob);
+        const words = await transcriptionRef.current.transcribeAudio(rawBlob);
 
         if (words.length > 0) {
           setTranscript(words);
