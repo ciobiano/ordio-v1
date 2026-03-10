@@ -10,6 +10,7 @@ Deploy:
 The printed endpoint URL goes into NEXT_PUBLIC_ENHANCE_URL in Vercel env vars.
 """
 
+from pathlib import Path
 import modal
 
 # ── Image ─────────────────────────────────────────────────────────────────────
@@ -35,6 +36,11 @@ image = (
     .run_commands(
         "python -c \"from df.enhance import init_df; init_df()\"",
         gpu="any",
+    )
+    # Include the FastAPI service alongside this file
+    .add_local_file(
+        Path(__file__).parent / "main.py",
+        remote_path="/root/main.py",
     )
 )
 
