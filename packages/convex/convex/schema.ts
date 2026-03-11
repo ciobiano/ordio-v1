@@ -21,6 +21,7 @@ export default defineSchema({
 
   users: defineTable({
     tokenIdentifier: v.string(), // Clerk ID
+    tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')),
     usageCount: v.number(), // Daily usage
     lastResetTime: v.number(), // Timestamp of last usage reset
   })

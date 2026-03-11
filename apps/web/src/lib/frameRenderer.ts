@@ -14,6 +14,8 @@ export interface FrameOptions {
   waveformStyle: WaveformVariant;
   /** Caption rendering variant */
   captionStyle: CaptionVariant;
+  /** Show "Made with Ordio" watermark — true for free tier */
+  showWatermark?: boolean;
 }
 
 /**
@@ -26,7 +28,7 @@ export function renderFrame(
   totalFrames: number,
   options: FrameOptions
 ): void {
-  const { waveformData, transcript, style, waveformStyle, captionStyle } = options;
+  const { waveformData, transcript, style, waveformStyle, captionStyle, showWatermark } = options;
   const { width, height } = style;
   const currentTime = frameIndex / FPS;
   const duration = totalFrames / FPS;
@@ -46,6 +48,11 @@ export function renderFrame(
     drawKaraokeCaptions(ctx, currentTime, transcript, style);
   } else {
     drawCaptions(ctx, currentTime, transcript, style, captionStyle, showWaveform);
+  }
+
+  // 4. Watermark — drawn last so it appears on top
+  if (showWatermark) {
+    drawWatermark(ctx, width, height);
   }
 }
 
@@ -178,6 +185,35 @@ function drawKaraokeCaptions(
   }
 
   ctx.globalAlpha = 1.0;
+}
+
+// ── Watermark ────────────────────────────────────────────────────────
+
+function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  const text = 'Made with Ordio';
+  const offsetX = 24;
+  const offsetY = 24;
+
+  ctx.save();
+  ctx.font = `500 13px "Plus Jakarta Sans", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'right';
+
+  const textWidth = ctx.measureText(text).width;
+  const x = width - offsetX;
+  const y = height - offsetY;
+
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(x - textWidth / 2, y, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, x, y);
+
+  ctx.restore();
 }
 
 // ── Utilities ───────────────────────────────────────────────────────

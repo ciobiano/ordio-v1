@@ -27,6 +27,8 @@ export interface EncodeVideoOptions {
   waveformStyle: WaveformVariant;
   /** Caption variant */
   captionStyle: CaptionVariant;
+  /** Show "Made with Ordio" watermark — true for free tier */
+  showWatermark?: boolean;
   /** Progress callback (0-1) */
   onProgress?: (progress: number) => void;
   /** Abort signal for cancellation */
@@ -56,6 +58,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     style,
     waveformStyle,
     captionStyle,
+    showWatermark,
     onProgress,
     signal,
   } = options;
@@ -111,6 +114,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     style,
     waveformStyle,
     captionStyle,
+    showWatermark,
   };
 
   // Render and encode frame by frame

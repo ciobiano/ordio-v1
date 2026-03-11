@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/cn';
 import { useStore } from '@/lib/store';
 import type { WaveformVariant } from '@/lib/store';
+import { useFeatureGates } from '@/hooks/useFeatureGates';
+import LockBadge from '@/components/primitives/LockBadge';
+import type { FeatureKey } from '@/lib/featureGates';
 
 // ── Icons ───────────────────────────────────────────────────────────
 
@@ -80,12 +83,22 @@ const labels: Record<WaveformVariant, string> = {
 
 // ── Component ────────────────────────────────────────────────────────
 
-export default function WaveformStyleSelector() {
+const variantFeatureKey: Partial<Record<WaveformVariant, FeatureKey>> = {
+  circle: 'waveform_circle',
+  spectrogram: 'waveform_spectrogram',
+};
+
+interface WaveformStyleSelectorProps {
+  onLocked?: (feature: FeatureKey) => void;
+}
+
+export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelectorProps) {
   const waveformStyle = useStore((s) => s.waveformStyle);
   const setWaveformStyle = useStore((s) => s.setWaveformStyle);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const { isLocked } = useFeatureGates();
 
   // Close on outside click
   useEffect(() => {
@@ -143,29 +156,35 @@ export default function WaveformStyleSelector() {
             )}
           >
             {variants.map((variant) => {
+              const featureKey = variantFeatureKey[variant];
+              const locked = featureKey ? isLocked(featureKey) : false;
               const Icon = icons[variant];
               const isActive = waveformStyle === variant;
               return (
-                <button
-                  key={variant}
-                  onClick={() => {
-                    setWaveformStyle(variant);
-                    setOpen(false);
-                    // Return focus to trigger after selection
-                    setTimeout(() => triggerRef.current?.focus(), 0);
-                  }}
-                  aria-label={`${labels[variant]} waveform`}
-                  aria-pressed={isActive}
-                  className={cn(
-                    'min-w-11 min-h-11 rounded-lg flex items-center justify-center',
-                    'transition-all duration-150 cursor-pointer border',
-                    isActive
-                      ? 'bg-white/20 border-white/40 text-white/90'
-                      : 'bg-transparent border-transparent text-white/60 hover:bg-white/10 hover:text-white/80'
+                <div key={variant} className="relative">
+                  <button
+                    onClick={() => {
+                      setWaveformStyle(variant);
+                      setOpen(false);
+                      // Return focus to trigger after selection
+                      setTimeout(() => triggerRef.current?.focus(), 0);
+                    }}
+                    aria-label={`${labels[variant]} waveform`}
+                    aria-pressed={isActive}
+                    className={cn(
+                      'min-w-11 min-h-11 rounded-lg flex items-center justify-center',
+                      'transition-all duration-150 cursor-pointer border',
+                      isActive
+                        ? 'bg-white/20 border-white/40 text-white/90'
+                        : 'bg-transparent border-transparent text-white/60 hover:bg-white/10 hover:text-white/80'
+                    )}
+                  >
+                    <Icon />
+                  </button>
+                  {locked && featureKey && (
+                    <LockBadge onClick={() => onLocked?.(featureKey)} label={`${labels[variant]} requires Creator`} />
                   )}
-                >
-                  <Icon />
-                </button>
+                </div>
               );
             })}
           </div>

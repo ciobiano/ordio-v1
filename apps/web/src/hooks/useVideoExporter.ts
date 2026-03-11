@@ -11,7 +11,7 @@ interface UseVideoExporterReturn {
   exportedUrl: string | null;
   exportMimeType: string | null;
   error: string | null;
-  startExport: (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer) => Promise<void>;
+  startExport: (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer, showWatermark?: boolean) => Promise<void>;
   cancelExport: () => void;
 }
 
@@ -30,7 +30,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
   const prevUrlRef = useRef<string | null>(null);
 
   const startExport = useCallback(
-    async (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer) => {
+    async (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer, showWatermark = false) => {
       try {
         setError(null);
         setExportProgress(0);
@@ -56,6 +56,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
           style,
           waveformStyle,
           captionStyle,
+          showWatermark,
           onProgress: (progress) => setExportProgress(progress * 100),
           signal: abortController.signal,
         });

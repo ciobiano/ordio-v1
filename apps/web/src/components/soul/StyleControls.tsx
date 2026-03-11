@@ -5,8 +5,26 @@ import { cn } from '@/lib/cn';
 import { panelCard, optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { StyleConfig } from '@Ordio/shared/schemas';
+import { useFeatureGates } from '@/hooks/useFeatureGates';
+import LockBadge from '@/components/primitives/LockBadge';
+import type { FeatureKey } from '@/lib/featureGates';
 
-const FONTS: StyleConfig['fontFamily'][] = ['Inter', 'Roboto', 'Outfit'];
+const FONTS: StyleConfig['fontFamily'][] = [
+  'Inter', 'Roboto', 'Outfit',
+  'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display',
+];
+
+const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
+  Poppins: 'font_poppins',
+  Montserrat: 'font_montserrat',
+  'Space Grotesk': 'font_space_grotesk',
+  'DM Sans': 'font_dm_sans',
+  'Playfair Display': 'font_playfair',
+};
+
+interface StyleControlsProps {
+  onLocked?: (feature: FeatureKey) => void;
+}
 
 interface ColorRowProps {
   label: string;
@@ -38,10 +56,11 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
   );
 }
 
-export default function StyleControls() {
+export default function StyleControls({ onLocked }: StyleControlsProps) {
   const style = useStore((s) => s.style);
   const setStyle = useStore((s) => s.setStyle);
   const [isExpanded, setIsExpanded] = useState(false);
+  const { isLocked } = useFeatureGates();
 
   return (
     <div className="w-full">
@@ -99,18 +118,26 @@ export default function StyleControls() {
           {/* Font */}
           <div className="flex flex-col gap-2">
             <p className="text-white/50 text-[0.625rem] uppercase tracking-[0.18em]">Font</p>
-            <div className="flex gap-2">
-              {FONTS.map((font) => (
-                <button
-                  key={font}
-                  onClick={() => setStyle({ fontFamily: font })}
-                  aria-pressed={style.fontFamily === font}
-                  className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: style.fontFamily === font }))}
-                  style={{ fontFamily: font }}
-                >
-                  {font}
-                </button>
-              ))}
+            <div className="flex gap-2 flex-wrap">
+              {FONTS.map((font) => {
+                const featureKey = fontFeatureKey[font];
+                const locked = featureKey ? isLocked(featureKey) : false;
+                return (
+                  <div key={font} className="relative">
+                    <button
+                      onClick={() => setStyle({ fontFamily: font })}
+                      aria-pressed={style.fontFamily === font}
+                      className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: style.fontFamily === font }))}
+                      style={{ fontFamily: font }}
+                    >
+                      {font}
+                    </button>
+                    {locked && featureKey && (
+                      <LockBadge onClick={() => onLocked?.(featureKey)} label={`${font} requires Creator`} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

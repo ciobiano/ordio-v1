@@ -7,4 +7,5 @@ export { default as IdleState } from './IdleState';
 export { default as ProcessingState } from './ProcessingState';
 export { default as RecordingState } from './RecordingState';
 export { default as StyleControls } from './StyleControls';
+export { default as UpgradeSheet } from './UpgradeSheet';
 export { default as WaveformStyleSelector } from './WaveformStyleSelector';

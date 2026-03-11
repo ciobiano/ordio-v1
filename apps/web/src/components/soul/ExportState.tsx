@@ -8,6 +8,7 @@ import FormatToggle from './FormatToggle';
 import { primaryBtn, ghostBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import type { FeatureKey } from '@/lib/featureGates';
 
 interface UseVideoExporterShape {
   isExporting: boolean;
@@ -24,9 +25,11 @@ interface ExportStateProps {
   format: FormatVariant;
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
+  showWatermark?: boolean;
   onExport: () => void;
   onDownload: () => void;
   onReset: () => void;
+  onLocked: (feature: FeatureKey) => void;
 }
 
 export default function ExportState({
@@ -35,9 +38,11 @@ export default function ExportState({
   format,
   waveformStyle,
   captionStyle,
+  showWatermark = false,
   onExport,
   onDownload,
   onReset,
+  onLocked,
 }: ExportStateProps) {
   return (
     <div className="flex flex-col items-center gap-6 animate-fadeIn w-full max-w-sm">
@@ -61,15 +66,16 @@ export default function ExportState({
         format={format}
         waveformStyle={waveformStyle}
         captionStyle={captionStyle}
+        showWatermark={showWatermark}
       />
 
       <PlaybackControls playback={playback} className="w-full" />
 
       <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
 
-      <StyleControls />
+      <StyleControls onLocked={onLocked} />
 
-      <FormatToggle />
+      <FormatToggle onLocked={onLocked} />
 
       {!exporter.exportedUrl && !exporter.isExporting && (
         <button onClick={onExport} aria-label="Export video" className={primaryBtn}>

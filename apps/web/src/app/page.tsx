@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'sonner';
+import { UserButton, useClerk, useAuth } from '@clerk/nextjs';
 import { useStore, getCanvasDimensions } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
@@ -11,6 +12,9 @@ import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useExportGate } from '@/hooks/useExportGate';
+import type { FeatureKey } from '@/lib/featureGates';
 
 import { CapabilityBanner } from '@/components/primitives';
 import {
@@ -21,6 +25,7 @@ import {
   RecordingState,
   ProcessingState,
   ExportState,
+  UpgradeSheet,
 } from '@/components/soul';
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -36,6 +41,7 @@ export default function Home() {
   } = useStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
+  const [upgradeTarget, setUpgradeTarget] = useState<FeatureKey | 'export_limit' | null>(null);
 
   const animFrameRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,6 +53,10 @@ export default function Home() {
   const exporter = useVideoExporter();
   const capabilities = useCapabilities();
   const playback = usePlayback();
+  const { tier } = useCurrentUser();
+  const exportGate = useExportGate();
+  const { openSignIn } = useClerk();
+  const { isSignedIn } = useAuth();
 
   // Audio level animation during recording
   useEffect(() => {
@@ -114,6 +124,12 @@ export default function Home() {
   );
 
   const handleExport = useCallback(async () => {
+    const gate = await exportGate.checkAndConsume();
+    if (!gate.allowed) {
+      setUpgradeTarget('export_limit');
+      return;
+    }
+
     const { audioBuffer } = useStore.getState();
     if (!audioBuffer) return;
 
@@ -128,8 +144,8 @@ export default function Home() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    await exporter.startExport(canvas, audioBuffer);
-  }, [format, exporter]);
+    await exporter.startExport(canvas, audioBuffer, tier === 'free');
+  }, [format, exporter, exportGate, tier]);
 
   const handleDownload = useCallback(() => {
     if (!exporter.exportedUrl) return;
@@ -152,11 +168,22 @@ export default function Home() {
     <div className="min-h-dvh bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]">
       {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
 
-      {(currentState === 'recording' || currentState === 'export') && (
-        <div className="fixed top-4 right-4 z-40">
-          <CaptionStyleSelector />
-        </div>
-      )}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+        {(currentState === 'recording' || currentState === 'export') && (
+          <CaptionStyleSelector onLocked={setUpgradeTarget} />
+        )}
+        {!isSignedIn ? (
+          <button
+            onClick={() => openSignIn()}
+            className="text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5
+                       rounded-lg border border-white/10 hover:border-white/20"
+          >
+            Sign in
+          </button>
+        ) : (
+          <UserButton />
+        )}
+      </div>
 
       <main
         id="main-content"
@@ -173,7 +200,7 @@ export default function Home() {
               fileInputRef={fileInputRef}
             />
             <div className="mt-6 w-full max-w-xs">
-              <AudioSettings />
+              <AudioSettings onLocked={setUpgradeTarget} />
             </div>
           </>
         )}
@@ -199,9 +226,11 @@ export default function Home() {
             format={format}
             waveformStyle={waveformStyle}
             captionStyle={captionStyle}
+            showWatermark={tier === 'free'}
             onExport={handleExport}
             onDownload={handleDownload}
             onReset={handleReset}
+            onLocked={setUpgradeTarget}
           />
         )}
 
@@ -219,9 +248,15 @@ export default function Home() {
 
       {(currentState === 'idle' || currentState === 'recording') && captionStyle !== 'karaoke' && (
         <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8">
-          <WaveformStyleSelector />
+          <WaveformStyleSelector onLocked={setUpgradeTarget} />
         </div>
       )}
+
+      <UpgradeSheet
+        open={upgradeTarget !== null}
+        onClose={() => setUpgradeTarget(null)}
+        feature={upgradeTarget === 'export_limit' ? undefined : upgradeTarget ?? undefined}
+      />
 
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/[0.08] text-[0.6875rem]

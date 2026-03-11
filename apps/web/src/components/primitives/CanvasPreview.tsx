@@ -15,6 +15,7 @@ interface CanvasPreviewProps {
   format: FormatVariant;
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
+  showWatermark?: boolean;
   className?: string;
 }
 
@@ -26,6 +27,8 @@ function getFormatLabel(format: FormatVariant): string {
       return '9:16';
     case 'horizontal':
       return '16:9';
+    case 'instagram':
+      return '4:5';
   }
 }
 
@@ -43,6 +46,8 @@ function getContainerClass(format: FormatVariant): string {
       return 'w-56 h-96';
     case 'horizontal':
       return 'w-96 h-56';
+    case 'instagram':
+      return 'w-64 h-80';
   }
 }
 
@@ -51,6 +56,7 @@ export default function CanvasPreview({
   format,
   waveformStyle,
   captionStyle,
+  showWatermark = false,
   className,
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,10 +103,11 @@ export default function CanvasPreview({
       style: { ...style, width: canvasWidth, height: canvasHeight },
       waveformStyle,
       captionStyle,
+      showWatermark,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, fontLoaded]);
+  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {

@@ -7,7 +7,7 @@ import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
-export type FormatVariant = 'square' | 'vertical' | 'horizontal';
+export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
 
 export function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
   switch (format) {
@@ -17,6 +17,8 @@ export function getCanvasDimensions(format: FormatVariant): { width: number; hei
       return { width: 1080, height: 1920 };
     case 'horizontal':
       return { width: 1920, height: 1080 };
+    case 'instagram':
+      return { width: 1080, height: 1350 };
   }
 }
 export type Theme = 'dark' | 'light';
