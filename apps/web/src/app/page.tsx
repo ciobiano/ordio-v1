@@ -16,6 +16,8 @@ import { usePlayback } from '@/hooks/usePlayback';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useExportGate } from '@/hooks/useExportGate';
 import { useCheckout } from '@/hooks/useCheckout';
+import { useAction } from 'convex/react';
+import { anyApi } from 'convex/server';
 import type { FeatureKey } from '@/lib/featureGates';
 
 import { CapabilityBanner } from '@/components/primitives';
@@ -62,6 +64,7 @@ export default function Home() {
   const { startCheckout } = useCheckout();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const confirmPaystackPayment = useAction(anyApi.users.confirmPaystackPayment);
 
   // Audio level animation during recording
   useEffect(() => {
@@ -87,14 +90,30 @@ export default function Home() {
     if (audioBuffer) playback.load(audioBuffer);
   }, [currentState, playback]);
 
-  // Show success toast after payment redirect
+  // Handle post-payment redirect
   useEffect(() => {
     const upgrade = searchParams.get('upgrade');
-    if (upgrade === 'stripe-success' || upgrade === 'paystack-success') {
+    if (!upgrade) return;
+
+    if (upgrade === 'stripe-success') {
       toast.success('Payment received! Your account is being upgraded…');
       router.replace('/');
     }
-  }, [searchParams, router]);
+
+    if (upgrade === 'paystack-success') {
+      const reference = searchParams.get('reference') ?? searchParams.get('trxref');
+      if (!reference) { router.replace('/'); return; }
+      toast.loading('Confirming payment…', { id: 'paystack-confirm' });
+      confirmPaystackPayment({ reference })
+        .then(() => {
+          toast.success('Upgraded to Creator!', { id: 'paystack-confirm' });
+        })
+        .catch(() => {
+          toast.error('Could not confirm payment. Contact support.', { id: 'paystack-confirm' });
+        })
+        .finally(() => router.replace('/'));
+    }
+  }, [searchParams, router, confirmPaystackPayment]);
 
   // Process recorded audio when recording stops
   useEffect(() => {

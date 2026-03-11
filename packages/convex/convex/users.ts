@@ -1,4 +1,5 @@
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireUser, getCurrentUser } from "./auth";
 
@@ -167,5 +168,44 @@ export const getByPaystackCustomer = internalQuery({
       .query("users")
       .withIndex("by_paystack_customer", (q) => q.eq("paystackCustomerCode", args.paystackCustomerCode))
       .unique();
+  },
+});
+
+/**
+ * PUBLIC ACTION: Verifies a Paystack payment reference server-side and upgrades
+ * the calling user's tier to 'creator'. Called from the client after redirect.
+ */
+export const confirmPaystackPayment = action({
+  args: { reference: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const res = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`,
+      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+    );
+
+    if (!res.ok) throw new Error("Paystack verification request failed");
+
+    const body = (await res.json()) as {
+      data: { status: string; customer?: { customer_code?: string } };
+    };
+
+    if (body.data.status !== "success") {
+      throw new Error("Payment not confirmed by Paystack");
+    }
+
+    await ctx.runMutation(internal.users.setTier, {
+      tokenIdentifier: identity.tokenIdentifier,
+      tier: "creator",
+      subscriptionId: args.reference,
+      subscriptionStatus: "active",
+    });
+
+    await ctx.runMutation(internal.users.setCustomerId, {
+      tokenIdentifier: identity.tokenIdentifier,
+      paystackCustomerCode: body.data.customer?.customer_code,
+    });
   },
 });
