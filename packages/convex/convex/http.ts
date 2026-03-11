@@ -165,23 +165,28 @@ http.route({
 
     const event = JSON.parse(body);
 
-    if (event.event === "subscription.create") {
-      const sub = event.data;
-      const tokenIdentifier = sub.metadata?.tokenIdentifier as string | undefined;
+    // charge.success fires on initial subscription payment and carries metadata
+    // subscription.create metadata is empty — don't use it for tier promotion
+    if (event.event === "charge.success") {
+      const charge = event.data;
+      // Only handle subscription charges (charges linked to a plan)
+      if (!charge.plan) return new Response(null, { status: 200 });
+
+      const tokenIdentifier = charge.metadata?.tokenIdentifier as string | undefined;
       if (!tokenIdentifier) {
-        return new Response("No tokenIdentifier", { status: 400 });
+        return new Response("No tokenIdentifier in charge metadata", { status: 400 });
       }
 
       await ctx.runMutation(internal.users.setTier, {
         tokenIdentifier,
         tier: "creator",
-        subscriptionId: sub.subscription_code,
+        subscriptionId: charge.subscription_code ?? charge.reference,
         subscriptionStatus: "active",
       });
 
       await ctx.runMutation(internal.users.setCustomerId, {
         tokenIdentifier,
-        paystackCustomerCode: sub.customer?.customer_code,
+        paystackCustomerCode: charge.customer?.customer_code,
       });
     }
 

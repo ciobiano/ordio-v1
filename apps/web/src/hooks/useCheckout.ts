@@ -10,10 +10,22 @@ function isNigerianUser(): boolean {
   }
 }
 
+const PRICES: Record<'nigerian' | 'international', Record<'creator' | 'pro', string>> = {
+  nigerian:      { creator: '₦5,000/mo', pro: '₦12,000/mo' },
+  international: { creator: '$9/mo',     pro: '$19/mo'      },
+};
+
 export function useCheckout() {
+  const market = isNigerianUser() ? 'nigerian' : 'international';
+
+  const priceLabel = useCallback(
+    (tier: 'creator' | 'pro') => PRICES[market][tier],
+    [market]
+  );
+
   const startCheckout = useCallback(async (tier: 'creator' | 'pro') => {
     const returnUrl = window.location.origin;
-    const processor = isNigerianUser() ? 'paystack' : 'stripe';
+    const processor = market === 'nigerian' ? 'paystack' : 'stripe';
 
     const res = await fetch(`/api/${processor}/checkout`, {
       method: 'POST',
@@ -27,7 +39,7 @@ export function useCheckout() {
 
     const { url } = (await res.json()) as { url: string };
     window.location.href = url;
-  }, []);
+  }, [market]);
 
-  return { startCheckout };
+  return { startCheckout, priceLabel };
 }

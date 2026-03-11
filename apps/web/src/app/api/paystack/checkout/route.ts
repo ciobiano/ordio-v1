@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 
 const PLAN_CODES: Record<string, string> = {
   creator: process.env.NEXT_PUBLIC_PAYSTACK_CREATOR_PLAN_CODE!,
 };
 
+// Amounts in kobo (₦1 = 100 kobo)
+const PLAN_AMOUNTS: Record<string, number> = {
+  creator: 500000, // ₦5,000
+};
+
 export async function POST(request: Request) {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -21,9 +26,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
   }
 
-  const email = sessionClaims?.email as string | undefined;
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress;
   if (!email) {
-    return NextResponse.json({ error: 'No email on Clerk session' }, { status: 400 });
+    return NextResponse.json({ error: 'No email on account' }, { status: 400 });
   }
 
   const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -34,6 +40,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       email,
+      amount: PLAN_AMOUNTS[tier],
       plan: planCode,
       callback_url: `${returnUrl}?upgrade=paystack-success`,
       metadata: { tokenIdentifier: userId },
@@ -42,6 +49,7 @@ export async function POST(request: Request) {
 
   if (!paystackRes.ok) {
     const err = (await paystackRes.json()) as { message: string };
+    console.error('[Paystack error]', paystackRes.status, err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useClerk } from '@clerk/nextjs';
 import { cn } from '@/lib/cn';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useCheckout } from '@/hooks/useCheckout';
 import type { FeatureKey } from '@/lib/featureGates';
 
 interface UpgradeSheetProps {
@@ -38,6 +39,7 @@ function featureLabel(feature: FeatureKey): string {
 export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: UpgradeSheetProps) {
   const { isAuthenticated } = useCurrentUser();
   const { openSignIn } = useClerk();
+  const { priceLabel } = useCheckout();
 
   useEffect(() => {
     if (!open) return;
@@ -121,7 +123,7 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
                            hover:bg-white/92 transition-all duration-200 cursor-pointer
                            hover:scale-[1.02] active:scale-[0.98]"
               >
-                Upgrade to Creator — $9/mo
+                Upgrade to Creator — {priceLabel('creator')}
               </button>
             )}
             {!isAuthenticated && (
