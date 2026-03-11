@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import { toast } from 'sonner';
-import { UserButton, useClerk, useAuth } from '@clerk/nextjs';
+import { UserButton, useAuth } from '@clerk/nextjs';
 import { useStore, getCanvasDimensions } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
@@ -22,6 +22,7 @@ import type { FeatureKey } from '@/lib/featureGates';
 
 import { CapabilityBanner } from '@/components/primitives';
 import {
+  AuthGate,
   AudioSettings,
   CaptionStyleSelector,
   WaveformStyleSelector,
@@ -57,9 +58,8 @@ export default function Home() {
   const exporter = useVideoExporter();
   const capabilities = useCapabilities();
   const playback = usePlayback();
-  const { tier } = useCurrentUser();
+  const { tier, isLoading } = useCurrentUser();
   const exportGate = useExportGate();
-  const { openSignIn } = useClerk();
   const { isSignedIn } = useAuth();
   const { startCheckout } = useCheckout();
   const searchParams = useSearchParams();
@@ -197,6 +197,10 @@ export default function Home() {
     reset();
   }, [recorder, transcription, exporter, playback, reset]);
 
+  if (!isSignedIn && !isLoading) {
+    return <AuthGate />;
+  }
+
   return (
     <div className="min-h-dvh bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]">
       {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
@@ -205,17 +209,7 @@ export default function Home() {
         {(currentState === 'recording' || currentState === 'export') && (
           <CaptionStyleSelector onLocked={setUpgradeTarget} />
         )}
-        {!isSignedIn ? (
-          <button
-            onClick={() => openSignIn()}
-            className="text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5
-                       rounded-lg border border-white/10 hover:border-white/20"
-          >
-            Sign in
-          </button>
-        ) : (
-          <UserButton />
-        )}
+        <UserButton />
       </div>
 
       <main
@@ -293,7 +287,7 @@ export default function Home() {
       />
 
       <div
-        className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/[0.08] text-[0.6875rem]
+        className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/8 text-[0.6875rem]
                    tracking-[0.2em] uppercase pointer-events-none select-none"
         aria-hidden="true"
       >

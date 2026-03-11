@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useClerk } from '@clerk/nextjs';
 import { cn } from '@/lib/cn';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCheckout } from '@/hooks/useCheckout';
 import type { FeatureKey } from '@/lib/featureGates';
 
@@ -37,8 +35,6 @@ function featureLabel(feature: FeatureKey): string {
 }
 
 export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: UpgradeSheetProps) {
-  const { isAuthenticated } = useCurrentUser();
-  const { openSignIn } = useClerk();
   const { priceLabel } = useCheckout();
 
   useEffect(() => {
@@ -56,21 +52,12 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
   const isExportLimit = feature === undefined;
 
   const title = isExportLimit
-    ? '3 free exports used today'
+    ? 'Daily export limit reached'
     : `${featureLabel(feature)} is a Creator feature`;
 
   const body = isExportLimit
-    ? isAuthenticated
-      ? 'Daily limit reached. Unlimited exports are coming with Creator.'
-      : '3 free exports used today. Sign in to continue, or come back tomorrow.'
-    : isAuthenticated
-      ? 'Upgrade to Creator to unlock this feature.'
-      : 'Sign in to get 3 more exports today. Unlock everything with Creator.';
-
-  function handleSignIn() {
-    onClose();
-    openSignIn();
-  }
+    ? 'Unlimited exports are included with Creator.'
+    : 'Upgrade to Creator to unlock this feature.';
 
   return (
     <>
@@ -116,7 +103,7 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
           </p>
 
           <div className="flex flex-col gap-2.5">
-            {isAuthenticated && onUpgrade && (
+            {onUpgrade && (
               <button
                 onClick={() => { onClose(); onUpgrade(); }}
                 className="w-full py-3 rounded-full bg-white text-black text-[0.875rem] font-[600]
@@ -126,22 +113,12 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
                 Upgrade to Creator — {priceLabel('creator')}
               </button>
             )}
-            {!isAuthenticated && (
-              <button
-                onClick={handleSignIn}
-                className="w-full py-3 rounded-full bg-white text-black text-[0.875rem] font-[600]
-                           hover:bg-white/92 transition-all duration-200 cursor-pointer
-                           hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Sign in
-              </button>
-            )}
             <button
               onClick={onClose}
               className="w-full py-3 rounded-full text-white/60 text-[0.875rem] font-[500]
                          hover:text-white/80 transition-colors duration-150 cursor-pointer"
             >
-              {isAuthenticated ? 'Maybe later' : 'Maybe later'}
+              Maybe later
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+export { default as AuthGate } from './AuthGate';
 export { default as AudioSettings } from './AudioSettings';
 export { default as CaptionEditor } from './CaptionEditor';
 export { default as CaptionStyleSelector } from './CaptionStyleSelector';
