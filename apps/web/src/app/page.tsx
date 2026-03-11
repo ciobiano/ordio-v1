@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import { toast } from 'sonner';
 import { UserButton, useClerk, useAuth } from '@clerk/nextjs';
@@ -14,6 +15,7 @@ import { useCapabilities } from '@/hooks/useCapabilities';
 import { usePlayback } from '@/hooks/usePlayback';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useExportGate } from '@/hooks/useExportGate';
+import { useCheckout } from '@/hooks/useCheckout';
 import type { FeatureKey } from '@/lib/featureGates';
 
 import { CapabilityBanner } from '@/components/primitives';
@@ -57,6 +59,9 @@ export default function Home() {
   const exportGate = useExportGate();
   const { openSignIn } = useClerk();
   const { isSignedIn } = useAuth();
+  const { startCheckout } = useCheckout();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Audio level animation during recording
   useEffect(() => {
@@ -81,6 +86,15 @@ export default function Home() {
     const { audioBuffer } = useStore.getState();
     if (audioBuffer) playback.load(audioBuffer);
   }, [currentState, playback]);
+
+  // Show success toast after payment redirect
+  useEffect(() => {
+    const upgrade = searchParams.get('upgrade');
+    if (upgrade === 'stripe-success' || upgrade === 'paystack-success') {
+      toast.success('Payment received! Your account is being upgraded…');
+      router.replace('/');
+    }
+  }, [searchParams, router]);
 
   // Process recorded audio when recording stops
   useEffect(() => {
@@ -256,6 +270,7 @@ export default function Home() {
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
         feature={upgradeTarget === 'export_limit' ? undefined : upgradeTarget ?? undefined}
+        onUpgrade={() => startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))}
       />
 
       <div

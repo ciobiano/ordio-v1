@@ -11,6 +11,7 @@ interface UpgradeSheetProps {
   onClose: () => void;
   feature?: FeatureKey;
   onSignIn?: () => void;
+  onUpgrade?: () => void;
 }
 
 function featureLabel(feature: FeatureKey): string {
@@ -34,7 +35,7 @@ function featureLabel(feature: FeatureKey): string {
   return labels[feature];
 }
 
-export default function UpgradeSheet({ open, onClose, feature }: UpgradeSheetProps) {
+export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: UpgradeSheetProps) {
   const { isAuthenticated } = useCurrentUser();
   const { openSignIn } = useClerk();
 
@@ -61,7 +62,7 @@ export default function UpgradeSheet({ open, onClose, feature }: UpgradeSheetPro
       ? 'Daily limit reached. Unlimited exports are coming with Creator.'
       : '3 free exports used today. Sign in to continue, or come back tomorrow.'
     : isAuthenticated
-      ? 'Upgrade to Creator to unlock this feature. Coming soon.'
+      ? 'Upgrade to Creator to unlock this feature.'
       : 'Sign in to get 3 more exports today. Unlock everything with Creator.';
 
   function handleSignIn() {
@@ -113,6 +114,16 @@ export default function UpgradeSheet({ open, onClose, feature }: UpgradeSheetPro
           </p>
 
           <div className="flex flex-col gap-2.5">
+            {isAuthenticated && onUpgrade && (
+              <button
+                onClick={() => { onClose(); onUpgrade(); }}
+                className="w-full py-3 rounded-full bg-white text-black text-[0.875rem] font-[600]
+                           hover:bg-white/92 transition-all duration-200 cursor-pointer
+                           hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Upgrade to Creator — $9/mo
+              </button>
+            )}
             {!isAuthenticated && (
               <button
                 onClick={handleSignIn}
@@ -128,7 +139,7 @@ export default function UpgradeSheet({ open, onClose, feature }: UpgradeSheetPro
               className="w-full py-3 rounded-full text-white/60 text-[0.875rem] font-[500]
                          hover:text-white/80 transition-colors duration-150 cursor-pointer"
             >
-              {isAuthenticated ? 'Got it' : 'Maybe later'}
+              {isAuthenticated ? 'Maybe later' : 'Maybe later'}
             </button>
           </div>
         </div>
