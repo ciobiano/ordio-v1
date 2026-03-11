@@ -6,34 +6,41 @@ const http = httpRouter();
 
 // ─── Signature Helpers ────────────────────────────────────────────────────────
 
+async function computeHmac(
+  payload: string,
+  secret: string,
+  algorithm: "SHA-256" | "SHA-512"
+): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: algorithm },
+    false,
+    ["sign"]
+  );
+  const computed = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(computed))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 async function verifyStripeSignature(
   body: string,
-  sig: string,
+  signatureHeader: string,
   secret: string
 ): Promise<boolean> {
   try {
-    const parts = sig.split(",").reduce<Record<string, string>>((acc, part) => {
-      const [k, v] = part.split("=");
-      acc[k] = v;
+    const parts = signatureHeader.split(",").reduce<Record<string, string>>((acc, part) => {
+      const [key, value] = part.split("=");
+      acc[key] = value;
       return acc;
     }, {});
     const timestamp = parts["t"];
-    const expectedSig = parts["v1"];
-    if (!timestamp || !expectedSig) return false;
+    const expectedHex = parts["v1"];
+    if (!timestamp || !expectedHex) return false;
 
-    const payload = `${timestamp}.${body}`;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const computed = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
-    const hex = Array.from(new Uint8Array(computed))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return hex === expectedSig;
+    const hex = await computeHmac(`${timestamp}.${body}`, secret, "SHA-256");
+    return hex === expectedHex;
   } catch {
     return false;
   }
@@ -41,22 +48,12 @@ async function verifyStripeSignature(
 
 async function verifyPaystackSignature(
   body: string,
-  sig: string,
+  signatureHeader: string,
   secret: string
 ): Promise<boolean> {
   try {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-512" },
-      false,
-      ["sign"]
-    );
-    const computed = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-    const hex = Array.from(new Uint8Array(computed))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return hex === sig;
+    const hex = await computeHmac(body, secret, "SHA-512");
+    return hex === signatureHeader;
   } catch {
     return false;
   }

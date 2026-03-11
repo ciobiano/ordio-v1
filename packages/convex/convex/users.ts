@@ -5,6 +5,16 @@ import { requireUser, getCurrentUser } from "./auth";
 
 const FREE_TIER_DAILY_LIMIT = 3;
 
+function getStartOfToday(): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.getTime();
+}
+
+type PaystackVerifyResponse = {
+  data: { status: string; customer?: { customer_code?: string } };
+};
+
 export const upsertUser = mutation({
   handler: async (ctx) => {
     const identity = await requireUser(ctx);
@@ -64,9 +74,7 @@ export const checkAndIncrementExport = mutation({
       return { allowed: true, remaining: Infinity };
     }
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const needsReset = user.lastResetTime < startOfToday.getTime();
+    const needsReset = user.lastResetTime < getStartOfToday();
     const currentCount = needsReset ? 0 : user.usageCount;
 
     if (currentCount >= FREE_TIER_DAILY_LIMIT) {
@@ -188,9 +196,7 @@ export const confirmPaystackPayment = action({
 
     if (!res.ok) throw new Error("Paystack verification request failed");
 
-    const body = (await res.json()) as {
-      data: { status: string; customer?: { customer_code?: string } };
-    };
+    const body = (await res.json()) as PaystackVerifyResponse;
 
     if (body.data.status !== "success") {
       throw new Error("Payment not confirmed by Paystack");
