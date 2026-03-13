@@ -1,7 +1,8 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
-import type { WaveformVariant, CaptionVariant } from '@/lib/store';
+import type { WaveformVariant, CaptionVariant, GraphicStyleId } from '@/lib/store';
 import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '@/lib/waveforms';
+import { getGraphic } from '@/lib/graphicLoader';
 
 export interface FrameOptions {
   /** Pre-computed waveform samples (0-1 normalized), typically 200+ values */
@@ -16,6 +17,8 @@ export interface FrameOptions {
   captionStyle: CaptionVariant;
   /** Show "Made with Ordio" watermark — true for free tier */
   showWatermark?: boolean;
+  /** null = use waveform; non-null = render this SVG graphic instead */
+  graphicStyle?: GraphicStyleId;
 }
 
 /**
@@ -28,7 +31,7 @@ export function renderFrame(
   totalFrames: number,
   options: FrameOptions
 ): void {
-  const { waveformData, transcript, style, waveformStyle, captionStyle, showWatermark } = options;
+  const { waveformData, transcript, style, waveformStyle, captionStyle, showWatermark, graphicStyle } = options;
   const { width, height } = style;
   const currentTime = frameIndex / FPS;
   const duration = totalFrames / FPS;
@@ -37,22 +40,64 @@ export function renderFrame(
   ctx.fillStyle = style.backgroundColor;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Waveform — skip for karaoke (text-only) and 'none' variant
-  const showWaveform = captionStyle !== 'karaoke' && waveformStyle !== 'none';
-  if (showWaveform) {
+  // 2. Visual zone — graphic or waveform
+  const shouldDrawWaveform = captionStyle !== 'karaoke' && waveformStyle !== 'none' && !graphicStyle;
+
+  if (graphicStyle) {
+    const img = getGraphic(graphicStyle);
+    if (img) drawGraphic(ctx, img, graphicStyle, style);
+  } else if (shouldDrawWaveform) {
     drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle);
   }
 
-  // 3. Captions
+  // 3. Captions — hasVisualZone keeps captions above graphic same as above waveform
+  const hasVisualZone = captionStyle !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
   if (captionStyle === 'karaoke') {
     drawKaraokeCaptions(ctx, currentTime, transcript, style);
   } else {
-    drawCaptions(ctx, currentTime, transcript, style, captionStyle, showWaveform);
+    drawCaptions(ctx, currentTime, transcript, style, captionStyle, hasVisualZone);
   }
 
   // 4. Watermark — drawn last so it appears on top
   if (showWatermark) {
-    drawWatermark(ctx, width, height);
+    drawWatermark(ctx);
+  }
+}
+
+// ── Graphic Drawing ──────────────────────────────────────────────────
+
+function drawGraphic(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  graphicStyle: NonNullable<GraphicStyleId>,
+  style: StyleConfig
+): void {
+  const { width, height } = style;
+  const aspectRatio = img.naturalWidth / img.naturalHeight;
+
+  // Fit within 70% width and 30% height, preserving aspect ratio
+  const maxW = width * 0.7;
+  const maxH = height * 0.3;
+  const fitByWidth = maxW / aspectRatio <= maxH;
+  const drawW = fitByWidth ? maxW : maxH * aspectRatio;
+  const drawH = fitByWidth ? maxW / aspectRatio : maxH;
+
+  // Centre horizontally; vertically centred on the waveform zone
+  const drawX = (width - drawW) / 2;
+  const drawY = height * WAVEFORM_CENTER_Y - drawH / 2;
+
+  if (graphicStyle === 'graphic-frame1') {
+    // Tint with creator's accent colour (waveColor) via OffscreenCanvas
+    const offscreen = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
+    const octx = offscreen.getContext('2d')!;
+    octx.drawImage(img, 0, 0);
+    octx.globalCompositeOperation = 'source-in';
+    octx.fillStyle = style.waveColor;
+    octx.fillRect(0, 0, img.naturalWidth, img.naturalHeight);
+    ctx.drawImage(offscreen, drawX, drawY, drawW, drawH);
+  } else {
+    // graphic-frame2: draw as-is (white fill in SVG)
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
   }
 }
 
@@ -95,7 +140,7 @@ function drawCaptions(
   transcript: Word[],
   style: StyleConfig,
   captionStyle: CaptionVariant,
-  showWaveform: boolean
+  hasVisualZone: boolean
 ): void {
   if (transcript.length === 0) return;
 
@@ -117,7 +162,7 @@ function drawCaptions(
   const totalHeight = lines.length * lineHeight;
 
   let textY: number;
-  if (!showWaveform) {
+  if (!hasVisualZone) {
     textY = (height - totalHeight) / 2;
   } else {
     const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
@@ -189,14 +234,14 @@ function drawKaraokeCaptions(
 
 // ── Watermark ────────────────────────────────────────────────────────
 
-function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  ctx.save()
-  ctx.font = '400 14px "Geist", sans-serif'
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'
-  ctx.textBaseline = 'top'
-  ctx.textAlign = 'left'
-  ctx.fillText('Ordio by Kaine Studio', 16, 16)
-  ctx.restore()
+function drawWatermark(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  ctx.font = '400 14px "Geist", sans-serif';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillText('Ordio by Kaine Studio', 16, 16);
+  ctx.restore();
 }
 
 // ── Utilities ───────────────────────────────────────────────────────

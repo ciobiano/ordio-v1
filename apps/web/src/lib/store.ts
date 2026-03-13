@@ -6,6 +6,7 @@ import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 
 export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
+export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
 
@@ -58,6 +59,7 @@ interface AppState {
   // Style
   style: StyleConfig;
   waveformStyle: WaveformVariant;
+  graphicStyle: GraphicStyleId;
   captionStyle: CaptionVariant;
   format: FormatVariant;
 
@@ -85,6 +87,7 @@ interface AppState {
   setExportedUrl: (url: string | null) => void;
   setStyle: (style: Partial<StyleConfig>) => void;
   setWaveformStyle: (style: WaveformVariant) => void;
+  setGraphicStyle: (id: GraphicStyleId) => void;
   setCaptionStyle: (style: CaptionVariant) => void;
   setFormat: (format: FormatVariant) => void;
   setEnhanceTier: (tier: EnhanceTier) => void;
@@ -106,6 +109,7 @@ const initialPreferences = {
     waveColor: '#ffffff',
   },
   waveformStyle: 'bars' as WaveformVariant,
+  graphicStyle: null as GraphicStyleId,
   captionStyle: 'center' as CaptionVariant,
   format: 'square' as FormatVariant,
   enhanceTier: 'none' as EnhanceTier,
@@ -156,6 +160,7 @@ export const useStore = create<AppState>()(
       setStyle: (newStyle) =>
         set((state) => ({ style: { ...state.style, ...newStyle } })),
       setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
+      setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
       setCaptionStyle: (captionStyle) => set({ captionStyle }),
       setFormat: (format) =>
         set((state) => {
@@ -178,6 +183,7 @@ export const useStore = create<AppState>()(
         theme: state.theme,
         style: state.style,
         waveformStyle: state.waveformStyle,
+        graphicStyle: state.graphicStyle,
         captionStyle: state.captionStyle,
         format: state.format,
         enhanceTier: state.enhanceTier,

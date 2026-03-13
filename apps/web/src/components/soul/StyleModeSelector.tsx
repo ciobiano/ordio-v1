@@ -2,8 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/cn';
-import { useStore } from '@/lib/store';
-import type { WaveformVariant } from '@/lib/store';
+import { useStore, type WaveformVariant, type GraphicStyleId } from '@/lib/store';
 import { useFeatureGates } from '@/hooks/useFeatureGates';
 import LockBadge from '@/components/primitives/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
@@ -49,6 +48,15 @@ function NoneIcon() {
   );
 }
 
+function GraphicIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" className="text-current" aria-hidden="true">
+      <rect x="1" y="2" width="14" height="10" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M1 9l4-3 3 2.5 3-3.5 4 4" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -81,6 +89,15 @@ const labels: Record<WaveformVariant, string> = {
   none: 'None',
 };
 
+type GraphicVariant = NonNullable<GraphicStyleId>;
+
+const graphicVariants: GraphicVariant[] = ['graphic-frame1', 'graphic-frame2'];
+
+const graphicLabels: Record<GraphicVariant, string> = {
+  'graphic-frame1': 'Frame 1',
+  'graphic-frame2': 'Frame 2',
+};
+
 // ── Component ────────────────────────────────────────────────────────
 
 const variantFeatureKey: Partial<Record<WaveformVariant, FeatureKey>> = {
@@ -88,13 +105,15 @@ const variantFeatureKey: Partial<Record<WaveformVariant, FeatureKey>> = {
   spectrogram: 'waveform_spectrogram',
 };
 
-interface WaveformStyleSelectorProps {
+interface StyleModeSelectorProps {
   onLocked?: (feature: FeatureKey) => void;
 }
 
-export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelectorProps) {
+export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) {
   const waveformStyle = useStore((s) => s.waveformStyle);
   const setWaveformStyle = useStore((s) => s.setWaveformStyle);
+  const graphicStyle = useStore((s) => s.graphicStyle);
+  const setGraphicStyle = useStore((s) => s.setGraphicStyle);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -112,7 +131,9 @@ export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelecto
     return () => document.removeEventListener('pointerdown', handleClick);
   }, [open]);
 
-  const ActiveIcon = icons[waveformStyle];
+  const activeIsGraphic = graphicStyle !== null;
+  const ActiveIcon = activeIsGraphic ? GraphicIcon : icons[waveformStyle];
+  const activeLabel = activeIsGraphic ? graphicLabels[graphicStyle!] : labels[waveformStyle];
 
   return (
     <div ref={containerRef} className="relative" role="group" aria-label="Waveform style">
@@ -128,13 +149,13 @@ export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelecto
         )}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`Waveform: ${labels[waveformStyle]}. Tap to change.`}
+        aria-label={`Style: ${activeLabel}. Tap to change.`}
       >
         <span className="text-white/60">
           <ActiveIcon />
         </span>
         <span className="text-white/60 text-xs font-medium tracking-wide">
-          {labels[waveformStyle]}
+          {activeLabel}
         </span>
         <ChevronIcon open={open} />
       </button>
@@ -159,12 +180,13 @@ export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelecto
               const featureKey = variantFeatureKey[variant];
               const locked = featureKey ? isLocked(featureKey) : false;
               const Icon = icons[variant];
-              const isActive = waveformStyle === variant;
+              const isActive = waveformStyle === variant && !activeIsGraphic;
               return (
                 <div key={variant} className="relative">
                   <button
                     onClick={() => {
                       setWaveformStyle(variant);
+                      setGraphicStyle(null);
                       setOpen(false);
                       // Return focus to trigger after selection
                       setTimeout(() => triggerRef.current?.focus(), 0);
@@ -185,6 +207,36 @@ export default function WaveformStyleSelector({ onLocked }: WaveformStyleSelecto
                     <LockBadge onClick={() => onLocked?.(featureKey)} label={`${labels[variant]} requires Creator`} />
                   )}
                 </div>
+              );
+            })}
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-white/10 mx-0.5" aria-hidden="true" />
+
+            {/* Graphics section */}
+            {graphicVariants.map((variant) => {
+              const isActive = graphicStyle === variant;
+              return (
+                <button
+                  key={variant}
+                  onClick={() => {
+                    setGraphicStyle(variant);
+                    setOpen(false);
+                    setTimeout(() => triggerRef.current?.focus(), 0);
+                  }}
+                  aria-label={`${graphicLabels[variant]} graphic style`}
+                  aria-pressed={isActive}
+                  className={cn(
+                    'min-w-11 min-h-11 rounded-lg flex flex-col items-center justify-center gap-0.5',
+                    'transition-all duration-150 cursor-pointer border',
+                    isActive
+                      ? 'bg-white/20 border-white/40 text-white/90'
+                      : 'bg-transparent border-transparent text-white/60 hover:bg-white/10 hover:text-white/80'
+                  )}
+                >
+                  <GraphicIcon />
+                  <span className="text-[9px] font-medium tracking-wide leading-none">{graphicLabels[variant]}</span>
+                </button>
               );
             })}
           </div>

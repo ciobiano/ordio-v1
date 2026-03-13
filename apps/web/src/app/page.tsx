@@ -23,7 +23,7 @@ import {
   AuthGate,
   AudioSettings,
   CaptionStyleSelector,
-  WaveformStyleSelector,
+  StyleModeSelector,
   IdleState,
   RecordingState,
   ProcessingState,
@@ -51,6 +51,7 @@ export default function Home() {
     currentState,
     waveformStyle,
     captionStyle,
+    graphicStyle,
     format,
     setCurrentState,
     reset,
@@ -227,6 +228,7 @@ export default function Home() {
             format={format}
             waveformStyle={waveformStyle}
             captionStyle={captionStyle}
+            graphicStyle={graphicStyle}
             showWatermark={tier === 'free'}
             onExport={handleExport}
             onDownload={handleDownload}
@@ -249,7 +251,7 @@ export default function Home() {
 
       {(currentState === 'idle' || currentState === 'recording') && captionStyle !== 'karaoke' && (
         <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8">
-          <WaveformStyleSelector onLocked={setUpgradeTarget} />
+          <StyleModeSelector onLocked={setUpgradeTarget} />
         </div>
       )}
 

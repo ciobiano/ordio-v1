@@ -8,6 +8,8 @@ import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
 import { loadFont } from '@/lib/fontLoader';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 import { getCanvasDimensions, type WaveformVariant, type CaptionVariant, type FormatVariant } from '@/lib/store';
+import type { GraphicStyleId } from '@/lib/store';
+import { loadGraphic } from '@/lib/graphicLoader';
 import { cn } from '@/lib/cn';
 
 interface CanvasPreviewProps {
@@ -16,6 +18,7 @@ interface CanvasPreviewProps {
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
   showWatermark?: boolean;
+  graphicStyle?: GraphicStyleId;
   className?: string;
 }
 
@@ -57,6 +60,7 @@ export default function CanvasPreview({
   waveformStyle,
   captionStyle,
   showWatermark = false,
+  graphicStyle,
   className,
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,6 +75,11 @@ export default function CanvasPreview({
     setFontLoaded(false);
     loadFont(style.fontFamily).then(() => setFontLoaded(true));
   }, [style.fontFamily]);
+
+  // Pre-load graphic asset when graphic style changes
+  useEffect(() => {
+    if (graphicStyle) loadGraphic(graphicStyle);
+  }, [graphicStyle]);
 
   // Pre-compute waveform data when audio changes
   useEffect(() => {
@@ -104,10 +113,11 @@ export default function CanvasPreview({
       waveformStyle,
       captionStyle,
       showWatermark,
+      graphicStyle,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, fontLoaded]);
+  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, graphicStyle, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {

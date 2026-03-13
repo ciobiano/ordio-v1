@@ -46,7 +46,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
         abortRef.current = abortController;
 
         // Read current style/variant state from store
-        const { transcript, style, waveformStyle, captionStyle } = useStore.getState();
+        const { transcript, style, waveformStyle, captionStyle, graphicStyle } = useStore.getState();
 
         const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
         const result = await encode({
@@ -57,6 +57,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
           waveformStyle,
           captionStyle,
           showWatermark,
+          graphicStyle,
           onProgress: (progress) => setExportProgress(progress * 100),
           signal: abortController.signal,
         });

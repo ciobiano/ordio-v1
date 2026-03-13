@@ -7,7 +7,7 @@ import StyleControls from './StyleControls';
 import FormatToggle from './FormatToggle';
 import { primaryBtn, ghostBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
-import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import type { WaveformVariant, CaptionVariant, FormatVariant, GraphicStyleId } from '@/lib/store';
 import type { FeatureKey } from '@/lib/featureGates';
 
 interface UseVideoExporterShape {
@@ -25,6 +25,7 @@ interface ExportStateProps {
   format: FormatVariant;
   waveformStyle: WaveformVariant;
   captionStyle: CaptionVariant;
+  graphicStyle?: GraphicStyleId;
   showWatermark?: boolean;
   onExport: () => void;
   onDownload: () => void;
@@ -38,6 +39,7 @@ export default function ExportState({
   format,
   waveformStyle,
   captionStyle,
+  graphicStyle,
   showWatermark = false,
   onExport,
   onDownload,
@@ -66,6 +68,7 @@ export default function ExportState({
         format={format}
         waveformStyle={waveformStyle}
         captionStyle={captionStyle}
+        graphicStyle={graphicStyle}
         showWatermark={showWatermark}
       />
 
