@@ -35,8 +35,16 @@ test-results/
 
 # ── AI tool project data ─────────────────────────────────────
 .claude/
+.superpowers/
 CLAUDE.md
 AGENTS.md
+
+# ── Planning / non-essential docs ────────────────────────────
+docs/
+tasks/
+agent_docs/
+workflow.md
+venv/
 
 # ── Personal / workflow files ────────────────────────────────
 note.md

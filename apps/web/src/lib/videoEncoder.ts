@@ -12,7 +12,8 @@ import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
 import { loadFont } from '@/lib/fontLoader';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { WaveformVariant, CaptionVariant } from '@/lib/store';
+import type { WaveformVariant, CaptionVariant, GraphicStyleId } from '@/lib/store';
+import { loadGraphic } from '@/lib/graphicLoader';
 
 export interface EncodeVideoOptions {
   /** Canvas element to render frames onto */
@@ -29,6 +30,8 @@ export interface EncodeVideoOptions {
   captionStyle: CaptionVariant;
   /** Show "Made with Ordio" watermark — true for free tier */
   showWatermark?: boolean;
+  /** Graphic style to render — null or undefined = use waveform */
+  graphicStyle?: GraphicStyleId;
   /** Progress callback (0-1) */
   onProgress?: (progress: number) => void;
   /** Abort signal for cancellation */
@@ -59,12 +62,15 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     waveformStyle,
     captionStyle,
     showWatermark,
+    graphicStyle,
     onProgress,
     signal,
   } = options;
 
   // Load font before rendering
   await loadFont(style.fontFamily);
+  await loadFont('Geist');
+  if (graphicStyle) await loadGraphic(graphicStyle);
 
   // Ensure canvas dimensions match style
   canvas.width = style.width;
@@ -115,6 +121,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     waveformStyle,
     captionStyle,
     showWatermark,
+    graphicStyle,
   };
 
   // Render and encode frame by frame

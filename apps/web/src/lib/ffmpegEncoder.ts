@@ -2,6 +2,7 @@ import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
 import { loadFont } from '@/lib/fontLoader';
+import { loadGraphic } from '@/lib/graphicLoader';
 import type { EncodeVideoOptions, EncodeResult } from '@/lib/videoEncoder';
 
 /**
@@ -20,6 +21,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     waveformStyle,
     captionStyle,
     showWatermark,
+    graphicStyle,
     onProgress,
     signal,
   } = options;
@@ -38,6 +40,9 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
 
   // Load font before rendering
   await loadFont(style.fontFamily);
+  await loadFont('Geist');
+
+  if (graphicStyle) await loadGraphic(graphicStyle);
 
   // Ensure canvas dimensions match style
   canvas.width = style.width;
@@ -57,6 +62,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     waveformStyle,
     captionStyle,
     showWatermark,
+    graphicStyle,
   };
 
   // Render frames to JPEG and write to ffmpeg virtual FS

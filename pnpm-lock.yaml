@@ -111,6 +111,9 @@ importers:
       copy-webpack-plugin:
         specifier: ^12.0.2
         version: 12.0.2(webpack@5.96.1)
+      geist:
+        specifier: ^1.7.0
+        version: 1.7.0(next@15.3.3)
       mediabunny:
         specifier: ^1.34.5
         version: 1.34.5
@@ -132,6 +135,9 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.3)(react@19.2.3)
+      stripe:
+        specifier: ^20.4.1
+        version: 20.4.1(@types/node@20.19.30)
       zustand:
         specifier: ^5.0.0
         version: 5.0.10(@types/react@19.2.8)(react@19.2.3)
@@ -5045,6 +5051,14 @@ packages:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
     dev: true
 
+  /geist@1.7.0(next@15.3.3):
+    resolution: {integrity: sha512-ZaoiZwkSf0DwwB1ncdLKp+ggAldqxl5L1+SXaNIBGkPAqcu+xjVJLxlf3/S8vLt9UHx1xu5fz3lbzKCj5iOVdQ==}
+    peerDependencies:
+      next: '>=13.2.0'
+    dependencies:
+      next: 15.3.3(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@19.2.3)(react@19.2.3)
+    dev: false
+
   /generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
@@ -7418,6 +7432,18 @@ packages:
     dependencies:
       js-tokens: 9.0.1
     dev: true
+
+  /stripe@20.4.1(@types/node@20.19.30):
+    resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+    dependencies:
+      '@types/node': 20.19.30
+    dev: false
 
   /style-loader@4.0.0(webpack@5.96.1):
     resolution: {integrity: sha512-1V4WqhhZZgjVAVJyt7TdDPZoPBPNHbekX4fWnCJL1yQukhCeZhJySUL+gL9y6sNdN95uEOS83Y55SqHcP7MzLA==}
