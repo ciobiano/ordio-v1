@@ -190,30 +190,13 @@ function drawKaraokeCaptions(
 // ── Watermark ────────────────────────────────────────────────────────
 
 function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  const text = 'Made with Ordio';
-  const offsetX = 24;
-  const offsetY = 24;
-
-  ctx.save();
-  ctx.font = `500 13px "Plus Jakarta Sans", sans-serif`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'right';
-
-  const textWidth = ctx.measureText(text).width;
-  const x = width - offsetX;
-  const y = height - offsetY;
-
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(x - textWidth / 2, y, 20, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.globalAlpha = 0.55;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(text, x, y);
-
-  ctx.restore();
+  ctx.save()
+  ctx.font = '400 14px "Geist", sans-serif'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
+  ctx.fillText('Ordio by Kaine Studio', 16, 16)
+  ctx.restore()
 }
 
 // ── Utilities ───────────────────────────────────────────────────────
