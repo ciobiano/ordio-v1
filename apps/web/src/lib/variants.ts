@@ -69,29 +69,43 @@ export const optionBtn = cva(
 /**
  * Circular icon button — single source of truth for all icon-only circular buttons.
  *
- *   intent: 'idle'  → mic button (large, dark ring)
- *           'stop'  → stop recording (large, red ring)
- *           'play'  → playback play (small, white fill)
- *           'pause' → playback pause (small, ghost)
+ *   intent: 'idle'     → mic orb (64px, surface bg)
+ *           'pause'    → pause recording (48px, surface bg)
+ *           'settings' → gear button (48px, surface bg)
+ *           'stop'     → stop recording (64px, rose destructive ring)
+ *           'play'     → playback play (small, white fill)
  */
 export const roundIconBtn = cva(
-  'group relative rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center',
+  'flex items-center justify-center rounded-full transition-all duration-150',
   {
     variants: {
       intent: {
-        idle:
-          'w-[4.5rem] h-[4.5rem] hover:scale-105 active:scale-[0.96] ' +
-          'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15]',
-        stop:
-          'w-[4.5rem] h-[4.5rem] hover:scale-105 active:scale-[0.96] ' +
-          'bg-[#e11d48]/[0.12] border-2 border-[#e11d48]/30 hover:bg-[#e11d48]/20 hover:border-[#e11d48]/50',
-        play:
-          'w-11 h-11 shrink-0 bg-white text-black border border-white hover:bg-white/90',
-        pause:
-          'w-11 h-11 shrink-0 bg-white/10 text-white border border-white/20 hover:bg-white/15',
+        idle:     'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        pause:    'w-12 h-12 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        settings: 'w-12 h-12 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        stop:     'w-16 h-16 bg-[rgba(225,29,72,0.15)] border-2 border-[rgba(225,29,72,0.6)] text-destructive hover:bg-[rgba(225,29,72,0.25)]',
+        play:     'w-11 h-11 shrink-0 bg-white text-black border border-white hover:bg-white/90',
       },
     },
     defaultVariants: { intent: 'idle' },
+  }
+);
+
+/**
+ * Proceed / CTA button — full-width warm-white pill used after stopping a recording.
+ * Colors are baked into CVA base (never inline styles per project rule).
+ */
+export const proceedBtn = cva(
+  'w-full rounded-[12px] font-semibold tracking-tight transition-all duration-150 bg-[#FAF8F5] text-black',
+  {
+    variants: {
+      size: {
+        default: 'py-3.5 text-[14px]',
+      },
+    },
+    defaultVariants: {
+      size: 'default',
+    },
   }
 );
 
