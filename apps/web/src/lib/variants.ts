@@ -96,11 +96,11 @@ export const roundIconBtn = cva(
  * Colors are baked into CVA base (never inline styles per project rule).
  */
 export const proceedBtn = cva(
-  'w-full rounded-[12px] font-semibold tracking-tight transition-all duration-150 bg-[#FAF8F5] text-black',
+  'w-full rounded-xl font-semibold tracking-tight transition-all duration-150 bg-[#FAF8F5] text-black',
   {
     variants: {
       size: {
-        default: 'py-3.5 text-[14px]',
+        default: 'py-3.5 text-sm',
       },
     },
     defaultVariants: {
