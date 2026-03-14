@@ -6,7 +6,7 @@ export { default as ExportState } from './ExportState';
 export { default as FormatToggle } from './FormatToggle';
 export { default as IdleState } from './IdleState';
 export { default as ProcessingState } from './ProcessingState';
-export { default as RecordingState } from './RecordingState';
+export { RecordingState } from './RecordingState';
 export { default as StyleControls } from './StyleControls';
 export { default as UpgradeSheet } from './UpgradeSheet';
 export { default as StyleModeSelector } from './StyleModeSelector';
