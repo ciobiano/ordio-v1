@@ -21,9 +21,6 @@ import type { FeatureKey } from '@/lib/featureGates';
 import { CapabilityBanner } from '@/components/primitives';
 import {
   AuthGate,
-  AudioSettings,
-  CaptionStyleSelector,
-  StyleModeSelector,
   IdleState,
   RecordingState,
   ProcessingState,
@@ -100,14 +97,6 @@ export default function Home() {
     if (audioBuffer) playback.load(audioBuffer);
   }, [currentState, playback]);
 
-  // Process recorded audio when recording stops
-  useEffect(() => {
-    if (recorder.state !== 'stopped' || !recorder.audioBlob) return;
-    processAudio(recorder.audioBlob).catch((err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to process audio');
-    });
-  }, [recorder.state, recorder.audioBlob, processAudio]);
-
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
     const stream = await recorder.startRecording();
@@ -119,6 +108,23 @@ export default function Home() {
     recorder.stopRecording();
     analyser.disconnect();
   }, [recorder, analyser]);
+
+  const handleProceed = useCallback(() => {
+    if (!recorder.audioBlob) return;
+    processAudio(recorder.audioBlob).catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Processing failed');
+    });
+  }, [recorder.audioBlob, processAudio]);
+
+  const handleRestart = useCallback(async () => {
+    recorder.resetRecording();
+    try {
+      await handleStartRecording();
+    } catch {
+      toast.error('Failed to restart recording');
+      setCurrentState('idle');
+    }
+  }, [recorder, handleStartRecording, setCurrentState]);
 
   const handleFileUpload = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -180,40 +186,37 @@ export default function Home() {
     <div className="min-h-dvh bg-black text-[#f8fafc] font-[family-name:var(--font-jakarta)]">
       {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
 
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-        {(currentState === 'recording' || currentState === 'export') && (
-          <CaptionStyleSelector onLocked={setUpgradeTarget} />
-        )}
-        <UserButton />
-      </div>
+      {(currentState === 'idle' || currentState === 'export') && (
+        <div className="fixed top-4 right-4 z-20">
+          <UserButton />
+        </div>
+      )}
 
       <main
         id="main-content"
         className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
       >
         {currentState === 'idle' && (
-          <>
-            <IdleState
-              onStartRecording={handleStartRecording}
-              onFileUpload={handleFileUpload}
-              canRecord={capabilities.canRecord}
-              isLoading={capabilities.isLoading}
-              waveformStyle={waveformStyle}
-              fileInputRef={fileInputRef}
-            />
-            <div className="mt-6 w-full max-w-xs">
-              <AudioSettings onLocked={setUpgradeTarget} />
-            </div>
-          </>
+          <IdleState
+            onStartRecording={handleStartRecording}
+            onFileUpload={handleFileUpload}
+            canRecord={capabilities.canRecord}
+            isLoading={false}
+            fileInputRef={fileInputRef}
+          />
         )}
 
         {currentState === 'recording' && (
           <RecordingState
-            onStopRecording={handleStopRecording}
             audioLevel={audioLevel}
-            captionStyle={captionStyle}
-            waveformStyle={waveformStyle}
-            isSpeaking={audioLevel > 0.05}
+            isPaused={recorder.isPaused}
+            recordingTime={recorder.recordingTime}
+            onPauseRecording={recorder.pauseRecording}
+            onResumeRecording={recorder.resumeRecording}
+            onStopRecording={handleStopRecording}
+            onRestart={handleRestart}
+            onProceed={handleProceed}
+            onLocked={setUpgradeTarget}
           />
         )}
 
@@ -248,12 +251,6 @@ export default function Home() {
           {currentState === 'export' && 'Export ready'}
         </div>
       </main>
-
-      {(currentState === 'idle' || currentState === 'recording') && captionStyle !== 'karaoke' && (
-        <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8">
-          <StyleModeSelector onLocked={setUpgradeTarget} />
-        </div>
-      )}
 
       <UpgradeSheet
         open={upgradeTarget !== null}
