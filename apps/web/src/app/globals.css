@@ -2,45 +2,37 @@
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  /* OLED Dark (design system: Cinema dark) */
+  /* ─── Design tokens ─── */
   --background: #000000;
-  --surface-1: #0f0f23;
-  --surface-2: rgba(255, 255, 255, 0.04);
-  --surface-3: rgba(255, 255, 255, 0.08);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(255, 255, 255, 0.2);
-  --foreground: #f8fafc;
-  --muted: rgba(255, 255, 255, 0.60);
-  --muted-dim: rgba(255, 255, 255, 0.45);
-
-  /* Accent */
-  --accent: #3b82f6;
-  --accent-purple: #8b5cf6;
+  --foreground: #FAF8F5;
+  --primary: #FAF8F5;
+  --secondary: rgba(250, 248, 245, 0.5);
+  --tertiary: rgba(250, 248, 245, 0.3);
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-active: rgba(255, 255, 255, 0.12);
+  --destructive: #e11d48;
+  --accent: #FAF8F5;
+  --accent-purple: #FAF8F5;
   --accent-red: #e11d48;
-  --success: #22c55e;
-  --danger: #e11d48;
-
-  /* Glow effects (minimal per design system) */
-  --glow-blue: 0 0 20px rgba(59, 130, 246, 0.25);
-  --glow-red: 0 0 20px rgba(225, 29, 72, 0.3);
 }
 
 /* ── Tailwind Theme Extension ──────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-dim: var(--muted-dim);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
   --color-border: var(--border);
   --color-border-active: var(--border-active);
-  --color-surface-1: var(--surface-1);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
+  --color-destructive: var(--destructive);
   --color-accent: var(--accent);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-red: var(--accent-red);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
   --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
 }
 
@@ -76,9 +68,9 @@ body {
 
 /* ── Focus states (WCAG AA — 3:1 against dark backgrounds) ── */
 :focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline: 2px solid rgba(250, 248, 245, 0.8);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 4px rgba(250, 248, 245, 0.15);
   border-radius: 4px;
 }
 
