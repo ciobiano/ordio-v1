@@ -71,7 +71,7 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
       } else {
         activeHandle.current = 'end'
       }
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      (e.target as HTMLElement).setPointerCapture(e.pointerId)
     },
     [trimState.startTime, trimState.endTime, duration]
   )

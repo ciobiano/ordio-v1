@@ -227,7 +227,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
                 aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}${isDeleted ? ' (deleted)' : ''}`}
                 className={cn(
                   isDeleted
-                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px] px-2.5 py-1 bg-[rgba(225,29,72,0.12)] border-[rgba(225,29,72,0.3)] text-destructive line-through opacity-50'
+                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-[rgba(225,29,72,0.12)] border-[rgba(225,29,72,0.3)] text-destructive line-through opacity-50'
                     : chip({ active, focused: isFocused })
                 )}
               >

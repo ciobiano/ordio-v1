@@ -72,6 +72,7 @@ export const createJob = mutation({
       // First time user
       await ctx.db.insert("users", {
         tokenIdentifier: userId,
+        tier: "free",
         usageCount: 1,
         lastResetTime: now,
       });

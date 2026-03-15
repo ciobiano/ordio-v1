@@ -163,7 +163,7 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
       {/* Expanded options */}
       <div
         className={cn(
-          'absolute bottom-full right-0 mb-2',
+          'absolute bottom-full right-0 mb-2 w-max',
           'grid transition-all duration-200 ease-out',
           open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
         )}
