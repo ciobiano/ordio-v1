@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn';
 import { panelCard } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { Word } from '@Ordio/shared/schemas';
+import type { UseAudioTrimmerReturn } from '@/hooks/useAudioTrimmer';
 
 const WORDS_PER_PHRASE = 6;
 
@@ -30,9 +31,11 @@ const chip = cva(
 interface CaptionEditorProps {
   currentTime: number;
   onSeek?: (time: number) => void;
+  isTranscribing?: boolean;
+  trimmer?: UseAudioTrimmerReturn;
 }
 
-export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProps) {
+export default function CaptionEditor({ currentTime, onSeek, isTranscribing, trimmer }: CaptionEditorProps) {
   const transcript = useStore((s) => s.transcript);
   const setTranscript = useStore((s) => s.setTranscript);
   const transcriptionSource = useStore((s) => s.transcriptionSource);
@@ -136,14 +139,19 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
     }
   }, []);
 
-  if (transcript.length === 0) {
+  if (isTranscribing) {
     return (
-      <div
-        role="region"
-        className={cn(panelCard, 'w-full px-4 py-5 flex items-center justify-center min-h-18')}
-        aria-label="Caption editor — empty"
-      >
-        <p className="text-white/50 text-sm">No transcript yet</p>
+      <div className="py-6 text-center">
+        <p className="text-[--secondary] text-sm">Transcribing...</p>
+      </div>
+    );
+  }
+
+  if (!transcript || transcript.length === 0) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-[--secondary] text-sm">No captions available</p>
+        <p className="text-[--tertiary] text-xs mt-1">Check microphone permissions or try again</p>
       </div>
     );
   }
@@ -203,6 +211,8 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
             );
           }
 
+          const isDeleted = trimmer?.trimState.deletedWordIndices.has(i) ?? false;
+
           return (
             <li key={i} className="inline-flex items-center">
               {showSeparator && (
@@ -214,8 +224,12 @@ export default function CaptionEditor({ currentTime, onSeek }: CaptionEditorProp
                 onClick={() => handleChipClick(i)}
                 onDoubleClick={() => handleChipDoubleClick(i)}
                 onFocus={() => setFocusedIndex(i)}
-                aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}`}
-                className={cn(chip({ active, focused: isFocused }))}
+                aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}${isDeleted ? ' (deleted)' : ''}`}
+                className={cn(
+                  isDeleted
+                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px] px-2.5 py-1 bg-[rgba(225,29,72,0.12)] border-[rgba(225,29,72,0.3)] text-destructive line-through opacity-50'
+                    : chip({ active, focused: isFocused })
+                )}
               >
                 {word.text}
               </button>
