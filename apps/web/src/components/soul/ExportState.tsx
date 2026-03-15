@@ -11,7 +11,7 @@ import StyleControls from './StyleControls';
 import FormatToggle from './FormatToggle';
 import { TrimPanel } from './TrimPanel';
 import { useAudioTrimmer } from '@/hooks/useAudioTrimmer';
-import { useStore } from '@/lib/store';
+import { useStore, getCanvasDimensions } from '@/lib/store';
 import { cn } from '@/lib/cn';
 import { primaryBtn, panelCard } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
@@ -24,6 +24,7 @@ interface UseVideoExporterShape {
   exportedUrl: string | null;
   exportMimeType: string | null;
   error: string | null;
+  startExport: (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer, showWatermark?: boolean) => Promise<void>;
   cancelExport: () => void;
 }
 
@@ -35,7 +36,7 @@ interface ExportStateProps {
   captionStyle: CaptionVariant;
   graphicStyle?: GraphicStyleId;
   showWatermark?: boolean;
-  onExport: () => void;
+  onExportStart: () => Promise<boolean>;
   onDownload: () => void;
   onReset: () => void;
   onLocked: (feature: FeatureKey) => void;
@@ -48,6 +49,16 @@ const FORMAT_RATIO: Record<FormatVariant, string> = {
   instagram: '4:5',
 };
 
+function buildAudioBuffer(channels: Float32Array[], sampleRate: number): AudioBuffer {
+  const buf = new AudioBuffer({
+    numberOfChannels: channels.length,
+    length: channels[0]?.length ?? 0,
+    sampleRate,
+  });
+  channels.forEach((ch, i) => buf.copyToChannel(new Float32Array(ch.buffer as ArrayBuffer, ch.byteOffset, ch.length), i));
+  return buf;
+}
+
 export default function ExportState({
   playback,
   exporter,
@@ -56,7 +67,7 @@ export default function ExportState({
   captionStyle,
   graphicStyle,
   showWatermark = false,
-  onExport,
+  onExportStart,
   onDownload,
   onReset,
   onLocked,
@@ -85,6 +96,39 @@ export default function ExportState({
     setShowDiscardDialog(false);
   }, []);
 
+  const handleExport = useCallback(async () => {
+    if (!audioBuffer || !transcript) return;
+
+    const allowed = await onExportStart();
+    if (!allowed) return;
+
+    const trimmedChannels = trimmer.getTrimmedAudio(audioBuffer, transcript);
+    const trimmedBuffer = buildAudioBuffer(trimmedChannels, audioBuffer.sampleRate);
+    const trimmedTranscript = trimmer.getTrimmedTranscript(transcript);
+
+    const { width, height } = getCanvasDimensions(format);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // Temporarily override transcript in store for the encoder, then restore.
+    // The encoder reads transcript from the store internally.
+    const store = useStore.getState();
+    const originalTranscript = store.transcript;
+    useStore.setState({ transcript: trimmedTranscript });
+
+    try {
+      await exporter.startExport(canvas, trimmedBuffer, showWatermark);
+    } finally {
+      useStore.setState({ transcript: originalTranscript });
+    }
+  }, [audioBuffer, transcript, trimmer, format, exporter, showWatermark, onExportStart]);
+
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
 
   const progressPct = Math.round(exporter.exportProgress);
@@ -112,7 +156,7 @@ export default function ExportState({
           <UserButton />
           <button
             type="button"
-            onClick={exporter.exportedUrl ? onDownload : onExport}
+            onClick={exporter.exportedUrl ? onDownload : handleExport}
             disabled={exportDisabled && !exporter.exportedUrl}
             aria-label={exporter.exportedUrl ? 'Download exported video' : 'Export video'}
             className={cn(

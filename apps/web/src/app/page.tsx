@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { toast } from 'sonner';
 import { UserButton, useAuth } from '@clerk/nextjs';
-import { useStore, getCanvasDimensions } from '@/lib/store';
+import { useStore } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
 import { useTranscription } from '@/hooks/useTranscription';
@@ -29,19 +29,6 @@ import {
 } from '@/components/soul';
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-
-function createInitializedCanvas(format: Parameters<typeof getCanvasDimensions>[0]): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  const { width, height } = getCanvasDimensions(format);
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  return canvas;
-}
 
 export default function Home() {
   const {
@@ -147,19 +134,14 @@ export default function Home() {
     [processAudio]
   );
 
-  const handleExport = useCallback(async () => {
+  const handleExportStart = useCallback(async (): Promise<boolean> => {
     const gate = await exportGate.checkAndConsume();
     if (!gate.allowed) {
       setUpgradeTarget('export_limit');
-      return;
+      return false;
     }
-
-    const { audioBuffer } = useStore.getState();
-    if (!audioBuffer) return;
-
-    const canvas = createInitializedCanvas(format);
-    await exporter.startExport(canvas, audioBuffer, tier === 'free');
-  }, [format, exporter, exportGate, tier]);
+    return true;
+  }, [exportGate]);
 
   const handleDownload = useCallback(() => {
     if (!exporter.exportedUrl) return;
@@ -233,7 +215,7 @@ export default function Home() {
             captionStyle={captionStyle}
             graphicStyle={graphicStyle}
             showWatermark={tier === 'free'}
-            onExport={handleExport}
+            onExportStart={handleExportStart}
             onDownload={handleDownload}
             onReset={handleReset}
             onLocked={setUpgradeTarget}
