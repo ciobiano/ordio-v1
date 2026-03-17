@@ -1,159 +1,172 @@
-'use client';
+'use client'
 
-import { useRef, useEffect } from 'react';
-import { roundIconBtn } from '@/lib/variants';
-import type { WaveformVariant, CaptionVariant } from '@/lib/store';
+import { useState, useCallback } from 'react'
+import { Orb } from '@/components/primitives/Orb'
+import { RecordingSettingsSheet } from '@/components/soul/RecordingSettingsSheet'
+import { roundIconBtn, proceedBtn } from '@/lib/variants'
+import type { FeatureKey } from '@/lib/featureGates'
 
 interface RecordingStateProps {
-  onStopRecording: () => void;
-  audioLevel: number;
-  captionStyle: CaptionVariant;
-  waveformStyle: WaveformVariant;
-  isSpeaking?: boolean;
+  audioLevel: number
+  isPaused: boolean
+  recordingTime: number
+  onPauseRecording: () => void
+  onResumeRecording: () => void
+  onStopRecording: () => void
+  onRestart: () => void
+  onProceed: () => void
+  onLocked: (feature: FeatureKey) => void
 }
 
-/**
- * Smooth flowing waveform canvas that responds to audio level.
- * Fills a horizontal band with an organic, mirrored wave shape.
- */
-function FlowingWaveform({ level }: { level: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timeRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  const smoothLevelRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const draw = () => {
-      timeRef.current += 0.016; // ~60fps
-      const t = timeRef.current;
-
-      // Smooth the audio level for fluid motion
-      smoothLevelRef.current += (level - smoothLevelRef.current) * 0.12;
-      const smoothLevel = smoothLevelRef.current;
-
-      const w = canvas.width;
-      const h = canvas.height;
-      const centerY = h / 2;
-      const maxAmp = h * 0.4;
-
-      ctx.clearRect(0, 0, w, h);
-
-      const points = 80;
-
-      // Pre-compute amplitudes once for both top and bottom curves
-      const amplitudes = new Float32Array(points + 1);
-      for (let i = 0; i <= points; i++) {
-        const norm = i / points;
-        const wave1 = Math.sin(norm * Math.PI * 4 + t * 3.0) * 0.5;
-        const wave2 = Math.sin(norm * Math.PI * 6 + t * 1.8) * 0.3;
-        const wave3 = Math.sin(norm * Math.PI * 10 + t * 4.5) * 0.2;
-        const envelope = Math.sin(norm * Math.PI);
-        amplitudes[i] = (0.05 + smoothLevel * 0.95) * (wave1 + wave2 + wave3) * envelope * maxAmp;
-      }
-
-      // Build closed shape: top curve → right → mirrored bottom → left
-      ctx.beginPath();
-      ctx.moveTo(0, centerY);
-
-      for (let i = 0; i <= points; i++) {
-        const x = (i / points) * w;
-        const y = centerY - Math.abs(amplitudes[i]);
-        if (i === 0) {
-          ctx.lineTo(x, y);
-        } else {
-          ctx.quadraticCurveTo((((i - 1) / points) * w + x) / 2, y, x, y);
-        }
-      }
-
-      ctx.lineTo(w, centerY);
-
-      for (let i = points; i >= 0; i--) {
-        const x = (i / points) * w;
-        const y = centerY + Math.abs(amplitudes[i]);
-        if (i === points) {
-          ctx.lineTo(x, y);
-        } else {
-          ctx.quadraticCurveTo((((i + 1) / points) * w + x) / 2, y, x, y);
-        }
-      }
-
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.fill();
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [level]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={600}
-      height={80}
-      className="w-full h-12 sm:h-16"
-      aria-hidden="true"
-    />
-  );
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function RecordingState({
-  onStopRecording,
+export function RecordingState({
   audioLevel,
-  captionStyle,
-  waveformStyle,
-  isSpeaking = false,
+  isPaused,
+  recordingTime,
+  onPauseRecording,
+  onResumeRecording,
+  onStopRecording,
+  onRestart,
+  onProceed,
+  onLocked,
 }: RecordingStateProps) {
+  const [phase, setPhase] = useState<'recording' | 'stopped'>('recording')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Paused orb stays 'active' at locked 0.7 intensity (not 'dormant' — intensity is ignored in dormant)
+  const orbState = phase === 'stopped' ? 'resting' : 'active'
+  const orbIntensity = phase === 'stopped' ? 0 : isPaused ? 0.7 : audioLevel
+
+  const handleStop = useCallback(() => {
+    setPhase('stopped')
+    onStopRecording()
+  }, [onStopRecording])
+
+  const handleResume = useCallback(() => {
+    setPhase('recording')
+    onResumeRecording()
+  }, [onResumeRecording])
+
+  const handleRestart = useCallback(() => {
+    setPhase('recording')
+    onRestart()
+  }, [onRestart])
+
   return (
-    <div
-      className="fixed inset-0 bg-black flex flex-col animate-fadeIn"
-      role="region"
-      aria-label="Recording in progress"
-    >
-      {/* Spacer — pushes controls to bottom */}
-      <div className="flex-1" />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black">
+      {/* Center: Orb + Timer */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <Orb state={orbState} intensity={orbIntensity} />
 
-      {/* Bottom area — flowing waveform + stop button */}
-      <div className="fixed bottom-0 inset-x-0 flex flex-col items-center gap-4 pb-8 safe-pb pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
-        {/* Flowing waveform — responds to voice */}
-        <div className="w-full px-4 sm:px-8">
-          <FlowingWaveform level={audioLevel} />
-        </div>
-
-        <button
-          onClick={onStopRecording}
-          aria-label="Stop recording"
-          className={roundIconBtn({ intent: 'stop' })}
-        >
-          <span className="sr-only">Stop recording</span>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-sm bg-[#e11d48]" aria-hidden="true" />
-          </div>
-        </button>
-
-        <div className="flex items-center gap-2" role="status" aria-live="polite">
-          <div
-            className={`w-1.5 h-1.5 rounded-full bg-[#e11d48] transition-all duration-150 ${
-              isSpeaking ? 'scale-150 opacity-100' : 'animate-pulse opacity-70'
-            }`}
-            aria-hidden="true"
-          />
-          <span className="text-white/60 text-[0.625rem] tracking-[0.2em] uppercase">
-            {isSpeaking ? 'speaking' : 'listening'}
-          </span>
-        </div>
+        <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-mono tracking-widest mt-4 tabular-nums">
+          {phase === 'stopped'
+            ? `${formatTime(recordingTime)} recorded`
+            : formatTime(recordingTime)}
+        </p>
       </div>
+
+      {/* Bottom bar */}
+      <div className="w-full px-6 pb-10 pt-4">
+        {phase === 'recording' ? (
+          /* Active recording: Pause · Stop · Settings */
+          <div className="flex items-center justify-center gap-8">
+            {/* Pause/Play — 48px via CVA */}
+            <button
+              type="button"
+              className={roundIconBtn({ intent: 'pause' })}
+              onClick={isPaused ? onResumeRecording : onPauseRecording}
+              aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
+            >
+              {isPaused ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/play.png" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/pause.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+              )}
+            </button>
+
+            {/* Stop — 64px via CVA */}
+            <button
+              type="button"
+              className={roundIconBtn({ intent: 'stop' })}
+              onClick={handleStop}
+              aria-label="Stop recording"
+            >
+              {/* Red rounded square — Tailwind classes only, no inline styles */}
+              <div className="w-5 h-5 rounded bg-destructive" />
+            </button>
+
+            {/* Settings — 48px via CVA */}
+            <button
+              type="button"
+              className={roundIconBtn({ intent: 'settings' })}
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Recording settings"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/settings.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-80" />
+            </button>
+          </div>
+        ) : (
+          /* Post-stop checkpoint: Proceed CTA + Resume/Restart */
+          <div className="flex flex-col items-center gap-3 ">
+            <button
+              type="button"
+              className={proceedBtn()}
+              onClick={onProceed}
+              aria-label="Proceed to editing"
+            >
+              Proceed
+            </button>
+
+            <div className="flex items-center gap-3 text-[length:var(--text-footnote)]">
+              <button
+                type="button"
+                className="text-[--secondary] hover:text-[--primary] transition-colors flex items-center gap-1"
+                onClick={handleResume}
+                aria-label="Resume recording"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <polygon points="2,1 10,6 2,11" />
+                </svg>
+                Resume
+              </button>
+
+              <span className="text-[--tertiary]">&middot;</span>
+
+              <button
+                type="button"
+                className="text-[--tertiary] hover:text-[--secondary] transition-colors flex items-center gap-1"
+                onClick={handleRestart}
+                aria-label="Restart recording"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M1 6a5 5 0 1 1 1.5 3.5" strokeLinecap="round" />
+                  <polyline points="1,3 1,6.5 4,6.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Restart
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Settings sheet */}
+      <RecordingSettingsSheet
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onLocked={onLocked}
+      />
     </div>
-  );
+  )
 }

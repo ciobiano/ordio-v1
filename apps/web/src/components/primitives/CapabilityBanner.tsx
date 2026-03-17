@@ -25,9 +25,9 @@ export default function CapabilityBanner({ warnings }: CapabilityBannerProps) {
     <div
       role="alert"
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
-                 min-h-11 px-4 py-2.5 bg-[#0f0f23] border-b border-white/6"
+                 min-h-11 px-4 py-2.5 bg-black border-b border-white/6"
     >
-      <p className="text-white/60 text-xs flex-1 text-center">{warnings[0]}</p>
+      <p className="text-white/60 text-[length:var(--text-caption)] flex-1 text-center">{warnings[0]}</p>
       <button
         onClick={handleDismiss}
         aria-label="Dismiss warning"

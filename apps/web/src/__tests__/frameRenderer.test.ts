@@ -132,4 +132,98 @@ describe('renderFrame', () => {
     const fillTextCalls = calls.filter((c) => c.method === 'fillText');
     expect(fillTextCalls.length).toBeGreaterThan(0);
   });
+
+  it('renders watermark at top-left with "Ordio by Kaine Studio" in Geist font', () => {
+    const ctx = createMockCtx();
+    const options = makeOptions({ showWatermark: true });
+    renderFrame(ctx, 0, 90, options);
+
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+
+    const fillTextCall = calls.find(
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+    );
+    expect(fillTextCall).toBeDefined();
+    expect(fillTextCall?.args[1]).toBe(16); // x
+    expect(fillTextCall?.args[2]).toBe(16); // y
+
+    const fontSet = calls.find(
+      (c) => c.method === 'set:font' && String(c.args[0]).includes('Geist'),
+    );
+    expect(fontSet).toBeDefined();
+
+    const arcCall = calls.find((c) => c.method === 'arc');
+    expect(arcCall).toBeUndefined();
+  });
+
+  it('renders without crashing when graphicStyle is set', () => {
+    const ctx = createMockCtx();
+    expect(() =>
+      renderFrame(ctx, 0, 90, makeOptions({ graphicStyle: 'graphic-frame1' }))
+    ).not.toThrow();
+  });
+
+  it('does not call waveform drawing when graphicStyle is set', () => {
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+
+    // No image in cache — getGraphic returns null — so drawImage is not called
+    renderFrame(ctx, 0, 90, makeOptions({ graphicStyle: 'graphic-frame1', waveformStyle: 'bars' }));
+    expect(calls.some(c => c.method === 'drawImage')).toBe(false);
+  });
+
+  it('captions still render when graphicStyle is set', () => {
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+
+    renderFrame(ctx, 15, 90, makeOptions({ graphicStyle: 'graphic-frame1' }));
+
+    const fillTextCalls = calls.filter(c => c.method === 'fillText');
+    expect(fillTextCalls.length).toBeGreaterThan(0);
+  });
+
+  it('calls ctx.drawImage when graphicStyle is set and image is in cache', async () => {
+    // vi.mock() is hoisted — use vi.doMock() + vi.resetModules() + dynamic import instead
+    vi.resetModules();
+    vi.doMock('@/lib/graphicLoader', () => ({
+      getGraphic: () => Object.assign(new EventTarget(), {
+        src: '/graphic-styles/frame2.svg',
+        naturalWidth: 321,
+        naturalHeight: 189,
+      }) as unknown as HTMLImageElement,
+      loadGraphic: vi.fn(),
+    }));
+
+    const { renderFrame: renderFrameFresh } = await import('@/lib/frameRenderer');
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+
+    renderFrameFresh(ctx, 0, 90, makeOptions({ graphicStyle: 'graphic-frame2' }));
+
+    // direct path (frame2): ctx.drawImage(img, x, y, w, h) is called
+    expect(calls.some(c => c.method === 'drawImage')).toBe(true);
+
+    vi.resetModules();
+  });
+
+  it('does not render watermark when showWatermark is false or omitted', () => {
+    const ctx = createMockCtx();
+
+    // showWatermark: false
+    renderFrame(ctx, 0, 90, makeOptions({ showWatermark: false }));
+    let calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    let fillTextWatermark = calls.find(
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+    );
+    expect(fillTextWatermark).toBeUndefined();
+
+    // showWatermark omitted (default)
+    const ctx2 = createMockCtx();
+    renderFrame(ctx2, 0, 90, makeOptions());
+    calls = (ctx2 as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    fillTextWatermark = calls.find(
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+    );
+    expect(fillTextWatermark).toBeUndefined();
+  });
 });

@@ -1,85 +1,72 @@
 'use client';
 
 import type { ChangeEvent, RefObject } from 'react';
-import { cn } from '@/lib/cn';
-import WaveformDisplay from '@/components/primitives/waveform/WaveformDisplay';
-import { ghostBtn, roundIconBtn } from '@/lib/variants';
-import type { WaveformVariant } from '@/lib/store';
+import { Orb } from '@/components/primitives/Orb';
 
 interface IdleStateProps {
   onStartRecording: () => void;
   onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   canRecord: boolean;
   isLoading: boolean;
-  waveformStyle: WaveformVariant;
   fileInputRef: RefObject<HTMLInputElement | null>;
 }
 
-export default function IdleState({
+export function IdleState({
   onStartRecording,
   onFileUpload,
   canRecord,
   isLoading,
-  waveformStyle,
   fileInputRef,
 }: IdleStateProps) {
   return (
-    <div className="flex flex-col items-center gap-8 sm:gap-10 animate-fadeIn w-full max-w-xs">
-      <div className="text-center">
-        <h1 className="text-[2.625rem] font-extralight tracking-[-0.04em] leading-none">
-          ord<span className="text-blue-500 font-light">io</span>
-        </h1>
-        <p className="text-white/50 text-[0.6875rem] mt-2.5 tracking-[0.2em] uppercase">
-          audio → video
-        </p>
-      </div>
-
-      <WaveformDisplay variant={waveformStyle} level={0.2} isRecording={false} />
-
-      <div className="h-10 flex items-center justify-center">
-        <p className="text-white/40 text-sm">Your words will appear here</p>
-      </div>
-
-      <button
-        onClick={onStartRecording}
-        disabled={!canRecord && !isLoading}
-        aria-label="Start recording"
-        className={cn(
-          roundIconBtn({ intent: 'idle' }),
-          'disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2'
-        )}
-      >
-        <span className="sr-only">Start recording</span>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="w-4.5 h-4.5 rounded-full bg-[#e11d48]
-                         group-hover:bg-red-400 transition-colors duration-150"
-            aria-hidden="true"
-          />
-        </div>
-      </button>
-
-      <p className="text-white/40 text-[0.6875rem] tracking-[0.18em] uppercase">
-        tap to record
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn">
+      {/* Wordmark */}
+      <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-light tracking-wide mb-8">
+        ord<span className="font-medium">io</span>
       </p>
 
-      <div>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Upload audio file"
-          className={cn(ghostBtn, 'underline underline-offset-4 decoration-white/20')}
-        >
-          or upload audio file
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="audio/*"
-          className="sr-only"
-          aria-label="Audio file input"
-          onChange={onFileUpload}
-        />
-      </div>
+      {/* Dormant orb — tap to record */}
+      <Orb
+        state="dormant"
+        intensity={0}
+        onClick={canRecord && !isLoading ? onStartRecording : undefined}
+        ariaLabel="Start recording"
+      />
+
+      {/* Mic icon hint */}
+      <svg
+        className="w-5 h-5 text-[--secondary] mt-2"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+      </svg>
+
+      <p className="text-[--primary] text-[length:var(--text-body)] font-medium">Tap to record</p>
+
+      {/* Upload option */}
+      <button
+        type="button"
+        className="text-[--secondary] text-[length:var(--text-caption)] hover:text-[--primary] transition-colors mt-2"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        or upload audio
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={onFileUpload}
+      />
     </div>
   );
 }
+
+export default IdleState;

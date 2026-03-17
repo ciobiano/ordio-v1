@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from 'sonner';
+import Providers from '@/components/Providers';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -64,7 +65,7 @@ export default function RootLayout({
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body className={`${plusJakarta.variable} antialiased`}>
         <a href="#main-content" className="skip-nav">Skip to main content</a>
-        {children}
+        <Providers>{children}</Providers>
         <Toaster theme="dark" position="bottom-center" />
       </body>
     </html>

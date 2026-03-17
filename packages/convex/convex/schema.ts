@@ -21,8 +21,18 @@ export default defineSchema({
 
   users: defineTable({
     tokenIdentifier: v.string(), // Clerk ID
+    email: v.optional(v.string()),
+    tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')),
     usageCount: v.number(), // Daily usage
     lastResetTime: v.number(), // Timestamp of last usage reset
+    stripeCustomerId: v.optional(v.string()),
+    paystackCustomerCode: v.optional(v.string()),
+    subscriptionId: v.optional(v.string()),
+    subscriptionStatus: v.optional(
+      v.union(v.literal('active'), v.literal('canceled'), v.literal('past_due'))
+    ),
   })
   .index("by_token", ["tokenIdentifier"])
+  .index("by_stripe_customer", ["stripeCustomerId"])
+  .index("by_paystack_customer", ["paystackCustomerCode"])
 });
