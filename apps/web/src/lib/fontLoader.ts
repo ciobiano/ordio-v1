@@ -13,6 +13,11 @@ const FONT_CONFIG: Record<string, string> = {
   Inter: 'Inter:wght@300;400;600;700',
   Roboto: 'Roboto:wght@300;400;500;700',
   Outfit: 'Outfit:wght@300;400;600;700',
+  Poppins: 'Poppins:wght@300;400;600;700',
+  Montserrat: 'Montserrat:wght@300;400;600;700',
+  'Space Grotesk': 'Space+Grotesk:wght@300;400;600;700',
+  'DM Sans': 'DM+Sans:wght@300;400;600;700',
+  'Playfair Display': 'Playfair+Display:wght@300;400;600;700',
 };
 
 const loaded = new Set<string>();

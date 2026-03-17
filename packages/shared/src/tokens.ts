@@ -20,4 +20,5 @@ export const RESOLUTIONS = {
   square: { width: 1080, height: 1080, label: 'Square (1:1)' },
   portrait: { width: 1080, height: 1920, label: 'Portrait (9:16)' },
   landscape: { width: 1920, height: 1080, label: 'Landscape (16:9)' },
+  instagram: { width: 1080, height: 1350, label: 'Instagram (4:5)' },
 } as const;

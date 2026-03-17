@@ -169,7 +169,9 @@ export const useStore = create<AppState>()(
               ? { width: 1080, height: 1080 }
               : format === 'vertical'
                 ? { width: 1080, height: 1920 }
-                : { width: 1920, height: 1080 };
+                : format === 'instagram'
+                  ? { width: 1080, height: 1350 }
+                  : { width: 1920, height: 1080 };
           return { format, style: { ...state.style, ...dims } };
         }),
       setEnhanceTier: (enhanceTier) => set({ enhanceTier }),
