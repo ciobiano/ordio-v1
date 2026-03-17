@@ -87,14 +87,11 @@ export function RecordingState({
               aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
             >
               {isPaused ? (
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-                  <polygon points="5,3 15,9 5,15" />
-                </svg>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/play.png" width={18} height={18} alt="" aria-hidden="true" className="invert" />
               ) : (
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-                  <rect x="4" y="3" width="3.5" height="12" rx="1" />
-                  <rect x="10.5" y="3" width="3.5" height="12" rx="1" />
-                </svg>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/pause.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
               )}
             </button>
 
@@ -116,15 +113,13 @@ export function RecordingState({
               onClick={() => setSettingsOpen(true)}
               aria-label="Recording settings"
             >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="9" cy="9" r="2.5" />
-                <path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.1 3.1l1.4 1.4M13.5 13.5l1.4 1.4M3.1 14.9l1.4-1.4M13.5 4.5l1.4-1.4" />
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/settings.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-80" />
             </button>
           </div>
         ) : (
           /* Post-stop checkpoint: Proceed CTA + Resume/Restart */
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3 ">
             <button
               type="button"
               className={proceedBtn()}

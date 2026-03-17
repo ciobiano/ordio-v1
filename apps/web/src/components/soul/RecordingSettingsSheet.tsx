@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useCallback } from 'react'
 import { cn } from '@/lib/cn'
 import { useStore } from '@/lib/store'
+import { useFeatureGates } from '@/hooks/useFeatureGates'
 import LockBadge from '@/components/primitives/LockBadge'
 import type { FeatureKey } from '@/lib/featureGates'
 import type { WaveformVariant, CaptionVariant, EnhanceTier, GraphicStyleId } from '@/lib/store'
@@ -57,9 +58,11 @@ function SegmentedControl<T extends string>({
   onChange: (v: T) => void
   onLocked: (feature: FeatureKey) => void
 }) {
+  const { isLocked } = useFeatureGates()
   return (
     <div className="flex rounded-xl border border-white/[0.12] overflow-hidden">
-      {options.map((opt, i) => {
+      {options.map((opt) => {
+        const locked = opt.gate ? isLocked(opt.gate) : false
         const isActive = value === opt.value
         return (
           <button
@@ -70,12 +73,12 @@ function SegmentedControl<T extends string>({
               isActive
                 ? 'bg-[--surface-selected] text-[--primary] font-semibold'
                 : 'bg-transparent text-[--secondary] hover:bg-[--surface] hover:text-[--primary]',
-              opt.gate && 'opacity-40'
+              locked && 'opacity-40'
             )}
-            onClick={() => opt.gate ? onLocked(opt.gate) : onChange(opt.value)}
+            onClick={() => locked ? onLocked(opt.gate!) : onChange(opt.value)}
           >
             {opt.label}
-            {opt.gate && (
+            {locked && opt.gate && (
               <LockBadge
                 onClick={() => onLocked(opt.gate!)}
                 label={`${opt.label} requires Creator`}
@@ -99,6 +102,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   const setCaptionStyle = useStore((s) => s.setCaptionStyle)
   const enhanceTier = useStore((s) => s.enhanceTier)
   const setEnhanceTier = useStore((s) => s.setEnhanceTier)
+  const { isLocked } = useFeatureGates()
 
   // Close on Escape
   useEffect(() => {
@@ -156,7 +160,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
         role="dialog"
         aria-label="Recording settings"
         aria-modal="true"
-        className="fixed inset-x-0 bottom-0 z-50 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[440px] rounded-t-[24px] sm:rounded-[24px] bg-[--surface-glass] backdrop-blur-[40px] backdrop-saturate-[160%] [box-shadow:var(--shadow-glass-top)] max-h-[70vh] overflow-y-auto animate-slideUp"
+        className="fixed inset-x-0 bottom-0 z-50 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[440px] rounded-t-[24px] sm:rounded-[24px] bg-[--surface-glass] backdrop-blur-[40px] backdrop-saturate-[160%] [box-shadow:inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_0.5px_rgba(255,255,255,0.10),0_-12px_40px_rgba(0,0,0,0.8),0_-2px_8px_rgba(0,0,0,0.5)] max-h-[70vh] overflow-y-auto animate-slideUp"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -246,9 +250,9 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                       i < ENHANCE_OPTIONS.length - 1 && 'border-b border-white/[0.08]',
                       'rounded-lg px-2 -mx-2',
                       isActive ? 'bg-[--surface-selected]' : 'hover:bg-[--surface]',
-                      opt.gate && 'opacity-40'
+                      opt.gate && isLocked(opt.gate) && 'opacity-40'
                     )}
-                    onClick={() => opt.gate ? onLocked(opt.gate) : setEnhanceTier(opt.value)}
+                    onClick={() => (opt.gate && isLocked(opt.gate)) ? onLocked(opt.gate) : setEnhanceTier(opt.value)}
                   >
                     {/* Radio indicator */}
                     <div className={cn(
@@ -268,7 +272,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                         {opt.desc}
                       </div>
                     </div>
-                    {opt.gate && (
+                    {opt.gate && isLocked(opt.gate) && (
                       <LockBadge
                         onClick={() => onLocked(opt.gate!)}
                         label={`${opt.label} requires Creator`}
