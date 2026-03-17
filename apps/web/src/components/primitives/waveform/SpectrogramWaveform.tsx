@@ -29,10 +29,16 @@ export default function SpectrogramWaveform({
   const tick = useAnimationTick(true);
   const t = tick * 0.06;
 
-  // Color gradient: blue → cyan → green → yellow → magenta
+  // Monochrome gradient: 8 opacity steps of --primary (rgba(250,248,245,...))
   const colors = [
-    '#3B82F6', '#2DD4BF', '#22C55E', '#EAB308', '#F59E0B',
-    '#EF4444', '#EC4899', '#A855F7', '#6366F1', '#3B82F6',
+    'rgba(250,248,245,0.3)',
+    'rgba(250,248,245,0.4)',
+    'rgba(250,248,245,0.5)',
+    'rgba(250,248,245,0.6)',
+    'rgba(250,248,245,0.7)',
+    'rgba(250,248,245,0.8)',
+    'rgba(250,248,245,0.9)',
+    'rgba(250,248,245,1.0)',
   ];
 
   return (
@@ -55,14 +61,12 @@ export default function SpectrogramWaveform({
         return (
           <div
             key={i}
-            className="rounded-full transition-all duration-75"
+            className={`rounded-full transition-all duration-75 ${compact ? 'w-[3px]' : 'w-1'} ${isRecording ? 'opacity-85' : 'opacity-60'}`}
             style={{
-              width: compact ? '3px' : '4px',
               height: `${height}px`,
               background: isRecording
                 ? `linear-gradient(to top, ${cLow}, ${cHigh})`
-                : '#2a2a2a',
-              opacity: isRecording ? 0.85 : 0.6,
+                : 'rgba(255,255,255,0.08)',
             }}
           />
         );

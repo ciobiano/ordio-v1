@@ -48,8 +48,8 @@ export default function BarsWaveform({ level, isRecording, compact = false }: Ba
               height: `${height}px`,
               // gradient cannot be expressed as a Tailwind class (arbitrary values don't support multi-stop gradients cleanly)
               background: isRecording
-                ? 'linear-gradient(to top, #3B82F6, #8B5CF6)'
-                : '#2a2a2a',
+                ? 'linear-gradient(to top, rgba(250,248,245,0.5), rgba(250,248,245,1.0))'
+                : 'rgba(255,255,255,0.08)',
             }}
           />
         );

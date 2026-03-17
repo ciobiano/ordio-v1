@@ -13,7 +13,7 @@ interface ProcessingStepProps {
 const stepRoot = cva('flex items-center gap-3 transition-colors duration-200', {
   variants: {
     state: {
-      done: 'text-green-400',
+      done: 'text-[--accent-green]',
       active: 'text-white',
       pending: 'text-white/50',
     },
@@ -35,7 +35,7 @@ export default function ProcessingStep({ children, done, active }: ProcessingSte
       ) : (
         <div className="w-4 h-4 shrink-0 rounded-full border border-current opacity-50" aria-hidden="true" />
       )}
-      <span className="text-sm">{children}</span>
+      <span className="text-[length:var(--text-body-sm)]">{children}</span>
     </div>
   );
 }

@@ -5,6 +5,10 @@
 
 const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com/css2';
 
+const LOCAL_FONTS: Record<string, { src: string; weight: string }> = {
+  Geist: { src: '/fonts/Geist-Regular.woff2', weight: '400' },
+};
+
 const FONT_CONFIG: Record<string, string> = {
   Inter: 'Inter:wght@300;400;600;700',
   Roboto: 'Roboto:wght@300;400;500;700',
@@ -26,10 +30,19 @@ export async function loadFont(fontFamily: string): Promise<void> {
 }
 
 async function doLoad(fontFamily: string): Promise<void> {
-  const spec = FONT_CONFIG[fontFamily];
-  if (!spec) return;
-
   try {
+    const local = LOCAL_FONTS[fontFamily];
+    if (local) {
+      const face = new FontFace(fontFamily, `url(${local.src})`, { weight: local.weight });
+      await face.load();
+      document.fonts.add(face);
+      loaded.add(fontFamily);
+      return;
+    }
+
+    const spec = FONT_CONFIG[fontFamily];
+    if (!spec) return;
+
     // Inject a <link> for Google Fonts CSS
     const linkId = `gfont-${fontFamily}`;
     if (!document.getElementById(linkId)) {

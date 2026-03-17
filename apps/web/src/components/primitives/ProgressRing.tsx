@@ -9,7 +9,7 @@ export default function ProgressRing({ progress }: ProgressRingProps) {
   const circumference = 2 * Math.PI * radius;
   return (
     <div
-      className="relative w-36 h-36"
+      className="relative w-28 h-28 sm:w-36 sm:h-36"
       role="progressbar"
       aria-valuenow={Math.round(progress)}
       aria-valuemin={0}
@@ -22,7 +22,7 @@ export default function ProgressRing({ progress }: ProgressRingProps) {
           cy="72"
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="rgba(255,255,255,0.06)"
           strokeWidth="3"
         />
         <circle
@@ -39,13 +39,13 @@ export default function ProgressRing({ progress }: ProgressRingProps) {
         />
         <defs>
           <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#8b5cf6" />
+            <stop offset="0%" stopColor="#FAF8F5" />
+            <stop offset="100%" stopColor="rgba(250,248,245,0.4)" />
           </linearGradient>
         </defs>
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-light tabular-nums tracking-[-0.03em]">
+        <span className="text-[length:var(--text-h3)] font-light tabular-nums tracking-[-0.03em]">
           {Math.round(progress)}%
         </span>
       </div>

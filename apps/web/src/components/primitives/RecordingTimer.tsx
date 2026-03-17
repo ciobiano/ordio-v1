@@ -15,7 +15,7 @@ export default function RecordingTimer() {
 
   return (
     <span
-      className="text-5xl font-extralight tabular-nums tracking-tight"
+      className="text-[length:var(--text-display)] font-extralight tabular-nums tracking-tight"
       role="timer"
       aria-label="Recording duration"
     >
