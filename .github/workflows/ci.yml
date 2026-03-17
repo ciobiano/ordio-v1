@@ -40,12 +40,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 5. Generate Convex types from local schema/functions (no live deployment needed)
-      #    _generated/ is gitignored — codegen recreates it from source before type-check
-      - name: Generate Convex types
-        run: pnpm --filter @Ordio/convex exec convex codegen
-
-      # 6. Quality gates (fastest → slowest for quick feedback)
+      # 5. Quality gates (fastest → slowest for quick feedback)
+      #    Convex package excluded from type-check — _generated/ types are committed
+      #    and regenerated locally via `npx convex dev` after schema changes
       - name: Lint
         run: pnpm lint --filter='!@Ordio/convex'
 

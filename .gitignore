@@ -15,7 +15,8 @@ apps/web/public/vad/
 apps/web/public/ffmpeg/
 
 # ── Generated code ───────────────────────────────────────────
-**/convex/_generated/
+# _generated/ is committed so CI has types without needing a live Convex deployment.
+# Regenerate locally with: npx convex dev (then commit the updated _generated/)
 
 # ── Environment / secrets ────────────────────────────────────
 # NEVER commit .env files — use .env.example for documentation
