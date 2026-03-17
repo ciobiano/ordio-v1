@@ -14,6 +14,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@Ordio/convex": "workspace:*",
     "@Ordio/shared": "workspace:*",
     "@clerk/nextjs": "^7.0.4",
     "@ffmpeg/core-st": "^0.11.1",

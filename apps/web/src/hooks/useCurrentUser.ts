@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useConvexAuth, useQuery, useMutation } from 'convex/react';
-import { anyApi } from 'convex/server';
+import { api } from '@Ordio/convex';
 import type { UserTier } from '@/lib/featureGates';
 
 export interface CurrentUser {
@@ -14,8 +14,8 @@ export interface CurrentUser {
 
 export function useCurrentUser(): CurrentUser {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
-  const me = useQuery(anyApi.users.getMe);
-  const upsertUser = useMutation(anyApi.users.upsertUser);
+  const me = useQuery(api.users.getMe);
+  const upsertUser = useMutation(api.users.upsertUser);
 
   const upsertedRef = useRef(false);
   useEffect(() => {

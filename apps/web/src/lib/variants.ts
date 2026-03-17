@@ -79,10 +79,10 @@ export const roundIconBtn = cva(
     variants: {
       intent: {
         idle:     'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
-        pause:    'w-12 h-12 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
-        settings: 'w-12 h-12 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        pause:    'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        settings: 'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
         stop:     'w-16 h-16 bg-destructive/15 border-2 border-destructive/60 text-destructive hover:bg-destructive/25',
-        play:     'w-11 h-11 shrink-0 bg-[--primary] text-black border border-[--primary] hover:bg-white/90',
+        play:     'w-16 h-16 shrink-0 bg-[--primary] text-black border border-[--primary] hover:bg-white/90',
         nav:      'w-10 h-10 bg-[--surface] text-[--secondary] hover:bg-[--surface-hover] hover:text-[--primary]',
       },
     },

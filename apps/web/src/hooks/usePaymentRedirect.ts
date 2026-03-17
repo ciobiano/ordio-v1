@@ -4,12 +4,12 @@ import { useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAction } from 'convex/react';
-import { anyApi } from 'convex/server';
+import { api } from '@Ordio/convex';
 
 export function usePaymentRedirect() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const confirmPaystackPayment = useAction(anyApi.users.confirmPaystackPayment);
+  const confirmPaystackPayment = useAction(api.users.confirmPaystackPayment);
 
   useEffect(() => {
     const upgrade = searchParams.get('upgrade');

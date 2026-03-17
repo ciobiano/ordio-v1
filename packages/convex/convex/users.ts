@@ -25,10 +25,16 @@ export const upsertUser = mutation({
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
       .unique();
 
-    if (existing) return;
+    if (existing) {
+      if (identity.email && !existing.email) {
+        await ctx.db.patch(existing._id, { email: identity.email });
+      }
+      return;
+    }
 
     await ctx.db.insert("users", {
       tokenIdentifier,
+      email: identity.email ?? undefined,
       tier: "free",
       usageCount: 0,
       lastResetTime: Date.now(),
@@ -176,6 +182,30 @@ export const getByPaystackCustomer = internalQuery({
       .query("users")
       .withIndex("by_paystack_customer", (q) => q.eq("paystackCustomerCode", args.paystackCustomerCode))
       .unique();
+  },
+});
+
+/**
+ * INTERNAL: Admin helper — set a user's tier by email address.
+ * Run from the Convex dashboard → Functions → users:setTierByEmail
+ * Example args: { "email": "test@example.com", "tier": "creator" }
+ * Requires the user to have logged in at least once (email saved on first login).
+ */
+export const setTierByEmail = internalMutation({
+  args: {
+    email: v.string(),
+    tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .unique();
+
+    if (!user) throw new Error(`No user found with email: ${args.email}`);
+
+    await ctx.db.patch(user._id, { tier: args.tier });
+    return { success: true, tokenIdentifier: user.tokenIdentifier, tier: args.tier };
   },
 });
 
