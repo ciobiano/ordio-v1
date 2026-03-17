@@ -58,7 +58,7 @@ function SegmentedControl<T extends string>({
   onLocked: (feature: FeatureKey) => void
 }) {
   return (
-    <div className="flex rounded-xl border border-[--border] overflow-hidden">
+    <div className="flex rounded-xl border border-white/[0.12] overflow-hidden">
       {options.map((opt, i) => {
         const isActive = value === opt.value
         return (
@@ -67,10 +67,10 @@ function SegmentedControl<T extends string>({
             type="button"
             className={cn(
               'relative flex-1 py-[9px] text-[length:var(--text-body-sm)] transition-colors duration-150 min-h-9',
-              i < options.length - 1 && 'border-r border-[--border]',
               isActive
                 ? 'bg-[--surface-selected] text-[--primary] font-semibold'
-                : 'bg-transparent text-[--secondary] hover:bg-[--surface] hover:text-[--primary]'
+                : 'bg-transparent text-[--secondary] hover:bg-[--surface] hover:text-[--primary]',
+              opt.gate && 'opacity-40'
             )}
             onClick={() => opt.gate ? onLocked(opt.gate) : onChange(opt.value)}
           >
@@ -156,7 +156,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
         role="dialog"
         aria-label="Recording settings"
         aria-modal="true"
-        className="fixed inset-x-0 bottom-0 z-50 rounded-t-[24px] bg-[--surface-glass] backdrop-blur-[40px] backdrop-saturate-[160%] border-t border-[--border-glass] border-x border-white/[0.06] max-h-[70vh] overflow-y-auto animate-slideUp"
+        className="fixed inset-x-0 bottom-0 z-50 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[440px] rounded-t-[24px] sm:rounded-[24px] bg-[--surface-glass] backdrop-blur-[40px] backdrop-saturate-[160%] [box-shadow:var(--shadow-glass-top)] max-h-[70vh] overflow-y-auto animate-slideUp"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -245,14 +245,15 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                       'relative w-full flex items-center gap-3 py-3 text-left transition-colors duration-150',
                       i < ENHANCE_OPTIONS.length - 1 && 'border-b border-white/[0.08]',
                       'rounded-lg px-2 -mx-2',
-                      isActive ? 'bg-[--surface-selected]' : 'hover:bg-[--surface]'
+                      isActive ? 'bg-[--surface-selected]' : 'hover:bg-[--surface]',
+                      opt.gate && 'opacity-40'
                     )}
                     onClick={() => opt.gate ? onLocked(opt.gate) : setEnhanceTier(opt.value)}
                   >
                     {/* Radio indicator */}
                     <div className={cn(
                       'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors duration-150',
-                      isActive ? 'border-white/70 bg-white/70' : 'border-[--tertiary]'
+                      isActive ? 'border-white/70 bg-white/70' : 'border-white/[0.25]'
                     )}>
                       {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[rgba(18,18,20)]" />}
                     </div>
