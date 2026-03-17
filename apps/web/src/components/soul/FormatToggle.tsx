@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { cn } from '@/lib/cn';
+import { optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { FormatVariant } from '@/lib/store';
 import { useFeatureGates } from '@/hooks/useFeatureGates';
@@ -64,12 +65,7 @@ export default function FormatToggle({ onLocked }: FormatToggleProps) {
               tabIndex={isSelected ? 0 : -1}
               onClick={() => setFormat(value)}
               onKeyDown={(e) => handleKeyDown(e, i)}
-              className={cn(
-                'px-5 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer min-h-9',
-                isSelected
-                  ? 'bg-[--surface-active] text-[--primary] font-medium'
-                  : 'bg-[--surface] text-[--secondary] hover:bg-[--surface-hover]'
-              )}
+              className={cn(optionBtn({ shape: 'rect', active: isSelected, tone: 'white' }))}
             >
               {label}
             </button>

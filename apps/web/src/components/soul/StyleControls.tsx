@@ -34,9 +34,9 @@ interface ColorRowProps {
 function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-[--secondary] text-xs">{label}</span>
+      <span className="text-[--secondary] text-[length:var(--text-footnote)]">{label}</span>
       <label className="flex items-center gap-2 cursor-pointer group min-h-11" aria-label={`${label} color`}>
-        <span className="text-[--tertiary] text-xs tabular-nums uppercase">{value}</span>
+        <span className="text-[--tertiary] text-[length:var(--text-footnote)] tabular-nums uppercase">{value}</span>
         <div
           className="w-6 h-6 rounded-md border border-white/20 overflow-hidden
                      group-hover:border-white/40 transition-colors duration-150 shrink-0"
@@ -64,7 +64,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
     <div className="flex flex-col gap-4">
       {/* Colors */}
       <div className="flex flex-col gap-2.5">
-        <p className="text-[--tertiary] text-[0.625rem] uppercase tracking-[0.18em]">Colors</p>
+        <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">Colors</p>
         <ColorRow
           label="Waveform"
           value={style.waveColor}
@@ -84,7 +84,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
 
       {/* Font */}
       <div className="flex flex-col gap-2">
-        <p className="text-[--tertiary] text-[0.625rem] uppercase tracking-[0.18em]">Font</p>
+        <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">Font</p>
         <div className="flex gap-2 flex-wrap">
           {FONTS.map((font) => {
             const featureKey = fontFeatureKey[font];
@@ -111,10 +111,10 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
       {/* Font size */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <p className="text-[--tertiary] text-[0.625rem] uppercase tracking-[0.18em]">
+          <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">
             Font size
           </p>
-          <span className="text-[--secondary] text-xs tabular-nums">{style.fontSize}px</span>
+          <span className="text-[--secondary] text-[length:var(--text-footnote)] tabular-nums">{style.fontSize}px</span>
         </div>
         <input
           type="range"
@@ -127,7 +127,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
           aria-valuemin={32}
           aria-valuemax={96}
           aria-valuenow={style.fontSize}
-          className="w-full h-1 rounded-full accent-blue-500 cursor-pointer"
+          className="w-full h-1 rounded-full accent-[--primary] cursor-pointer"
         />
       </div>
     </div>

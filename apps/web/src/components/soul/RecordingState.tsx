@@ -67,7 +67,7 @@ export function RecordingState({
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Orb state={orbState} intensity={orbIntensity} />
 
-        <p className="text-[--secondary] text-sm font-mono tracking-widest mt-4">
+        <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-mono tracking-widest mt-4 tabular-nums">
           {phase === 'stopped'
             ? `${formatTime(recordingTime)} recorded`
             : formatTime(recordingTime)}
@@ -134,7 +134,7 @@ export function RecordingState({
               Proceed
             </button>
 
-            <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-3 text-[length:var(--text-footnote)]">
               <button
                 type="button"
                 className="text-[--secondary] hover:text-[--primary] transition-colors flex items-center gap-1"

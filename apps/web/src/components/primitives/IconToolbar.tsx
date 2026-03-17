@@ -69,7 +69,7 @@ export function IconToolbar({ activePanel, onPanelChange }: IconToolbarProps) {
           >
             <div
               className={cn(
-                'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                'w-11 h-11 rounded-lg flex items-center justify-center transition-colors',
                 isActive
                   ? 'bg-[--surface-active] text-[--primary]'
                   : 'bg-[--surface] text-[--secondary]'
@@ -79,7 +79,7 @@ export function IconToolbar({ activePanel, onPanelChange }: IconToolbarProps) {
             </div>
             <span
               className={cn(
-                'text-[10px] transition-colors',
+                'text-[length:var(--text-footnote)] transition-colors',
                 isActive ? 'text-[--primary] font-medium' : 'text-[--secondary]'
               )}
             >

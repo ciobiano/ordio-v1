@@ -46,6 +46,12 @@ agent_docs/
 workflow.md
 venv/
 
+# ── Reference / brand materials ──────────────────────────────
+Apple-HIGs/
+apps/**/*.pdf
+**/__pycache__/
+*.pyc
+
 # ── Personal / workflow files ────────────────────────────────
 note.md
 TODO.md

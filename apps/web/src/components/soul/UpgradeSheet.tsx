@@ -81,7 +81,7 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
           open ? 'translate-y-0' : 'translate-y-full'
         )}
       >
-        <div className="w-full max-w-sm rounded-3xl bg-[--surface-glass-card] backdrop-blur-[40px] backdrop-saturate-[160%] border border-[--border-glass] shadow-2xl [box-shadow:var(--shadow-glass-top)] px-6 py-6">
+        <div className="w-full max-w-sm rounded-3xl bg-[--surface-glass-card] backdrop-blur-[40px] backdrop-saturate-[160%] [box-shadow:var(--shadow-glass-top)] px-6 py-6">
           <div className="w-9 h-[5px] rounded-full bg-white/[0.25] mx-auto mb-5" aria-hidden="true" />
 
           <div className="w-10 h-10 rounded-full bg-[--surface] border border-[--border] flex items-center justify-center mb-4 mx-auto">

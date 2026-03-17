@@ -42,7 +42,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
 
   return (
     <div className="flex items-center gap-2" role="radiogroup" aria-label="Caption style">
-      <span className="text-white/50 text-xs mr-1" aria-hidden="true">Caption:</span>
+      <span className="text-[--secondary] text-[length:var(--text-footnote)] mr-1" aria-hidden="true">Caption:</span>
       {styles.map((style, i) => {
         const featureKey = captionFeatureKey[style];
         const locked = featureKey ? isLocked(featureKey) : false;
@@ -56,7 +56,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
               tabIndex={isSelected ? 0 : -1}
               onClick={() => setCaptionStyle(style)}
               onKeyDown={(e) => handleKeyDown(e, i)}
-              className={cn(optionBtn({ shape: 'pill', tone: 'blue', active: isSelected }))}
+              className={cn(optionBtn({ shape: 'pill', tone: 'white', active: isSelected }))}
             >
               {style}
             </button>

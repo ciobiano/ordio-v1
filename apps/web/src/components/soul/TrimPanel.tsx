@@ -109,8 +109,8 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
       {/* Section 1: Timeline trim */}
       <div>
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-[11px] text-[--secondary]">Timeline</span>
-          <span className="text-[10px] text-[--tertiary]">Drag handles to trim start/end</span>
+          <span className="text-[length:var(--text-footnote)] text-[--secondary]">Timeline</span>
+          <span className="text-[length:var(--text-footnote)] text-[--tertiary]">Drag handles to trim start/end</span>
         </div>
 
         <div
@@ -137,8 +137,8 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
 
           {/* End handle — position is runtime-computed from trimState.endTime / duration */}
           <div
-            className="absolute top-0 bottom-0 w-1.5 bg-[--primary] rounded-sm cursor-ew-resize"
-            style={{ left: `${(trimState.endTime / duration) * 100}%`, transform: 'translateX(-100%)' }}
+            className="absolute top-0 bottom-0 w-1.5 bg-[--primary] rounded-sm cursor-ew-resize -translate-x-full"
+            style={{ left: `${(trimState.endTime / duration) * 100}%` }}
           >
             <div className="absolute inset-y-1/3 left-0.5 w-px bg-black/30" />
           </div>
@@ -146,10 +146,10 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
 
         {/* Time markers */}
         <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-[--tertiary] font-mono">
+          <span className="text-[length:var(--text-footnote)] text-[--tertiary] font-mono">
             {formatTimestamp(trimState.startTime)}
           </span>
-          <span className="text-[10px] text-[--tertiary] font-mono">
+          <span className="text-[length:var(--text-footnote)] text-[--tertiary] font-mono">
             {formatTimestamp(trimState.endTime)}
           </span>
         </div>
@@ -161,8 +161,8 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
       {/* Section 2: Word removal */}
       <div>
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-[11px] text-[--secondary]">Remove words</span>
-          <span className="text-[10px] text-[--tertiary]">Tap words to select</span>
+          <span className="text-[length:var(--text-footnote)] text-[--secondary]">Remove words</span>
+          <span className="text-[length:var(--text-footnote)] text-[--tertiary]">Tap words to select</span>
         </div>
 
         {/* Word chips */}
@@ -174,9 +174,9 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
                 key={i}
                 type="button"
                 className={cn(
-                  'px-2.5 py-1.5 rounded-md text-xs transition-colors',
+                  'px-2.5 py-1.5 rounded-md text-[length:var(--text-footnote)] transition-colors',
                   isDeleted
-                    ? 'bg-[rgba(225,29,72,0.12)] border border-[rgba(225,29,72,0.3)] text-destructive line-through opacity-50'
+                    ? 'bg-destructive/12 border border-destructive/30 text-destructive line-through opacity-50'
                     : 'bg-[--surface] text-[--secondary] hover:bg-[--surface-hover]'
                 )}
                 onClick={() => toggleWordDeletion(i)}
@@ -190,20 +190,20 @@ export function TrimPanel({ audioBuffer, transcript, trimmer, onSeek }: TrimPane
         {/* Action bar (visible when words are selected) */}
         {selectedCount > 0 && (
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-[--border]">
-            <span className="text-xs text-destructive/60">
+            <span className="text-[length:var(--text-footnote)] text-destructive/60">
               {selectedCount} word{selectedCount !== 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
                 type="button"
-                className="text-xs text-[--secondary] hover:text-[--primary] transition-colors"
+                className="text-[length:var(--text-footnote)] text-[--secondary] hover:text-[--primary] transition-colors"
                 onClick={clearDeletions}
               >
                 Clear
               </button>
               <button
                 type="button"
-                className="text-xs text-destructive bg-[rgba(225,29,72,0.12)] px-3 py-1 rounded-md hover:bg-[rgba(225,29,72,0.2)] transition-colors"
+                className="text-[length:var(--text-footnote)] text-destructive bg-destructive/12 px-3 py-1 rounded-md hover:bg-destructive/20 transition-colors"
                 onClick={() => {
                   // Words are already tracked in deletedWordIndices — "Remove" is a visual confirmation
                 }}

@@ -13,7 +13,7 @@ import { TrimPanel } from './TrimPanel';
 import { useAudioTrimmer } from '@/hooks/useAudioTrimmer';
 import { useStore, getCanvasDimensions } from '@/lib/store';
 import { cn } from '@/lib/cn';
-import { primaryBtn, panelCard } from '@/lib/variants';
+import { primaryBtn, panelCard, roundIconBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 import type { WaveformVariant, CaptionVariant, FormatVariant, GraphicStyleId } from '@/lib/store';
 import type { FeatureKey } from '@/lib/featureGates';
@@ -141,16 +141,14 @@ export default function ExportState({
           type="button"
           onClick={handleBackClick}
           aria-label="Back — discard changes"
-          className="w-10 h-10 flex items-center justify-center rounded-full
-                     bg-[--surface] text-[--secondary] hover:bg-[--surface-hover]
-                     hover:text-[--primary] transition-colors duration-150"
+          className={roundIconBtn({ intent: 'nav' })}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 3L5 8l5 5" />
           </svg>
         </button>
 
-        <span className="text-[--primary] text-sm font-medium tracking-tight">Edit</span>
+        <span className="text-[--primary] text-[length:var(--text-body-sm)] font-medium tracking-tight">Edit</span>
 
         <div className="flex items-center gap-2">
           <UserButton />
@@ -160,7 +158,7 @@ export default function ExportState({
             disabled={exportDisabled && !exporter.exportedUrl}
             aria-label={exporter.exportedUrl ? 'Download exported video' : 'Export video'}
             className={cn(
-              'px-4 py-2 rounded-full text-sm font-semibold tracking-tight transition-all duration-150',
+              'px-4 py-2 rounded-full text-[length:var(--text-body-sm)] font-semibold tracking-tight transition-all duration-150',
               'bg-[--primary] text-black hover:opacity-90 active:scale-95',
               'disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100'
             )}
@@ -212,7 +210,7 @@ export default function ExportState({
 
           {/* Format badge */}
           <span
-            className="absolute top-2 right-2 text-[0.625rem] font-medium tracking-wider uppercase
+            className="absolute top-2 right-2 text-[length:var(--text-footnote)] font-medium tracking-wider uppercase
                        text-white/50 bg-black/50 px-1.5 py-0.5 rounded pointer-events-none"
             aria-hidden="true"
           >
@@ -254,7 +252,7 @@ export default function ExportState({
 
       {/* Trim empty warning */}
       {trimmer.isEmpty && (
-        <p role="alert" className="text-center text-sm text-destructive/70 px-4 pb-2 shrink-0">
+        <p role="alert" className="text-center text-[length:var(--text-body-sm)] text-destructive/70 px-4 pb-2 shrink-0">
           No audio remaining — adjust trim handles to continue
         </p>
       )}
@@ -276,14 +274,14 @@ export default function ExportState({
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[--secondary] text-xs">
+            <span className="text-[--secondary] text-[length:var(--text-footnote)]">
               Exporting&nbsp;{progressPct}%
             </span>
             <button
               type="button"
               onClick={exporter.cancelExport}
               aria-label="Cancel export"
-              className="text-[--secondary] text-xs hover:text-[--primary] transition-colors duration-150 cursor-pointer"
+              className="text-[--secondary] text-[length:var(--text-footnote)] hover:text-[--primary] transition-colors duration-150 cursor-pointer"
             >
               Cancel
             </button>
@@ -293,7 +291,7 @@ export default function ExportState({
 
       {/* Export error */}
       {exporter.error && (
-        <p role="alert" className="text-destructive text-sm text-center px-4 pb-3 shrink-0">
+        <p role="alert" className="text-destructive text-[length:var(--text-body-sm)] text-center px-4 pb-3 shrink-0">
           {exporter.error}
         </p>
       )}
@@ -320,7 +318,7 @@ export default function ExportState({
               <h2 id="discard-dialog-title" className="text-[--primary] font-semibold text-base">
                 Discard changes?
               </h2>
-              <p className="text-[--secondary] text-sm">
+              <p className="text-[--secondary] text-[length:var(--text-body-sm)]">
                 Your edits and recording will be lost. This cannot be undone.
               </p>
             </div>
@@ -328,7 +326,7 @@ export default function ExportState({
               <button
                 type="button"
                 onClick={handleDiscardCancel}
-                className="px-4 py-2 rounded-lg text-sm text-[--secondary] bg-[--surface]
+                className="px-4 py-2 rounded-lg text-[length:var(--text-body-sm)] text-[--secondary] bg-[--surface]
                            hover:bg-[--surface-hover] transition-colors duration-150 cursor-pointer"
               >
                 Cancel
@@ -336,8 +334,8 @@ export default function ExportState({
               <button
                 type="button"
                 onClick={handleDiscardConfirm}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white
-                           bg-[rgba(225,29,72,0.8)] hover:bg-[rgba(225,29,72,0.95)]
+                className="px-4 py-2 rounded-lg text-[length:var(--text-body-sm)] font-medium text-white
+                           bg-destructive/80 hover:bg-destructive/95
                            transition-colors duration-150 cursor-pointer"
               >
                 Discard

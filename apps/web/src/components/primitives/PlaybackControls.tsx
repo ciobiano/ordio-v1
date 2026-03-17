@@ -34,7 +34,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
     <div className={cn('flex items-center gap-3 w-full', className)}>
       {/* Timestamps */}
       <span
-        className="text-[--secondary] text-xs tabular-nums shrink-0"
+        className="text-[--secondary] text-[length:var(--text-caption)] tabular-nums shrink-0"
         aria-live="off"
       >
         {formatTime(currentTime)}
@@ -68,7 +68,7 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
 
       {/* Total time */}
       <span
-        className="text-[--secondary] text-xs tabular-nums shrink-0"
+        className="text-[--secondary] text-[length:var(--text-caption)] tabular-nums shrink-0"
         aria-live="off"
       >
         {formatTime(duration)}

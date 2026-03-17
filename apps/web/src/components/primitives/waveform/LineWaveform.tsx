@@ -36,15 +36,15 @@ export default function LineWaveform({ level, isRecording, compact = false }: Li
         <path
           d={pathData}
           fill="none"
-          stroke={isRecording ? 'url(#gradLine)' : '#2a2a2a'}
+          stroke={isRecording ? 'url(#gradLine)' : 'rgba(255,255,255,0.08)'}
           strokeWidth="2"
           strokeLinecap="round"
         />
         <defs>
           <linearGradient id="gradLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3B82F6" />
-            <stop offset="50%" stopColor="#8B5CF6" />
-            <stop offset="100%" stopColor="#3B82F6" />
+            <stop offset="0%" stopColor="#FAF8F5" />
+            <stop offset="50%" stopColor="rgba(250,248,245,0.4)" />
+            <stop offset="100%" stopColor="#FAF8F5" />
           </linearGradient>
         </defs>
       </svg>

@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
 
 interface OrbProps {
@@ -10,17 +12,46 @@ interface OrbProps {
   className?: string
 }
 
+/** Idle screen — slow, meditative heartbeat */
+const breathe = {
+  scale: [0.95, 1.05, 0.95],
+  filter: [
+    'drop-shadow(0 0 30px rgba(255,180,200,0.15))',
+    'drop-shadow(0 0 60px rgba(255,180,200,0.35))',
+    'drop-shadow(0 0 30px rgba(255,180,200,0.15))',
+  ],
+  transition: {
+    duration: 8,
+    ease: 'easeInOut' as const,
+    repeat: Infinity,
+  },
+}
+
 export function Orb({ state, intensity, onClick, ariaLabel, className }: OrbProps) {
   const clampedIntensity = Math.max(0, Math.min(1, intensity))
 
+  /** Recording — orb reacts to voice: still when silent, alive when speaking */
+  const activeAnimate = useMemo(() => ({
+    scale: 1 + clampedIntensity * 0.1,
+    filter: `drop-shadow(0 0 ${20 + clampedIntensity * 50}px rgba(255,180,200,${0.1 + clampedIntensity * 0.3}))`,
+    transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
+  }), [clampedIntensity])
+
+  const animate = state === 'active'
+    ? activeAnimate
+    : state === 'dormant'
+      ? breathe
+      : undefined
+
   const content = (
     <>
-      {/* Outer glow ring — opacity driven by CSS calc in active state */}
+      {/* Outer glow ring */}
       <div
         data-state={state}
         className={cn(
-          'orb-glow orb-glow-ring absolute -inset-7 rounded-full transition-opacity duration-600',
+          'orb-glow orb-glow-ring absolute -inset-7 rounded-full',
           state === 'dormant' && 'opacity-30',
+          state === 'active' && 'opacity-40',
           state === 'resting' && 'opacity-20'
         )}
       />
@@ -29,18 +60,17 @@ export function Orb({ state, intensity, onClick, ariaLabel, className }: OrbProp
       <div
         data-state={state}
         className={cn(
-          'orb-core relative z-10 w-50 h-50 md:w-60 md:h-60 rounded-full overflow-hidden transition-all duration-600',
-          state === 'dormant' && 'animate-[orbBreathe_6s_ease-in-out_infinite]',
+          'orb-core relative z-10 w-50 h-50 md:w-60 md:h-60 rounded-full overflow-hidden',
           state === 'resting' && 'scale-95 opacity-70'
         )}
       >
-        {/* Rotating iridescent gradient */}
+        {/* Iridescent gradient — blur softens the conic bands */}
         <div
           className={cn(
             'orb-gradient absolute -inset-5 rounded-full',
-            state === 'dormant' && 'animate-[orbRotate_12s_linear_infinite] blur-[22px]',
-            state === 'active' && 'animate-[orbRotate_4s_linear_infinite] blur-[18px]',
-            state === 'resting' && 'animate-none blur-[24px]'
+            state === 'active' && 'blur-[18px]',
+            state === 'dormant' && 'blur-[22px]',
+            state === 'resting' && 'blur-[24px]'
           )}
         />
 
@@ -53,19 +83,32 @@ export function Orb({ state, intensity, onClick, ariaLabel, className }: OrbProp
     </>
   )
 
-  const sharedProps = {
-    'data-state': state,
-    className: cn('relative flex items-center justify-center', className),
-    style: { '--orb-intensity': clampedIntensity } as React.CSSProperties,
-  }
+  const sharedClassName = cn('relative flex items-center justify-center', className)
 
   if (onClick) {
     return (
-      <button {...sharedProps} onClick={onClick} aria-label={ariaLabel} type="button">
+      <motion.button
+        data-state={state}
+        className={sharedClassName}
+        style={{ '--orb-intensity': clampedIntensity } as React.CSSProperties}
+        animate={animate}
+        onClick={onClick}
+        aria-label={ariaLabel}
+        type="button"
+      >
         {content}
-      </button>
+      </motion.button>
     )
   }
 
-  return <div {...sharedProps}>{content}</div>
+  return (
+    <motion.div
+      data-state={state}
+      className={sharedClassName}
+      style={{ '--orb-intensity': clampedIntensity } as React.CSSProperties}
+      animate={animate}
+    >
+      {content}
+    </motion.div>
+  )
 }

@@ -34,11 +34,11 @@ export default function CircleWaveform({ level, isRecording, compact = false }: 
         style={{
           transform: `scale(${scale})`,
           background: isRecording
-            ? 'radial-gradient(circle, #3B82F6 0%, #1E3A8A 70%, transparent 100%)'
+            ? 'radial-gradient(circle, rgba(250,248,245,0.6) 0%, rgba(250,248,245,0.3) 70%, transparent 100%)'
             : 'radial-gradient(circle, #222 0%, #111 70%, transparent 100%)',
           boxShadow:
             isRecording && glowIntensity > 0
-              ? `0 0 ${glowIntensity}px ${glowIntensity / 2}px rgba(59,130,246,0.4)`
+              ? `0 0 ${glowIntensity}px ${glowIntensity / 2}px rgba(250,248,245,0.4)`
               : 'none',
         }}
       />

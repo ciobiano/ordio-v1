@@ -21,7 +21,7 @@ export function IdleState({
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn">
       {/* Wordmark */}
-      <p className="text-[--secondary] text-sm font-light tracking-wide mb-8">
+      <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-light tracking-wide mb-8">
         ord<span className="font-medium">io</span>
       </p>
 
@@ -48,12 +48,12 @@ export function IdleState({
         <line x1="12" y1="19" x2="12" y2="22" />
       </svg>
 
-      <p className="text-[--primary] text-[15px] font-medium">Tap to record</p>
+      <p className="text-[--primary] text-[length:var(--text-body)] font-medium">Tap to record</p>
 
       {/* Upload option */}
       <button
         type="button"
-        className="text-[--secondary] text-[13px] hover:text-[--primary] transition-colors mt-2"
+        className="text-[--secondary] text-[length:var(--text-caption)] hover:text-[--primary] transition-colors mt-2"
         onClick={() => fileInputRef.current?.click()}
       >
         or upload audio
