@@ -7,6 +7,7 @@ import type { EnhanceTier } from '@/lib/store';
 
 interface ProcessingStateProps {
   progress: number;
+  onCancel?: () => void;
 }
 
 function getSteps(tier: EnhanceTier): readonly string[] {
@@ -33,7 +34,7 @@ function deriveStep(progress: number, tier: EnhanceTier): number {
   return 2;
 }
 
-export default function ProcessingState({ progress }: ProcessingStateProps) {
+export default function ProcessingState({ progress, onCancel }: ProcessingStateProps) {
   const enhanceTier = useStore((s) => s.enhanceTier);
   const steps = getSteps(enhanceTier);
   const step = deriveStep(progress, enhanceTier);
@@ -55,6 +56,17 @@ export default function ProcessingState({ progress }: ProcessingStateProps) {
           </ProcessingStep>
         ))}
       </div>
+
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cancel processing"
+          className="text-[--tertiary] hover:text-[--secondary] text-[length:var(--text-caption)] transition-colors"
+        >
+          Cancel
+        </button>
+      )}
     </div>
   );
 }

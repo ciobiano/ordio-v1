@@ -22,8 +22,10 @@ export function LandingFooter() {
               {col.links.map((item) => (
                 <li key={item}>
                   <Link
-                    href="#"
-                    className="text-[length:var(--text-caption)] text-white/45 hover:text-white/85 transition-colors duration-150"
+                    href="#not-yet"
+                    aria-disabled="true"
+                    tabIndex={-1}
+                    className="text-[length:var(--text-caption)] text-white/30 pointer-events-none"
                   >
                     {item}
                   </Link>
@@ -50,9 +52,9 @@ export function LandingFooter() {
           © {new Date().getFullYear()} Ordio. All rights reserved.
         </span>
         <div className="flex gap-5">
-          <Link href="#" className="text-[length:var(--text-caption)] text-white/35 hover:text-white/80 transition-colors duration-150">Twitter / X</Link>
-          <Link href="#" className="text-[length:var(--text-caption)] text-white/35 hover:text-white/80 transition-colors duration-150">YouTube</Link>
-          <Link href="#" className="text-[length:var(--text-caption)] text-white/35 hover:text-white/80 transition-colors duration-150">GitHub</Link>
+          <span aria-disabled="true" className="text-[length:var(--text-caption)] text-white/20">Twitter / X</span>
+          <span aria-disabled="true" className="text-[length:var(--text-caption)] text-white/20">YouTube</span>
+          <span aria-disabled="true" className="text-[length:var(--text-caption)] text-white/20">GitHub</span>
         </div>
       </div>
     </footer>

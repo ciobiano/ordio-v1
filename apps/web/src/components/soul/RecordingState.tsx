@@ -15,6 +15,7 @@ interface RecordingStateProps {
   onStopRecording: () => void
   onRestart: () => void
   onProceed: () => void
+  onCancel: () => void
   onLocked: (feature: FeatureKey) => void
 }
 
@@ -37,6 +38,7 @@ export function RecordingState({
   onStopRecording,
   onRestart,
   onProceed,
+  onCancel,
   onLocked,
 }: RecordingStateProps) {
   const [phase, setPhase] = useState<'recording' | 'stopped'>('recording')
@@ -63,6 +65,21 @@ export function RecordingState({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black">
+      {/* Back / cancel — top-left corner, always visible */}
+      <div className="absolute top-4 left-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cancel recording"
+          className={roundIconBtn({ intent: 'nav' })}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 3L5 8l5 5" />
+          </svg>
+        </button>
+      </div>
+
       {/* Center: Orb + Timer */}
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Orb state={orbState} intensity={orbIntensity} />
@@ -155,6 +172,17 @@ export function RecordingState({
                   <polyline points="1,3 1,6.5 4,6.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Restart
+              </button>
+
+              <span className="text-[--tertiary]">&middot;</span>
+
+              <button
+                type="button"
+                className="text-[--tertiary] hover:text-[--secondary] transition-colors"
+                onClick={onCancel}
+                aria-label="Cancel and return to start"
+              >
+                Cancel
               </button>
             </div>
           </div>

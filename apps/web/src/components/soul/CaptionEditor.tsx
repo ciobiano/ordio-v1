@@ -11,7 +11,7 @@ import type { UseAudioTrimmerReturn } from '@/hooks/useAudioTrimmer';
 const WORDS_PER_PHRASE = 6;
 
 const chip = cva(
-  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
+  'inline-flex items-center rounded-md text-[length:var(--text-body-sm)] border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
   {
     variants: {
       active: {
@@ -142,7 +142,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
   if (isTranscribing) {
     return (
       <div className="py-6 text-center">
-        <p className="text-[--secondary] text-sm">Transcribing...</p>
+        <p className="text-[--secondary] text-[length:var(--text-body-sm)]">Transcribing...</p>
       </div>
     );
   }
@@ -150,7 +150,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
   if (!transcript || transcript.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-[--secondary] text-sm">No captions available</p>
+        <p className="text-[--secondary] text-[length:var(--text-body-sm)]">No captions available</p>
         <p className="text-[--tertiary] text-[length:var(--text-footnote)] mt-1">Check microphone permissions or try again</p>
       </div>
     );
@@ -201,7 +201,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
                   onBlur={commitEdit}
                   onKeyDown={handleEditKeyDown}
                   aria-label={`Edit word: ${word.text}`}
-                  className="px-2 py-0.5 rounded-md text-sm border
+                  className="px-2 py-0.5 rounded-md text-[length:var(--text-body-sm)] border
                              bg-[--surface-active] border-[--border-active] text-white
                              outline-none min-w-8 max-w-48"
                   style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
@@ -227,7 +227,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
                 aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}${isDeleted ? ' (deleted)' : ''}`}
                 className={cn(
                   isDeleted
-                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-destructive/12 border-destructive/30 text-destructive line-through opacity-50'
+                    ? 'inline-flex items-center rounded-md text-[length:var(--text-body-sm)] border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-destructive/12 border-destructive/30 text-destructive line-through opacity-50'
                     : chip({ active, focused: isFocused })
                 )}
               >

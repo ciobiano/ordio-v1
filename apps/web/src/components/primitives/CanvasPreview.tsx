@@ -66,7 +66,11 @@ export default function CanvasPreview({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveformDataRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
+  const currentTimeRef = useRef(0);
   const [fontLoaded, setFontLoaded] = useState(false);
+
+  // Sync currentTime to ref synchronously — no effect needed, no dep tracking
+  currentTimeRef.current = playback.currentTime;
 
   const { transcript, style, audioBuffer } = useStore();
 
@@ -102,7 +106,7 @@ export default function CanvasPreview({
     const duration = playback.duration || 1;
     const totalFrames = Math.ceil(duration * FPS);
     const frameIndex = Math.min(
-      Math.floor(playback.currentTime * FPS),
+      Math.floor(currentTimeRef.current * FPS),
       totalFrames - 1
     );
 
@@ -117,7 +121,7 @@ export default function CanvasPreview({
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.currentTime, playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, graphicStyle, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, graphicStyle, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {

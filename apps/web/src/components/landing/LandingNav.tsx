@@ -22,11 +22,11 @@ export function LandingNav() {
           Ordio
         </Link>
 
-        {/* Centre links — desktop only */}
-        <div className="hidden md:flex gap-8 text-sm text-white/60">
-          <span className="cursor-pointer hover:text-white transition-colors">Product</span>
-          <span className="cursor-pointer hover:text-white transition-colors">Pricing</span>
-          <span className="cursor-pointer hover:text-white transition-colors">Blog</span>
+        {/* Centre links — desktop only (routes not yet built) */}
+        <div className="hidden md:flex gap-8 text-sm text-white/30">
+          <span aria-disabled="true">Product</span>
+          <span aria-disabled="true">Pricing</span>
+          <span aria-disabled="true">Blog</span>
         </div>
 
         {/* Actions — desktop */}
@@ -81,13 +81,13 @@ export function LandingNav() {
       {/* Mobile dropdown menu */}
       {menuOpen && (
         <div className="md:hidden absolute inset-x-0 top-full bg-black/95 backdrop-blur border-t border-white/10 px-4 py-4 flex flex-col gap-1">
-          <span className="cursor-pointer text-white/70 hover:text-white transition-colors min-h-[44px] flex items-center px-3 rounded-lg hover:bg-white/5 text-sm">
+          <span aria-disabled="true" className="text-white/25 min-h-[44px] flex items-center px-3 text-sm">
             Product
           </span>
-          <span className="cursor-pointer text-white/70 hover:text-white transition-colors min-h-[44px] flex items-center px-3 rounded-lg hover:bg-white/5 text-sm">
+          <span aria-disabled="true" className="text-white/25 min-h-[44px] flex items-center px-3 text-sm">
             Pricing
           </span>
-          <span className="cursor-pointer text-white/70 hover:text-white transition-colors min-h-[44px] flex items-center px-3 rounded-lg hover:bg-white/5 text-sm">
+          <span aria-disabled="true" className="text-white/25 min-h-[44px] flex items-center px-3 text-sm">
             Blog
           </span>
           <div className="mt-3 pt-3 border-t border-white/10">

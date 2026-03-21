@@ -95,7 +95,11 @@ function CreateContent() {
   const handleStartRecording = useCallback(async () => {
     transcription.clearTranscript();
     const stream = await recorder.startRecording();
-    if (stream) analyser.connectStream(stream);
+    if (!stream) {
+      toast.error(recorder.error ?? 'Microphone access denied. Check your browser permissions.');
+      return;
+    }
+    analyser.connectStream(stream);
     setCurrentState('recording');
   }, [recorder, analyser, transcription, setCurrentState]);
 
@@ -168,7 +172,15 @@ function CreateContent() {
     reset();
   }, [recorder, transcription, exporter, playback, reset]);
 
-  if (!isSignedIn && !isLoading) {
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh bg-black flex items-center justify-center">
+        <div className="w-5 h-5 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
     return <AuthGate />;
   }
 
@@ -206,12 +218,13 @@ function CreateContent() {
             onStopRecording={handleStopRecording}
             onRestart={handleRestart}
             onProceed={handleProceed}
+            onCancel={handleReset}
             onLocked={setUpgradeTarget}
           />
         )}
 
         {currentState === 'processing' && (
-          <ProcessingState progress={processingProgress} />
+          <ProcessingState progress={processingProgress} onCancel={handleReset} />
         )}
 
         {currentState === 'export' && (
