@@ -110,7 +110,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Convert Blob to File for the OpenAI SDK
     const buffer = Buffer.from(await file.arrayBuffer());
-    const audioFile = new File([buffer], 'audio.webm', { type: file.type || 'audio/webm' });
+    const ext = file.type.split('/')[1]?.replace('mpeg', 'mp3') ?? 'webm';
+    const audioFile = new File([buffer], `audio.${ext}`, { type: file.type || 'audio/webm' });
 
     // Request both word + segment granularities.
     // Words give precise per-word timestamps (but stripped punctuation).
