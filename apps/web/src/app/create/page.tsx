@@ -26,6 +26,7 @@ import {
   ProcessingState,
   ExportState,
   UpgradeSheet,
+  OnboardingDialog,
 } from '@/components/soul';
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -261,6 +262,9 @@ function CreateContent() {
         feature={upgradeTarget === 'export_limit' ? undefined : upgradeTarget ?? undefined}
         onUpgrade={() => startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))}
       />
+
+      {/* First-time onboarding — Dialog overlay, no AppPhase change */}
+      <OnboardingDialog />
 
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/8 text-[length:var(--text-footnote)]
