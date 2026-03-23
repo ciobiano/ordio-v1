@@ -134,7 +134,7 @@ describe('useAudioProcessing', () => {
 
     let sessionId: string | undefined;
     await act(async () => {
-      sessionId = await result.current.processAudio(blob, 'free');
+      sessionId = await result.current.processAudio(blob);
     });
 
     expect(typeof sessionId).toBe('string');
@@ -155,7 +155,7 @@ describe('useAudioProcessing', () => {
     const { result } = renderHook(() => useAudioProcessing(mockTranscription));
 
     await act(async () => {
-      await expect(result.current.processAudio(blob, 'free')).rejects.toThrow(
+      await expect(result.current.processAudio(blob)).rejects.toThrow(
         'Audio processing failed'
       );
     });

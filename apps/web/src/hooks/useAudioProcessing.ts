@@ -6,11 +6,9 @@ import type { GenericId } from 'convex/values';
 import { useStore } from '@/lib/store';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
 import type { UseTranscriptionReturn } from '@/hooks/useTranscription';
-import type { UserTier } from '@/lib/featureGates';
-
 interface UseAudioProcessingReturn {
   processingProgress: number;
-  processAudio: (blob: Blob, tier: UserTier) => Promise<string>;
+  processAudio: (blob: Blob) => Promise<string>;
 }
 
 /**
@@ -49,7 +47,7 @@ export function useAudioProcessing(
   createSessionRef.current = createSession;
 
   const processAudio = useCallback(
-    async (inputBlob: Blob, tier: UserTier): Promise<string> => {
+    async (inputBlob: Blob): Promise<string> => {
       let blob = inputBlob;
       const rawBlob = inputBlob;
       setCurrentState('processing');
@@ -139,7 +137,6 @@ export function useAudioProcessing(
           mimeType:    blob.type || 'audio/webm',
           durationSec: decoded.duration,
           transcript:  words,
-          tier,
         });
 
         // Step 5: Finalize

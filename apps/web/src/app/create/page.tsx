@@ -78,12 +78,12 @@ export default function CreatePage() {
   const handleProceed = useCallback(async () => {
     if (!recorder.audioBlob) return;
     try {
-      const sessionId = await processAudio(recorder.audioBlob, tier);
+      const sessionId = await processAudio(recorder.audioBlob);
       router.push(`/create/export/${sessionId}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Processing failed');
     }
-  }, [recorder.audioBlob, processAudio, tier, router]);
+  }, [recorder.audioBlob, processAudio, router]);
 
   const handleRestart = useCallback(async () => {
     recorder.resetRecording();
@@ -106,7 +106,7 @@ export default function CreatePage() {
       }
 
       try {
-        const sessionId = await processAudio(file, tier);
+        const sessionId = await processAudio(file);
         router.push(`/create/export/${sessionId}`);
       } catch {
         toast.error('Failed to load audio file. Try MP3, WAV, or M4A.');
@@ -114,7 +114,7 @@ export default function CreatePage() {
 
       if (e.target) e.target.value = '';
     },
-    [processAudio, tier, router]
+    [processAudio, router]
   );
 
   const handleReset = useCallback(() => {
