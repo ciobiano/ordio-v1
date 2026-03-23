@@ -20,6 +20,7 @@ function formatExpiry(expiresAt: number): string {
   const hours = Math.floor(remaining / (1000 * 60 * 60));
   const days = Math.floor(hours / 24);
   if (days > 0) return `Saved for ${days} day${days !== 1 ? 's' : ''}`;
+  if (hours === 0) return 'Expires soon';
   return `Expires in ${hours}h`;
 }
 
@@ -55,7 +56,7 @@ export default function ExportPage({
 
   const audioUrlResult = useQuery(
     api.sessions.getAudioUrl,
-    session ? { storageId: session.storageId } : 'skip'
+    session ? { sessionId: sessionId as GenericId<'sessions'> } : 'skip'
   );
 
   const exporter = useVideoExporter();
@@ -78,7 +79,6 @@ export default function ExportPage({
     if (isHydrating) return;
 
     setIsHydrating(true);
-    setTranscript(session.transcript);
 
     const hydrate = async () => {
       try {
@@ -92,6 +92,7 @@ export default function ExportPage({
         setAudioBuffer(decoded);
         setAudioBlob(blob);
         setAudioDuration(decoded.duration);
+        setTranscript(session.transcript);
       } catch {
         toast.error('Failed to load your recording.');
         router.replace('/create');
@@ -143,11 +144,20 @@ export default function ExportPage({
     router.push('/create');
   }, [exporter, playback, reset, router]);
 
-  // Loading state (null = expired/not found; redirect is async via effect so guard here too)
-  if (session === undefined || session === null || isHydrating || !audioBuffer) {
+  // Loading state: undefined = still fetching
+  if (session === undefined || isHydrating || !audioBuffer) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="w-5 h-5 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
+  // Error state: null = expired/not found; redirect is async via effect
+  if (session === null) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <p className="text-white/40 text-sm">Recording not found. Redirecting…</p>
       </div>
     );
   }
