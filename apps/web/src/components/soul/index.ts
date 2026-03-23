@@ -10,3 +10,4 @@ export { RecordingState } from './RecordingState';
 export { default as StyleControls } from './StyleControls';
 export { default as UpgradeSheet } from './UpgradeSheet';
 export { default as StyleModeSelector } from './StyleModeSelector';
+export { default as OnboardingDialog } from './OnboardingDialog';

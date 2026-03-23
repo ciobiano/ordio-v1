@@ -1,7 +1,8 @@
 'use client';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 import { optionBtn } from '@/lib/variants';
+import { Slider } from '@/components/ui/slider';
 import { useStore } from '@/lib/store';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 import { useFeatureGates } from '@/hooks/useFeatureGates';
@@ -34,9 +35,9 @@ interface ColorRowProps {
 function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-[--secondary] text-[length:var(--text-footnote)]">{label}</span>
+      <span className="text-muted-foreground text-xs">{label}</span>
       <label className="flex items-center gap-2 cursor-pointer group min-h-11" aria-label={`${label} color`}>
-        <span className="text-[--tertiary] text-[length:var(--text-footnote)] tabular-nums uppercase">{value}</span>
+        <span className="text-muted-foreground text-xs tabular-nums uppercase">{value}</span>
         <div
           className="w-6 h-6 rounded-md border border-white/20 overflow-hidden
                      group-hover:border-white/40 transition-colors duration-150 shrink-0"
@@ -62,29 +63,22 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
 
   return (
     <div className="flex flex-col gap-4">
+
       {/* Colors */}
       <div className="flex flex-col gap-2.5">
-        <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">Colors</p>
-        <ColorRow
-          label="Waveform"
-          value={style.waveColor}
-          onChange={(v) => setStyle({ waveColor: v })}
-        />
-        <ColorRow
-          label="Background"
-          value={style.backgroundColor}
-          onChange={(v) => setStyle({ backgroundColor: v })}
-        />
-        <ColorRow
-          label="Text"
-          value={style.textColor}
-          onChange={(v) => setStyle({ textColor: v })}
-        />
+        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
+          Colors
+        </p>
+        <ColorRow label="Waveform"   value={style.waveColor}        onChange={(v) => setStyle({ waveColor: v })} />
+        <ColorRow label="Background" value={style.backgroundColor}  onChange={(v) => setStyle({ backgroundColor: v })} />
+        <ColorRow label="Text"       value={style.textColor}        onChange={(v) => setStyle({ textColor: v })} />
       </div>
 
       {/* Font */}
       <div className="flex flex-col gap-2">
-        <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">Font</p>
+        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
+          Font
+        </p>
         <div className="flex gap-2 flex-wrap">
           {FONTS.map((font) => {
             const featureKey = fontFeatureKey[font];
@@ -109,25 +103,22 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
       </div>
 
       {/* Font size */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="text-[--tertiary] font-mono text-[length:var(--text-footnote)] uppercase tracking-[0.15em]">
+          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
             Font size
           </p>
-          <span className="text-[--secondary] text-[length:var(--text-footnote)] tabular-nums">{style.fontSize}px</span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {style.fontSize}px
+          </span>
         </div>
-        <input
-          type="range"
+        <Slider
           min={32}
           max={96}
           step={4}
-          value={style.fontSize}
-          onChange={(e) => setStyle({ fontSize: Number(e.target.value) })}
+          value={[style.fontSize]}
+          onValueChange={(val) => setStyle({ fontSize: Array.isArray(val) ? val[0] : val })}
           aria-label="Font size"
-          aria-valuemin={32}
-          aria-valuemax={96}
-          aria-valuenow={style.fontSize}
-          className="w-full h-1 rounded-full accent-[--primary] cursor-pointer"
         />
       </div>
     </div>

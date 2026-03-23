@@ -1,13 +1,15 @@
 'use client'
 
-import { cn } from '@/lib/cn'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export type ToolbarPanel = 'captions' | 'style' | 'format' | 'trim'
 
 interface ToolbarItem {
   id: ToolbarPanel
   label: string
-  icon: React.ReactNode
+  iconSrc: string
 }
 
 interface IconToolbarProps {
@@ -15,42 +17,11 @@ interface IconToolbarProps {
   onPanelChange: (panel: ToolbarPanel) => void
 }
 
-const CaptionsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <rect x="1" y="4" width="16" height="10" rx="2" />
-    <line x1="4" y1="8" x2="10" y2="8" strokeLinecap="round" />
-    <line x1="4" y1="11" x2="14" y2="11" strokeLinecap="round" />
-  </svg>
-)
-
-const StyleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="6" cy="7" r="2.5" />
-    <circle cx="12" cy="7" r="2.5" />
-    <circle cx="9" cy="13" r="2.5" />
-  </svg>
-)
-
-const FormatIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <rect x="3" y="3" width="12" height="12" rx="2" />
-  </svg>
-)
-
-const TrimIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="5" cy="5" r="2.5" />
-    <circle cx="5" cy="13" r="2.5" />
-    <line x1="7" y1="6" x2="16" y2="13" strokeLinecap="round" />
-    <line x1="7" y1="12" x2="16" y2="5" strokeLinecap="round" />
-  </svg>
-)
-
 const TOOLBAR_ITEMS: ToolbarItem[] = [
-  { id: 'captions', label: 'Captions', icon: <CaptionsIcon /> },
-  { id: 'style', label: 'Style', icon: <StyleIcon /> },
-  { id: 'format', label: 'Format', icon: <FormatIcon /> },
-  { id: 'trim', label: 'Trim', icon: <TrimIcon /> },
+  { id: 'captions', label: 'Captions', iconSrc: '/icons/captions.svg' },
+  { id: 'style',    label: 'Style',    iconSrc: '/icons/style.svg' },
+  { id: 'format',   label: 'Format',   iconSrc: '/icons/format.svg' },
+  { id: 'trim',     label: 'Trim',     iconSrc: '/icons/trim.svg' },
 ]
 
 export function IconToolbar({ activePanel, onPanelChange }: IconToolbarProps) {
@@ -59,33 +30,39 @@ export function IconToolbar({ activePanel, onPanelChange }: IconToolbarProps) {
       {TOOLBAR_ITEMS.map((item) => {
         const isActive = activePanel === item.id
         return (
-          <button
+          <Button
             key={item.id}
             type="button"
+            variant="ghost"
             aria-label={item.label}
             aria-pressed={isActive}
-            className="flex flex-col items-center gap-1"
             onClick={() => onPanelChange(item.id)}
+            className="flex flex-col items-center gap-1 h-auto py-1 px-2 hover:bg-transparent"
           >
-            <div
-              className={cn(
-                'w-11 h-11 rounded-lg flex items-center justify-center transition-colors',
-                isActive
-                  ? 'bg-[--surface-active] text-[--primary]'
-                  : 'bg-[--surface] text-[--secondary]'
-              )}
-            >
-              {item.icon}
-            </div>
             <span
               className={cn(
-                'text-[length:var(--text-footnote)] transition-colors',
-                isActive ? 'text-[--primary] font-medium' : 'text-[--secondary]'
+                'w-11 h-11 rounded-lg flex items-center justify-center transition-colors',
+                isActive ? 'bg-accent' : 'bg-muted'
+              )}
+            >
+              <Image
+                src={item.iconSrc}
+                width={18}
+                height={18}
+                alt=""
+                aria-hidden="true"
+                className={cn('invert transition-opacity', isActive ? 'opacity-100' : 'opacity-50')}
+              />
+            </span>
+            <span
+              className={cn(
+                'text-xs transition-colors',
+                isActive ? 'text-foreground font-medium' : 'text-muted-foreground'
               )}
             >
               {item.label}
             </span>
-          </button>
+          </Button>
         )
       })}
     </div>

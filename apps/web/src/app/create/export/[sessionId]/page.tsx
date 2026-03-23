@@ -1,0 +1,196 @@
+'use client';
+
+import { use, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from 'convex/react';
+import { api } from '@Ordio/convex';
+import { toast } from 'sonner';
+import { UserButton } from '@clerk/nextjs';
+import { useStore } from '@/lib/store';
+import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
+import { usePlayback } from '@/hooks/usePlayback';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useExportGate } from '@/hooks/useExportGate';
+import type { GenericId } from 'convex/values';
+import { ExportState } from '@/components/soul';
+
+function formatExpiry(expiresAt: number): string {
+  const remaining = expiresAt - Date.now();
+  if (remaining <= 0) return 'Expired';
+  const hours = Math.floor(remaining / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `Saved for ${days} day${days !== 1 ? 's' : ''}`;
+  if (hours === 0) return 'Expires soon';
+  return `Expires in ${hours}h`;
+}
+
+export default function ExportPage({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}) {
+  const { sessionId } = use(params);
+  const router = useRouter();
+
+  const {
+    audioBuffer,
+    transcript,
+    setAudioBuffer,
+    setAudioBlob,
+    setTranscript,
+    setAudioDuration,
+    setUpgradeTarget,
+    format,
+    waveformStyle,
+    captionStyle,
+    graphicStyle,
+    reset,
+  } = useStore();
+
+  const [isHydrating, setIsHydrating] = useState(false);
+
+  const session = useQuery(
+    api.sessions.getSession,
+    { sessionId: sessionId as GenericId<'sessions'> }
+  );
+
+  const audioUrlResult = useQuery(
+    api.sessions.getAudioUrl,
+    session ? { sessionId: sessionId as GenericId<'sessions'> } : 'skip'
+  );
+
+  const exporter = useVideoExporter();
+  const playback = usePlayback();
+  const { tier } = useCurrentUser();
+  const exportGate = useExportGate();
+
+  // Guard: session undefined = loading; null = not found/expired
+  useEffect(() => {
+    if (session === undefined) return;
+    if (session === null) {
+      toast.error('This recording has expired or could not be found.');
+      router.replace('/create');
+    }
+  }, [session, router]);
+
+  // Hydrate audio from Convex storage when arriving via direct navigation
+  useEffect(() => {
+    if (!session || !audioUrlResult || audioBuffer) return;
+    if (isHydrating) return;
+
+    setIsHydrating(true);
+
+    const hydrate = async () => {
+      try {
+        const res = await fetch(audioUrlResult);
+        const arrayBuf = await res.arrayBuffer();
+        const audioCtx = new AudioContext();
+        const decoded = await audioCtx.decodeAudioData(arrayBuf);
+        void audioCtx.close();
+
+        const blob = new Blob([arrayBuf], { type: session.mimeType });
+        setAudioBuffer(decoded);
+        setAudioBlob(blob);
+        setAudioDuration(decoded.duration);
+        setTranscript(session.transcript);
+      } catch {
+        toast.error('Failed to load your recording.');
+        router.replace('/create');
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
+    void hydrate();
+  }, [
+    session,
+    audioUrlResult,
+    audioBuffer,
+    isHydrating,
+    setAudioBuffer,
+    setAudioBlob,
+    setAudioDuration,
+    setTranscript,
+    router,
+  ]);
+
+  // Load audio into playback once AudioBuffer is ready
+  useEffect(() => {
+    if (audioBuffer) playback.load(audioBuffer);
+  }, [audioBuffer, playback]);
+
+  const handleExportStart = useCallback(async (): Promise<boolean> => {
+    const gate = await exportGate.checkAndConsume();
+    if (!gate.allowed) {
+      setUpgradeTarget('export_limit');
+      return false;
+    }
+    return true;
+  }, [exportGate, setUpgradeTarget]);
+
+  const handleDownload = useCallback(() => {
+    if (!exporter.exportedUrl) return;
+    const ext = fileExtension(exporter.exportMimeType ?? 'video/webm');
+    const a = document.createElement('a');
+    a.href = exporter.exportedUrl;
+    a.download = `ordio-${Date.now()}.${ext}`;
+    a.click();
+  }, [exporter.exportedUrl, exporter.exportMimeType]);
+
+  const handleReset = useCallback(() => {
+    exporter.cancelExport();
+    playback.stop();
+    reset();
+    router.push('/create');
+  }, [exporter, playback, reset, router]);
+
+  // Loading state: undefined = still fetching
+  if (session === undefined || isHydrating || !audioBuffer) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <div className="w-5 h-5 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
+  // Error state: null = expired/not found; redirect is async via effect
+  if (session === null) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <p className="text-white/40 text-sm">Recording not found. Redirecting…</p>
+      </div>
+    );
+  }
+
+  return (
+    <main
+      id="main-content"
+      className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
+    >
+      <div className="fixed top-4 right-4 z-20 flex items-center gap-3">
+        <span className="text-[length:var(--text-caption)] text-secondary">
+          {formatExpiry(session.expiresAt)}
+        </span>
+        <UserButton />
+      </div>
+
+      <ExportState
+        playback={playback}
+        exporter={exporter}
+        format={format}
+        waveformStyle={waveformStyle}
+        captionStyle={captionStyle}
+        graphicStyle={graphicStyle}
+        showWatermark={tier === 'free'}
+        onExportStart={handleExportStart}
+        onDownload={handleDownload}
+        onReset={handleReset}
+        onLocked={setUpgradeTarget}
+      />
+
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        Export ready
+      </div>
+    </main>
+  );
+}

@@ -1,6 +1,8 @@
 'use client';
 
-import { cn } from '@/lib/cn';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 interface ToggleRowProps {
   label: string;
@@ -17,45 +19,36 @@ export default function ToggleRow({
   onChange,
   disabled,
 }: ToggleRowProps) {
+  const id = `toggle-${label.toLowerCase().replace(/\s+/g, '-')}`;
+
   return (
-    <label
+    <div
       className={cn(
-        'flex items-center justify-between gap-3 group min-h-11',
+        'flex items-center justify-between gap-3 min-h-11',
         disabled ? 'opacity-35 cursor-not-allowed' : 'cursor-pointer'
       )}
     >
       <div className="flex flex-col gap-0.5 min-w-0">
-        <span className={cn('text-[length:var(--text-caption)]', checked ? 'text-white/70' : 'text-white/60')}>{label}</span>
-        <span className="text-white/50 text-[length:var(--text-footnote)] leading-tight">{description}</span>
+        <Label
+          htmlFor={id}
+          className={cn(
+            'text-xs cursor-pointer',
+            checked ? 'text-white/70' : 'text-white/60'
+          )}
+        >
+          {label}
+        </Label>
+        <span className="text-white/50 text-xs leading-tight">
+          {description}
+        </span>
       </div>
 
-      {/* Toggle switch track + thumb */}
-      <div className="relative shrink-0">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          disabled={disabled}
-          className="sr-only peer"
-          aria-label={label}
-        />
-        <div
-          className={cn(
-            'w-8 h-4.5  rounded-full transition-colors duration-150',
-            checked ? 'bg-[--primary]' : 'bg-white/10',
-            !disabled &&
-              'group-hover:bg-white/15 peer-focus-visible:ring-2 peer-focus-visible:ring-white/50'
-          )}
-          aria-hidden="true"
-        />
-        <div
-          className={cn(
-            'absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full transition-all duration-150',
-            checked ? 'translate-x-2.5 bg-[--primary]' : 'translate-x-0 bg-white/40'
-          )}
-          aria-hidden="true"
-        />
-      </div>
-    </label>
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
+    </div>
   );
 }

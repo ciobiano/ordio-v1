@@ -1,7 +1,7 @@
 'use client';
 
 import { cva } from 'class-variance-authority';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 import { useAnimationTick } from '@/hooks/useAnimationTick';
 
 interface SpectrogramWaveformProps {

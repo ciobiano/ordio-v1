@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 
 interface ProcessingStepProps {
   children: ReactNode;
@@ -35,7 +35,7 @@ export default function ProcessingStep({ children, done, active }: ProcessingSte
       ) : (
         <div className="w-4 h-4 shrink-0 rounded-full border border-current opacity-50" aria-hidden="true" />
       )}
-      <span className="text-[length:var(--text-body-sm)]">{children}</span>
+      <span className="text-sm">{children}</span>
     </div>
   );
 }

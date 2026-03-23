@@ -3,6 +3,7 @@
 import { ClerkProvider, useAuth } from '@clerk/nextjs';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ReactNode } from 'react';
 
 const convex = new ConvexReactClient(
@@ -13,7 +14,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        {children}
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );
