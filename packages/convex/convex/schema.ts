@@ -34,5 +34,22 @@ export default defineSchema({
   })
   .index("by_token", ["tokenIdentifier"])
   .index("by_stripe_customer", ["stripeCustomerId"])
-  .index("by_paystack_customer", ["paystackCustomerCode"])
+  .index("by_paystack_customer", ["paystackCustomerCode"]),
+
+  sessions: defineTable({
+    userId: v.string(), // Clerk user ID
+    storageId: v.id("_storage"), // Convex file storage reference
+    mimeType: v.string(), // e.g. "audio/webm"
+    durationSec: v.number(), // audio duration in seconds
+    transcript: v.array(v.object({
+      text: v.string(),
+      start: v.number(),
+      end: v.number(),
+    })), // Word[] from Whisper
+    tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')), // user's tier at creation time
+    expiresAt: v.number(), // Unix timestamp (ms)
+    createdAt: v.number(), // Unix timestamp (ms)
+  })
+  .index("by_user_id", ["userId"])
+  .index("by_expires_at", ["expiresAt"])
 });
