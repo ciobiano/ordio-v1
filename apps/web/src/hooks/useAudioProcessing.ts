@@ -61,9 +61,15 @@ export function useAudioProcessing(
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
         setProcessingProgress(10);
         const audioCtx = new AudioContext();
-        const arrayBuffer = await blob.arrayBuffer();
-        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-        void audioCtx.close();
+        let decoded: AudioBuffer;
+        try {
+          const arrayBuffer = await blob.arrayBuffer();
+          decoded = await audioCtx.decodeAudioData(arrayBuffer);
+          void audioCtx.close();
+        } catch (decodeErr) {
+          void audioCtx.close();
+          throw decodeErr;
+        }
         setAudioBuffer(decoded);
         setAudioBlob(blob);
         setAudioDuration(decoded.duration);
@@ -79,10 +85,16 @@ export function useAudioProcessing(
           });
           if (result.ok) {
             const enhancedCtx = new AudioContext();
-            const enhancedBuffer = await enhancedCtx.decodeAudioData(
-              await result.blob.arrayBuffer()
-            );
-            void enhancedCtx.close();
+            let enhancedBuffer: AudioBuffer;
+            try {
+              enhancedBuffer = await enhancedCtx.decodeAudioData(
+                await result.blob.arrayBuffer()
+              );
+              void enhancedCtx.close();
+            } catch (decodeErr) {
+              void enhancedCtx.close();
+              throw decodeErr;
+            }
             setAudioBuffer(enhancedBuffer);
             setAudioDuration(enhancedBuffer.duration);
             blob = result.blob;
@@ -132,12 +144,12 @@ export function useAudioProcessing(
 
         // Step 5: Finalize
         setProcessingProgress(100);
-        await new Promise((r) => setTimeout(r, 250));
 
         return sessionId;
-      } catch {
+      } catch (err) {
         setCurrentState('idle');
-        throw new Error('Audio processing failed');
+        console.error('[useAudioProcessing]', err);
+        throw new Error('Audio processing failed', { cause: err });
       }
     },
     [
