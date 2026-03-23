@@ -3,8 +3,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
+import type { FeatureKey } from '@/lib/featureGates';
 
-export type AppPhase = 'idle' | 'recording' | 'processing' | 'export';
+export type AppPhase = 'idle' | 'recording' | 'processing';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
@@ -93,6 +94,11 @@ interface AppState {
   setEnhanceTier: (tier: EnhanceTier) => void;
   setIsEnhancing: (isEnhancing: boolean) => void;
   setEnhanceProgress: (progress: number) => void;
+
+  // Upgrade sheet
+  upgradeTarget: FeatureKey | 'export_limit' | null;
+  setUpgradeTarget: (target: FeatureKey | 'export_limit' | null) => void;
+
   reset: () => void;
 }
 
@@ -133,6 +139,7 @@ const initialSession = {
   exportedUrl: null as string | null,
   isEnhancing: false,
   enhanceProgress: 0,
+  upgradeTarget: null as FeatureKey | 'export_limit' | null,
 };
 
 const initialState = { ...initialPreferences, ...initialSession };
@@ -177,6 +184,7 @@ export const useStore = create<AppState>()(
       setEnhanceTier: (enhanceTier) => set({ enhanceTier }),
       setIsEnhancing: (isEnhancing) => set({ isEnhancing }),
       setEnhanceProgress: (enhanceProgress) => set({ enhanceProgress }),
+      setUpgradeTarget: (upgradeTarget) => set({ upgradeTarget }),
       reset: () => set(initialSession),
     }),
     {
