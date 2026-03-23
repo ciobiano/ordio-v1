@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans, IBM_Plex_Sans, Geist_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import Providers from '@/components/Providers';
 import './globals.css';
+import { cn } from "@/lib/utils";
+
+const geistMonoHeading = Geist_Mono({subsets:['latin'],variable:'--font-heading'});
+
+const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'});
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
@@ -62,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={cn("dark font-sans", ibmPlexSans.variable, geistMonoHeading.variable)}>
       <body className={`${plusJakarta.variable} antialiased`}>
         <a href="#main-content" className="skip-nav">Skip to main content</a>
         <Providers>{children}</Providers>

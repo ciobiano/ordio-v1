@@ -2,6 +2,7 @@
 
 import ProgressRing from '@/components/primitives/ProgressRing';
 import ProcessingStep from '@/components/primitives/ProcessingStep';
+import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store';
 import type { EnhanceTier } from '@/lib/store';
 
@@ -41,10 +42,10 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
   return (
     <div className="flex flex-col items-center gap-10 animate-fadeIn">
       <div className="text-center">
-        <h2 className="text-[length:var(--text-h4)] font-light text-[--primary] tracking-[-0.02em]">
+        <h2 className="text-[length:var(--text-h4)] font-light text-foreground tracking-[-0.02em]">
           Creating your video
         </h2>
-        <p className="text-[--secondary] text-[length:var(--text-body-sm)] mt-2">This won&apos;t take long</p>
+        <p className="text-muted-foreground text-sm mt-2">This won&apos;t take long</p>
       </div>
 
       <ProgressRing progress={progress} />
@@ -58,14 +59,15 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
       </div>
 
       {onCancel && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onCancel}
           aria-label="Cancel processing"
-          className="text-[--tertiary] hover:text-[--secondary] text-[length:var(--text-caption)] transition-colors"
+          className="text-muted-foreground hover:text-muted-foreground hover:bg-transparent text-xs transition-colors h-auto py-1"
         >
           Cancel
-        </button>
+        </Button>
       )}
     </div>
   );

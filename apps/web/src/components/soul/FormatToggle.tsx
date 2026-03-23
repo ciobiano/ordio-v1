@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 import { optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { FormatVariant } from '@/lib/store';
@@ -10,16 +10,16 @@ import LockBadge from '@/components/primitives/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
 
 const formats: { value: FormatVariant; label: string }[] = [
-  { value: 'square', label: '1:1' },
-  { value: 'vertical', label: '9:16' },
+  { value: 'square',     label: '1:1' },
+  { value: 'vertical',   label: '9:16' },
   { value: 'horizontal', label: '16:9' },
-  { value: 'instagram', label: '4:5' },
+  { value: 'instagram',  label: '4:5' },
 ];
 
 const formatFeatureKey: Partial<Record<FormatVariant, FeatureKey>> = {
-  vertical: 'format_vertical',
+  vertical:   'format_vertical',
   horizontal: 'format_horizontal',
-  instagram: 'format_instagram',
+  instagram:  'format_instagram',
 };
 
 interface FormatToggleProps {
@@ -47,11 +47,7 @@ export default function FormatToggle({ onLocked }: FormatToggleProps) {
   };
 
   return (
-    <div
-      className="flex gap-2 flex-wrap"
-      role="radiogroup"
-      aria-label="Video format"
-    >
+    <div className="flex gap-2 flex-wrap" role="radiogroup" aria-label="Video format">
       {formats.map(({ value, label }, i) => {
         const featureKey = formatFeatureKey[value];
         const locked = featureKey ? isLocked(featureKey) : false;
@@ -70,7 +66,10 @@ export default function FormatToggle({ onLocked }: FormatToggleProps) {
               {label}
             </button>
             {locked && featureKey && (
-              <LockBadge onClick={() => onLocked?.(featureKey)} label={`${label} format requires Creator`} />
+              <LockBadge
+                onClick={() => onLocked?.(featureKey)}
+                label={`${label} format requires Creator`}
+              />
             )}
           </div>
         );

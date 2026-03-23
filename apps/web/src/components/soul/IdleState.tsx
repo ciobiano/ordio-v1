@@ -1,7 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import type { ChangeEvent, RefObject } from 'react';
 import { Orb } from '@/components/primitives/Orb';
+import { Button } from '@/components/ui/button';
 
 interface IdleStateProps {
   onStartRecording: () => void;
@@ -21,7 +23,7 @@ export function IdleState({
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn">
       {/* Wordmark */}
-      <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-light tracking-wide mb-8">
+      <p className="text-muted-foreground text-2xl font-light tracking-wide mb-8">
         ord<span className="font-medium">io</span>
       </p>
 
@@ -34,30 +36,19 @@ export function IdleState({
       />
 
       {/* Mic icon hint */}
-      <svg
-        className="w-5 h-5 text-[--secondary] mt-2"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-        <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-        <line x1="12" y1="19" x2="12" y2="22" />
-      </svg>
+      <Image src="/icons/mic.svg" width={20} height={20} alt="" aria-hidden="true" className="invert opacity-50 mt-2" />
 
-      <p className="text-[--primary] text-[length:var(--text-body)] font-medium">Tap to record</p>
+      <p className="text-foreground text-sm font-medium">Tap to record</p>
 
       {/* Upload option */}
-      <button
+      <Button
         type="button"
-        className="text-[--secondary] text-[length:var(--text-caption)] hover:text-[--primary] transition-colors mt-2"
+        variant="ghost"
         onClick={() => fileInputRef.current?.click()}
+        className="text-muted-foreground text-xs hover:text-foreground hover:bg-transparent transition-colors mt-2 h-auto py-1"
       >
         or upload audio
-      </button>
+      </Button>
       <input
         ref={fileInputRef}
         type="file"

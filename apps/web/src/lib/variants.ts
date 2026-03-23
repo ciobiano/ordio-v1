@@ -4,8 +4,8 @@ import { cva } from 'class-variance-authority';
  * Large primary pill button — white fill, main CTAs (Export, Download).
  */
 export const primaryBtn =
-  'w-full sm:w-auto px-10 py-3.5 bg-[--primary] text-black rounded-full ' +
-  'text-[length:var(--text-body)] font-[600] tracking-[-0.01em] ' +
+  'w-full sm:w-auto px-10 py-3.5 bg-primary text-primary-foreground rounded-full ' +
+  'text-sm font-[600] tracking-[-0.01em] ' +
   'hover:bg-white/92 transition-all duration-200 ' +
   'hover:scale-[1.02] active:scale-[0.98] cursor-pointer ' +
   'shadow-[0_8px_32px_rgba(255,255,255,0.08)]';
@@ -15,7 +15,7 @@ export const primaryBtn =
  * Minimal 2px padding; slim inline shape.
  */
 export const ghostBtn =
-  'text-[--secondary] text-[length:var(--text-caption)] hover:text-white/85 transition-colors duration-150 ' +
+  'text-muted-foreground text-xs hover:text-white/85 transition-colors duration-150 ' +
   'cursor-pointer py-px px-1 rounded';
 
 /**
@@ -33,17 +33,17 @@ export const ghostBtn =
  *           'subtle' → soft white fill when active (font, others)
  */
 export const optionBtn = cva(
-  'cursor-pointer transition-all duration-150 select-none text-[length:var(--text-footnote)] min-h-11',
+  'cursor-pointer transition-all duration-150 select-none text-xs min-h-11',
   {
     variants: {
       shape: {
         pill:     'rounded-full px-3 py-1.5 border',
-        rect:     'rounded-md px-5 py-2 text-[length:var(--text-body-sm)]',
+        rect:     'rounded-md px-5 py-2 text-sm',
         bordered: 'rounded-lg px-3 py-1.5 border',
       },
       active: {
         true:  '',
-        false: 'text-[--secondary] hover:text-white/80',
+        false: 'text-muted-foreground hover:text-white/80',
       },
       tone: {
         white:  '',
@@ -52,12 +52,12 @@ export const optionBtn = cva(
     },
     compoundVariants: [
       // Inactive states vary by shape
-      { active: false, shape: 'pill',     class: 'bg-[--surface-hover] border-[--border]' },
-      { active: false, shape: 'rect',     class: 'hover:bg-[--surface]' },
-      { active: false, shape: 'bordered', class: 'bg-[--surface] border-[--border] hover:bg-[--surface-hover]' },
+      { active: false, shape: 'pill',     class: 'bg-muted border-border' },
+      { active: false, shape: 'rect',     class: 'hover:bg-muted' },
+      { active: false, shape: 'bordered', class: 'bg-muted border-border hover:bg-muted' },
       // Active states vary by tone
-      { active: true, tone: 'white',  class: 'bg-[--primary] text-black' },
-      { active: true, tone: 'subtle', class: 'bg-[--surface-active] border-[--border-active] text-[--primary]' },
+      { active: true, tone: 'white',  class: 'bg-primary text-primary-foreground' },
+      { active: true, tone: 'subtle', class: 'bg-accent border-border text-foreground' },
     ],
     defaultVariants: { shape: 'bordered', active: false, tone: 'subtle' },
   }
@@ -78,12 +78,12 @@ export const roundIconBtn = cva(
   {
     variants: {
       intent: {
-        idle:     'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
-        pause:    'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
-        settings: 'w-16 h-16 bg-[--surface] text-[--primary] hover:bg-[--surface-hover]',
+        idle:     'w-16 h-16 bg-muted text-foreground hover:bg-muted',
+        pause:    'w-16 h-16 bg-muted text-foreground hover:bg-muted',
+        settings: 'w-16 h-16 bg-muted text-foreground hover:bg-muted',
         stop:     'w-16 h-16 bg-destructive/15 border-2 border-destructive/60 text-destructive hover:bg-destructive/25',
-        play:     'w-16 h-16 shrink-0 bg-[--primary] text-black border border-[--primary] hover:bg-white/90',
-        nav:      'w-10 h-10 bg-[--surface] text-[--secondary] hover:bg-[--surface-hover] hover:text-[--primary]',
+        play:     'w-16 h-16 shrink-0 bg-primary text-primary-foreground border border-primary hover:bg-white/90',
+        nav:      'w-10 h-10 bg-muted text-muted-foreground hover:bg-muted hover:text-foreground',
       },
     },
     defaultVariants: { intent: 'idle' },
@@ -95,11 +95,11 @@ export const roundIconBtn = cva(
  * Colors are baked into CVA base (never inline styles per project rule).
  */
 export const proceedBtn = cva(
-  'w-full rounded-xl font-semibold tracking-tight transition-all duration-150 bg-[--primary] text-black',
+  'w-full rounded-xl font-semibold tracking-tight transition-all duration-150 bg-primary text-primary-foreground',
   {
     variants: {
       size: {
-        default: 'py-3.5 text-[length:var(--text-body-sm)]',
+        default: 'py-3.5 text-sm',
       },
     },
     defaultVariants: {
@@ -111,7 +111,7 @@ export const proceedBtn = cva(
 /**
  * Panel/card container — glass surface used for editors and settings panels.
  */
-export const panelCard = 'rounded-2xl bg-[--surface] border border-[--border]';
+export const panelCard = 'rounded-2xl bg-muted border border-border';
 
 /**
  * Brand heading — responsive type scale per GitHub 2026.
@@ -136,7 +136,7 @@ export const heading = cva('font-normal tracking-tight', {
  * Eyebrow — monospace uppercase micro-label (GitHub 2026 pattern).
  */
 export const eyebrow =
-  'font-mono text-[length:var(--text-footnote)] tracking-[0.15em] uppercase text-white/40';
+  'font-mono text-xs tracking-[0.15em] uppercase text-white/40';
 
 /**
  * Body text — responsive sizes matching design tokens.
@@ -144,12 +144,12 @@ export const eyebrow =
 export const body = cva('leading-[var(--leading-body)]', {
   variants: {
     size: {
-      xl: 'text-[length:var(--text-body-xl)]',
-      lg: 'text-[length:var(--text-body-lg)]',
-      default: 'text-[length:var(--text-body)]',
-      sm: 'text-[length:var(--text-body-sm)]',
-      caption: 'text-[length:var(--text-caption)] leading-[var(--leading-caption)]',
-      footnote: 'text-[length:var(--text-footnote)] leading-[var(--leading-caption)]',
+      xl: 'text-xl',
+      lg: 'text-lg',
+      default: 'text-sm',
+      sm: 'text-sm',
+      caption: 'text-xs leading-[var(--leading-caption)]',
+      footnote: 'text-xs leading-[var(--leading-caption)]',
     },
   },
   defaultVariants: { size: 'default' },
@@ -161,8 +161,8 @@ export const body = cva('leading-[var(--leading-body)]', {
 export const brandBorder = cva('', {
   variants: {
     variant: {
-      default: 'border-[--border-active] border-2',
-      subtle: 'border-[--border] border-2',
+      default: 'border-border border-2',
+      subtle: 'border-border border-2',
       accent: 'border-l-4 border-l-accent-green',
     },
   },

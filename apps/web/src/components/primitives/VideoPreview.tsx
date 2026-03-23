@@ -54,7 +54,7 @@ export default function VideoPreview({
         <div className={captionStyle === 'center' ? 'text-center mt-20' : ''}>
           <p
             className={`font-semibold leading-tight ${
-              isVertical ? 'text-[length:var(--text-body-sm)]' : 'text-[length:var(--text-body)]'
+              isVertical ? 'text-sm' : 'text-sm'
             }`}
           >
             <span className="bg-black/60 px-2 py-1 rounded text-white">
@@ -66,7 +66,7 @@ export default function VideoPreview({
       </div>
 
       {/* Format badge */}
-      <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 rounded text-[length:var(--text-footnote)] text-white/50">
+      <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 rounded text-xs text-white/50">
         {isVertical ? '9:16' : '16:9'}
       </div>
       </div>{/* end aria-hidden */}

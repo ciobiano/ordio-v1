@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
 import { Orb } from '@/components/primitives/Orb'
 import { RecordingSettingsSheet } from '@/components/soul/RecordingSettingsSheet'
 import { roundIconBtn, proceedBtn } from '@/lib/variants'
@@ -67,24 +69,22 @@ export function RecordingState({
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black">
       {/* Back / cancel — top-left corner, always visible */}
       <div className="absolute top-4 left-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onCancel}
           aria-label="Cancel recording"
           className={roundIconBtn({ intent: 'nav' })}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-               stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 3L5 8l5 5" />
-          </svg>
-        </button>
+          <Image src="/icons/arrow-left.svg" width={16} height={16} alt="" aria-hidden="true" className="invert" />
+        </Button>
       </div>
 
       {/* Center: Orb + Timer */}
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Orb state={orbState} intensity={orbIntensity} />
 
-        <p className="text-[--secondary] text-[length:var(--text-body-sm)] font-mono tracking-widest mt-4 tabular-nums">
+        <p className="text-muted-foreground text-sm font-mono tracking-widest mt-4 tabular-nums">
           {phase === 'stopped'
             ? `${formatTime(recordingTime)} recorded`
             : formatTime(recordingTime)}
@@ -97,93 +97,94 @@ export function RecordingState({
           /* Active recording: Pause · Stop · Settings */
           <div className="flex items-center justify-center gap-8">
             {/* Pause/Play — 48px via CVA */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className={roundIconBtn({ intent: 'pause' })}
               onClick={isPaused ? onResumeRecording : onPauseRecording}
               aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
             >
               {isPaused ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src="/icons/play.png" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+                <Image src="/icons/play.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src="/icons/pause.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+                <Image src="/icons/pause.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
               )}
-            </button>
+            </Button>
 
             {/* Stop — 64px via CVA */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className={roundIconBtn({ intent: 'stop' })}
               onClick={handleStop}
               aria-label="Stop recording"
             >
-              {/* Red rounded square — Tailwind classes only, no inline styles */}
               <div className="w-5 h-5 rounded bg-destructive" />
-            </button>
+            </Button>
 
             {/* Settings — 48px via CVA */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className={roundIconBtn({ intent: 'settings' })}
               onClick={() => setSettingsOpen(true)}
               aria-label="Recording settings"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icons/settings.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-80" />
-            </button>
+              <Image src="/icons/settings.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-80" />
+            </Button>
           </div>
         ) : (
           /* Post-stop checkpoint: Proceed CTA + Resume/Restart */
           <div className="flex flex-col items-center gap-3 ">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className={proceedBtn()}
               onClick={onProceed}
               aria-label="Proceed to editing"
             >
               Proceed
-            </button>
+            </Button>
 
-            <div className="flex items-center gap-3 text-[length:var(--text-footnote)]">
-              <button
+            <div className="flex items-center gap-3 text-xs">
+              <Button
                 type="button"
-                className="text-[--secondary] hover:text-[--primary] transition-colors flex items-center gap-1"
+                variant="ghost"
+                size="sm"
+                className="h-auto py-0 px-1 text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors flex items-center gap-1"
                 onClick={handleResume}
                 aria-label="Resume recording"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <polygon points="2,1 10,6 2,11" />
-                </svg>
+                <Image src="/icons/play.svg" width={12} height={12} alt="" aria-hidden="true" className="invert" />
                 Resume
-              </button>
+              </Button>
 
-              <span className="text-[--tertiary]">&middot;</span>
+              <span className="text-muted-foreground">&middot;</span>
 
-              <button
+              <Button
                 type="button"
-                className="text-[--tertiary] hover:text-[--secondary] transition-colors flex items-center gap-1"
+                variant="ghost"
+                size="sm"
+                className="h-auto py-0 px-1 text-muted-foreground hover:text-muted-foreground hover:bg-transparent transition-colors flex items-center gap-1"
                 onClick={handleRestart}
                 aria-label="Restart recording"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M1 6a5 5 0 1 1 1.5 3.5" strokeLinecap="round" />
-                  <polyline points="1,3 1,6.5 4,6.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Image src="/icons/restart.svg" width={12} height={12} alt="" aria-hidden="true" className="invert" />
                 Restart
-              </button>
+              </Button>
 
-              <span className="text-[--tertiary]">&middot;</span>
+              <span className="text-muted-foreground">&middot;</span>
 
-              <button
+              <Button
                 type="button"
-                className="text-[--tertiary] hover:text-[--secondary] transition-colors"
+                variant="ghost"
+                size="sm"
+                className="h-auto py-0 px-1 text-muted-foreground hover:text-muted-foreground hover:bg-transparent transition-colors"
                 onClick={onCancel}
                 aria-label="Cancel and return to start"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}

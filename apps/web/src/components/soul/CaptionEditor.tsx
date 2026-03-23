@@ -2,8 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cva } from 'class-variance-authority';
-import { cn } from '@/lib/cn';
-import { panelCard } from '@/lib/variants';
+import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import type { Word } from '@Ordio/shared/schemas';
 import type { UseAudioTrimmerReturn } from '@/hooks/useAudioTrimmer';
@@ -11,16 +10,15 @@ import type { UseAudioTrimmerReturn } from '@/hooks/useAudioTrimmer';
 const WORDS_PER_PHRASE = 6;
 
 const chip = cva(
-  'inline-flex items-center rounded-md text-[length:var(--text-body-sm)] border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
+  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
   {
     variants: {
       active: {
-        true: 'bg-[--surface-active] border-[--border-active] text-[--primary] px-2.5 py-1',
-        false:
-          'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/80 hover:bg-white/[0.08] px-2.5 py-1',
+        true:  'bg-accent border-border text-foreground px-2.5 py-1',
+        false: 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/80 hover:bg-white/[0.08] px-2.5 py-1',
       },
       focused: {
-        true: 'ring-1 ring-white/40',
+        true:  'ring-1 ring-white/40',
         false: '',
       },
     },
@@ -54,16 +52,13 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
 
   // Auto-scroll active word into view during playback
   useEffect(() => {
-    if (editingIndex !== null) return; // don't scroll while editing
-    const activeIdx = transcript.findIndex(
-      (w) => currentTime >= w.start && currentTime < w.end
-    );
+    if (editingIndex !== null) return;
+    const activeIdx = transcript.findIndex((w) => currentTime >= w.start && currentTime < w.end);
     if (activeIdx < 0) return;
     const el = chipRefs.current.get(activeIdx);
     el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [currentTime, transcript, editingIndex]);
 
-  // Single click → seek
   const handleChipClick = useCallback(
     (index: number) => {
       setFocusedIndex(index);
@@ -72,7 +67,6 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
     [transcript, onSeek]
   );
 
-  // Double click → edit
   const handleChipDoubleClick = useCallback(
     (index: number) => {
       setEditingIndex(index);
@@ -86,13 +80,11 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
     if (editingIndex === null) return;
     const trimmed = editValue.trim();
     if (trimmed) {
-      // Update word text
       const updated: Word[] = transcript.map((w, i) =>
         i === editingIndex ? { ...w, text: trimmed } : w
       );
       setTranscript(updated);
     } else {
-      // Delete word (empty text)
       const updated = transcript.filter((_, i) => i !== editingIndex);
       setTranscript(updated);
     }
@@ -107,10 +99,9 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
     [commitEdit]
   );
 
-  // Keyboard navigation on the container
   const handleContainerKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (editingIndex !== null) return; // don't navigate while editing
+      if (editingIndex !== null) return;
       if (transcript.length === 0) return;
 
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -132,17 +123,14 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
   );
 
   const setChipRef = useCallback((index: number, el: HTMLButtonElement | null) => {
-    if (el) {
-      chipRefs.current.set(index, el);
-    } else {
-      chipRefs.current.delete(index);
-    }
+    if (el) chipRefs.current.set(index, el);
+    else chipRefs.current.delete(index);
   }, []);
 
   if (isTranscribing) {
     return (
       <div className="py-6 text-center">
-        <p className="text-[--secondary] text-[length:var(--text-body-sm)]">Transcribing...</p>
+        <p className="text-muted-foreground text-sm">Transcribing...</p>
       </div>
     );
   }
@@ -150,8 +138,10 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
   if (!transcript || transcript.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-[--secondary] text-[length:var(--text-body-sm)]">No captions available</p>
-        <p className="text-[--tertiary] text-[length:var(--text-footnote)] mt-1">Check microphone permissions or try again</p>
+        <p className="text-muted-foreground text-sm">No captions available</p>
+        <p className="text-muted-foreground text-xs mt-1">
+          Check microphone permissions or try again
+        </p>
       </div>
     );
   }
@@ -160,27 +150,27 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
     <div
       ref={containerRef}
       role="region"
-      className={cn(panelCard, 'w-full px-4 py-4')}
       aria-label="Caption editor"
       onKeyDown={handleContainerKeyDown}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white/50 text-[length:var(--text-footnote)] uppercase tracking-[0.18em]">
+        <p className="text-white/50 text-xs uppercase tracking-[0.18em]">
           Transcript — click to seek, double-click to edit
         </p>
         {transcriptionSource && (
           <span
             className={cn(
-              'text-[length:var(--text-footnote)] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded font-medium',
+              'text-xs uppercase tracking-[0.15em] px-1.5 py-0.5 rounded font-medium',
               transcriptionSource === 'whisper'
                 ? 'bg-[--accent-green]/15 text-[--accent-green]/80'
-                : 'bg-[--surface-hover] text-[--secondary]'
+                : 'bg-muted text-muted-foreground'
             )}
           >
             {transcriptionSource === 'whisper' ? 'OpenAI Whisper' : 'Web Speech'}
           </span>
         )}
       </div>
+
       <ul className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto list-none p-0 m-0">
         {transcript.map((word, i) => {
           const active = isActive(word);
@@ -192,7 +182,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
             return (
               <li key={i} className="inline-flex items-center">
                 {showSeparator && (
-                  <span className="w-px h-5 bg-[--surface-active] mx-1 shrink-0" aria-hidden="true" />
+                  <span className="w-px h-5 bg-accent mx-1 shrink-0" aria-hidden="true" />
                 )}
                 <input
                   ref={inputRef}
@@ -201,8 +191,8 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
                   onBlur={commitEdit}
                   onKeyDown={handleEditKeyDown}
                   aria-label={`Edit word: ${word.text}`}
-                  className="px-2 py-0.5 rounded-md text-[length:var(--text-body-sm)] border
-                             bg-[--surface-active] border-[--border-active] text-white
+                  className="px-2 py-0.5 rounded-md text-sm border
+                             bg-accent border-border text-white
                              outline-none min-w-8 max-w-48"
                   style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
                   autoFocus
@@ -216,7 +206,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
           return (
             <li key={i} className="inline-flex items-center">
               {showSeparator && (
-                <span className="w-px h-5 bg-[--surface-active] mx-1 shrink-0" aria-hidden="true" />
+                <span className="w-px h-5 bg-accent mx-1 shrink-0" aria-hidden="true" />
               )}
               <button
                 ref={(el) => setChipRef(i, el)}
@@ -227,7 +217,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing, tri
                 aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}${isDeleted ? ' (deleted)' : ''}`}
                 className={cn(
                   isDeleted
-                    ? 'inline-flex items-center rounded-md text-[length:var(--text-body-sm)] border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-destructive/12 border-destructive/30 text-destructive line-through opacity-50'
+                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-destructive/12 border-destructive/30 text-destructive line-through opacity-50'
                     : chip({ active, focused: isFocused })
                 )}
               >

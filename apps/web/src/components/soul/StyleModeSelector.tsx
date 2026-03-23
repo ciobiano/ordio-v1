@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 import { useStore, type WaveformVariant, type GraphicStyleId } from '@/lib/store';
 import { useFeatureGates } from '@/hooks/useFeatureGates';
 import LockBadge from '@/components/primitives/LockBadge';
@@ -63,7 +63,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       width="10"
       height="10"
       viewBox="0 0 10 10"
-      className={cn('text-[--secondary] transition-transform duration-200', open && 'rotate-180')}
+      className={cn('text-muted-foreground transition-transform duration-200', open && 'rotate-180')}
       aria-hidden="true"
     >
       <path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -143,18 +143,18 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'min-h-11 px-3 py-2 rounded-xl flex items-center gap-2',
-          'bg-[--surface] border border-[--border] backdrop-blur-md',
-          'hover:bg-[--surface-hover] hover:border-[--border] transition-all duration-150',
+          'bg-muted border border-border backdrop-blur-md',
+          'hover:bg-muted hover:border-border transition-all duration-150',
           'cursor-pointer select-none'
         )}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`Style: ${activeLabel}. Tap to change.`}
       >
-        <span className="text-[--secondary]">
+        <span className="text-muted-foreground">
           <ActiveIcon />
         </span>
-        <span className="text-[--secondary] text-[length:var(--text-footnote)] font-medium tracking-wide">
+        <span className="text-muted-foreground text-xs font-medium tracking-wide">
           {activeLabel}
         </span>
         <ChevronIcon open={open} />
@@ -173,7 +173,7 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
           <div
             className={cn(
               'flex items-center gap-1.5 p-1.5',
-              'bg-[--surface] border border-[--border] backdrop-blur-md rounded-xl'
+              'bg-muted border border-border backdrop-blur-md rounded-xl'
             )}
           >
             {variants.map((variant) => {
@@ -197,8 +197,8 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
                       'min-w-11 min-h-11 rounded-lg flex items-center justify-center',
                       'transition-all duration-150 cursor-pointer border',
                       isActive
-                        ? 'bg-[--surface-active] border-[--border-active] text-[--primary]'
-                        : 'bg-transparent border-transparent text-[--secondary] hover:bg-[--surface-hover] hover:text-[--primary]'
+                        ? 'bg-accent border-border text-foreground'
+                        : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
                     <Icon />
@@ -211,7 +211,7 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
             })}
 
             {/* Divider */}
-            <div className="w-px h-6 bg-[--border] mx-0.5" aria-hidden="true" />
+            <div className="w-px h-6 bg-border mx-0.5" aria-hidden="true" />
 
             {/* Graphics section */}
             {graphicVariants.map((variant) => {
@@ -230,12 +230,12 @@ export default function StyleModeSelector({ onLocked }: StyleModeSelectorProps) 
                     'min-w-11 min-h-11 rounded-lg flex flex-col items-center justify-center gap-0.5',
                     'transition-all duration-150 cursor-pointer border',
                     isActive
-                      ? 'bg-[--surface-active] border-[--border-active] text-[--primary]'
-                      : 'bg-transparent border-transparent text-[--secondary] hover:bg-[--surface-hover] hover:text-[--primary]'
+                      ? 'bg-accent border-border text-foreground'
+                      : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   <GraphicIcon />
-                  <span className="text-[length:var(--text-footnote)] font-medium tracking-wide leading-none">{graphicLabels[variant]}</span>
+                  <span className="text-xs font-medium tracking-wide leading-none">{graphicLabels[variant]}</span>
                 </button>
               );
             })}

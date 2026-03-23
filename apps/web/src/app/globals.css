@@ -133,7 +133,7 @@
   --color-accent: var(--accent);
   --color-accent-green: var(--accent-green);
   --color-surface-sheet: var(--surface-sheet);
-  --font-sans: var(--font-sans);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --animate-wave-pulse: wave-pulse 1.4s ease-in-out infinite alternate;
   --font-heading: var(--font-heading);
   --color-btn-circle-bg: var(--btn-circle-bg);

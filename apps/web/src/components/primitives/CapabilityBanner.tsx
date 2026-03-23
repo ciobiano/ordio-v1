@@ -1,6 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const DISMISS_KEY = 'ordio_capability_warning_dismissed';
 
@@ -22,27 +25,21 @@ export default function CapabilityBanner({ warnings }: CapabilityBannerProps) {
   if (dismissed || warnings.length === 0) return null;
 
   return (
-    <div
-      role="alert"
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
-                 min-h-11 px-4 py-2.5 bg-black border-b border-white/6"
-    >
-      <p className="text-white/60 text-[length:var(--text-caption)] flex-1 text-center">{warnings[0]}</p>
-      <button
+    <Alert className="fixed top-0 left-0 right-0 z-50 rounded-none border-x-0 border-t-0
+                      border-b border-white/6 bg-black flex items-center justify-between
+                      min-h-11 px-4 py-2.5">
+      <AlertDescription className="text-white/60 text-xs flex-1 text-center">
+        {warnings[0]}
+      </AlertDescription>
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleDismiss}
         aria-label="Dismiss warning"
-        className="ml-4 text-white/50 hover:text-white/80 transition-colors duration-150
-                   cursor-pointer shrink-0 p-1 rounded min-w-11 min-h-11 flex items-center justify-center"
+        className="ml-4 shrink-0 text-white/50 hover:text-white/80 hover:bg-transparent"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path
-            d="M1 1l12 12M13 1L1 13"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
-    </div>
+        <Image src="/icons/close.svg" width={14} height={14} alt="" aria-hidden="true" className="invert opacity-50" />
+      </Button>
+    </Alert>
   );
 }

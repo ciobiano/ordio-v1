@@ -10,7 +10,7 @@ import type { UsePlaybackReturn } from '@/hooks/usePlayback';
 import { getCanvasDimensions, type WaveformVariant, type CaptionVariant, type FormatVariant } from '@/lib/store';
 import type { GraphicStyleId } from '@/lib/store';
 import { loadGraphic } from '@/lib/graphicLoader';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 
 interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
@@ -153,7 +153,7 @@ export default function CanvasPreview({
         aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
       <span
-        className="absolute top-2 right-2 text-[length:var(--text-footnote)] font-medium tracking-wider uppercase
+        className="absolute top-2 right-2 text-xs font-medium tracking-wider uppercase
                    text-white/40 bg-black/40 px-1.5 py-0.5 rounded"
         aria-hidden="true"
       >

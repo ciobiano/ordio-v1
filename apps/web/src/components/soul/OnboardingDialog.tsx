@@ -348,7 +348,7 @@ export default function OnboardingDialog() {
       <Dialog open={open} onOpenChange={() => {}}>
         <DialogContent
           showCloseButton={false}
-          className="relative overflow-hidden !p-[24px_20px_18px] !rounded-[20px] max-w-[340px] w-[calc(100vw-32px)] ob-dialog-border"
+          className="overflow-hidden pt-6 px-5 pb-[18px] rounded-[20px] max-w-[340px] ob-dialog-border"
         >
           {/* × dismiss button — visible on all slides; always-available exit */}
           <button

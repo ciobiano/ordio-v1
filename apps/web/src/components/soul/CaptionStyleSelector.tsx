@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/utils';
 import { optionBtn } from '@/lib/variants';
 import { useStore } from '@/lib/store';
 import type { CaptionVariant } from '@/lib/store';
@@ -42,7 +42,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
 
   return (
     <div className="flex items-center gap-2" role="radiogroup" aria-label="Caption style">
-      <span className="text-[--secondary] text-[length:var(--text-footnote)] mr-1" aria-hidden="true">Caption:</span>
+      <span className="text-muted-foreground text-xs mr-1" aria-hidden="true">Caption:</span>
       {styles.map((style, i) => {
         const featureKey = captionFeatureKey[style];
         const locked = featureKey ? isLocked(featureKey) : false;
