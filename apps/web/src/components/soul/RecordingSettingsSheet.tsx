@@ -8,7 +8,7 @@ import { useStore } from '@/lib/store'
 import { useFeatureGates } from '@/hooks/useFeatureGates'
 import LockBadge from '@/components/primitives/LockBadge'
 import type { FeatureKey } from '@/lib/featureGates'
-import type { WaveformVariant, CaptionVariant, EnhanceTier, GraphicStyleId } from '@/lib/store'
+import type { WaveformVariant, CanvasLayout, CaptionMode, EnhanceTier, GraphicStyleId } from '@/lib/store'
 
 interface RecordingSettingsSheetProps {
   isOpen: boolean
@@ -30,9 +30,14 @@ const GRAPHIC_OPTIONS: { value: GraphicVariant; label: string }[] = [
   { value: 'graphic-frame2', label: 'Frame 2' },
 ]
 
-const CAPTION_OPTIONS: { value: CaptionVariant; label: string; gate?: FeatureKey }[] = [
-  { value: 'bottom', label: 'Bottom' },
-  { value: 'center', label: 'Center', gate: 'caption_center' },
+const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'compact',  label: 'Compact' },
+  { value: 'flipped',  label: 'Flipped', gate: 'layout_flipped' },
+]
+
+const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
+  { value: 'phrase',  label: 'Phrase' },
   { value: 'karaoke', label: 'Karaoke', gate: 'caption_karaoke' },
 ]
 
@@ -100,8 +105,10 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   const setWaveformStyle = useStore((s) => s.setWaveformStyle)
   const graphicStyle = useStore((s) => s.graphicStyle)
   const setGraphicStyle = useStore((s) => s.setGraphicStyle)
-  const captionStyle = useStore((s) => s.captionStyle)
-  const setCaptionStyle = useStore((s) => s.setCaptionStyle)
+  const canvasLayout = useStore((s) => s.canvasLayout)
+  const setCanvasLayout = useStore((s) => s.setCanvasLayout)
+  const captionMode = useStore((s) => s.captionMode)
+  const setCaptionMode = useStore((s) => s.setCaptionMode)
   const enhanceTier = useStore((s) => s.enhanceTier)
   const setEnhanceTier = useStore((s) => s.setEnhanceTier)
   const { isLocked } = useFeatureGates()
@@ -157,30 +164,47 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
               onChange={(v) => { setWaveformStyle(v); setGraphicStyle(null) }}
               onLocked={onLocked}
             />
-            <p className="text-xs text-muted-foreground mt-3 mb-2">Graphic overlay</p>
-            <SegmentedControl
-              options={GRAPHIC_OPTIONS}
-              value={graphicStyle ?? ('' as GraphicVariant)}
-              onChange={(v) => {
-              const next = graphicStyle === v ? null : v
-              setGraphicStyle(next)
-              if (next !== null) setWaveformStyle('none')
-            }}
-              onLocked={onLocked}
-            />
+            <div
+              aria-disabled={captionMode === 'karaoke'}
+              className={cn(captionMode === 'karaoke' && 'opacity-40 pointer-events-none')}
+            >
+              <p className="text-xs text-muted-foreground mt-3 mb-2">
+                Graphic overlay
+                {captionMode === 'karaoke' && (
+                  <span className="ml-1">— unavailable in Karaoke</span>
+                )}
+              </p>
+              <SegmentedControl
+                options={GRAPHIC_OPTIONS}
+                value={graphicStyle ?? ('' as GraphicVariant)}
+                onChange={(v) => {
+                  const next = graphicStyle === v ? null : v
+                  setGraphicStyle(next)
+                  if (next !== null) setWaveformStyle('none')
+                }}
+                onLocked={onLocked}
+              />
+            </div>
           </section>
 
           <div className="h-px bg-white/[0.08]" />
 
-          {/* Caption Position */}
+          {/* Caption Layout */}
           <section>
             <h3 className="text-xs font-semibold text-white/[0.48] uppercase tracking-[0.13em] mb-3">
-              Caption Position
+              Caption Layout
             </h3>
             <SegmentedControl
-              options={CAPTION_OPTIONS}
-              value={captionStyle}
-              onChange={setCaptionStyle}
+              options={LAYOUT_OPTIONS}
+              value={canvasLayout}
+              onChange={setCanvasLayout}
+              onLocked={onLocked}
+            />
+            <p className="text-xs text-muted-foreground mt-3 mb-2">Caption mode</p>
+            <SegmentedControl
+              options={MODE_OPTIONS}
+              value={captionMode}
+              onChange={setCaptionMode}
               onLocked={onLocked}
             />
           </section>

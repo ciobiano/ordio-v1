@@ -14,11 +14,12 @@ export function drawCircleWaveform(
   currentTime: number,
   duration: number,
   waveformData: number[],
-  style: StyleConfig
+  style: StyleConfig,
+  centerYFraction?: number
 ): void {
   const { width, height, waveColor } = style;
   const cx = width / 2;
-  const cy = height * CIRCLE_CENTER_Y;
+  const cy = height * (centerYFraction ?? CIRCLE_CENTER_Y);
   const smallerDim = Math.min(width, height);
   const innerRadius = smallerDim * CIRCLE_INNER_RADIUS;
   const maxBarLen = smallerDim * CIRCLE_MAX_BAR_LEN;

@@ -8,7 +8,10 @@ import type { FeatureKey } from '@/lib/featureGates';
 export type AppPhase = 'idle' | 'recording' | 'processing';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
-export type CaptionVariant = 'bottom' | 'center' | 'karaoke';
+/** How the canvas is composed: where the visual sits and where captions sit */
+export type CanvasLayout = 'standard' | 'compact' | 'flipped';
+/** How captions are revealed frame-by-frame */
+export type CaptionMode = 'phrase' | 'karaoke';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
 
 export function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
@@ -61,7 +64,8 @@ interface AppState {
   style: StyleConfig;
   waveformStyle: WaveformVariant;
   graphicStyle: GraphicStyleId;
-  captionStyle: CaptionVariant;
+  canvasLayout: CanvasLayout;
+  captionMode: CaptionMode;
   format: FormatVariant;
 
   // Audio enhancement (server-side, post-recording)
@@ -89,7 +93,8 @@ interface AppState {
   setStyle: (style: Partial<StyleConfig>) => void;
   setWaveformStyle: (style: WaveformVariant) => void;
   setGraphicStyle: (id: GraphicStyleId) => void;
-  setCaptionStyle: (style: CaptionVariant) => void;
+  setCanvasLayout: (layout: CanvasLayout) => void;
+  setCaptionMode: (mode: CaptionMode) => void;
   setFormat: (format: FormatVariant) => void;
   setEnhanceTier: (tier: EnhanceTier) => void;
   setIsEnhancing: (isEnhancing: boolean) => void;
@@ -116,7 +121,8 @@ const initialPreferences = {
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,
-  captionStyle: 'center' as CaptionVariant,
+  canvasLayout: 'standard' as CanvasLayout,
+  captionMode: 'phrase' as CaptionMode,
   format: 'square' as FormatVariant,
   enhanceTier: 'none' as EnhanceTier,
 };
@@ -168,7 +174,8 @@ export const useStore = create<AppState>()(
         set((state) => ({ style: { ...state.style, ...newStyle } })),
       setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
       setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
-      setCaptionStyle: (captionStyle) => set({ captionStyle }),
+      setCanvasLayout: (canvasLayout) => set({ canvasLayout }),
+      setCaptionMode: (captionMode) => set({ captionMode }),
       setFormat: (format) =>
         set((state) => {
           const dims =
@@ -194,7 +201,8 @@ export const useStore = create<AppState>()(
         style: state.style,
         waveformStyle: state.waveformStyle,
         graphicStyle: state.graphicStyle,
-        captionStyle: state.captionStyle,
+        canvasLayout: state.canvasLayout,
+        captionMode: state.captionMode,
         format: state.format,
         enhanceTier: state.enhanceTier,
       }),

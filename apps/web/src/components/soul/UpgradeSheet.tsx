@@ -30,7 +30,7 @@ function featureLabel(feature: FeatureKey): string {
     format_vertical: '9:16 Vertical',
     format_horizontal: '16:9 Horizontal',
     format_instagram: '4:5 Instagram',
-    caption_center: 'Center Captions',
+    layout_flipped: 'Flipped Layout',
     caption_karaoke: 'Karaoke Mode',
     unlimited_exports: 'Unlimited Exports',
   }

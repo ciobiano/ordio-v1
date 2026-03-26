@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import CanvasPreview from '@/components/primitives/CanvasPreview'
 import PlaybackControls from '@/components/primitives/PlaybackControls'
 import type { UsePlaybackReturn } from '@/hooks/usePlayback'
-import type { WaveformVariant, CaptionVariant, FormatVariant, GraphicStyleId } from '@/lib/store'
+import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/lib/store'
 
 const FORMAT_RATIO: Record<FormatVariant, string> = {
   square: '1:1',
@@ -20,7 +20,8 @@ interface ExportCanvasProps {
   playback: UsePlaybackReturn
   format: FormatVariant
   waveformStyle: WaveformVariant
-  captionStyle: CaptionVariant
+  captionMode: CaptionMode
+  canvasLayout?: CanvasLayout
   graphicStyle?: GraphicStyleId
   showWatermark?: boolean
 }
@@ -29,7 +30,8 @@ export function ExportCanvas({
   playback,
   format,
   waveformStyle,
-  captionStyle,
+  captionMode,
+  canvasLayout,
   graphicStyle,
   showWatermark,
 }: ExportCanvasProps) {
@@ -46,7 +48,8 @@ export function ExportCanvas({
             playback={playback}
             format={format}
             waveformStyle={waveformStyle}
-            captionStyle={captionStyle}
+            captionMode={captionMode}
+            canvasLayout={canvasLayout}
             graphicStyle={graphicStyle}
             showWatermark={showWatermark}
           />

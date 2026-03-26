@@ -3,6 +3,7 @@ import type { StyleConfig } from '@Ordio/shared/schemas';
 // ── Layout constants ────────────────────────────────────────────────
 
 export const WAVEFORM_CENTER_Y = 0.72;
+export const WAVEFORM_CENTER_Y_FLIPPED = 1 - WAVEFORM_CENTER_Y; // 0.28
 export const WAVEFORM_MAX_AMP = 0.07;
 export const WAVEFORM_WIDTH_RATIO = 0.82;
 export const BAR_COUNT = 48;
@@ -11,6 +12,7 @@ export const BAR_MIN_WIDTH = 6;
 export const SPOKE_COUNT = 120;
 export const SPOKE_WIDTH = 3;
 export const CIRCLE_CENTER_Y = 0.62;
+export const CIRCLE_CENTER_Y_FLIPPED = 1 - CIRCLE_CENTER_Y; // 0.38
 export const CIRCLE_INNER_RADIUS = 0.08;
 export const CIRCLE_MAX_BAR_LEN = 0.12;
 export const MIN_AMPLITUDE = 0.04;

@@ -1,11 +1,11 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { CaptionVariant } from '@/lib/store';
+import type { CaptionMode } from '@/lib/store';
 
 interface LiveCaptionProps {
   words: string[];
-  style: CaptionVariant;
+  style: CaptionMode;
 }
 
 export default function LiveCaption({ words, style }: LiveCaptionProps) {
@@ -35,7 +35,7 @@ export default function LiveCaption({ words, style }: LiveCaptionProps) {
   }
 
   return (
-    <div className={cn('px-4', style === 'center' && 'text-center')}>
+    <div className="px-4">
       <p className="text-lg font-medium leading-relaxed text-white">
         {displayWords.join(' ')}
         <span className="inline-block w-0.5 h-5 bg-white/60 animate-pulse ml-1" aria-hidden="true" />

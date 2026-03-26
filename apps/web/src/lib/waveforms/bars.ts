@@ -16,10 +16,11 @@ export function drawPillBars(
   currentTime: number,
   duration: number,
   waveformData: number[],
-  style: StyleConfig
+  style: StyleConfig,
+  centerYFraction?: number
 ): void {
   const { width, height, waveColor } = style;
-  const centerY = height * WAVEFORM_CENTER_Y;
+  const centerY = height * (centerYFraction ?? WAVEFORM_CENTER_Y);
   const maxAmp = height * WAVEFORM_MAX_AMP;
   const baseAmp = getCurrentAmplitude(currentTime, duration, waveformData);
   const { barWidth, startX } = computeBarLayout(width);

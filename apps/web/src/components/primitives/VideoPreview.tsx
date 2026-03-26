@@ -1,18 +1,18 @@
 'use client';
 
 import WaveformDisplay from './waveform/WaveformDisplay';
-import type { WaveformVariant, CaptionVariant, FormatVariant } from '@/lib/store';
+import type { WaveformVariant, CanvasLayout, FormatVariant } from '@/lib/store';
 
 interface VideoPreviewProps {
   format: FormatVariant;
   waveformStyle: WaveformVariant;
-  captionStyle: CaptionVariant;
+  canvasLayout?: CanvasLayout;
 }
 
 export default function VideoPreview({
   format,
   waveformStyle,
-  captionStyle,
+  canvasLayout,
 }: VideoPreviewProps) {
   const isVertical = format === 'vertical';
 
@@ -44,14 +44,14 @@ export default function VideoPreview({
       {/* Caption area */}
       <div
         className={`absolute left-0 right-0 px-4 ${
-          captionStyle === 'center'
-            ? 'top-1/2 -translate-y-1/2'
+          canvasLayout === 'flipped'
+            ? 'top-[38%]'
             : isVertical
               ? 'bottom-16'
               : 'bottom-8'
         }`}
       >
-        <div className={captionStyle === 'center' ? 'text-center mt-20' : ''}>
+        <div>
           <p
             className={`font-semibold leading-tight ${
               isVertical ? 'text-sm' : 'text-sm'

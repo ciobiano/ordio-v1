@@ -7,7 +7,7 @@ import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
 import { loadFont } from '@/lib/fontLoader';
 import type { UsePlaybackReturn } from '@/hooks/usePlayback';
-import { getCanvasDimensions, type WaveformVariant, type CaptionVariant, type FormatVariant } from '@/lib/store';
+import { getCanvasDimensions, type WaveformVariant, type CaptionMode, type CanvasLayout, type FormatVariant } from '@/lib/store';
 import type { GraphicStyleId } from '@/lib/store';
 import { loadGraphic } from '@/lib/graphicLoader';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,8 @@ interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
   format: FormatVariant;
   waveformStyle: WaveformVariant;
-  captionStyle: CaptionVariant;
+  captionMode: CaptionMode;
+  canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
   className?: string;
@@ -58,7 +59,8 @@ export default function CanvasPreview({
   playback,
   format,
   waveformStyle,
-  captionStyle,
+  captionMode,
+  canvasLayout,
   showWatermark = false,
   graphicStyle,
   className,
@@ -115,13 +117,14 @@ export default function CanvasPreview({
       transcript,
       style: { ...style, width: canvasWidth, height: canvasHeight },
       waveformStyle,
-      captionStyle,
+      captionMode,
+      canvasLayout,
       showWatermark,
       graphicStyle,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionStyle, showWatermark, graphicStyle, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {

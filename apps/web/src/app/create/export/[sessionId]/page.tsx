@@ -42,7 +42,8 @@ export default function ExportPage({
     setUpgradeTarget,
     format,
     waveformStyle,
-    captionStyle,
+    canvasLayout,
+    captionMode,
     graphicStyle,
     reset,
   } = useStore();
@@ -61,6 +62,7 @@ export default function ExportPage({
 
   const exporter = useVideoExporter();
   const playback = usePlayback();
+  const loadAudio = playback.load;
   const { tier } = useCurrentUser();
   const exportGate = useExportGate();
 
@@ -114,10 +116,12 @@ export default function ExportPage({
     router,
   ]);
 
-  // Load audio into playback once AudioBuffer is ready
+  // Load audio into playback once AudioBuffer is ready.
+  // `loadAudio` is a stable useCallback ref — only re-run when audioBuffer changes,
+  // not on every render tick that updates playback.currentTime.
   useEffect(() => {
-    if (audioBuffer) playback.load(audioBuffer);
-  }, [audioBuffer, playback]);
+    if (audioBuffer) loadAudio(audioBuffer);
+  }, [audioBuffer, loadAudio]);
 
   const handleExportStart = useCallback(async (): Promise<boolean> => {
     const gate = await exportGate.checkAndConsume();
@@ -179,7 +183,8 @@ export default function ExportPage({
         exporter={exporter}
         format={format}
         waveformStyle={waveformStyle}
-        captionStyle={captionStyle}
+        captionMode={captionMode}
+        canvasLayout={canvasLayout}
         graphicStyle={graphicStyle}
         showWatermark={tier === 'free'}
         onExportStart={handleExportStart}

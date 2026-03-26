@@ -55,7 +55,7 @@ function makeOptions(overrides?: Partial<FrameOptions>): FrameOptions {
     transcript: sampleTranscript,
     style: defaultStyle,
     waveformStyle: 'bars',
-    captionStyle: 'bottom',
+    captionMode: 'phrase',
     ...overrides,
   };
 }
@@ -85,12 +85,22 @@ describe('renderFrame', () => {
     }
   });
 
-  it('renders without crashing for all caption variants', () => {
-    const variants = ['bottom', 'center', 'karaoke'] as const;
-    for (const variant of variants) {
+  it('renders without crashing for all canvas layouts', () => {
+    const layouts = ['standard', 'compact', 'flipped'] as const;
+    for (const layout of layouts) {
       const ctx = createMockCtx();
       expect(() =>
-        renderFrame(ctx, 15, 90, makeOptions({ captionStyle: variant }))
+        renderFrame(ctx, 15, 90, makeOptions({ canvasLayout: layout }))
+      ).not.toThrow();
+    }
+  });
+
+  it('renders without crashing for all caption modes', () => {
+    const modes = ['phrase', 'karaoke'] as const;
+    for (const mode of modes) {
+      const ctx = createMockCtx();
+      expect(() =>
+        renderFrame(ctx, 15, 90, makeOptions({ captionMode: mode }))
       ).not.toThrow();
     }
   });

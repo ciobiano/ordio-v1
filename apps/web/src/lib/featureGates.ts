@@ -13,7 +13,7 @@ export type FeatureKey =
   | 'format_vertical'
   | 'format_horizontal'
   | 'format_instagram'
-  | 'caption_center'
+  | 'layout_flipped'
   | 'caption_karaoke'
   | 'unlimited_exports';
 
@@ -36,7 +36,7 @@ export const FEATURE_GATES: Record<FeatureKey, UserTier> = {
   format_vertical: 'creator',
   format_horizontal: 'creator',
   format_instagram: 'creator',
-  caption_center: 'creator',
+  layout_flipped: 'creator',
   caption_karaoke: 'creator',
   unlimited_exports: 'creator',
 };
