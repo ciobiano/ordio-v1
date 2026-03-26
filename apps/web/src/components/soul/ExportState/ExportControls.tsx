@@ -20,6 +20,11 @@ interface ExportControlsProps {
   audioBuffer: AudioBuffer | null
   transcript: Word[]
   onLocked: (feature: FeatureKey) => void
+  onCommit: () => void
+  onUndo: () => void
+  onRedo: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
 
 export function ExportControls({
@@ -28,6 +33,11 @@ export function ExportControls({
   audioBuffer,
   transcript,
   onLocked,
+  onCommit,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: ExportControlsProps) {
   const [activePanel, setActivePanel] = useState<ToolbarPanel>('captions')
 
@@ -53,9 +63,13 @@ export function ExportControls({
         {activePanel === 'trim' && (
           <TrimPanel
             audioBuffer={audioBuffer}
-            transcript={transcript}
             trimmer={trimmer}
-            onSeek={playback.seek}
+            onCommit={onCommit}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onPreviewAt={playback.previewAt}
           />
         )}
       </div>
