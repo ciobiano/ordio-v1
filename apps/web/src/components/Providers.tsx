@@ -12,7 +12,7 @@ const convex = new ConvexReactClient(
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider afterSignInUrl="/create" afterSignUpUrl="/create">
+    <ClerkProvider signInFallbackRedirectUrl="/create" signUpFallbackRedirectUrl="/create">
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <TooltipProvider>
           {children}
