@@ -7,16 +7,17 @@ describe('SlideToContinue', () => {
     const { getByTestId } = render(
       <SlideToContinue onComplete={onComplete} userName="Ralph" />
     );
-    const thumb = getByTestId('slide-thumb');
     const track = getByTestId('slide-track');
 
     jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
       left: 0, width: 200, top: 0, bottom: 0, right: 200, height: 0, x: 0, y: 0, toJSON: () => ({})
     });
 
-    fireEvent.pointerDown(thumb, { clientX: 0, pointerId: 1 });
-    fireEvent.pointerMove(thumb, { clientX: 175, pointerId: 1 }); // 87.5% > 85%
-    fireEvent.pointerUp(thumb, { pointerId: 1 });
+    // clientX: 10 is within the thumb hit area (thumb starts at x=7, tolerance ±4 → [3, 47])
+    // startX=10, move to clientX=185 → delta=175, maxTravel=200-36-14=150, progress=175/150=1.0 → complete
+    fireEvent.pointerDown(track, { clientX: 10, pointerId: 1 });
+    fireEvent.pointerMove(track, { clientX: 185, pointerId: 1 });
+    fireEvent.pointerUp(track, { pointerId: 1 });
 
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
@@ -26,16 +27,15 @@ describe('SlideToContinue', () => {
     const { getByTestId } = render(
       <SlideToContinue onComplete={onComplete} userName="Ralph" />
     );
-    const thumb = getByTestId('slide-thumb');
     const track = getByTestId('slide-track');
 
     jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
       left: 0, width: 200, top: 0, bottom: 0, right: 200, height: 0, x: 0, y: 0, toJSON: () => ({})
     });
 
-    fireEvent.pointerDown(thumb, { clientX: 0, pointerId: 1 });
-    fireEvent.pointerMove(thumb, { clientX: 100, pointerId: 1 }); // 50% < 85%
-    fireEvent.pointerUp(thumb, { pointerId: 1 });
+    fireEvent.pointerDown(track, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(track, { clientX: 100, pointerId: 1 }); // 50% < 85%
+    fireEvent.pointerUp(track, { pointerId: 1 });
 
     expect(onComplete).not.toHaveBeenCalled();
   });

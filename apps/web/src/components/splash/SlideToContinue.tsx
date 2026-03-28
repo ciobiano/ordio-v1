@@ -4,6 +4,7 @@ import { useRef, useState, useCallback } from 'react';
 
 const THUMB_SIZE = 36; // matches w-9 (Tailwind = 9 * 4px = 36px)
 const COMPLETE_THRESHOLD = 0.85;
+const THUMB_INSET = 7; // px from left edge when at rest
 
 interface Props {
   onComplete: () => void;
@@ -12,14 +13,27 @@ interface Props {
 
 export function SlideToContinue({ onComplete, userName }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0); // 0–1
   const isDraggingRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef(0);
   const progressRef = useRef(0);
-  const [thumbLeft, setThumbLeft] = useState(7); // 7px = left inset
+  const thumbLeftRef = useRef(THUMB_INSET);
+  const [thumbLeft, setThumbLeft] = useState(THUMB_INSET);
+
+  const updateThumb = useCallback((left: number, progress: number) => {
+    thumbLeftRef.current = left;
+    progressRef.current = progress;
+    setThumbLeft(left);
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!trackRef.current) return;
+    // Hit-test: only start drag if pointer started on the thumb
+    const rect = trackRef.current.getBoundingClientRect();
+    const pointerX = e.clientX - rect.left;
+    const tLeft = thumbLeftRef.current;
+    if (pointerX < tLeft - 4 || pointerX > tLeft + THUMB_SIZE + 4) return;
+
     e.currentTarget.setPointerCapture?.(e.pointerId);
     isDraggingRef.current = true;
     setIsDragging(true);
@@ -29,25 +43,22 @@ export function SlideToContinue({ onComplete, userName }: Props) {
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDraggingRef.current || !trackRef.current) return;
     const trackWidth = trackRef.current.getBoundingClientRect().width;
-    const maxTravel = trackWidth - THUMB_SIZE - 14; // 7px inset each side
+    const maxTravel = trackWidth - THUMB_SIZE - THUMB_INSET * 2;
     const delta = e.clientX - startXRef.current;
     const newProgress = Math.min(1, Math.max(0, delta / maxTravel));
-    progressRef.current = newProgress;
-    setProgress(newProgress);
-    setThumbLeft(7 + newProgress * maxTravel);
-  }, []);
+    updateThumb(THUMB_INSET + newProgress * maxTravel, newProgress);
+  }, [updateThumb]);
 
   const handlePointerUp = useCallback(() => {
+    if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     setIsDragging(false);
     if (progressRef.current >= COMPLETE_THRESHOLD) {
       onComplete();
     } else {
-      setProgress(0);
-      progressRef.current = 0;
-      setThumbLeft(7);
+      updateThumb(THUMB_INSET, 0);
     }
-  }, [onComplete]);
+  }, [onComplete, updateThumb]);
 
   return (
     <div className="w-full flex flex-col items-center gap-3 px-5 pb-8">
@@ -60,7 +71,11 @@ export function SlideToContinue({ onComplete, userName }: Props) {
       <div
         ref={trackRef}
         data-testid="slide-track"
-        className="relative w-full h-14 rounded-2xl overflow-hidden bg-white/5 border border-white/10 backdrop-blur-xl"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="relative w-full h-14 rounded-2xl overflow-hidden bg-white/5 border border-white/10 backdrop-blur-xl touch-none select-none"
       >
         {/* Shimmer sweep */}
         <div className="absolute inset-0 pointer-events-none animate-shimmer bg-gradient-to-r from-transparent via-white/5 to-transparent" />
@@ -70,18 +85,14 @@ export function SlideToContinue({ onComplete, userName }: Props) {
           Slide to continue
         </span>
 
-        {/* Thumb */}
+        {/* Thumb — visual only, no pointer events */}
         <div
           data-testid="slide-thumb"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           style={{ '--thumb-left': `${thumbLeft}px` } as React.CSSProperties}
           className={[
-            'slide-thumb absolute top-2.5 w-9 h-9 rounded-xl',
-            'bg-white shadow-md cursor-grab active:cursor-grabbing',
-            'flex items-center justify-center touch-none',
+            'slide-thumb absolute top-2.5 w-9 h-9 rounded-xl pointer-events-none',
+            'bg-white shadow-md',
+            'flex items-center justify-center',
             isDragging ? '' : 'slide-thumb-animating',
           ].join(' ')}
         >
