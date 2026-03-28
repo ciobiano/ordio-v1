@@ -1,4 +1,9 @@
 import { vi } from 'vitest';
+import '@testing-library/jest-dom';
+
+// Expose `jest` as a global alias for `vi` so tests written with Jest syntax work under Vitest
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).jest = vi;
 
 // Global test setup for jsdom environment
 
