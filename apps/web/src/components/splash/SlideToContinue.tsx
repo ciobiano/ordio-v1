@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 
-const THUMB_SIZE = 44; // px — includes 7px inset on each side
+const THUMB_SIZE = 36; // matches w-9 (Tailwind = 9 * 4px = 36px)
 const COMPLETE_THRESHOLD = 0.85;
 
 interface Props {
@@ -13,41 +13,41 @@ interface Props {
 export function SlideToContinue({ onComplete, userName }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0); // 0–1
-  const [dragging, setDragging] = useState(false);
+  const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef(0);
   const progressRef = useRef(0);
-
-  const clampProgress = (raw: number) => Math.min(1, Math.max(0, raw));
+  const [thumbLeft, setThumbLeft] = useState(7); // 7px = left inset
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.currentTarget.setPointerCapture) {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-    setDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    isDraggingRef.current = true;
+    setIsDragging(true);
     startXRef.current = e.clientX;
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!trackRef.current) return;
+    if (!isDraggingRef.current || !trackRef.current) return;
     const trackWidth = trackRef.current.getBoundingClientRect().width;
     const maxTravel = trackWidth - THUMB_SIZE - 14; // 7px inset each side
     const delta = e.clientX - startXRef.current;
-    const newProgress = clampProgress(delta / maxTravel);
+    const newProgress = Math.min(1, Math.max(0, delta / maxTravel));
     progressRef.current = newProgress;
     setProgress(newProgress);
+    setThumbLeft(7 + newProgress * maxTravel);
   }, []);
 
   const handlePointerUp = useCallback(() => {
-    setDragging(false);
+    isDraggingRef.current = false;
+    setIsDragging(false);
     if (progressRef.current >= COMPLETE_THRESHOLD) {
       onComplete();
     } else {
       setProgress(0);
       progressRef.current = 0;
+      setThumbLeft(7);
     }
   }, [onComplete]);
-
-  const thumbLeft = 7 + progress * Math.max(0, (trackRef.current?.getBoundingClientRect().width ?? 200) - THUMB_SIZE - 14);
 
   return (
     <div className="w-full flex flex-col items-center gap-3 px-5 pb-8">
@@ -79,9 +79,9 @@ export function SlideToContinue({ onComplete, userName }: Props) {
           onPointerCancel={() => handlePointerUp()}
           style={{
             left: `${thumbLeft}px`,
-            transition: dragging ? 'none' : 'left 0.3s ease',
+            transition: isDragging ? 'none' : 'left 0.3s ease',
           }}
-          className="absolute top-1.5 w-9 h-9 rounded-xl bg-white shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center touch-none"
+          className="absolute top-2.5 w-9 h-9 rounded-xl bg-white shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center touch-none"
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path d="M7 5l5 5-5 5" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
