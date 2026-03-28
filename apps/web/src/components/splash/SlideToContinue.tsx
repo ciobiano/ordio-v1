@@ -76,12 +76,14 @@ export function SlideToContinue({ onComplete, userName }: Props) {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerCancel={() => handlePointerUp()}
-          style={{
-            left: `${thumbLeft}px`,
-            transition: isDragging ? 'none' : 'left 0.3s ease',
-          }}
-          className="absolute top-2.5 w-9 h-9 rounded-xl bg-white shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center touch-none"
+          onPointerCancel={handlePointerUp}
+          style={{ '--thumb-left': `${thumbLeft}px` } as React.CSSProperties}
+          className={[
+            'slide-thumb absolute top-2.5 w-9 h-9 rounded-xl',
+            'bg-white shadow-md cursor-grab active:cursor-grabbing',
+            'flex items-center justify-center touch-none',
+            isDragging ? '' : 'slide-thumb-animating',
+          ].join(' ')}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path d="M7 5l5 5-5 5" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />

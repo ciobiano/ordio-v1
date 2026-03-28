@@ -457,6 +457,15 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ── Splash / SlideToContinue ───────────────────────────────── */
+.slide-thumb {
+  left: var(--thumb-left, 7px);
+}
+
+.slide-thumb-animating {
+  transition: left 0.3s ease;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
