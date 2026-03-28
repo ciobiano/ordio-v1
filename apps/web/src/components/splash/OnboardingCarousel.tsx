@@ -64,34 +64,32 @@ export function OnboardingCarousel({ onCTA }: Props) {
       className="absolute inset-0 flex flex-col"
     >
       {/* Hero text — left-aligned, lower-middle */}
-      <div className="absolute bottom-32 left-6 right-6">
+      <div className="absolute bottom-32 left-6 right-6" aria-live="polite">
         <p className="text-xs text-white/45 mb-1.5 tracking-wide">
           {current.eyebrow}
         </p>
-        <h1 className="text-3xl font-light leading-snug tracking-tight text-white">
+        <h2 className="text-3xl font-light leading-snug tracking-tight text-white">
           {current.headlineStart}
           <br />
           <strong className="font-bold">{current.headlineBold}</strong>
           {current.headlineEnd ? ` ${current.headlineEnd}` : null}
-        </h1>
+        </h2>
       </div>
 
       {/* Dash progress indicators */}
       <div className="absolute bottom-28 left-6 flex gap-1.5">
         {SLIDES.map((_, i) => (
-          <div
+          <button
             key={i}
             data-testid="progress-dash"
             data-active={String(i === slide)}
             onClick={() => setSlide(i)}
-            className="h-0.5 rounded-full cursor-pointer transition-all duration-300"
-            style={{
-              width: i === slide ? '28px' : '20px',
-              background:
-                i === slide
-                  ? 'rgba(255,255,255,0.88)'
-                  : 'rgba(255,255,255,0.22)',
-            }}
+            aria-label={`Go to slide ${i + 1}`}
+            aria-current={i === slide ? 'true' : undefined}
+            className={[
+              'h-0.5 rounded-full transition-all duration-300',
+              i === slide ? 'w-7 bg-white/90' : 'w-5 bg-white/20',
+            ].join(' ')}
           />
         ))}
       </div>
