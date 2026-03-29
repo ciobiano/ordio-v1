@@ -1,3 +1,4 @@
+import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { OnboardingCarousel } from '@/components/splash/OnboardingCarousel';
 
@@ -27,7 +28,7 @@ describe('OnboardingCarousel', () => {
   });
 
   it('calls onCTA when Get Started is tapped', () => {
-    const onCTA = jest.fn();
+    const onCTA = vi.fn();
     const { getByRole } = render(<OnboardingCarousel onCTA={onCTA} />);
     fireEvent.click(getByRole('button', { name: /get started/i }));
     expect(onCTA).toHaveBeenCalledTimes(1);

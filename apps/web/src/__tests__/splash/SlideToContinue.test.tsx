@@ -1,15 +1,16 @@
+import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { SlideToContinue } from '@/components/splash/SlideToContinue';
 
 describe('SlideToContinue', () => {
   it('calls onComplete when thumb is dragged past 85% of track width', () => {
-    const onComplete = jest.fn();
+    const onComplete = vi.fn();
     const { getByTestId } = render(
       <SlideToContinue onComplete={onComplete} userName="Ralph" />
     );
     const track = getByTestId('slide-track');
 
-    jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+    vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
       left: 0, width: 200, top: 0, bottom: 0, right: 200, height: 0, x: 0, y: 0, toJSON: () => ({})
     });
 
@@ -23,13 +24,13 @@ describe('SlideToContinue', () => {
   });
 
   it('does NOT call onComplete when released below 85% threshold', () => {
-    const onComplete = jest.fn();
+    const onComplete = vi.fn();
     const { getByTestId } = render(
       <SlideToContinue onComplete={onComplete} userName="Ralph" />
     );
     const track = getByTestId('slide-track');
 
-    jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+    vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
       left: 0, width: 200, top: 0, bottom: 0, right: 200, height: 0, x: 0, y: 0, toJSON: () => ({})
     });
 
