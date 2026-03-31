@@ -79,9 +79,9 @@ export const roundIconBtn = cva(
     variants: {
       intent: {
         idle:     'w-16 h-16 bg-muted text-foreground hover:bg-muted',
-        pause:    'w-16 h-16 bg-muted text-foreground hover:bg-muted',
-        settings: 'w-16 h-16 bg-muted text-foreground hover:bg-muted',
-        stop:     'w-16 h-16 bg-destructive/15 border-2 border-destructive/60 text-destructive hover:bg-destructive/25',
+        pause:    'w-12 h-12 bg-white/8 text-white/60 hover:bg-white/12',
+        settings: 'w-12 h-12 bg-white/8 text-white/60 hover:bg-white/12',
+        stop:     'w-20 h-20 bg-destructive/15 border-2 border-destructive/60 text-destructive hover:bg-destructive/25',
         play:     'w-16 h-16 shrink-0 bg-primary text-primary-foreground border border-primary hover:bg-white/90',
         nav:      'w-10 h-10 bg-muted text-muted-foreground hover:bg-muted hover:text-foreground',
       },
