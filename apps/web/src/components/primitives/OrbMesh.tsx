@@ -95,31 +95,34 @@ void main() {
 // The trick: warp the sampling coordinates first (like the vertex shader does),
 // then sample the final cloud value at the warped position. This makes cloud
 // masses large and connected rather than scattered speckles.
+// uEnergy: 0 = dormant (cool, dim), 1 = active (bright, energised).
+// Smoothly lerped in useFrame so colour transitions feel organic, not snappy.
 const FRAGMENT_SHADER = SNOISE_GLSL + /* glsl */ `
 uniform float uTime;
+uniform float uEnergy;   // 0 dormant → 1 active, smoothed
 varying vec3 vObjPos;
 varying vec3 vWorldNormal;
 
 void main() {
-  // Domain warp at large scale — creates the sweeping continental cloud systems
+  // Speed up domain warp when active — cloud systems "churn" during recording
+  float drift = 0.04 + uEnergy * 0.08;
+
   vec3 warp = vec3(
-    snoise(vObjPos * 0.7 + uTime * 0.05),
-    snoise(vObjPos * 0.7 + uTime * 0.05 + vec3(5.2, 1.3, 2.8)),
-    snoise(vObjPos * 0.7 + uTime * 0.05 + vec3(3.1, 7.4, 4.6))
+    snoise(vObjPos * 0.7 + uTime * drift),
+    snoise(vObjPos * 0.7 + uTime * drift + vec3(5.2, 1.3, 2.8)),
+    snoise(vObjPos * 0.7 + uTime * drift + vec3(3.1, 7.4, 4.6))
   );
 
-  // Single cloud signal at warped position — large, coherent masses
-  float cloud = snoise((vObjPos + warp * 0.55) * 0.9 + uTime * 0.04) * 0.5 + 0.5;
-
-  // Broad smoothstep — soft cloud edges, no sharp blobs
+  float cloud = snoise((vObjPos + warp * 0.55) * 0.9 + uTime * (drift * 0.8)) * 0.5 + 0.5;
   cloud = smoothstep(0.28, 0.78, cloud);
 
-  // Deep ocean → bright ocean → cloud white
-  vec3 deep  = vec3(0.06, 0.16, 0.62);
-  vec3 mid   = vec3(0.22, 0.55, 0.95);
-  vec3 white = vec3(0.90, 0.96, 1.00);
+  // Dormant: deep navy → steel blue → pale (restrained, waiting)
+  // Active:  cobalt   → sky blue  → bright white (alive, listening)
+  vec3 deep  = mix(vec3(0.04, 0.10, 0.48), vec3(0.06, 0.18, 0.70), uEnergy);
+  vec3 mid   = mix(vec3(0.16, 0.42, 0.80), vec3(0.22, 0.60, 0.98), uEnergy);
+  vec3 white = mix(vec3(0.75, 0.86, 0.96), vec3(0.96, 0.99, 1.00), uEnergy);
 
-  vec3 color = mix(deep,  mid,   smoothstep(0.0, 0.48, cloud));
+  vec3 color = mix(deep,  mid,   smoothstep(0.0,  0.48, cloud));
        color = mix(color, white, smoothstep(0.40, 1.00, cloud));
 
   // Spherical limb darkening — edges go deep blue so it reads as a globe, not a disc
@@ -141,8 +144,9 @@ export function OrbMesh({ state, intensity }: OrbMeshProps) {
 
   const uniforms = useMemo(
     () => ({
-      uTime:      { value: 0 },
+      uTime:       { value: 0 },
       uAudioLevel: { value: 0 },
+      uEnergy:     { value: 0 },
     }),
     [],
   )
@@ -168,6 +172,11 @@ export function OrbMesh({ state, intensity }: OrbMeshProps) {
   useFrame((_, delta) => {
     const target = state === 'active' ? intensity : 0
     smoothedLevel.current += (target - smoothedLevel.current) * 0.12
+
+    // Energy: 1 when active (regardless of audio level), 0 when dormant/resting.
+    // Slower α=0.04 so colour transitions feel like weather shifting, not switching.
+    const energyTarget = state === 'active' ? 1 : 0
+    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.04
 
     uniforms.uTime.value      += delta
     uniforms.uAudioLevel.value = smoothedLevel.current
