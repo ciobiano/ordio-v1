@@ -11,23 +11,19 @@ import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { CapabilityBanner } from '@/components/primitives';
 import { AuthGate, UpgradeSheet, OnboardingDialog } from '@/components/soul';
+import { useOverlayLoading } from '@/components/NavigationTransition';
 
 function CreateLayoutContent({ children }: { children: React.ReactNode }) {
   const { upgradeTarget, setUpgradeTarget } = useStore();
   const capabilities = useCapabilities();
   const { isLoading } = useCurrentUser();
   const { isSignedIn } = useAuth();
+  useOverlayLoading(isLoading);
   const { startCheckout } = useCheckout();
 
   usePaymentRedirect();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-dvh bg-black flex items-center justify-center">
-        <div className="w-5 h-5 rounded-full border border-white/20 border-t-white/60 animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return null;
 
   if (!isSignedIn) {
     return <AuthGate />;

@@ -32,13 +32,15 @@ export default function CreatePage() {
   } = useStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isStarting, setIsStarting] = useState(false);
+  const [micDenied, setMicDenied] = useState(false);
   const animFrameRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
-  const { processingProgress, processAudio } = useAudioProcessing(transcription);
+  const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
   const { tier } = useCurrentUser();
   const capabilities = useCapabilities();
 
@@ -60,14 +62,26 @@ export default function CreatePage() {
   }, [recorder.isRecording, analyser]);
 
   const handleStartRecording = useCallback(async () => {
+    setIsStarting(true);
     transcription.clearTranscript();
-    const stream = await recorder.startRecording();
-    if (!stream) {
-      toast.error(recorder.error ?? 'Microphone access denied. Check your browser permissions.');
-      return;
+    try {
+      const stream = await recorder.startRecording();
+      if (!stream) {
+        const isDenied = recorder.error?.toLowerCase().includes('denied') ||
+          recorder.error?.toLowerCase().includes('permission');
+        if (isDenied) {
+          setMicDenied(true);
+        } else {
+          toast.error(recorder.error ?? 'Microphone access denied. Check your browser permissions.');
+        }
+        return;
+      }
+      setMicDenied(false);
+      analyser.connectStream(stream);
+      setCurrentState('recording');
+    } finally {
+      setIsStarting(false);
     }
-    analyser.connectStream(stream);
-    setCurrentState('recording');
   }, [recorder, analyser, transcription, setCurrentState]);
 
   const handleStopRecording = useCallback(() => {
@@ -118,10 +132,11 @@ export default function CreatePage() {
   );
 
   const handleReset = useCallback(() => {
+    cancelProcessing();
     recorder.resetRecording();
     transcription.clearTranscript();
     reset();
-  }, [recorder, transcription, reset]);
+  }, [cancelProcessing, recorder, transcription, reset]);
 
   return (
     <main
@@ -139,7 +154,8 @@ export default function CreatePage() {
           onStartRecording={handleStartRecording}
           onFileUpload={handleFileUpload}
           canRecord={capabilities.canRecord}
-          isLoading={false}
+          isLoading={isStarting}
+          micDenied={micDenied}
           fileInputRef={fileInputRef}
         />
       )}

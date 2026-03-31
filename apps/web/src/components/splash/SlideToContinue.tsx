@@ -90,7 +90,7 @@ export function SlideToContinue({ onComplete, userName }: Props) {
           data-testid="slide-thumb"
           style={{ '--thumb-left': `${thumbLeft}px` } as React.CSSProperties}
           className={[
-            'slide-thumb absolute top-2.5 w-9 h-9 rounded-xl pointer-events-none',
+            'slide-thumb absolute top-2 w-10 h-10 rounded-xl pointer-events-none',
             'bg-white shadow-md',
             'flex items-center justify-center',
             isDragging ? '' : 'slide-thumb-animating',

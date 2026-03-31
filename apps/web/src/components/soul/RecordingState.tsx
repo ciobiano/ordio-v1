@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Orb } from '@/components/primitives/Orb'
 import { RecordingSettingsSheet } from '@/components/soul/RecordingSettingsSheet'
@@ -66,7 +67,12 @@ export function RecordingState({
   }, [onRestart])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black">
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Back / cancel — top-left corner, always visible */}
       <div className="absolute top-4 left-4">
         <Button
@@ -82,9 +88,9 @@ export function RecordingState({
 
       {/* Center: Orb + Timer */}
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <Orb state={orbState} intensity={orbIntensity} />
+        <Orb state={orbState} intensity={orbIntensity} layoutId="orb" />
 
-        <p className="text-muted-foreground text-sm font-mono tracking-widest mt-4 tabular-nums">
+        <p className="text-white/45 text-sm font-mono tracking-widest mt-4 tabular-nums">
           {phase === 'stopped'
             ? `${formatTime(recordingTime)} recorded`
             : formatTime(recordingTime)}
@@ -135,23 +141,26 @@ export function RecordingState({
           </div>
         ) : (
           /* Post-stop checkpoint: Proceed CTA + Resume/Restart */
-          <div className="flex flex-col items-center gap-3 ">
+          <div className="flex flex-col items-center gap-3">
+            {/* Zero-length guard: disable Proceed if nothing was recorded */}
             <Button
               type="button"
               variant="ghost"
               className={proceedBtn()}
               onClick={onProceed}
+              disabled={recordingTime === 0}
               aria-label="Proceed to editing"
+              aria-disabled={recordingTime === 0}
             >
-              Proceed
+              {recordingTime === 0 ? 'Recording too short' : 'Proceed'}
             </Button>
 
-            <div className="flex items-center gap-3 text-xs">
+            {/* 44px touch targets on secondary actions */}
+            <div className="flex items-center gap-1 text-xs">
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-auto py-0 px-1 text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors flex items-center gap-1"
+                className="h-11 px-3 text-white/45 hover:text-white hover:bg-transparent transition-colors flex items-center gap-1"
                 onClick={handleResume}
                 aria-label="Resume recording"
               >
@@ -159,13 +168,12 @@ export function RecordingState({
                 Resume
               </Button>
 
-              <span className="text-muted-foreground">&middot;</span>
+              <span className="text-white/20">&middot;</span>
 
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-auto py-0 px-1 text-muted-foreground hover:text-muted-foreground hover:bg-transparent transition-colors flex items-center gap-1"
+                className="h-11 px-3 text-white/45 hover:text-white hover:bg-transparent transition-colors flex items-center gap-1"
                 onClick={handleRestart}
                 aria-label="Restart recording"
               >
@@ -173,13 +181,12 @@ export function RecordingState({
                 Restart
               </Button>
 
-              <span className="text-muted-foreground">&middot;</span>
+              <span className="text-white/20">&middot;</span>
 
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-auto py-0 px-1 text-muted-foreground hover:text-muted-foreground hover:bg-transparent transition-colors"
+                className="h-11 px-3 text-white/45 hover:text-white hover:bg-transparent transition-colors"
                 onClick={onCancel}
                 aria-label="Cancel and return to start"
               >
@@ -196,6 +203,6 @@ export function RecordingState({
         onClose={() => setSettingsOpen(false)}
         onLocked={onLocked}
       />
-    </div>
+    </motion.div>
   )
 }

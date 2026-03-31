@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="100%" height="100%">
+  
+  
+  <!-- 
+    Mathematically precise single-path reconstruction.
+    Based on a unified radial geometry: all curves share a 100px radius,
+    with exact 20px gaps, and widths strictly decreasing linearly (45px, 30px, 15px).
+  -->
+  <path fill="#FFFFFF" d="
+    M 500 150 A 100 100 0 1 0 500 350 A 100 100 0 1 0 500 150 Z 
+    M 380 166.48 A 100 100 0 0 0 380 333.52 Z 
+    M 315 178.59 A 100 100 0 0 0 315 321.41 Z 
+    M 265 197.32 A 100 100 0 0 0 265 302.68 Z 
+    M 620 166.48 A 100 100 0 0 1 620 333.52 Z 
+    M 685 178.59 A 100 100 0 0 1 685 321.41 Z 
+    M 735 197.32 A 100 100 0 0 1 735 302.68 Z
+  "/>
+</svg>

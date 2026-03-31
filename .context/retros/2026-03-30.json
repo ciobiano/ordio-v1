@@ -1,0 +1,16 @@
+{
+  "date": "2026-03-30",
+  "window": "7d",
+  "range": { "from": "2026-03-23", "to": "2026-03-30" },
+  "contributors": ["ciobiano"],
+  "commits": { "total": 30, "substantive": 29 },
+  "churn": { "insertions": 10685, "deletions": 1838, "net": 8847 },
+  "churn_code_only": { "insertions": 3089, "deletions": 1769, "net": 1320 },
+  "sessions": 6,
+  "active_days": 4,
+  "commit_types": { "feat": 12, "fix": 10, "chore": 3, "refactor": 2, "test": 1, "docs": 1 },
+  "hotspots": ["useAudioProcessing.ts (4)", "SlideToContinue.tsx (4)", "convex/sessions (2)", "Providers.tsx (3)"],
+  "themes": ["convex-sessions-backend", "trim-feature-undo-redo", "splash-screen-onboarding"],
+  "prior_week_commits": 26,
+  "prior_week_churn": { "insertions": 4949, "deletions": 4553, "net": 396 }
+}

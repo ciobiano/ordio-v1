@@ -94,3 +94,4 @@ pnpm-debug.log*
 *.7z
 *.wasm
 !apps/web/public/**/*.wasm
+.gstack/

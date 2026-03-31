@@ -42,10 +42,10 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
   return (
     <div className="flex flex-col items-center gap-10 animate-fadeIn">
       <div className="text-center">
-        <h2 className="text-[length:var(--text-h4)] font-light text-foreground tracking-[-0.02em]">
-          Creating your video
+        <h2 className="text-[length:var(--text-h4)] font-light text-white tracking-[-0.02em]">
+          Transcribing your audio
         </h2>
-        <p className="text-muted-foreground text-sm mt-2">This won&apos;t take long</p>
+        <p className="text-white/45 text-sm mt-2">This won&apos;t take long</p>
       </div>
 
       <ProgressRing progress={progress} />
@@ -64,7 +64,7 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
           variant="ghost"
           onClick={onCancel}
           aria-label="Cancel processing"
-          className="text-muted-foreground hover:text-muted-foreground hover:bg-transparent text-xs transition-colors h-auto py-1"
+          className="text-white/30 hover:text-white/50 hover:bg-transparent text-xs transition-colors h-auto py-1"
         >
           Cancel
         </Button>

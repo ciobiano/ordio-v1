@@ -5,8 +5,8 @@ import { OnboardingCarousel } from '@/components/splash/OnboardingCarousel';
 describe('OnboardingCarousel', () => {
   it('renders slide 1 content by default', () => {
     const { getByText } = render(<OnboardingCarousel onCTA={() => {}} />);
-    expect(getByText(/welcome to/i)).toBeInTheDocument();
-    expect(getByText(/next-level/i)).toBeInTheDocument();
+    expect(getByText(/record\. transcribe\. share\./i)).toBeInTheDocument();
+    expect(getByText(/shareable story/i)).toBeInTheDocument();
   });
 
   it('advances to slide 2 on left swipe', () => {
@@ -16,7 +16,7 @@ describe('OnboardingCarousel', () => {
     const carousel = getByTestId('carousel-container');
     fireEvent.touchStart(carousel, { touches: [{ clientX: 200 }] });
     fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 120 }] }); // delta -80
-    expect(getByText(/your words/i)).toBeInTheDocument();
+    expect(getByText(/time-stamped/i)).toBeInTheDocument();
   });
 
   it('does not go before slide 1 on right swipe from slide 1', () => {
@@ -24,7 +24,21 @@ describe('OnboardingCarousel', () => {
     const carousel = getByTestId('carousel-container');
     fireEvent.touchStart(carousel, { touches: [{ clientX: 100 }] });
     fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 200 }] }); // delta +100
-    expect(getByText(/welcome to/i)).toBeInTheDocument(); // still slide 1
+    expect(getByText(/record\. transcribe\. share\./i)).toBeInTheDocument(); // still slide 1
+  });
+
+  it('does not advance past slide 3 on left swipe from slide 3', () => {
+    const { getByTestId, getByText } = render(<OnboardingCarousel onCTA={() => {}} />);
+    const carousel = getByTestId('carousel-container');
+    // Advance to slide 3
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 200 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 120 }] });
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 200 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 120 }] });
+    // Try to advance past slide 3
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 200 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 120 }] });
+    expect(getByText(/actually look good/i)).toBeInTheDocument(); // still slide 3
   });
 
   it('calls onCTA when Get Started is tapped', () => {

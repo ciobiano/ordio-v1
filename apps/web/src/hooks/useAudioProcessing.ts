@@ -9,6 +9,7 @@ import type { UseTranscriptionReturn } from '@/hooks/useTranscription';
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
+  cancelProcessing: () => void;
 }
 
 /**
@@ -31,6 +32,12 @@ export function useAudioProcessing(
   } = useStore();
 
   const [processingProgress, setProcessingProgress] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelProcessing = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+  }, []);
 
   const transcriptionRef = useRef(transcription);
   transcriptionRef.current = transcription;
@@ -50,6 +57,8 @@ export function useAudioProcessing(
     async (inputBlob: Blob): Promise<string> => {
       let blob = inputBlob;
       const rawBlob = inputBlob;
+      const abort = new AbortController();
+      abortControllerRef.current = abort;
       setCurrentState('processing');
       setProcessingProgress(0);
 
@@ -117,6 +126,7 @@ export function useAudioProcessing(
               method: 'POST',
               headers: { 'Content-Type': blob.type },
               body: blob,
+              signal: abort.signal,
             });
             if (!uploadRes.ok) throw new Error('Audio upload failed');
             const { storageId } = await uploadRes.json() as { storageId: string };
@@ -144,9 +154,16 @@ export function useAudioProcessing(
 
         return sessionId;
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          // User cancelled — stay idle, no error toast
+          setCurrentState('idle');
+          return '';
+        }
         setCurrentState('idle');
         console.error('[useAudioProcessing]', err);
         throw new Error('Audio processing failed', { cause: err });
+      } finally {
+        abortControllerRef.current = null;
       }
     },
     [
@@ -161,5 +178,5 @@ export function useAudioProcessing(
     ]
   );
 
-  return { processingProgress, processAudio };
+  return { processingProgress, processAudio, cancelProcessing };
 }
