@@ -35,7 +35,7 @@ export function IdleState({
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn">
       {/* Wordmark */}
-      <p className="text-white/50 text-2xl font-light tracking-wide mb-8">
+      <p className="text-white/45 text-2xl font-light tracking-tight mb-8">
         ord<span className="font-medium">io</span>
       </p>
 
