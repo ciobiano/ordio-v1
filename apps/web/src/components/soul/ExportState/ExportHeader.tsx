@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { primaryBtn } from '@/lib/variants';
 
 interface ExportHeaderProps {
   exportedUrl: string | null;
@@ -46,7 +48,7 @@ export function ExportHeader({
           onClick={exportedUrl ? onDownload : onExport}
           disabled={exportDisabled && !exportedUrl}
           aria-label={exportedUrl ? 'Download exported video' : 'Export video'}
-          className="rounded-full px-4 h-9 text-sm font-semibold"
+          className={cn(primaryBtn, 'w-auto px-6 py-2 h-auto text-sm')}
         >
           {exportedUrl ? 'Download' : 'Export'}
         </Button>

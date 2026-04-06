@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import { useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/lib/store'
 import { useFeatureGates } from '@/hooks/useFeatureGates'
@@ -67,7 +68,7 @@ function SegmentedControl<T extends string>({
 }) {
   const { isLocked } = useFeatureGates()
   return (
-    <div className="flex rounded-xl border border-white/[0.12] overflow-hidden">
+    <div className="flex rounded-xl border border-white/12 overflow-hidden">
       {options.map((opt) => {
         const locked = opt.gate ? isLocked(opt.gate) : false
         const isActive = value === opt.value
@@ -114,20 +115,27 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   const { isLocked } = useFeatureGates()
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent
         className={cn(
-          'border-0 p-0',
+          'border-0 p-0 flex flex-col',
           'rounded-t-[24px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[24px]',
-          'bg-[--surface-glass] backdrop-blur-[40px] backdrop-saturate-[160%]',
+          'bg-[--surface-glass] backdrop-blur-2xl backdrop-saturate-160',
           '[box-shadow:inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_0.5px_rgba(255,255,255,0.10),0_-12px_40px_rgba(0,0,0,0.8),0_-2px_8px_rgba(0,0,0,0.5)]',
-          'max-h-[70vh] overflow-y-auto'
+          'max-h-[70vh]'
         )}
       >
-        {/* Drag handle + close */}
-        <div className="relative flex justify-center pt-3 pb-2">
+        <DrawerTitle className="sr-only">Recording Settings</DrawerTitle>
+
+        {/* Sticky header: drag handle + close — stays pinned while body scrolls */}
+        <div
+          className="sticky top-0 z-10 flex justify-center pt-3 pb-2 touch-none"
+          style={{
+            background: 'var(--surface-glass)',
+            backdropFilter: 'blur(40px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
+          }}
+        >
           <div className="w-10 h-[5px] rounded-full bg-white/[0.28]" />
           <Button
             type="button"
@@ -144,18 +152,21 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
               'w-7 h-7 rounded-full',
               'bg-white/10 border border-white/10',
               'flex items-center justify-center',
-              'hover:bg-white/[0.15] transition-colors duration-150'
+              'hover:bg-white/15 transition-colors duration-150'
             )}>
               <Image src="/icons/close.svg" width={12} height={12} alt="" aria-hidden="true" className="invert opacity-55" />
             </span>
           </Button>
         </div>
 
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1">
+
         <div className="px-5 pb-8 space-y-6">
 
           {/* Waveform Style */}
           <section>
-            <h3 className="text-xs font-semibold text-white/[0.48] uppercase tracking-[0.13em] mb-3">
+            <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
               Waveform Style
             </h3>
             <SegmentedControl
@@ -187,11 +198,11 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
             </div>
           </section>
 
-          <div className="h-px bg-white/[0.08]" />
+          <div className="h-px bg-white/8" />
 
           {/* Caption Layout */}
           <section>
-            <h3 className="text-xs font-semibold text-white/[0.48] uppercase tracking-[0.13em] mb-3">
+            <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
               Caption Layout
             </h3>
             <SegmentedControl
@@ -209,11 +220,11 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
             />
           </section>
 
-          <div className="h-px bg-white/[0.08]" />
+          <div className="h-px bg-white/8" />
 
           {/* Audio Enhancement */}
           <section>
-            <h3 className="text-xs font-semibold text-white/[0.48] uppercase tracking-[0.13em] mb-3">
+            <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
               Audio Enhancement
             </h3>
             <div>
@@ -226,7 +237,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                     variant="ghost"
                     className={cn(
                       'relative w-full flex items-center gap-3 py-3 text-left transition-colors duration-150 h-auto justify-start',
-                      i < ENHANCE_OPTIONS.length - 1 && 'border-b border-white/[0.08]',
+                      i < ENHANCE_OPTIONS.length - 1 && 'border-b border-white/8',
                       'rounded-lg px-2',
                       isActive ? 'bg-accent hover:bg-accent' : 'hover:bg-muted',
                       opt.gate && isLocked(opt.gate) && 'opacity-40'
@@ -235,7 +246,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                   >
                     <div className={cn(
                       'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors duration-150',
-                      isActive ? 'border-white/70 bg-white/70' : 'border-white/[0.25]'
+                      isActive ? 'border-white/70 bg-white/70' : 'border-white/25'
                     )}>
                       {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[rgba(18,18,20)]" />}
                     </div>
@@ -263,7 +274,8 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
           </section>
 
         </div>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DrawerContent>
+    </Drawer>
   )
 }
