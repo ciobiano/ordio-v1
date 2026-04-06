@@ -1,14 +1,15 @@
-'use client'
+'use client';
 
-import { Canvas } from '@react-three/fiber'
-import { OrbMesh } from './OrbMesh'
+import { Canvas } from '@react-three/fiber';
+import { OrbMesh } from './OrbMesh';
 
 interface OrbCanvasProps {
-  state: 'dormant' | 'active' | 'resting'
-  intensity: number
+  state: 'dormant' | 'active' | 'resting';
+  intensity: number;
+  isSpeaking?: boolean;
 }
 
-export default function OrbCanvas({ state, intensity }: OrbCanvasProps) {
+export default function OrbCanvas({ state, intensity, isSpeaking }: OrbCanvasProps) {
   return (
     <Canvas
       className="absolute inset-0"
@@ -19,7 +20,7 @@ export default function OrbCanvas({ state, intensity }: OrbCanvasProps) {
       {/* Ambient only — directional lights would create competing highlights
           that fight the noise-driven cloud texture in the fragment shader. */}
       <ambientLight intensity={1.0} />
-      <OrbMesh state={state} intensity={intensity} />
+      <OrbMesh state={state} intensity={intensity} isSpeaking={isSpeaking} />
     </Canvas>
-  )
+  );
 }

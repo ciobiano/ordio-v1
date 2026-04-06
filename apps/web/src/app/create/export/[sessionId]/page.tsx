@@ -5,14 +5,20 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
-import { UserButton } from '@clerk/nextjs';
+import dynamic from 'next/dynamic';
 import { useStore } from '@/lib/store';
 import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
 import { usePlayback } from '@/hooks/usePlayback';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useExportGate } from '@/hooks/useExportGate';
 import type { GenericId } from 'convex/values';
-import { ExportState } from '@/components/soul';
+import ExportState from '@/components/soul/ExportState';
+import { Skeleton } from '@/components/soul/Skeleton';
+
+const UserAvatarButton = dynamic(() => import('@/components/soul/UserAvatarButton'), {
+  ssr: false,
+  loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
+});
 
 function formatExpiry(expiresAt: number): string {
   const remaining = expiresAt - Date.now();
@@ -24,11 +30,7 @@ function formatExpiry(expiresAt: number): string {
   return `Expires in ${hours}h`;
 }
 
-export default function ExportPage({
-  params,
-}: {
-  params: Promise<{ sessionId: string }>;
-}) {
+export default function ExportPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
   const router = useRouter();
 
@@ -50,10 +52,9 @@ export default function ExportPage({
 
   const [isHydrating, setIsHydrating] = useState(false);
 
-  const session = useQuery(
-    api.sessions.getSession,
-    { sessionId: sessionId as GenericId<'sessions'> }
-  );
+  const session = useQuery(api.sessions.getSession, {
+    sessionId: sessionId as GenericId<'sessions'>,
+  });
 
   const audioUrlResult = useQuery(
     api.sessions.getAudioUrl,
@@ -175,7 +176,7 @@ export default function ExportPage({
         <span className="text-[length:var(--text-caption)] text-secondary">
           {formatExpiry(session.expiresAt)}
         </span>
-        <UserButton />
+        <UserAvatarButton />
       </div>
 
       <ExportState

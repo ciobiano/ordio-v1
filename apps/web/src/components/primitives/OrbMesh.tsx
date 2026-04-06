@@ -1,16 +1,17 @@
-'use client'
+'use client';
 
-import { useEffect, useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import CustomShaderMaterial from 'three-custom-shader-material/vanilla'
+import { useEffect, useMemo, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import CustomShaderMaterial from 'three-custom-shader-material/vanilla';
 
-type OrbState = 'dormant' | 'active' | 'resting'
+type OrbState = 'dormant' | 'active' | 'resting';
 
 interface OrbMeshProps {
-  state: OrbState
-  intensity: number
+  state: OrbState;
+  intensity: number;
+  isSpeaking?: boolean;
 }
 
 const SNOISE_GLSL = /* glsl */ `
@@ -76,12 +77,15 @@ float snoise(vec3 v){
 
   return 42. * dot(m * m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
 }
-`
+`;
 
-const VERTEX_SHADER = SNOISE_GLSL + /* glsl */ `
+const VERTEX_SHADER =
+  SNOISE_GLSL +
+  /* glsl */ `
 uniform float uTime;
 uniform float uAudioLevel;
 uniform float uEnergy;
+uniform float uIsSpeaking;
 
 varying vec3 vObjPos;
 varying vec3 vWorldPos;
@@ -90,11 +94,14 @@ varying vec3 vNormalW;
 void main() {
   float activity = mix(0.30, 1.0, uEnergy);
   float audioPush = uAudioLevel * 0.27;
-
-  // Slower base speed with subtle energy modulation for meditative flow
-  float baseSpeed = 0.06 + uEnergy * 0.02;
   
-  // Reduced warp influence for gentler surface distortion
+  // Speaking boost — more aggressive displacement when actively speaking
+  float speakingBoost = uIsSpeaking * 0.12;
+  
+  // Slower base speed with subtle energy modulation for meditative flow
+  float baseSpeed = 0.06 + uEnergy * 0.02 + uIsSpeaking * 0.025;
+  
+  // Warp influence increases with speaking
   vec3 warp = vec3(
     snoise(position * 1.0 + uTime * baseSpeed),
     snoise(position * 1.0 + uTime * baseSpeed + vec3(3.1, 1.7, 5.4)),
@@ -102,11 +109,11 @@ void main() {
   );
 
   // Asymmetrical offset + reduced warp coupling for organic movement
-  float n = snoise((position + warp * 0.18 + vec3(0.37, 0.71, 0.19)) * (1.18 + uEnergy * 0.08) + uTime * 0.04);
+  float n = snoise((position + warp * 0.18 + vec3(0.37, 0.71, 0.19)) * (1.18 + uEnergy * 0.08 + uIsSpeaking * 0.06) + uTime * 0.04);
 
-  // Gentler displacement maintaining clear spherical form
-  vec3 displaced = position + normal * n * (0.016 + audioPush) * activity;
-  displaced *= 1.0 + n * 0.008 * uEnergy;
+  // Gentler displacement maintaining clear spherical form, boosted by speaking
+  vec3 displaced = position + normal * n * (0.016 + audioPush) * activity * (1.0 + speakingBoost);
+  displaced *= 1.0 + n * 0.008 * (uEnergy + uIsSpeaking * 0.06);
 
   vObjPos = displaced;
   vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
@@ -115,12 +122,15 @@ void main() {
 
   csm_Position = displaced;
 }
-`
+`;
 
-const FRAGMENT_SHADER = SNOISE_GLSL + /* glsl */ `
+const FRAGMENT_SHADER =
+  SNOISE_GLSL +
+  /* glsl */ `
 uniform float uTime;
 uniform float uEnergy;
 uniform float uAudioLevel;
+uniform float uIsSpeaking;
 
 varying vec3 vObjPos;
 varying vec3 vWorldPos;
@@ -135,9 +145,10 @@ float hash(vec2 p) {
 
 void main() {
   // ⚡ AGGRESSIVE WIND PARAMETERS — fast, dynamic flow
-  float windSpeed = 0.038 + uEnergy * 0.022;        // 2× faster base drift
+  // Speaking boosts wind speed for more "alive" feel
+  float windSpeed = 0.038 + uEnergy * 0.022 + uIsSpeaking * 0.025;
   vec2 windDir = normalize(vec2(1.0, 0.25));         // Stronger rightward push
-  float turbulence = 0.42 + uEnergy * 0.22;           // Intense swirls
+  float turbulence = 0.42 + uEnergy * 0.22 + uIsSpeaking * 0.15;
   
   // ---- Layer 1: Fast-moving base cloud layer ----
   vec2 windOffset1 = windDir * uTime * windSpeed * 1.4;
@@ -219,9 +230,9 @@ void main() {
   float vignette = smoothstep(-0.2, 0.6, facing);
   color = mix(colorStormBase * 0.25, color, vignette);
   
-  // Outer rim — enhanced cyan-azure glow matching ChatGPT Voice aesthetic
+  // Outer rim — enhanced cyan-azure glow, intensifies when speaking
   float fresnel = pow(1.0 - max(facing, 0.0), 2.8);
-  color += fresnel * vec3(0.38, 0.76, 1.00) * 0.65 * (0.5 + uEnergy * 0.5);
+  color += fresnel * vec3(0.38, 0.76, 1.00) * 0.65 * (0.5 + uEnergy * 0.5 + uIsSpeaking * 0.4);
 
   // Subtle pulse shimmer — slower frequency for meditative quality
   float pulse = 0.5 + 0.5 * sin(uTime * (0.9 + uEnergy * 0.6) + uAudioLevel * 1.8);
@@ -238,27 +249,29 @@ void main() {
   csm_DiffuseColor = vec4(0.0, 0.0, 0.0, 1.0);
   csm_Emissive = color;
 }
-`
+`;
 
-export function OrbMesh({ state, intensity }: OrbMeshProps) {
-  const smoothedLevel = useRef(0)
+export function OrbMesh({ state, intensity, isSpeaking }: OrbMeshProps) {
+  const smoothedLevel = useRef(0);
+  const smoothedSpeaking = useRef(0);
 
   const geometry = useMemo(() => {
-    const geo = new THREE.IcosahedronGeometry(1, 6)
-    const merged = mergeVertices(geo)
-    merged.computeVertexNormals()
-    merged.center()
-    return merged
-  }, [])
+    const geo = new THREE.IcosahedronGeometry(1, 6);
+    const merged = mergeVertices(geo);
+    merged.computeVertexNormals();
+    merged.center();
+    return merged;
+  }, []);
 
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
       uAudioLevel: { value: 0 },
       uEnergy: { value: 0 },
+      uIsSpeaking: { value: 0 },
     }),
-    [],
-  )
+    []
+  );
 
   const material = useMemo(() => {
     return new CustomShaderMaterial({
@@ -275,30 +288,35 @@ export function OrbMesh({ state, intensity }: OrbMeshProps) {
       envMapIntensity: 0,
       color: new THREE.Color(0xffffff),
       toneMapped: false,
-    })
-  }, [uniforms])
+    });
+  }, [uniforms]);
 
   useEffect(() => {
     return () => {
-      geometry.dispose()
-      material.dispose()
-    }
-  }, [geometry, material])
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [geometry, material]);
 
   useFrame((_, delta) => {
-    const target = state === 'active' ? intensity : 0
+    const target = state === 'active' ? intensity : 0;
     // Smoother audio level response for graceful reactivity
-    smoothedLevel.current += (target - smoothedLevel.current) * 0.08
+    smoothedLevel.current += (target - smoothedLevel.current) * 0.08;
 
-    const energyTarget = state === 'active' ? 1 : 0
+    const energyTarget = state === 'active' ? 1 : 0;
     // Gentler energy transitions for meditative state changes
-    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.03
+    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.03;
 
-    uniforms.uTime.value += delta
-    uniforms.uAudioLevel.value = smoothedLevel.current
-  })
+    // Smooth speaking state transition (~200ms for responsive but not jarring feel)
+    const speakingTarget = isSpeaking ? 1 : 0;
+    smoothedSpeaking.current += (speakingTarget - smoothedSpeaking.current) * 0.12;
+    uniforms.uIsSpeaking.value = smoothedSpeaking.current;
 
-  return <mesh geometry={geometry} material={material} scale={1.15} />
+    uniforms.uTime.value += delta;
+    uniforms.uAudioLevel.value = smoothedLevel.current;
+  });
+
+  return <mesh geometry={geometry} material={material} scale={1.15} />;
 }
 
 export default function OrbScene() {
@@ -322,5 +340,5 @@ export default function OrbScene() {
         <meshStandardMaterial color="#000000" roughness={1} metalness={0} />
       </mesh>
     </Canvas>
-  )
+  );
 }

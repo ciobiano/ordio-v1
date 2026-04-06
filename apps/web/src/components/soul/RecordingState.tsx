@@ -1,39 +1,46 @@
-'use client'
+'use client';
 
-import Image from 'next/image'
-import { useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Orb } from '@/components/primitives/Orb'
-import { RecordingSettingsSheet } from '@/components/soul/RecordingSettingsSheet'
-import { roundIconBtn, proceedBtn } from '@/lib/variants'
-import type { FeatureKey } from '@/lib/featureGates'
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
+import { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Orb } from '@/components/primitives/Orb';
+import { roundIconBtn, proceedBtn } from '@/lib/variants';
+import type { FeatureKey } from '@/lib/featureGates';
+
+const RecordingSettingsSheet = dynamic(
+  () => import('./RecordingSettingsSheet').then((m) => ({ default: m.RecordingSettingsSheet })),
+  { ssr: false }
+);
 
 interface RecordingStateProps {
-  audioLevel: number
-  isPaused: boolean
-  recordingTime: number
-  onPauseRecording: () => void
-  onResumeRecording: () => void
-  onStopRecording: () => void
-  onRestart: () => void
-  onProceed: () => void
-  onCancel: () => void
-  onLocked: (feature: FeatureKey) => void
+  audioLevel: number;
+  isSpeaking: boolean;
+  isPaused: boolean;
+  recordingTime: number;
+  onPauseRecording: () => void;
+  onResumeRecording: () => void;
+  onStopRecording: () => void;
+  onRestart: () => void;
+  onProceed: () => void;
+  onCancel: () => void;
+  onLocked: (feature: FeatureKey) => void;
 }
 
 function formatTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
   if (h > 0) {
-    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function RecordingState({
   audioLevel,
+  isSpeaking,
   isPaused,
   recordingTime,
   onPauseRecording,
@@ -44,27 +51,27 @@ export function RecordingState({
   onCancel,
   onLocked,
 }: RecordingStateProps) {
-  const [phase, setPhase] = useState<'recording' | 'stopped'>('recording')
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [phase, setPhase] = useState<'recording' | 'stopped'>('recording');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Paused orb stays 'active' at locked 0.7 intensity (not 'dormant' — intensity is ignored in dormant)
-  const orbState = phase === 'stopped' ? 'resting' : 'active'
-  const orbIntensity = phase === 'stopped' ? 0 : isPaused ? 0.7 : audioLevel
+  const orbState = phase === 'stopped' ? 'resting' : 'active';
+  const orbIntensity = phase === 'stopped' ? 0 : isPaused ? 0.7 : audioLevel;
 
   const handleStop = useCallback(() => {
-    setPhase('stopped')
-    onStopRecording()
-  }, [onStopRecording])
+    setPhase('stopped');
+    onStopRecording();
+  }, [onStopRecording]);
 
   const handleResume = useCallback(() => {
-    setPhase('recording')
-    onResumeRecording()
-  }, [onResumeRecording])
+    setPhase('recording');
+    onResumeRecording();
+  }, [onResumeRecording]);
 
   const handleRestart = useCallback(() => {
-    setPhase('recording')
-    onRestart()
-  }, [onRestart])
+    setPhase('recording');
+    onRestart();
+  }, [onRestart]);
 
   return (
     <motion.div
@@ -82,13 +89,20 @@ export function RecordingState({
           aria-label="Cancel recording"
           className={roundIconBtn({ intent: 'nav' })}
         >
-          <Image src="/icons/arrow-left.svg" width={16} height={16} alt="" aria-hidden="true" className="invert" />
+          <Image
+            src="/icons/arrow-left.svg"
+            width={16}
+            height={16}
+            alt=""
+            aria-hidden="true"
+            className="invert"
+          />
         </Button>
       </div>
 
       {/* Center: Orb + Timer */}
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <Orb state={orbState} intensity={orbIntensity} layoutId="orb" />
+        <Orb state={orbState} intensity={orbIntensity} isSpeaking={isSpeaking} layoutId="orb" />
 
         <p className="text-white/45 text-sm font-mono tracking-widest mt-4 tabular-nums">
           {phase === 'stopped'
@@ -111,9 +125,23 @@ export function RecordingState({
               aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
             >
               {isPaused ? (
-                <Image src="/icons/play.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+                <Image
+                  src="/icons/play.svg"
+                  width={18}
+                  height={18}
+                  alt=""
+                  aria-hidden="true"
+                  className="invert"
+                />
               ) : (
-                <Image src="/icons/pause.svg" width={18} height={18} alt="" aria-hidden="true" className="invert" />
+                <Image
+                  src="/icons/pause.svg"
+                  width={18}
+                  height={18}
+                  alt=""
+                  aria-hidden="true"
+                  className="invert"
+                />
               )}
             </Button>
 
@@ -136,7 +164,14 @@ export function RecordingState({
               onClick={() => setSettingsOpen(true)}
               aria-label="Recording settings"
             >
-              <Image src="/icons/settings.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-80" />
+              <Image
+                src="/icons/settings.svg"
+                width={18}
+                height={18}
+                alt=""
+                aria-hidden="true"
+                className="invert opacity-80"
+              />
             </Button>
           </div>
         ) : (
@@ -164,7 +199,14 @@ export function RecordingState({
                 onClick={handleResume}
                 aria-label="Resume recording"
               >
-                <Image src="/icons/play.svg" width={12} height={12} alt="" aria-hidden="true" className="invert" />
+                <Image
+                  src="/icons/play.svg"
+                  width={12}
+                  height={12}
+                  alt=""
+                  aria-hidden="true"
+                  className="invert"
+                />
                 Resume
               </Button>
 
@@ -177,7 +219,14 @@ export function RecordingState({
                 onClick={handleRestart}
                 aria-label="Restart recording"
               >
-                <Image src="/icons/restart.svg" width={12} height={12} alt="" aria-hidden="true" className="invert" />
+                <Image
+                  src="/icons/restart.svg"
+                  width={12}
+                  height={12}
+                  alt=""
+                  aria-hidden="true"
+                  className="invert"
+                />
                 Restart
               </Button>
 
@@ -204,5 +253,5 @@ export function RecordingState({
         onLocked={onLocked}
       />
     </motion.div>
-  )
+  );
 }

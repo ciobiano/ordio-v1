@@ -1,25 +1,25 @@
-'use client'
+'use client';
 
-import { useMemo, useEffect, useState, useCallback } from 'react'
-import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { useMemo, useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
-// ✅ CLEAN DYNAMIC IMPORT - No workarounds needed!
 const OrbCanvas = dynamic(() => import('./OrbCanvas'), {
   ssr: false,
   loading: () => (
     <div className="w-50 h-50 md:w-60 md:h-60 rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/20 animate-pulse" />
   ),
-})
+});
 
 interface OrbProps {
-  state: 'dormant' | 'active' | 'resting'
-  intensity: number
-  onClick?: () => void
-  ariaLabel?: string
-  className?: string
-  layoutId?: string
+  state: 'dormant' | 'active' | 'resting';
+  intensity: number;
+  isSpeaking?: boolean;
+  onClick?: () => void;
+  ariaLabel?: string;
+  className?: string;
+  layoutId?: string;
 }
 
 const breathe = {
@@ -34,52 +34,63 @@ const breathe = {
     ease: 'easeInOut' as const,
     repeat: Infinity,
   },
-}
+};
 
-export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId }: OrbProps) {
-  const clampedIntensity = Math.max(0, Math.min(1, intensity))
+export function Orb({
+  state,
+  intensity,
+  isSpeaking,
+  onClick,
+  ariaLabel,
+  className,
+  layoutId,
+}: OrbProps) {
+  const clampedIntensity = Math.max(0, Math.min(1, intensity));
 
-  const [ripple, setRipple] = useState(false)
+  const [ripple, setRipple] = useState(false);
   useEffect(() => {
     if (state !== 'dormant') {
-      setRipple(false)
-      return
+      setRipple(false);
+      return;
     }
-    const t = setTimeout(() => setRipple(true), 3000)
-    return () => clearTimeout(t)
-  }, [state])
+    const t = setTimeout(() => setRipple(true), 3000);
+    return () => clearTimeout(t);
+  }, [state]);
 
   const handlePointerDown = useCallback(() => {
-    navigator.vibrate?.(15)
-  }, [])
+    navigator.vibrate?.(15);
+  }, []);
 
-  const activeAnimate = useMemo(() => ({
-    scale: 1 + clampedIntensity * 0.08,
-    filter: `drop-shadow(0 0 ${35 + clampedIntensity * 45}px rgba(97,194,253,${0.08 + clampedIntensity * 0.28}))`,
-    transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
-  }), [clampedIntensity])
+  // Enhanced glow when speaking — more prominent rim
+  const speakingBoost = isSpeaking ? 0.15 : 0;
+  const activeAnimate = useMemo(
+    () => ({
+      scale: 1 + clampedIntensity * 0.08,
+      filter: `drop-shadow(0 0 ${35 + clampedIntensity * 45}px rgba(97,194,253,${0.08 + clampedIntensity * 0.28 + speakingBoost}))`,
+      transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
+    }),
+    [clampedIntensity, speakingBoost]
+  );
 
-  const animate = state === 'active'
-    ? activeAnimate
-    : state === 'dormant'
-      ? breathe
-      : undefined
+  const animate = state === 'active' ? activeAnimate : state === 'dormant' ? breathe : undefined;
 
   const orbContent = (
     <>
       <div
         data-state={state}
+        data-speaking={isSpeaking}
         className={cn(
-          'orb-glow orb-glow-ring absolute -inset-7 rounded-full',
+          'orb-glow orb-glow-ring absolute -inset-7 rounded-full pointer-events-none transition-all duration-300',
           state === 'dormant' && 'opacity-25',
-          state === 'active'  && 'opacity-35',
-          state === 'resting' && 'opacity-18',
+          state === 'active' && isSpeaking && 'opacity-55 shadow-[0_0_60px_rgba(97,194,253,0.5)]',
+          state === 'active' && !isSpeaking && 'opacity-35',
+          state === 'resting' && 'opacity-18'
         )}
       />
 
       {ripple && (
         <div
-          className="absolute -inset-7 rounded-full border border-white/20 animate-ripple-out"
+          className="absolute -inset-7 rounded-full border border-white/20 animate-ripple-out pointer-events-none"
           onAnimationEnd={() => setRipple(false)}
         />
       )}
@@ -88,21 +99,24 @@ export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId 
         data-state={state}
         className={cn(
           'orb-core relative z-10 w-50 h-50 md:w-60 md:h-60 clip-circle',
-          state === 'resting' && 'scale-95 opacity-70',
+          state === 'resting' && 'scale-95 opacity-70'
         )}
       >
-        <OrbCanvas state={state} intensity={clampedIntensity} />
+        <OrbCanvas state={state} intensity={clampedIntensity} isSpeaking={isSpeaking} />
       </div>
     </>
-  )
+  );
 
-  const sharedClassName = cn('relative flex items-center justify-center', className)
+  const sharedClassName = cn(
+    'relative flex items-center justify-center overflow-visible',
+    className
+  );
   const motionProps = {
     layoutId,
     animate,
     className: sharedClassName,
     style: { '--orb-intensity': clampedIntensity } as React.CSSProperties,
-  }
+  };
 
   if (onClick) {
     return (
@@ -116,15 +130,12 @@ export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId 
       >
         {orbContent}
       </motion.button>
-    )
+    );
   }
 
   return (
-    <motion.div
-      {...motionProps}
-      data-state={state}
-    >
+    <motion.div {...motionProps} data-state={state}>
       {orbContent}
     </motion.div>
-  )
+  );
 }

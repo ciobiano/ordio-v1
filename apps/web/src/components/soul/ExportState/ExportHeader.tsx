@@ -1,15 +1,14 @@
-'use client'
+'use client';
 
-import Image from 'next/image'
-import { UserButton } from '@clerk/nextjs'
-import { Button } from '@/components/ui/button'
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 interface ExportHeaderProps {
-  exportedUrl: string | null
-  exportDisabled: boolean
-  onBack: () => void
-  onExport: () => void
-  onDownload: () => void
+  exportedUrl: string | null;
+  exportDisabled: boolean;
+  onBack: () => void;
+  onExport: () => void;
+  onDownload: () => void;
 }
 
 export function ExportHeader({
@@ -29,15 +28,19 @@ export function ExportHeader({
         aria-label="Back — discard changes"
         className="text-muted-foreground hover:text-foreground hover:bg-muted"
       >
-        <Image src="/icons/arrow-left.svg" width={16} height={16} alt="" aria-hidden="true" className="invert" />
+        <Image
+          src="/icons/arrow-left.svg"
+          width={16}
+          height={16}
+          alt=""
+          aria-hidden="true"
+          className="invert"
+        />
       </Button>
 
-      <span className="text-foreground text-sm font-medium tracking-tight">
-        Edit
-      </span>
+      <span className="text-foreground text-sm font-medium tracking-tight">Edit</span>
 
       <div className="flex items-center gap-2">
-        <UserButton />
         <Button
           type="button"
           onClick={exportedUrl ? onDownload : onExport}
@@ -49,5 +52,5 @@ export function ExportHeader({
         </Button>
       </div>
     </header>
-  )
+  );
 }

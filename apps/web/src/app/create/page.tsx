@@ -3,8 +3,8 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
-import { UserButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -13,25 +13,34 @@ import { useTranscription } from '@/hooks/useTranscription';
 import { useAudioProcessing } from '@/hooks/useAudioProcessing';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useVAD } from '@/hooks/useVAD';
 
-import {
-  IdleState,
-  RecordingState,
-  ProcessingState,
-} from '@/components/soul';
+import IdleState from '@/components/soul/IdleState';
+import { Skeleton } from '@/components/soul/Skeleton';
+
+const RecordingState = dynamic(
+  () =>
+    import('@/components/soul/RecordingState').then((m) => ({
+      default: m.RecordingState,
+    })),
+  { ssr: false }
+);
+
+const ProcessingState = dynamic(() => import('@/components/soul/ProcessingState'), { ssr: false });
+
+const UserAvatarButton = dynamic(() => import('@/components/soul/UserAvatarButton'), {
+  ssr: false,
+  loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
+});
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 export default function CreatePage() {
   const router = useRouter();
-  const {
-    currentState,
-    setCurrentState,
-    setUpgradeTarget,
-    reset,
-  } = useStore();
+  const { currentState, setCurrentState, setUpgradeTarget, reset } = useStore();
 
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [micDenied, setMicDenied] = useState(false);
   const animFrameRef = useRef<number | null>(null);
@@ -43,8 +52,19 @@ export default function CreatePage() {
   const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
   const { tier } = useCurrentUser();
   const capabilities = useCapabilities();
+  const vad = useVAD(recorder.isRecording);
 
-  // Audio level animation during recording
+  useEffect(() => {
+    if (!recorder.isRecording) {
+      setAudioLevel(0);
+      setIsSpeaking(false);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      return;
+    }
+    // Sync VAD state to React state for passing to components
+    setIsSpeaking(vad.isSpeaking);
+  }, [recorder.isRecording, vad.isSpeaking]);
+
   useEffect(() => {
     if (!recorder.isRecording) {
       setAudioLevel(0);
@@ -67,12 +87,15 @@ export default function CreatePage() {
     try {
       const stream = await recorder.startRecording();
       if (!stream) {
-        const isDenied = recorder.error?.toLowerCase().includes('denied') ||
+        const isDenied =
+          recorder.error?.toLowerCase().includes('denied') ||
           recorder.error?.toLowerCase().includes('permission');
         if (isDenied) {
           setMicDenied(true);
         } else {
-          toast.error(recorder.error ?? 'Microphone access denied. Check your browser permissions.');
+          toast.error(
+            recorder.error ?? 'Microphone access denied. Check your browser permissions.'
+          );
         }
         return;
       }
@@ -145,7 +168,7 @@ export default function CreatePage() {
     >
       {currentState === 'idle' && (
         <div className="fixed top-4 right-4 z-20">
-          <UserButton />
+          <UserAvatarButton />
         </div>
       )}
 
@@ -163,6 +186,7 @@ export default function CreatePage() {
       {currentState === 'recording' && (
         <RecordingState
           audioLevel={audioLevel}
+          isSpeaking={isSpeaking}
           isPaused={recorder.isPaused}
           recordingTime={recorder.recordingTime}
           onPauseRecording={recorder.pauseRecording}
