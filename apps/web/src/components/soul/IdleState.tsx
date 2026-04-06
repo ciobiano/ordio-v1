@@ -49,9 +49,7 @@ export function IdleState({
       />
 
       {/* Status label sits directly below the orb */}
-      <p className={micDenied ? 'text-white/45 text-sm' : 'text-white/60 text-sm'}>
-        {statusLabel}
-      </p>
+      <p className={micDenied ? 'text-white/45 text-sm' : 'text-white/60 text-sm'}>{statusLabel}</p>
 
       {/* Mic-denied fix link */}
       {micDenied && (

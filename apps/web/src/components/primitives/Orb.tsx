@@ -5,10 +5,12 @@ import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-// Lazy-load the R3F canvas — defers the ~200KB Three.js chunk until needed
-const OrbCanvas = dynamic(() => import('./OrbCanvas').then((m) => m.OrbCanvas), {
+// ✅ CLEAN DYNAMIC IMPORT - No workarounds needed!
+const OrbCanvas = dynamic(() => import('./OrbCanvas'), {
   ssr: false,
-  loading: () => null,
+  loading: () => (
+    <div className="w-50 h-50 md:w-60 md:h-60 rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/20 animate-pulse" />
+  ),
 })
 
 interface OrbProps {
@@ -20,13 +22,12 @@ interface OrbProps {
   layoutId?: string
 }
 
-/** Idle screen — slow, meditative heartbeat */
 const breathe = {
-  scale: [0.95, 1.05, 0.95],
+  scale: [0.96, 1.04, 0.96],
   filter: [
-    'drop-shadow(0 0 30px rgba(100,180,255,0.15))',
-    'drop-shadow(0 0 60px rgba(100,180,255,0.40))',
-    'drop-shadow(0 0 30px rgba(100,180,255,0.15))',
+    'drop-shadow(0 0 25px rgba(97,194,253,0.12))',
+    'drop-shadow(0 0 50px rgba(97,194,253,0.35))',
+    'drop-shadow(0 0 25px rgba(97,194,253,0.12))',
   ],
   transition: {
     duration: 8,
@@ -38,7 +39,6 @@ const breathe = {
 export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId }: OrbProps) {
   const clampedIntensity = Math.max(0, Math.min(1, intensity))
 
-  // Idle invitation: ripple pulse after 3s of dormant state
   const [ripple, setRipple] = useState(false)
   useEffect(() => {
     if (state !== 'dormant') {
@@ -53,10 +53,9 @@ export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId 
     navigator.vibrate?.(15)
   }, [])
 
-  /** Recording — orb reacts to voice */
   const activeAnimate = useMemo(() => ({
-    scale: 1 + clampedIntensity * 0.1,
-    filter: `drop-shadow(0 0 ${20 + clampedIntensity * 50}px rgba(100,180,255,${0.1 + clampedIntensity * 0.3}))`,
+    scale: 1 + clampedIntensity * 0.08,
+    filter: `drop-shadow(0 0 ${35 + clampedIntensity * 45}px rgba(97,194,253,${0.08 + clampedIntensity * 0.28}))`,
     transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
   }), [clampedIntensity])
 
@@ -68,18 +67,16 @@ export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId 
 
   const orbContent = (
     <>
-      {/* Outer glow ring */}
       <div
         data-state={state}
         className={cn(
           'orb-glow orb-glow-ring absolute -inset-7 rounded-full',
-          state === 'dormant' && 'opacity-30',
-          state === 'active'  && 'opacity-40',
-          state === 'resting' && 'opacity-20',
+          state === 'dormant' && 'opacity-25',
+          state === 'active'  && 'opacity-35',
+          state === 'resting' && 'opacity-18',
         )}
       />
 
-      {/* Idle invitation — ripple ring expands outward */}
       {ripple && (
         <div
           className="absolute -inset-7 rounded-full border border-white/20 animate-ripple-out"
@@ -87,7 +84,6 @@ export function Orb({ state, intensity, onClick, ariaLabel, className, layoutId 
         />
       )}
 
-      {/* 3D orb canvas — clipped to circle by parent overflow-hidden */}
       <div
         data-state={state}
         className={cn(

@@ -89,18 +89,24 @@ varying vec3 vNormalW;
 
 void main() {
   float activity = mix(0.30, 1.0, uEnergy);
-  float audioPush = uAudioLevel * 0.18;
+  float audioPush = uAudioLevel * 0.27;
 
+  // Slower base speed with subtle energy modulation for meditative flow
+  float baseSpeed = 0.06 + uEnergy * 0.02;
+  
+  // Reduced warp influence for gentler surface distortion
   vec3 warp = vec3(
-    snoise(position * 1.0 + uTime * (0.10 + uEnergy * 0.03)),
-    snoise(position * 1.0 + uTime * (0.10 + uEnergy * 0.03) + vec3(3.1, 1.7, 5.4)),
-    snoise(position * 1.0 + uTime * (0.10 + uEnergy * 0.03) + vec3(7.2, 2.9, 1.3))
+    snoise(position * 1.0 + uTime * baseSpeed),
+    snoise(position * 1.0 + uTime * baseSpeed + vec3(3.1, 1.7, 5.4)),
+    snoise(position * 1.0 + uTime * baseSpeed + vec3(7.2, 2.9, 1.3))
   );
 
-  float n = snoise((position + warp * 0.26) * (1.18 + uEnergy * 0.10) + uTime * 0.05);
+  // Asymmetrical offset + reduced warp coupling for organic movement
+  float n = snoise((position + warp * 0.18 + vec3(0.37, 0.71, 0.19)) * (1.18 + uEnergy * 0.08) + uTime * 0.04);
 
-  vec3 displaced = position + normal * n * (0.022 + audioPush) * activity;
-  displaced *= 1.0 + n * 0.010 * uEnergy;
+  // Gentler displacement maintaining clear spherical form
+  vec3 displaced = position + normal * n * (0.016 + audioPush) * activity;
+  displaced *= 1.0 + n * 0.008 * uEnergy;
 
   vObjPos = displaced;
   vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
@@ -120,42 +126,113 @@ varying vec3 vObjPos;
 varying vec3 vWorldPos;
 varying vec3 vNormalW;
 
+// Hash-based film grain — screen-space, changes every frame
+float hash(vec2 p) {
+  p = fract(p * vec2(234.34, 435.345));
+  p += dot(p, p + 34.23);
+  return fract(p.x * p.y);
+}
+
 void main() {
-  float drift = 0.028 + uEnergy * 0.06;
-
-  vec3 warp = vec3(
-    snoise(vObjPos * 0.78 + uTime * drift),
-    snoise(vObjPos * 0.78 + uTime * drift + vec3(2.7, 6.1, 1.4)),
-    snoise(vObjPos * 0.78 + uTime * drift + vec3(7.3, 2.5, 4.8))
-  );
-
-  float cloud = snoise((vObjPos + warp * 0.40) * (0.92 + uEnergy * 0.10) + uTime * drift * 0.75) * 0.5 + 0.5;
+  // ⚡ AGGRESSIVE WIND PARAMETERS — fast, dynamic flow
+  float windSpeed = 0.038 + uEnergy * 0.022;        // 2× faster base drift
+  vec2 windDir = normalize(vec2(1.0, 0.25));         // Stronger rightward push
+  float turbulence = 0.42 + uEnergy * 0.22;           // Intense swirls
+  
+  // ---- Layer 1: Fast-moving base cloud layer ----
+  vec2 windOffset1 = windDir * uTime * windSpeed * 1.4;
+  float cloudLayer1 = snoise(
+    vec3(vObjPos.xy * 0.58 + windOffset1, vObjPos.z * 0.45 + uTime * 0.012)
+  ) * 0.5 + 0.5;
+  
+  // ---- Layer 2: Aggressive turbulent eddies ----
+  vec2 windOffset2 = windDir * uTime * windSpeed * 2.1 + vec2(uTime * 0.065);
+  float cloudLayer2 = snoise(
+    vec3(vObjPos.xy * 1.05 + windOffset2, vObjPos.z * 0.75)
+    + vec3(snoise(vObjPos * 0.38 + uTime * 0.032)) * turbulence
+  ) * 0.5 + 0.5;
+  
+  // ---- Layer 3: Rapid cirrus streaks ----
+  vec2 windOffset3 = windDir * uTime * windSpeed * 2.9;
+  float cloudLayer3 = snoise(
+    vec3(vObjPos.xy * 1.7 + windOffset3, vObjPos.z * 1.15 + uTime * 0.021)
+  ) * 0.5 + 0.5;
+  
+  // Composite with emphasis on mid-layer turbulence
+  float cloud = cloudLayer1 * 0.48 + cloudLayer2 * 0.37 + cloudLayer3 * 0.15;
   
   vec3 lightDir = normalize(vec3(-0.4, 0.4, 1.0));
   float lighting = dot(normalize(vNormalW), lightDir) * 0.5 + 0.5;
   
-  float adjustedCloud = cloud * mix(0.4, 1.6, lighting) + lighting * 0.3;
+  // Lighting modulates cloud density (brighter areas = thicker clouds)
+  float adjustedCloud = cloud * mix(0.6, 1.35, lighting) + lighting * 0.22;
+
+  // ---- WINDY WEATHER FORMATION MAPPING ----
   
-  vec3 colorDark   = vec3(0.00, 0.12, 0.45);  
-  vec3 colorMid    = vec3(0.00, 0.40, 1.00);  
-  vec3 colorLight  = vec3(0.40, 0.80, 1.00);  
-  vec3 colorWhite  = vec3(1.00, 1.00, 1.00);  
+  // Altitude factor: how high up on the orb (0=bottom, 1=top)
+  float altitude = vObjPos.y * 0.5 + 0.5;
+  
+  // Wind exposure: dot product with wind direction reveals windward vs leeward sides
+  // Windward = facing the wind (gets more cloud buildup), Leeward = sheltered
+  float windExposure = dot(normalize(vObjPos.xz), normalize(windDir)) * 0.5 + 0.5;
+  
+  // Cloud thickness: denser areas = darker (like real storm clouds)
+  float cloudDensity = adjustedCloud;
+  
+  // ---- METEOROLOGICAL COLOR ZONES ----
+  
+  // 🌧️ STORM BASE (Navy) — Dense cloud bottoms, heavy precipitation zones
+  // Forms at low altitude + high density + windward compression
+  vec3 colorStormBase = vec3(0.00, 0.02, 0.38);  // Deep navy-indigo
+  float stormFactor = (1.0 - altitude) * cloudDensity * (0.6 + windExposure * 0.4);
+  stormFactor = smoothstep(0.25, 0.75, stormFactor);
+  
+  // ☁️ MAIN CLOUD BODY (Azure) — Stratocumulus layer, bulk of the formation
+  // Mid-altitude + medium density, stretched by wind shear
+  vec3 colorCloudBody = vec3(0.00, 0.38, 0.99);  // Vibrant azure-blue
+  float cloudBodyFactor = mix(altitude, 1.0 - abs(altitude - 0.45) * 2.2, 0.55);
+  cloudBodyFactor *= smoothstep(0.2, 0.8, cloudDensity);
+  cloudBodyFactor *= (0.7 + windExposure * 0.3);  // Slightly more on windward side
+  
+  // ☀️ SUNLIT CLOUD TOPS (White) — Cumulus peaks catching light
+  // Upper-mid altitude + lower density (thinner = brighter) + leeward spread
+  vec3 colorSunlit = vec3(0.94, 0.98, 1.00);  // Near-white
+  float sunlitFactor = altitude * (1.0 - cloudDensity * 0.5) * (1.1 - windExposure * 0.3);
+  sunlitFactor = pow(sunlitFactor, 0.85);  // Broaden the zone slightly
+  sunlitFactor = smoothstep(0.18, 0.58, sunlitFactor);
+  
+  // 💨 CIRRUS WISPS (Sky-Cyan) — High-altitude ice crystals swept by jet stream
+  // High altitude + very low density + stretched in wind direction
+  vec3 colorCirrus = vec3(0.38, 0.76, 1.00);  // Luminous sky-cyan
+  float cirrusFactor = pow(altitude, 1.4) * (1.0 - cloudDensity * 0.7);
+  cirrusFactor *= (0.4 + windExposure * 0.6);  // Strongly biased toward wind direction!
+  cirrusFactor = smoothstep(0.22, 0.72, cirrusFactor);
+  
+  // ---- COMPOSITE WEATHER FORMATION ----
+  // Layer from bottom (storm) to top (cirrus), with proper blending
+  vec3 color = mix(colorStormBase, colorCloudBody, stormFactor);
+  color = mix(color, colorSunlit, sunlitFactor);
+  color = mix(color, colorCirrus, cirrusFactor);
 
-  vec3 color = mix(colorDark, colorMid, smoothstep(0.0, 0.4, adjustedCloud));
-  color = mix(color, colorLight, smoothstep(0.4, 0.7, adjustedCloud));
-  color = mix(color, colorWhite, smoothstep(0.8, 1.0, adjustedCloud));
-
-  // Additional subtle darkening on the edges that are facing away from camera
+  // Edge darkening / vignette
   float facing = dot(normalize(vNormalW), vec3(0.0, 0.0, 1.0));
   float vignette = smoothstep(-0.2, 0.6, facing);
-  color = mix(colorDark * 0.3, color, vignette);
+  color = mix(colorStormBase * 0.25, color, vignette);
   
-  // Outer rim light
-  float fresnel = pow(1.0 - max(facing, 0.0), 3.0);
-  color += fresnel * colorMid * 0.5 * uEnergy;
+  // Outer rim — enhanced cyan-azure glow matching ChatGPT Voice aesthetic
+  float fresnel = pow(1.0 - max(facing, 0.0), 2.8);
+  color += fresnel * vec3(0.38, 0.76, 1.00) * 0.65 * (0.5 + uEnergy * 0.5);
 
-  float pulse = 0.5 + 0.5 * sin(uTime * (1.2 + uEnergy * 0.8) + uAudioLevel * 2.2);
+  // Subtle pulse shimmer — slower frequency for meditative quality
+  float pulse = 0.5 + 0.5 * sin(uTime * (0.9 + uEnergy * 0.6) + uAudioLevel * 1.8);
   color += pulse * 0.04 * uEnergy;
+
+  // ---- Film grain / organic noise ----
+  // Screen-space grain: use gl_FragCoord + animated time seed
+  vec2 grainUV = gl_FragCoord.xy + vec2(uTime * 97.3, uTime * 53.7);
+  float grain = hash(grainUV) * 2.0 - 1.0;  // [-1, 1]
+  float grainStrength = 0.026;               // Refined subtlety for cleaner look
+  color += grain * grainStrength;
 
   // Render as emissive since we manage our own shading for the cloud volume
   csm_DiffuseColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -210,10 +287,12 @@ export function OrbMesh({ state, intensity }: OrbMeshProps) {
 
   useFrame((_, delta) => {
     const target = state === 'active' ? intensity : 0
-    smoothedLevel.current += (target - smoothedLevel.current) * 0.1
+    // Smoother audio level response for graceful reactivity
+    smoothedLevel.current += (target - smoothedLevel.current) * 0.08
 
     const energyTarget = state === 'active' ? 1 : 0
-    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.05
+    // Gentler energy transitions for meditative state changes
+    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.03
 
     uniforms.uTime.value += delta
     uniforms.uAudioLevel.value = smoothedLevel.current
