@@ -27,6 +27,26 @@ export function useTranscription(): UseTranscriptionReturn {
         method: 'POST',
         body: formData,
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
+        body: JSON.stringify({
+          sessionId: '381f43',
+          runId: 'post-fix',
+          location: 'useTranscription.ts:transcribeAudio:response',
+          message: '/api/transcribe response',
+          data: {
+            ok: res.ok,
+            status: res.status,
+            sentMime: blob.type,
+            sentSize: blob.size,
+          },
+          timestamp: Date.now(),
+          hypothesisId: 'C',
+        }),
+      }).catch(() => {});
+      // #endregion
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Transcription failed' }));

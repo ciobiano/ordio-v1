@@ -5,6 +5,7 @@ import { api } from '@Ordio/convex';
 import type { GenericId } from 'convex/values';
 import { useStore } from '@/lib/store';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
+import { decodeBlobToAudioBuffer } from '@/lib/decodeMediaToAudioBuffer';
 import type { UseTranscriptionReturn } from '@/hooks/useTranscription';
 interface UseAudioProcessingReturn {
   processingProgress: number;
@@ -63,18 +64,71 @@ export function useAudioProcessing(
       setProcessingProgress(0);
 
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
+          body: JSON.stringify({
+            sessionId: '381f43',
+            runId: 'post-fix',
+            location: 'useAudioProcessing.ts:processAudio:entry',
+            message: 'processAudio entry',
+            data: {
+              mime: blob.type,
+              size: blob.size,
+              name: blob instanceof File ? blob.name : '(blob)',
+            },
+            timestamp: Date.now(),
+            hypothesisId: 'A,B',
+          }),
+        }).catch(() => {});
+        // #endregion
         // Step 1: Decode audio (0–15% when enhancing, 0–25% otherwise)
         const { enhanceTier } = useStore.getState();
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
         setProcessingProgress(10);
-        const audioCtx = new AudioContext();
         let decoded: AudioBuffer;
         try {
-          const arrayBuffer = await blob.arrayBuffer();
-          decoded = await audioCtx.decodeAudioData(arrayBuffer);
-          void audioCtx.close();
+          const { audioBuffer, decodePath } = await decodeBlobToAudioBuffer(blob);
+          decoded = audioBuffer;
+          // #region agent log
+          fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
+            body: JSON.stringify({
+              sessionId: '381f43',
+              runId: 'post-fix',
+              location: 'useAudioProcessing.ts:processAudio:decodeOk',
+              message: 'decode to AudioBuffer succeeded',
+              data: {
+                decodePath,
+                durationSec: decoded.duration,
+                sampleRate: decoded.sampleRate,
+              },
+              timestamp: Date.now(),
+              hypothesisId: 'A',
+            }),
+          }).catch(() => {});
+          // #endregion
         } catch (decodeErr) {
-          void audioCtx.close();
+          // #region agent log
+          fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
+            body: JSON.stringify({
+              sessionId: '381f43',
+              runId: 'post-fix',
+              location: 'useAudioProcessing.ts:processAudio:decodeFail',
+              message: 'decode to AudioBuffer failed',
+              data: {
+                errName: decodeErr instanceof Error ? decodeErr.name : 'unknown',
+                errMessage: decodeErr instanceof Error ? decodeErr.message : String(decodeErr),
+              },
+              timestamp: Date.now(),
+              hypothesisId: 'A',
+            }),
+          }).catch(() => {});
+          // #endregion
           throw decodeErr;
         }
         setAudioBuffer(decoded);
@@ -133,6 +187,21 @@ export function useAudioProcessing(
             return storageId as GenericId<'_storage'>;
           })(),
         ]);
+        // #region agent log
+        fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
+          body: JSON.stringify({
+            sessionId: '381f43',
+            runId: 'post-fix',
+            location: 'useAudioProcessing.ts:processAudio:afterTranscribe',
+            message: 'transcribe + upload parallel done',
+            data: { wordCount: words.length },
+            timestamp: Date.now(),
+            hypothesisId: 'C',
+          }),
+        }).catch(() => {});
+        // #endregion
 
         if (words.length > 0) {
           setTranscript(words);

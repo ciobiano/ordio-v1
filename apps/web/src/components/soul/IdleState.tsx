@@ -70,12 +70,12 @@ export function IdleState({
         onClick={() => fileInputRef.current?.click()}
         className="text-white/30 text-xs hover:text-white/50 hover:bg-transparent transition-colors mt-2 h-auto py-1"
       >
-        or upload audio
+        or upload audio or video
       </Button>
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/*"
+        accept="audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a"
         className="hidden"
         onChange={onFileUpload}
       />

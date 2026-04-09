@@ -49,6 +49,10 @@ vi.mock('@/lib/audioEnhanceApi', () => ({
   enhanceAudio: vi.fn(),
 }));
 
+vi.mock('@/lib/decodeMediaToAudioBuffer', () => ({
+  decodeBlobToAudioBuffer: vi.fn(),
+}));
+
 // AudioContext mock with decodeAudioData — defined as a proper class so `new` works
 const mockDecodeAudioData = vi.fn();
 const mockAudioContextClose = vi.fn();
@@ -78,6 +82,16 @@ describe('useAudioProcessing', () => {
   beforeEach(async () => {
     // Reset call counts but preserve mock implementations
     vi.clearAllMocks();
+
+    const decodeMod = await import('@/lib/decodeMediaToAudioBuffer');
+    (decodeMod.decodeBlobToAudioBuffer as Mock).mockResolvedValue({
+      audioBuffer: {
+        duration: 5.0,
+        numberOfChannels: 1,
+        sampleRate: 44100,
+      } as AudioBuffer,
+      decodePath: 'native' as const,
+    });
 
     // Re-apply mock implementations after clearAllMocks
     mockDecodeAudioData.mockResolvedValue({

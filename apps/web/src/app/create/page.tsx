@@ -146,7 +146,7 @@ export default function CreatePage() {
         const sessionId = await processAudio(file);
         router.push(`/create/export/${sessionId}`);
       } catch {
-        toast.error('Failed to load audio file. Try MP3, WAV, or M4A.');
+        toast.error('Could not read this file. Try M4A, MP3, WAV, MOV, MP4, or MKV.');
       }
 
       if (e.target) e.target.value = '';
