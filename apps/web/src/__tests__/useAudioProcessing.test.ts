@@ -280,7 +280,7 @@ describe('useAudioProcessing', () => {
     const { result } = renderHook(() => useAudioProcessing(mockTranscription));
 
     await act(async () => {
-      await expect(result.current.processAudio(blob)).rejects.toMatchObject<AudioProcessingError>({
+      await expect(result.current.processAudio(blob)).rejects.toMatchObject({
         stage: 'enhancement',
       });
     });
@@ -314,7 +314,7 @@ describe('useAudioProcessing', () => {
     const { result } = renderHook(() => useAudioProcessing(mockTranscription));
 
     await act(async () => {
-      await expect(result.current.processAudio(blob)).rejects.toMatchObject<AudioProcessingError>({
+      await expect(result.current.processAudio(blob)).rejects.toMatchObject({
         stage: 'transcription',
       });
     });
