@@ -94,32 +94,37 @@ function audioBufferToWavBlob(audioBuffer: AudioBuffer): Blob {
 }
 
 async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSignal): Promise<Blob> {
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-  const ffmpeg = new FFmpeg();
+  try {
+    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+    const ffmpeg = new FFmpeg();
 
-  const baseUrl = `${window.location.origin}/ffmpeg`;
-  await ffmpeg.load({
-    coreURL: `${baseUrl}/ffmpeg-core.js`,
-    wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
-  });
+    const baseUrl = `${window.location.origin}/ffmpeg`;
+    await ffmpeg.load({
+      coreURL: `${baseUrl}/ffmpeg-core.js`,
+      wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
+    });
 
-  const wavBytes = audioBufferToWavBytes(audioBuffer);
-  const wavUint8 = new Uint8Array(wavBytes);
-  await ffmpeg.writeFile('input.wav', wavUint8);
+    const wavBytes = audioBufferToWavBytes(audioBuffer);
+    const wavUint8 = new Uint8Array(wavBytes);
+    await ffmpeg.writeFile('input.wav', wavUint8);
 
-  await ffmpeg.exec(['-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '128k', 'output.mp3']);
+    await ffmpeg.exec(['-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '96k', 'output.mp3']);
 
-  if (abort.aborted) {
+    if (abort.aborted) {
+      await ffmpeg.deleteFile('input.wav');
+      await ffmpeg.deleteFile('output.mp3');
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const outputData = (await ffmpeg.readFile('output.mp3')) as Uint8Array;
     await ffmpeg.deleteFile('input.wav');
     await ffmpeg.deleteFile('output.mp3');
-    throw new DOMException('Aborted', 'AbortError');
+
+    return new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
+  } catch (err) {
+    console.error('reduceAudioForWhisper failed:', err);
+    throw err;
   }
-
-  const outputData = (await ffmpeg.readFile('output.mp3')) as Uint8Array;
-  await ffmpeg.deleteFile('input.wav');
-  await ffmpeg.deleteFile('output.mp3');
-
-  return new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
 }
 
 /**
@@ -273,17 +278,16 @@ export function useAudioProcessing(
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         setProcessingProgress(baseTranscribe + 5);
 
-        // Ensure transcription blob is under 20MB limit for Whisper
+        // If too large, FFmpeg compress to MP3 first (don't convert to WAV)
+        const needsCompression =
+          shouldTranscodeForWhisper(rawBlob.type) || rawBlob.size > WHISPER_SIZE_LIMIT;
         let transcriptionBlob: Blob;
-        if (shouldTranscodeForWhisper(rawBlob.type)) {
+        if (needsCompression) {
+          transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
+        } else if (shouldTranscodeForWhisper(rawBlob.type)) {
           transcriptionBlob = audioBufferToWavBlob(transcriptionBuffer);
         } else {
           transcriptionBlob = rawBlob;
-        }
-
-        // If still too large, compress with FFmpeg to MP3 128k
-        if (transcriptionBlob.size > WHISPER_SIZE_LIMIT) {
-          transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
         }
 
         const [words, storageId] = await Promise.all([
