@@ -6,29 +6,31 @@ import type { ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
-import { useAudioAnalyser } from '@/hooks/useAudioAnalyser';
-import { useTranscription } from '@/hooks/useTranscription';
-import { useAudioProcessing } from '@/hooks/useAudioProcessing';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useCapabilities } from '@/hooks/useCapabilities';
-import { useVAD } from '@/hooks/useVAD';
+import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
+import { useAudioRecorder } from '@/hooks/audio/useAudioRecorder';
+import { useAudioAnalyser } from '@/hooks/audio/useAudioAnalyser';
+import { useTranscription } from '@/hooks/recording/useTranscription';
+import { useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import { useCapabilities } from '@/hooks/recording/useCapabilities';
+import { useVAD } from '@/hooks/recording/useVAD';
 
-import IdleState from '@/components/soul/IdleState';
-import { Skeleton } from '@/components/soul/Skeleton';
+import IdleState from '@/components/soul/states/IdleState';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const RecordingState = dynamic(
   () =>
-    import('@/components/soul/RecordingState').then((m) => ({
+    import('@/components/soul/recording/RecordingState').then((m) => ({
       default: m.RecordingState,
     })),
   { ssr: false }
 );
 
-const ProcessingState = dynamic(() => import('@/components/soul/ProcessingState'), { ssr: false });
+const ProcessingState = dynamic(() => import('@/components/soul/states/ProcessingState'), {
+  ssr: false,
+});
 
-const UserAvatarButton = dynamic(() => import('@/components/soul/UserAvatarButton'), {
+const UserAvatarButton = dynamic(() => import('@/components/soul/auth/UserAvatarButton'), {
   ssr: false,
   loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
 });
@@ -37,7 +39,16 @@ const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 export default function CreatePage() {
   const router = useRouter();
-  const { currentState, setCurrentState, setUpgradeTarget, reset } = useStore();
+  const { currentState, setCurrentState, setUpgradeTarget } = useUIStore();
+  const resetUI = useUIStore((s) => s.resetUI);
+  const resetCapture = useCaptureStore((s) => s.resetCapture);
+  const resetProcessing = useProcessingStore((s) => s.resetProcessing);
+
+  const reset = useCallback(() => {
+    resetCapture();
+    resetProcessing();
+    resetUI();
+  }, [resetCapture, resetProcessing, resetUI]);
 
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);

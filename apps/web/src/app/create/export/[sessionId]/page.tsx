@@ -6,16 +6,16 @@ import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { useStore } from '@/lib/store';
-import { useVideoExporter, fileExtension } from '@/hooks/useVideoExporter';
-import { usePlayback } from '@/hooks/usePlayback';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useExportGate } from '@/hooks/useExportGate';
+import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
+import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
+import { usePlayback } from '@/hooks/playback/usePlayback';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
-import ExportState from '@/components/soul/ExportState';
-import { Skeleton } from '@/components/soul/Skeleton';
+import ExportState from '@/components/soul/states/ExportState';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const UserAvatarButton = dynamic(() => import('@/components/soul/UserAvatarButton'), {
+const UserAvatarButton = dynamic(() => import('@/components/soul/auth/UserAvatarButton'), {
   ssr: false,
   loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
 });
@@ -34,21 +34,22 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
   const { sessionId } = use(params);
   const router = useRouter();
 
-  const {
-    audioBuffer,
-    transcript,
-    setAudioBuffer,
-    setAudioBlob,
-    setTranscript,
-    setAudioDuration,
-    setUpgradeTarget,
-    format,
-    waveformStyle,
-    canvasLayout,
-    captionMode,
-    graphicStyle,
-    reset,
-  } = useStore();
+  const { audioBuffer, setAudioBuffer, setAudioBlob, setAudioDuration } = useCaptureStore();
+
+  const { transcript, setTranscript } = useProcessingStore();
+
+  const { setUpgradeTarget, format, waveformStyle, canvasLayout, captionMode, graphicStyle } =
+    useUIStore();
+
+  const resetUI = useUIStore((s) => s.resetUI);
+  const resetCapture = useCaptureStore((s) => s.resetCapture);
+  const resetProcessing = useProcessingStore((s) => s.resetProcessing);
+
+  const reset = useCallback(() => {
+    resetCapture();
+    resetProcessing();
+    resetUI();
+  }, [resetCapture, resetProcessing, resetUI]);
 
   const [isHydrating, setIsHydrating] = useState(false);
 
