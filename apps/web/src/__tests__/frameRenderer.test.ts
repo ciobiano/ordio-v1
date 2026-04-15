@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderFrame, type FrameOptions } from '@/lib/frameRenderer';
+import { renderFrame, type FrameOptions } from '@/lib/video';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 
 // Minimal canvas context mock
@@ -45,9 +45,7 @@ const sampleTranscript: Word[] = [
   { text: 'test', start: 2.0, end: 2.5 },
 ];
 
-const sampleWaveform = Array.from({ length: 100 }, (_, i) =>
-  Math.abs(Math.sin(i * 0.1))
-);
+const sampleWaveform = Array.from({ length: 100 }, (_, i) => Math.abs(Math.sin(i * 0.1)));
 
 function makeOptions(overrides?: Partial<FrameOptions>): FrameOptions {
   return {
@@ -63,7 +61,8 @@ function makeOptions(overrides?: Partial<FrameOptions>): FrameOptions {
 describe('renderFrame', () => {
   it('draws background as first operation', () => {
     const ctx = createMockCtx();
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     renderFrame(ctx, 0, 90, makeOptions());
 
@@ -79,9 +78,7 @@ describe('renderFrame', () => {
     const variants = ['bars', 'spectrogram', 'circle'] as const;
     for (const variant of variants) {
       const ctx = createMockCtx();
-      expect(() =>
-        renderFrame(ctx, 15, 90, makeOptions({ waveformStyle: variant }))
-      ).not.toThrow();
+      expect(() => renderFrame(ctx, 15, 90, makeOptions({ waveformStyle: variant }))).not.toThrow();
     }
   });
 
@@ -89,9 +86,7 @@ describe('renderFrame', () => {
     const layouts = ['standard', 'compact', 'flipped'] as const;
     for (const layout of layouts) {
       const ctx = createMockCtx();
-      expect(() =>
-        renderFrame(ctx, 15, 90, makeOptions({ canvasLayout: layout }))
-      ).not.toThrow();
+      expect(() => renderFrame(ctx, 15, 90, makeOptions({ canvasLayout: layout }))).not.toThrow();
     }
   });
 
@@ -99,43 +94,34 @@ describe('renderFrame', () => {
     const modes = ['phrase', 'karaoke'] as const;
     for (const mode of modes) {
       const ctx = createMockCtx();
-      expect(() =>
-        renderFrame(ctx, 15, 90, makeOptions({ captionMode: mode }))
-      ).not.toThrow();
+      expect(() => renderFrame(ctx, 15, 90, makeOptions({ captionMode: mode }))).not.toThrow();
     }
   });
 
   it('handles empty transcript gracefully', () => {
     const ctx = createMockCtx();
-    expect(() =>
-      renderFrame(ctx, 15, 90, makeOptions({ transcript: [] }))
-    ).not.toThrow();
+    expect(() => renderFrame(ctx, 15, 90, makeOptions({ transcript: [] }))).not.toThrow();
   });
 
   it('handles empty waveform data gracefully', () => {
     const ctx = createMockCtx();
-    expect(() =>
-      renderFrame(ctx, 15, 90, makeOptions({ waveformData: [] }))
-    ).not.toThrow();
+    expect(() => renderFrame(ctx, 15, 90, makeOptions({ waveformData: [] }))).not.toThrow();
   });
 
   it('handles frame at the end of the video', () => {
     const ctx = createMockCtx();
-    expect(() =>
-      renderFrame(ctx, 89, 90, makeOptions())
-    ).not.toThrow();
+    expect(() => renderFrame(ctx, 89, 90, makeOptions())).not.toThrow();
   });
 
   it('handles frame beyond duration', () => {
     const ctx = createMockCtx();
-    expect(() =>
-      renderFrame(ctx, 100, 90, makeOptions())
-    ).not.toThrow();
+    expect(() => renderFrame(ctx, 100, 90, makeOptions())).not.toThrow();
   });
 
   it('draws fillText for captions when transcript exists', () => {
     const ctx = createMockCtx();
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     renderFrame(ctx, 15, 90, makeOptions());
 
@@ -148,17 +134,18 @@ describe('renderFrame', () => {
     const options = makeOptions({ showWatermark: true });
     renderFrame(ctx, 0, 90, options);
 
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     const fillTextCall = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
     );
     expect(fillTextCall).toBeDefined();
     expect(fillTextCall?.args[1]).toBe(16); // x
     expect(fillTextCall?.args[2]).toBe(16); // y
 
     const fontSet = calls.find(
-      (c) => c.method === 'set:font' && String(c.args[0]).includes('Geist'),
+      (c) => c.method === 'set:font' && String(c.args[0]).includes('Geist')
     );
     expect(fontSet).toBeDefined();
 
@@ -175,43 +162,48 @@ describe('renderFrame', () => {
 
   it('does not call waveform drawing when graphicStyle is set', () => {
     const ctx = createMockCtx();
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     // No image in cache — getGraphic returns null — so drawImage is not called
     renderFrame(ctx, 0, 90, makeOptions({ graphicStyle: 'graphic-frame1', waveformStyle: 'bars' }));
-    expect(calls.some(c => c.method === 'drawImage')).toBe(false);
+    expect(calls.some((c) => c.method === 'drawImage')).toBe(false);
   });
 
   it('captions still render when graphicStyle is set', () => {
     const ctx = createMockCtx();
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     renderFrame(ctx, 15, 90, makeOptions({ graphicStyle: 'graphic-frame1' }));
 
-    const fillTextCalls = calls.filter(c => c.method === 'fillText');
+    const fillTextCalls = calls.filter((c) => c.method === 'fillText');
     expect(fillTextCalls.length).toBeGreaterThan(0);
   });
 
   it('calls ctx.drawImage when graphicStyle is set and image is in cache', async () => {
     // vi.mock() is hoisted — use vi.doMock() + vi.resetModules() + dynamic import instead
     vi.resetModules();
-    vi.doMock('@/lib/graphicLoader', () => ({
-      getGraphic: () => Object.assign(new EventTarget(), {
-        src: '/graphic-styles/frame2.svg',
-        naturalWidth: 321,
-        naturalHeight: 189,
-      }) as unknown as HTMLImageElement,
+    vi.doMock('@/lib/loaders/graphicLoader', () => ({
+      getGraphic: vi.fn(() =>
+        Object.assign(new EventTarget(), {
+          src: '/graphic-styles/frame2.svg',
+          naturalWidth: 321,
+          naturalHeight: 189,
+        })
+      ),
       loadGraphic: vi.fn(),
     }));
 
-    const { renderFrame: renderFrameFresh } = await import('@/lib/frameRenderer');
+    const { renderFrame: renderFrameFresh } = await import('@/lib/video');
     const ctx = createMockCtx();
-    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
 
     renderFrameFresh(ctx, 0, 90, makeOptions({ graphicStyle: 'graphic-frame2' }));
 
     // direct path (frame2): ctx.drawImage(img, x, y, w, h) is called
-    expect(calls.some(c => c.method === 'drawImage')).toBe(true);
+    expect(calls.some((c) => c.method === 'drawImage')).toBe(true);
 
     vi.resetModules();
   });
@@ -223,7 +215,7 @@ describe('renderFrame', () => {
     renderFrame(ctx, 0, 90, makeOptions({ showWatermark: false }));
     let calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
     let fillTextWatermark = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
     );
     expect(fillTextWatermark).toBeUndefined();
 
@@ -232,7 +224,7 @@ describe('renderFrame', () => {
     renderFrame(ctx2, 0, 90, makeOptions());
     calls = (ctx2 as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
     fillTextWatermark = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio',
+      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
     );
     expect(fillTextWatermark).toBeUndefined();
   });

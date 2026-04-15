@@ -8,6 +8,49 @@ import '@testing-library/jest-dom';
 // Global test setup for jsdom environment
 
 // Stub out browser APIs that jsdom doesn't provide
+Object.defineProperty(globalThis, 'AudioBuffer', {
+  writable: true,
+  value: class AudioBuffer {
+    private _channelData: Float32Array[] = [];
+    constructor(options: { length: number; numberOfChannels: number; sampleRate: number }) {
+      this._length = options.length;
+      this._numberOfChannels = options.numberOfChannels;
+      this._sampleRate = options.sampleRate;
+      this._channelData = Array.from(
+        { length: options.numberOfChannels },
+        () => new Float32Array(options.length)
+      );
+    }
+    get length() {
+      return this._length;
+    }
+    set length(v: number) {
+      this._length = v;
+    }
+    get numberOfChannels() {
+      return this._numberOfChannels;
+    }
+    set numberOfChannels(v: number) {
+      this._numberOfChannels = v;
+    }
+    get sampleRate() {
+      return this._sampleRate;
+    }
+    set sampleRate(v: number) {
+      this._sampleRate = v;
+    }
+    private _length = 0;
+    private _numberOfChannels = 0;
+    private _sampleRate = 0;
+    get duration() {
+      return this._length / this._sampleRate;
+    }
+    getChannelData(channel: number) {
+      return this._channelData[channel] ?? new Float32Array(this._length);
+    }
+  },
+});
+
 Object.defineProperty(window, 'AudioContext', {
   writable: true,
   value: vi.fn().mockImplementation(() => ({
@@ -21,6 +64,8 @@ Object.defineProperty(window, 'AudioContext', {
     createMediaStreamDestination: vi.fn().mockReturnValue({
       stream: { getAudioTracks: vi.fn().mockReturnValue([]) },
     }),
+    createBuffer: (numberOfChannels: number, length: number, sampleRate: number) =>
+      new AudioBuffer({ length, numberOfChannels, sampleRate }),
     close: vi.fn(),
     currentTime: 0,
     destination: {},
@@ -57,7 +102,10 @@ Object.defineProperty(navigator, 'mediaDevices', {
 // Mock OffscreenCanvas for drawGraphic tests (not available in jsdom)
 if (typeof globalThis.OffscreenCanvas === 'undefined') {
   (globalThis as Record<string, unknown>).OffscreenCanvas = class {
-    constructor(public width: number, public height: number) {}
+    constructor(
+      public width: number,
+      public height: number
+    ) {}
     getContext() {
       const calls: Array<{ method: string; args: unknown[] }> = [];
       return new Proxy({} as Record<string, unknown>, {

@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Mock } from 'vitest';
-import { useAudioProcessing } from '@/hooks/useAudioProcessing';
-import type { UseTranscriptionReturn } from '@/hooks/useTranscription';
+import { useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
+import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
 
 // Mock Convex hooks
 vi.mock('convex/react', () => ({
@@ -28,17 +28,22 @@ const mockSetTranscriptionSource = vi.fn();
 const mockSetIsEnhancing = vi.fn();
 const mockSetEnhanceProgress = vi.fn();
 
-vi.mock('@/lib/store', () => ({
-  useStore: Object.assign(
+vi.mock('@/stores', () => ({
+  useUIStore: vi.fn((selector: (s: unknown) => unknown) =>
+    selector({ setCurrentState: mockSetCurrentState, currentState: 'idle' })
+  ),
+  useCaptureStore: vi.fn(() => ({
+    setAudioBuffer: mockSetAudioBuffer,
+    setAudioBlob: mockSetAudioBlob,
+    setAudioDuration: mockSetAudioDuration,
+  })),
+  useProcessingStore: Object.assign(
     vi.fn(() => ({
-      setCurrentState: mockSetCurrentState,
-      setAudioBuffer: mockSetAudioBuffer,
-      setAudioBlob: mockSetAudioBlob,
-      setAudioDuration: mockSetAudioDuration,
       setTranscript: mockSetTranscript,
       setTranscriptionSource: mockSetTranscriptionSource,
       setIsEnhancing: mockSetIsEnhancing,
       setEnhanceProgress: mockSetEnhanceProgress,
+      enhanceTier: 'none',
     })),
     { getState: vi.fn(() => ({ enhanceTier: 'none' })) }
   ),
@@ -49,7 +54,7 @@ vi.mock('@/lib/audioEnhanceApi', () => ({
   enhanceAudio: vi.fn(),
 }));
 
-vi.mock('@/lib/decodeMediaToAudioBuffer', () => ({
+vi.mock('@/lib/media', () => ({
   decodeBlobToAudioBuffer: vi.fn(),
 }));
 
@@ -83,7 +88,7 @@ describe('useAudioProcessing', () => {
     // Reset call counts but preserve mock implementations
     vi.clearAllMocks();
 
-    const decodeMod = await import('@/lib/decodeMediaToAudioBuffer');
+    const decodeMod = await import('@/lib/media');
     (decodeMod.decodeBlobToAudioBuffer as Mock).mockResolvedValue({
       audioBuffer: {
         duration: 5.0,
@@ -105,24 +110,34 @@ describe('useAudioProcessing', () => {
     ]);
 
     // Re-apply store mock (clearAllMocks resets the vi.fn() factory return value)
-    const storeReturnValue = {
-      setCurrentState: mockSetCurrentState,
+    // Re-apply store mock behavior after clearAllMocks
+    const storesModule = await import('@/stores');
+
+    // UI Store - uses selector pattern
+    const useUIStoreMock = storesModule.useUIStore as unknown as Mock;
+    useUIStoreMock.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ setCurrentState: mockSetCurrentState, currentState: 'idle' })
+    );
+
+    // Capture Store
+    const useCaptureStoreMock = storesModule.useCaptureStore as unknown as Mock;
+    useCaptureStoreMock.mockReturnValue({
       setAudioBuffer: mockSetAudioBuffer,
       setAudioBlob: mockSetAudioBlob,
       setAudioDuration: mockSetAudioDuration,
+    });
+
+    // Processing Store
+    const useProcessingStoreMock = storesModule.useProcessingStore as unknown as Mock & {
+      getState: Mock;
+    };
+    useProcessingStoreMock.mockReturnValue({
       setTranscript: mockSetTranscript,
       setTranscriptionSource: mockSetTranscriptionSource,
       setIsEnhancing: mockSetIsEnhancing,
       setEnhanceProgress: mockSetEnhanceProgress,
-    };
-
-    // Re-apply store mock behavior after clearAllMocks
-    const storeModule = await import('@/lib/store');
-    const useStoreMock = storeModule.useStore as unknown as Mock & {
-      getState: Mock;
-    };
-    useStoreMock.mockReturnValue(storeReturnValue);
-    useStoreMock.getState = vi.fn(() => ({ enhanceTier: 'none' }));
+    });
+    useProcessingStoreMock.getState = vi.fn(() => ({ enhanceTier: 'none' }));
   });
 
   it('returns a string sessionId on success', async () => {
@@ -169,9 +184,7 @@ describe('useAudioProcessing', () => {
     const { result } = renderHook(() => useAudioProcessing(mockTranscription));
 
     await act(async () => {
-      await expect(result.current.processAudio(blob)).rejects.toThrow(
-        'Audio processing failed'
-      );
+      await expect(result.current.processAudio(blob)).rejects.toThrow('Audio processing failed');
     });
 
     expect(mockSetCurrentState).toHaveBeenCalledWith('idle');
