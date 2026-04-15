@@ -1,7 +1,7 @@
 'use client';
 
 import { cva } from 'class-variance-authority';
-import { useAnimationTick } from '@/hooks/useAnimationTick';
+import { useAnimationTick } from '@/hooks/playback/useAnimationTick';
 
 interface CircleWaveformProps {
   level: number;

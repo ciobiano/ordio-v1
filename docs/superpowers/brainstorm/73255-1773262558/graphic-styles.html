@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Graphic Styles — Ordio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    padding: 40px 32px 60px;
+  }
+  h2 { font-size: 22px; font-weight: 500; letter-spacing: -0.4px; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: rgba(255,255,255,0.45); margin-bottom: 8px; }
+  .note { font-size: 12px; color: rgba(255,255,255,0.28); margin-bottom: 32px; font-style: italic; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .card {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: #111;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.28); }
+  .card.selected { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+
+  .preview {
+    height: 180px;
+    background: #000;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* SVG preview sizing */
+  .preview svg, .preview img { max-height: 150px; max-width: 100%; }
+
+  /* Animated bounce for the SVG frames */
+  .frame-anim { position: absolute; transition: opacity 0.08s; }
+  .frame-anim.hidden { opacity: 0; }
+
+  /* Caption label on previews */
+  .preview-label {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+  }
+
+  .card-body { padding: 14px 18px; }
+  .card-body h3 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .card-body p { font-size: 12px; color: rgba(255,255,255,0.42); line-height: 1.55; }
+
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 100px; margin-bottom: 8px;
+  }
+  .tag-yours { background: rgba(34,197,94,0.15); color: #86efac; }
+  .tag-suggest { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    margin-bottom: 12px; margin-top: 28px;
+  }
+
+  .selection-bar {
+    margin-top: 28px; padding: 14px 20px;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    font-size: 13px; color: rgba(255,255,255,0.45); text-align: center;
+  }
+  .selection-bar span { color: #a5b4fc; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h2>Graphic Styles</h2>
+<p class="subtitle">Style selector expands: creators pick a waveform <em>or</em> a graphic animation. Multi-select what you want to ship.</p>
+<p class="note">Graphic styles swap out the waveform entirely — the SVG animates between frames driven by audio amplitude.</p>
+
+<p class="section-label">Your SVG art — 2 frames = 1 style</p>
+<div class="grid">
+
+  <!-- Your SVG art: animated between frame1 + frame2 -->
+  <div class="card" data-choice="svg-art" onclick="toggleCard(this)" style="grid-column: span 1;">
+    <div class="preview" id="prev-svg">
+      <div class="frame-anim" id="f1">
+        <img src="frame1.svg" alt="frame 1" style="height:155px;filter:brightness(0) invert(1);opacity:0.9;" />
+      </div>
+      <div class="frame-anim hidden" id="f2">
+        <img src="frame2.svg" alt="frame 2" style="height:110px;filter:brightness(0) invert(1);opacity:0.9;" />
+      </div>
+      <span class="preview-label">Bounces with audio beat</span>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-yours">Your Art</div>
+      <h3>Character / Figure</h3>
+      <p>Your two SVG frames animate with the beat — frame1 ↔ frame2 driven by audio amplitude.</p>
+    </div>
+  </div>
+
+  <!-- Frame 1 solo preview -->
+  <div class="card" style="cursor:default; pointer-events:none; opacity:0.6;">
+    <div class="preview" style="background:#050505;">
+      <img src="frame1.svg" style="height:155px;filter:brightness(0) invert(1);opacity:0.85;" />
+      <span class="preview-label">Frame 1 — resting</span>
+    </div>
+    <div class="card-body">
+      <h3 style="color:rgba(255,255,255,0.4)">Frame 1</h3>
+      <p>Shown when audio is quiet / between beats.</p>
+    </div>
+  </div>
+
+  <!-- Frame 2 solo preview -->
+  <div class="card" style="cursor:default; pointer-events:none; opacity:0.6;">
+    <div class="preview" style="background:#050505;">
+      <img src="frame2.svg" style="height:110px;filter:brightness(0) invert(1);opacity:0.85;" />
+      <span class="preview-label">Frame 2 — on beat</span>
+    </div>
+    <div class="card-body">
+      <h3 style="color:rgba(255,255,255,0.4)">Frame 2</h3>
+      <p>Shown when audio amplitude crosses the beat threshold.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="section-label">Additional graphic styles — suggested additions</p>
+<div class="grid">
+
+  <!-- Colour fill option: user colours the SVG -->
+  <div class="card" data-choice="svg-colored" onclick="toggleCard(this)">
+    <div class="preview" id="prev-col">
+      <div class="frame-anim" id="fc1">
+        <img src="frame1.svg" id="col-f1" style="height:155px;" />
+      </div>
+      <div class="frame-anim hidden" id="fc2">
+        <img src="frame2.svg" id="col-f2" style="height:110px;" />
+      </div>
+      <span class="preview-label">Coloured variant</span>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-suggest">Suggested</div>
+      <h3>Colour-tinted Art</h3>
+      <p>Same SVG frames but tinted with the creator's chosen accent colour — personalised look.</p>
+    </div>
+  </div>
+
+  <!-- Pulsing glow version -->
+  <div class="card" data-choice="svg-glow" onclick="toggleCard(this)">
+    <div class="preview" id="prev-glow">
+      <div id="glow-wrap" style="position:relative;">
+        <div id="glow-halo" style="position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.35) 0%,transparent 70%);transition:opacity 0.15s;"></div>
+        <img src="frame1.svg" id="glow-f1" style="height:140px;filter:brightness(0) invert(1);position:relative;" />
+      </div>
+      <span class="preview-label">Glow on beat</span>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-suggest">Suggested</div>
+      <h3>SVG + Glow Effect</h3>
+      <p>SVG frames + a radial glow that pulses behind the graphic on each beat. Dramatic, neon feel.</p>
+    </div>
+  </div>
+
+  <!-- Future: upload your own -->
+  <div class="card" style="border-style:dashed; cursor:default; opacity:0.5; pointer-events:none;">
+    <div class="preview" style="flex-direction:column;gap:10px;">
+      <div style="font-size:32px;opacity:0.3">+</div>
+      <span style="font-size:12px;color:rgba(255,255,255,0.3)">Upload your own SVG</span>
+    </div>
+    <div class="card-body">
+      <div class="tag" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3)">Future</div>
+      <h3 style="color:rgba(255,255,255,0.35)">Custom Upload (Pro)</h3>
+      <p style="color:rgba(255,255,255,0.25)">Creators bring their own SVG frames — fully custom graphic style. Phase D+.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="selection-bar">
+  Click styles to select — <span id="sel-count">0</span> selected:
+  <span id="sel-names" style="margin-left:6px;color:rgba(255,255,255,0.5)">none</span>
+</div>
+
+<script>
+  const selected = new Set()
+
+  function toggleCard(el) {
+    const choice = el.dataset.choice
+    if (selected.has(choice)) { selected.delete(choice); el.classList.remove('selected') }
+    else { selected.add(choice); el.classList.add('selected') }
+    document.getElementById('sel-count').textContent = selected.size
+    document.getElementById('sel-names').textContent = selected.size ? [...selected].join(', ') : 'none'
+    if (window.__ordioRecord) window.__ordioRecord({ type: 'click', choice: [...selected].join(','), text: [...selected].join(', ') })
+  }
+
+  // ── Animate frame1 ↔ frame2 on a beat interval ──────────────────
+  function startFrameAnim(f1, f2, interval) {
+    let on1 = true
+    setInterval(() => {
+      on1 = !on1
+      f1.classList.toggle('hidden', !on1)
+      f2.classList.toggle('hidden', on1)
+    }, interval)
+  }
+
+  // Your art animation — fast beat
+  startFrameAnim(document.getElementById('f1'), document.getElementById('f2'), 420)
+  // Colour variant — slightly different rhythm
+  startFrameAnim(document.getElementById('fc1'), document.getElementById('fc2'), 380)
+
+  // Colour tint — inject SVG fill via CSS filter (hue-rotate trick)
+  document.getElementById('col-f1').style.filter = 'brightness(0) saturate(100%) invert(40%) sepia(80%) saturate(500%) hue-rotate(200deg) brightness(1.2)'
+  document.getElementById('col-f2').style.filter = 'brightness(0) saturate(100%) invert(40%) sepia(80%) saturate(500%) hue-rotate(200deg) brightness(1.2)'
+
+  // Glow pulse
+  ;(function glowPulse() {
+    const halo = document.getElementById('glow-halo')
+    const f1 = document.getElementById('glow-f1')
+    let beat = false
+    setInterval(() => {
+      beat = !beat
+      halo.style.opacity = beat ? '1' : '0.1'
+      halo.style.transform = beat ? 'scale(1.15)' : 'scale(0.9)'
+      f1.src = beat ? 'frame2.svg' : 'frame1.svg'
+      f1.style.height = beat ? '100px' : '140px'
+    }, 440)
+  })()
+</script>
+
+</body>
+</html>

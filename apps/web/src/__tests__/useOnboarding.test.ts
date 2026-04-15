@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useOnboarding } from '@/hooks/useOnboarding';
+import { useOnboarding } from '@/hooks/export/useOnboarding';
 
 const LS_KEY = 'ordio_onboarded';
 

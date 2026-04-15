@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getCanvasDimensions } from '@/lib/store';
+import { getCanvasDimensions } from '@/stores';
 
 describe('getCanvasDimensions', () => {
   it('returns 1080x1080 for square', () => {

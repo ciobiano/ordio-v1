@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playful onboarding</title>
+  <script src="/helper.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #080706;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 36px 24px 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .eyebrow { font-size: 11px; color: #555; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+    .page-title { font-size: 18px; font-weight: 600; color: #bbb; margin-bottom: 8px; text-align: center; }
+    .page-sub { font-size: 12px; color: #3a3a3a; margin-bottom: 36px; text-align: center; }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    /* Phone shell */
+    .phone {
+      width: 200px;
+      height: 390px;
+      background: #0a0807;
+      border-radius: 30px;
+      border: 1px solid #1c1a18;
+      box-shadow: 0 0 0 1px #111, 0 28px 56px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.05);
+      overflow: hidden;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Idle bg — slightly warmer */
+    .idle-bg {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    }
+    .bg-wm { font-size: 9px; font-weight: 300; color: #1e1b18; letter-spacing: 0.12em; }
+    .bg-wm span { font-weight: 600; }
+    .bg-orb { width: 68px; height: 68px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #201c18, #0a0807 60%); border: 1px solid #181410; }
+    .bg-lbl { font-size: 8px; color: #141210; }
+
+    /* Backdrop — warmer tint */
+    .backdrop { position: absolute; inset: 0; background: rgba(8,7,6,0.86); backdrop-filter: blur(16px); }
+
+    /* Per-slide ambient glow */
+    .glow {
+      position: absolute;
+      width: 160px; height: 100px;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.18;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    /* Dialog — warmer, more breathing room */
+    .dialog {
+      position: absolute;
+      left: 12px; right: 12px;
+      background: linear-gradient(160deg, #131110 0%, #0e0c0b 100%);
+      border: 1px solid #221f1c;
+      border-radius: 20px;
+      padding: 22px 18px 18px;
+      display: flex; flex-direction: column; align-items: center;
+      box-shadow: 0 -1px 0 rgba(255,255,255,0.05) inset, 0 24px 48px rgba(0,0,0,0.5);
+    }
+
+    /* Icon ring — colored per slide */
+    .icon-ring {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .icon-ring::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 50%;
+      background: var(--ring-bg, #1a1a1a);
+      border: 1px solid var(--ring-border, #2a2a2a);
+    }
+    .icon-ring svg {
+      position: relative; z-index: 1;
+      width: 18px; height: 18px;
+      stroke: var(--ring-icon, #888); fill: none;
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* Slide accent colors */
+    .s1 { --ring-bg: #1a1410; --ring-border: #2e2318; --ring-icon: #c4945a; --accent: #c4945a; --glow: #c4945a; }
+    .s2 { --ring-bg: #111a18; --ring-border: #1c2e2a; --ring-icon: #5ab89c; --accent: #5ab89c; --glow: #5ab89c; }
+    .s3 { --ring-bg: #16141a; --ring-border: #271f30; --ring-icon: #9b7ec8; --accent: #9b7ec8; --glow: #9b7ec8; }
+    .s4 { --ring-bg: #1a1116; --ring-border: #2e1c28; --ring-icon: #c47ea0; --accent: #c47ea0; --glow: #c47ea0; }
+
+    .d-title {
+      font-size: 13.5px; font-weight: 700; color: #ede8e3;
+      text-align: center; margin-bottom: 6px; line-height: 1.25; letter-spacing: -0.01em;
+    }
+    .d-body {
+      font-size: 9.5px; color: #6a6058; text-align: center;
+      line-height: 1.7; margin-bottom: 14px; max-width: 158px;
+    }
+
+    /* Waveform — warm amber bars */
+    .wave-row { display: flex; align-items: flex-end; gap: 2px; height: 20px; margin-bottom: 14px; }
+    .wbar { width: 3px; border-radius: 2px; }
+
+    /* Mini orb — teal ring */
+    .mini-orb {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1e2e28, #0d1a16 70%);
+      border: 1.5px solid #2a4a3e;
+      margin-bottom: 14px;
+      box-shadow: 0 0 0 5px rgba(90,184,156,0.06), 0 0 16px rgba(90,184,156,0.08);
+    }
+
+    /* Caption pill */
+    .caption-pill {
+      background: rgba(155,126,200,0.06); border: 1px solid rgba(155,126,200,0.12);
+      border-radius: 8px; padding: 7px 10px; margin-bottom: 14px; width: 100%; text-align: center;
+    }
+    .caption-pill span { font-size: 8px; color: #7a6898; font-style: italic; }
+
+    /* Style tiles — colored */
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; margin-bottom: 14px; }
+    .tile {
+      aspect-ratio: 1; border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      background: #0d0b0a; border: 1px solid #1c1816;
+    }
+    .tile svg { width: 12px; height: 12px; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke: #2a2520; }
+    .tile-lbl { font-size: 5.5px; color: #2a2520; font-weight: 500; }
+
+    .tile.t1 { background: rgba(196,148,90,0.06); border-color: rgba(196,148,90,0.18); }
+    .tile.t1 svg { stroke: #c4945a; } .tile.t1 .tile-lbl { color: #8a6030; }
+    .tile.t2 { background: rgba(90,184,156,0.04); border-color: rgba(90,184,156,0.12); }
+    .tile.t2 svg { stroke: #3a8a72; } .tile.t2 .tile-lbl { color: #3a8a72; }
+    .tile.t3 { background: rgba(155,126,200,0.04); border-color: rgba(155,126,200,0.12); }
+    .tile.t3 svg { stroke: #7a5eaa; } .tile.t3 .tile-lbl { color: #7a5eaa; }
+    .tile.t4 { background: rgba(196,126,160,0.04); border-color: rgba(196,126,160,0.12); }
+    .tile.t4 svg { stroke: #a05080; } .tile.t4 .tile-lbl { color: #a05080; }
+
+    /* Footer */
+    .footer { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .dots { display: flex; gap: 5px; align-items: center; }
+    .dot { width: 3px; height: 3px; border-radius: 50%; background: #2a2520; }
+    .dot.active { width: 10px; border-radius: 2px; background: var(--accent, #888); }
+
+    /* Arrow button — colored per slide */
+    .circle-btn {
+      width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: var(--accent, #888);
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+    }
+    .circle-btn svg { width: 13px; height: 13px; stroke: #000; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Skip */
+    .skip-link { font-size: 8px; color: #3a3228; margin-top: 7px; }
+
+    /* Slide label */
+    .slide-label { text-align: center; }
+    .slide-num { font-size: 10px; font-weight: 600; color: #3a3228; letter-spacing: 0.06em; text-transform: uppercase; }
+    .slide-name { font-size: 12px; font-weight: 500; color: #7a7068; margin-top: 2px; }
+
+    .hint { font-size: 11px; color: #2e2a26; margin-top: 28px; letter-spacing: 0.04em; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <p class="eyebrow">Playful · Warm · Inviting</p>
+  <p class="page-title">Onboarding — comfortable tone</p>
+  <p class="page-sub">Each slide has its own accent · warm dark background · generous spacing</p>
+
+  <div class="row">
+
+    <!-- SLIDE 1 — amber/warm -->
+    <div class="col">
+      <div class="phone s1">
+        <div class="glow" style="background: var(--glow);"></div>
+        <div class="idle-bg"><div class="bg-wm">ord<span>io</span></div><div class="bg-orb"></div><div class="bg-lbl">Tap to record</div></div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring s1">
+            <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </div>
+          <div class="d-title">Your voice, ready to share</div>
+          <div class="d-body">Record or upload audio. Ordio turns it into a polished, captioned video.</div>
+          <div class="wave-row">
+            <div class="wbar" style="height:5px;background:#2e2010"></div>
+            <div class="wbar" style="height:10px;background:#3e2e18"></div>
+            <div class="wbar" style="height:7px;background:#c4945a;opacity:0.6"></div>
+            <div class="wbar" style="height:16px;background:#c4945a;opacity:0.9"></div>
+            <div class="wbar" style="height:9px;background:#c4945a;opacity:0.5"></div>
+            <div class="wbar" style="height:13px;background:#c4945a;opacity:0.7"></div>
+            <div class="wbar" style="height:6px;background:#3e2e18"></div>
+            <div class="wbar" style="height:11px;background:#c4945a;opacity:0.6"></div>
+            <div class="wbar" style="height:8px;background:#2e2010"></div>
+            <div class="wbar" style="height:14px;background:#c4945a;opacity:0.8"></div>
+            <div class="wbar" style="height:5px;background:#2e2010"></div>
+            <div class="wbar" style="height:9px;background:#3e2e18"></div>
+          </div>
+          <div class="footer s1">
+            <div class="dots s1"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <button class="circle-btn s1"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+          <div class="skip-link">Skip intro</div>
+        </div>
+      </div>
+      <div class="slide-label"><div class="slide-num">01</div><div class="slide-name">The hook</div></div>
+    </div>
+
+    <!-- SLIDE 2 — teal -->
+    <div class="col">
+      <div class="phone s2">
+        <div class="glow" style="background: var(--glow);"></div>
+        <div class="idle-bg"><div class="bg-wm">ord<span>io</span></div><div class="bg-orb"></div><div class="bg-lbl">Tap to record</div></div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring s2">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="d-title">Tap the orb to begin</div>
+          <div class="d-body">Speak naturally. Or upload an MP3, WAV, or M4A — up to 50 MB.</div>
+          <div class="mini-orb"></div>
+          <div class="footer s2">
+            <div class="dots s2"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+            <button class="circle-btn s2"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label"><div class="slide-num">02</div><div class="slide-name">How to start</div></div>
+    </div>
+
+    <!-- SLIDE 3 — lavender -->
+    <div class="col">
+      <div class="phone s3">
+        <div class="glow" style="background: var(--glow);"></div>
+        <div class="idle-bg"><div class="bg-wm">ord<span>io</span></div><div class="bg-orb"></div><div class="bg-lbl">Tap to record</div></div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring s3">
+            <svg viewBox="0 0 24 24"><path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 Z"/></svg>
+          </div>
+          <div class="d-title">Captions, automatically</div>
+          <div class="d-body">AI transcribes every word and syncs captions to your audio. No editing required.</div>
+          <div class="caption-pill"><span>"...your voice, perfectly timed"</span></div>
+          <div class="footer s3">
+            <div class="dots s3"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+            <button class="circle-btn s3"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label"><div class="slide-num">03</div><div class="slide-name">AI captions</div></div>
+    </div>
+
+    <!-- SLIDE 4 — rose -->
+    <div class="col">
+      <div class="phone s4">
+        <div class="glow" style="background: var(--glow);"></div>
+        <div class="idle-bg"><div class="bg-wm">ord<span>io</span></div><div class="bg-orb"></div><div class="bg-lbl">Tap to record</div></div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring s4">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10.5" r="1.5" fill="#c47ea0" stroke="none"/><circle cx="12" cy="7.5" r="1.5" fill="#c47ea0" stroke="none"/><circle cx="15.5" cy="10.5" r="1.5" fill="#c47ea0" stroke="none"/></svg>
+          </div>
+          <div class="d-title">Not just a waveform</div>
+          <div class="d-body">Swap styles in the export screen — graphic frames, bars, circle, spectrogram.</div>
+          <div class="tiles">
+            <div class="tile t1">
+              <svg viewBox="0 0 24 24"><rect x="3" y="10" width="3" height="10" rx="1"/><rect x="8" y="6" width="3" height="14" rx="1"/><rect x="13" y="8" width="3" height="12" rx="1"/><rect x="18" y="4" width="3" height="16" rx="1"/></svg>
+              <span class="tile-lbl">Bars</span>
+            </div>
+            <div class="tile t2">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4 Q16 8 12 12 Q8 16 12 20"/></svg>
+              <span class="tile-lbl">Circle</span>
+            </div>
+            <div class="tile t3">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span class="tile-lbl">Frame</span>
+            </div>
+            <div class="tile t4">
+              <svg viewBox="0 0 24 24"><rect x="3" y="14" width="2" height="6" rx="0.5"/><rect x="7" y="9" width="2" height="11" rx="0.5"/><rect x="11" y="6" width="2" height="14" rx="0.5"/><rect x="15" y="10" width="2" height="10" rx="0.5"/><rect x="19" y="12" width="2" height="8" rx="0.5"/></svg>
+              <span class="tile-lbl">Spectrum</span>
+            </div>
+          </div>
+          <div class="footer s4">
+            <div class="dots s4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+            <button class="circle-btn s4"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label"><div class="slide-num">04</div><div class="slide-name">Style reveal ★</div></div>
+    </div>
+
+  </div>
+
+  <p class="hint">Amber → Teal → Lavender → Rose · each slide has its own colour + ambient glow<br>Does this warmth feel right, or do you want a different palette direction?</p>
+
+</body>
+</html>

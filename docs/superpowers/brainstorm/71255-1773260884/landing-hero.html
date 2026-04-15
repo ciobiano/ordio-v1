@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordio Landing Page — Hero Mockup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Grid background — removed (replaced by hero-grid) ─── */
+  .grid-bg { display: none; }
+
+  /* ─── Nav ─── */
+  nav {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+  .nav-logo svg { width: 28px; height: 28px; }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+  }
+  .nav-links span { cursor: pointer; }
+  .nav-links span:hover { color: #fff; }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .btn-ghost {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ─── Hero column grid ─── */
+  .hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    /* 5 columns: gutter | left-content | center | right-content | gutter */
+    grid-template-columns: 1fr 180px 640px 180px 1fr;
+    grid-template-rows: auto;
+    margin-top: 60px;
+  }
+
+  /* Horizontal borders — bounded to match the outer vertical column lines */
+  .h-border-top,
+  .h-border-bottom {
+    position: absolute;
+    left: calc((100% - 1000px) / 2);
+    right: calc((100% - 1000px) / 2);
+    height: 1px;
+    background: rgba(255,255,255,0.12);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .h-border-top    { top: 0; }
+  .h-border-bottom { bottom: 0; }
+
+  /* ─── Shared column wrapper — vertical lines span both sections ─── */
+  .content-columns {
+    position: relative;
+  }
+  .content-columns::before,
+  .content-columns::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.1);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .content-columns::before { left: calc((100% - 1000px) / 2); }
+  .content-columns::after  { right: calc((100% - 1000px) / 2); }
+
+  /* Inner vertical dividers — framing the card */
+  .hero-col-divider-l,
+  .hero-col-divider-r {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-col-divider-l { left: calc((100% - 740px) / 2); }
+  .hero-col-divider-r { right: calc((100% - 740px) / 2); }
+
+  /* Crosshair markers */
+  .cross {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .cross::before, .cross::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,255,255,.8);
+  }
+  .cross::before { left: 50%; top: 0; bottom: 0; width: .5px; transform: translateX(-50%); }
+  .cross::after  { top: 50%; left: 0; right: 0; height: .5px; transform: translateY(-50%); }
+
+  /* ─── Hero inner ─── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    padding: 120px 24px 0;
+    grid-column: 1 / -1;
+  }
+
+  /* Product preview area — padding = tag height (~24px) + 4px gap */
+  .product-showcase {
+    position: relative;
+    display: inline-block;
+    padding: 28px 52px;
+    margin-bottom: 52px;
+  }
+
+  /* Floating tags */
+  .tag {
+    position: absolute;
+    padding: 5px 13px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    z-index: 5;
+  }
+  /* top row: bottom of tag sits 4px above card top edge */
+  .tag-green  { background: #22c55e; color: #000; top: -10px;  left: 36px;        transform: rotate(-4deg); }
+  .tag-blue   { background: #3b82f6; color: #fff; top: -10px;  left: 50%;         transform: translateX(-50%) rotate(2deg); }
+  .tag-purple { background: #a855f7; color: #fff; top: -10px;  right: 36px;       transform: rotate(4deg); }
+  /* left side: right edge 4px from card left edge */
+  .tag-cyan   { background: #06b6d4; color: #000; top: 50%;  left: 4px;         transform: translateY(-50%) rotate(-6deg); }
+  /* bottom row: top of tag sits 4px below card bottom edge */
+  .tag-orange { background: #f97316; color: #fff; bottom: -10px; left: 44px;      transform: rotate(3deg); }
+  .tag-pink   { background: #ec4899; color: #fff; bottom: -10px; right: 44px;     transform: rotate(-3deg); }
+
+  /* The app preview card — landscape rectangle */
+  .app-card {
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    padding: 14px 28px 18px;
+    width: 620px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .app-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28ca41; }
+  .app-card-title {
+    margin-left: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* Waveform bars */
+  .waveform-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+  .bar {
+    width: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to top, #6366f1, #a5b4fc);
+    animation: pulse 1.4s ease-in-out infinite alternate;
+  }
+  .bar:nth-child(odd) { animation-delay: -0.3s; }
+  .bar:nth-child(3n) { animation-delay: -0.7s; }
+  @keyframes pulse {
+    0% { transform: scaleY(0.3); opacity: 0.5; }
+    100% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* Caption line */
+  .caption-line {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+  }
+  .caption-line span { color: #a5b4fc; }
+
+  /* Controls bar */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 12px 24px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 100px;
+    border: 1px solid rgba(255,255,255,0.08);
+    width: fit-content;
+    margin: 0 auto;
+  }
+  .ctrl-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    border: none;
+    background: none;
+  }
+  .ctrl-btn.active {
+    background: #fff;
+    color: #000;
+  }
+  .ctrl-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  /* ─── Headline block ─── */
+  .headline-block {
+    text-align: center;
+    max-width: 640px;
+    margin-bottom: 36px;
+  }
+  .headline {
+    font-size: 52px;
+    font-weight: 400;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+  .subline {
+    font-size: 17px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.6;
+  }
+  .subline strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+
+  .cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 80px;
+  }
+  .cta-primary {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 100px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cta-secondary {
+    background: none;
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 14px 28px;
+    border-radius: 100px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ─── Divider line ─── */
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── Feature walkthrough ─── */
+  .feature-section {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 48px;
+    align-items: stretch;
+    padding: 72px 120px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  /* Closing bottom border — aligns with outer column lines */
+  .feature-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: calc(50% - 500px);
+    right: calc(50% - 500px);
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+  .feature-left h2 {
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-top: 40px;
+    margin-bottom: 8px;
+  }
+  .feature-left p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+  }
+
+  /* Vertical timeline — flex layout, no negative positioning */
+  .feature-right {
+    position: relative;
+    display: flex;
+    align-self: stretch;
+    flex-direction: column;
+    padding-top: 72px;
+    margin-top: -72px;
+    padding-bottom: 80px;
+    margin-bottom: -80px;
+  }
+  /* The line runs behind the icon column */
+  .timeline-line {
+    position: absolute;
+    left: 15px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.1);
+    z-index: 0;
+  }
+  .timeline-progress {
+    position: absolute;
+    left: 14px; top: 72px;
+    width: 2px; height: 42%;
+    background: linear-gradient(to bottom, #EA5753, #FFB88E);
+    border-radius: 1px;
+    z-index: 1;
+  }
+  /* Each item is a flex row: [icon col] [content col] */
+  .feature-item {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    padding-bottom: 64px;
+    position: relative;
+    z-index: 2;
+  }
+  .feature-item:last-child { padding-bottom: 0; }
+
+  /* Icon column — always 30px wide, centered on the line */
+  .timeline-icons {
+    flex-shrink: 0;
+    width: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Single icon */
+  .t-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: #141414;
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .t-icon.round {
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,0.22);
+  }
+
+  /* Unified group — single border wrapping two icons */
+  .t-icon-group {
+    width: 30px;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 20px;
+    background: #141414;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .t-icon-inner {
+    width: 30px; height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .feature-step {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6366f1;
+    margin-bottom: 8px;
+  }
+  .feature-title {
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .feature-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+  }
+
+  /* ─── Cross markers ─── */
+  .cross {
+    position: absolute;
+    color: rgba(255,255,255,0.2);
+    font-size: 20px;
+    font-weight: 300;
+    user-select: none;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="7" fill="#6366f1"/>
+      <rect x="5" y="13" width="3" height="10" rx="1.5" fill="white"/>
+      <rect x="10" y="9" width="3" height="14" rx="1.5" fill="white"/>
+      <rect x="15" y="6" width="3" height="17" rx="1.5" fill="white"/>
+      <rect x="20" y="10" width="3" height="13" rx="1.5" fill="white"/>
+    </svg>
+    Ordio
+  </div>
+  <div class="nav-links">
+    <span>Product</span>
+    <span>Pricing</span>
+    <span>Blog</span>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost">Log In</button>
+    <button class="btn-primary">Get Started Free</button>
+  </div>
+</nav>
+
+<div class="content-columns">
+
+<!-- Hero with column grid -->
+<div class="hero-grid">
+  <!-- Bounded horizontal borders -->
+  <div class="h-border-top"></div>
+  <div class="h-border-bottom"></div>
+
+  <!-- Column dividers -->
+  <div class="hero-col-divider-l"></div>
+  <div class="hero-col-divider-r"></div>
+
+  <!-- Crosshairs sit exactly at the intersections -->
+  <div class="cross" style="position:absolute;top:-7px;left:calc((100% - 1000px)/2 - 9px)"></div>
+  <div class="cross" style="position:absolute;top:-7px;right:calc((100% - 1000px)/2 - 9px)"></div>
+  <div class="cross" style="position:absolute;bottom:-7px;left:calc((100% - 1000px)/2 - 9px)"></div>
+  <div class="cross" style="position:absolute;bottom:-7px;right:calc((100% - 1000px)/2 - 9px)"></div>
+
+<div class="hero">
+
+  <!-- Product showcase (inverted — above headline) -->
+  <div class="product-showcase">
+    <!-- Floating feature tags -->
+    <div class="tag tag-green">AI Transcription</div>
+    <div class="tag tag-blue">Wave Styles</div>
+    <div class="tag tag-purple">MP4 Export</div>
+    <div class="tag tag-orange">Caption Editor</div>
+    <div class="tag tag-pink">Custom Fonts</div>
+    <div class="tag tag-cyan">No Server</div>
+
+    <!-- App window -->
+    <div class="app-card">
+      <div class="app-card-header">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="app-card-title">ordio.app — export preview</span>
+      </div>
+
+      <!-- Caption -->
+      <div class="caption-line">"and that's the <span>power of consistency</span> over time"</div>
+
+      <!-- Waveform -->
+      <div class="waveform-area">
+        <!-- generate bars dynamically via style -->
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:22px"></div>
+        <div class="bar" style="height:32px"></div>
+        <div class="bar" style="height:26px"></div>
+        <div class="bar" style="height:38px"></div>
+        <div class="bar" style="height:28px"></div>
+        <div class="bar" style="height:40px"></div>
+        <div class="bar" style="height:34px"></div>
+        <div class="bar" style="height:24px"></div>
+        <div class="bar" style="height:30px"></div>
+        <div class="bar" style="height:36px"></div>
+        <div class="bar" style="height:20px"></div>
+        <div class="bar" style="height:16px"></div>
+        <div class="bar" style="height:26px"></div>
+        <div class="bar" style="height:22px"></div>
+        <div class="bar" style="height:18px"></div>
+        <div class="bar" style="height:28px"></div>
+        <div class="bar" style="height:35px"></div>
+        <div class="bar" style="height:38px"></div>
+        <div class="bar" style="height:29px"></div>
+        <div class="bar" style="height:24px"></div>
+        <div class="bar" style="height:19px"></div>
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:21px"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-bar">
+        <button class="ctrl-btn">⏮</button>
+        <button class="ctrl-btn active">▶</button>
+        <button class="ctrl-btn">⏭</button>
+        <div class="ctrl-divider"></div>
+        <button class="ctrl-btn">🎵</button>
+        <button class="ctrl-btn">Aa</button>
+        <button class="ctrl-btn">⬛</button>
+        <div class="ctrl-divider"></div>
+        <button class="ctrl-btn">⬇</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Headline -->
+  <div class="headline-block">
+    <h1 class="headline">Your voice,<br>beautifully visualised.</h1>
+    <p class="subline">
+      Record or upload audio. Get <strong>AI transcription</strong>. Export a stunning audiogram video —<br>
+      all in the browser, no account required.
+    </p>
+  </div>
+
+  <!-- CTAs -->
+  <div class="cta-row">
+    <button class="cta-primary">▶ &nbsp;Create Audiogram Free</button>
+    <button class="cta-secondary">See how it works</button>
+  </div>
+</div>
+
+</div><!-- /hero-grid -->
+
+<!-- Feature walkthrough -->
+<div class="feature-section">
+  <div class="feature-left">
+    <h2>Record once.<br>Publish everywhere.</h2>
+    
+  </div>
+
+  <div class="feature-right">
+    <div class="timeline-line"></div>
+    <div class="timeline-progress"></div>
+
+    <!-- Step 01: unified group border (mic + upload) -->
+    <div class="feature-item">
+      <div class="timeline-icons">
+        <div class="t-icon-group">
+          <div class="t-icon-inner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </div>
+          <div class="t-icon-inner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="feature-content">
+        <div class="feature-step">Step 01</div>
+        <div class="feature-title">Record or upload.</div>
+        <div class="feature-desc">Capture directly in the browser or drop in any MP3, WAV, or M4A file. No app to install.</div>
+      </div>
+    </div>
+
+    <!-- Step 02 -->
+    <div class="feature-item">
+      <div class="timeline-icons">
+        <div class="t-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(168,85,247,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+      </div>
+      <div class="feature-content">
+        <div class="feature-step">Step 02</div>
+        <div class="feature-title">Instant AI transcription.</div>
+        <div class="feature-desc">Whisper-powered word-level captions appear automatically. Edit any word with a click.</div>
+      </div>
+    </div>
+
+    <!-- Step 03 -->
+    <div class="feature-item">
+      <div class="timeline-icons">
+        <div class="t-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(6,182,212,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="17" r="2.5"/><circle cx="6.5" cy="17" r="2.5"/></svg>
+        </div>
+      </div>
+      <div class="feature-content">
+        <div class="feature-step">Step 03</div>
+        <div class="feature-title">Style it your way.</div>
+        <div class="feature-desc">Pick a waveform, font, colour, and aspect ratio. Preview updates live — what you see is what exports.</div>
+      </div>
+    </div>
+
+    <!-- Step 04: single round icon -->
+    <div class="feature-item">
+      <div class="timeline-icons">
+        <div class="t-icon round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+      </div>
+      <div class="feature-content">
+        <div class="feature-step">Step 04</div>
+        <div class="feature-title">Export and share.</div>
+        <div class="feature-desc">Download a crisp MP4 ready for Twitter, LinkedIn, Instagram, or TikTok.</div>
+      </div>
+    </div>
+  </div>
+</div><!-- /feature-section -->
+
+</div><!-- /content-columns -->
+
+</body>
+</html>

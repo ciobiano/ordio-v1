@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Approach Comparison</title>
+  <script src="/helper.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0a;
+      color: #e5e5e5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: #888;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .question {
+      font-size: 22px;
+      font-weight: 600;
+      color: #f0f0f0;
+      margin-bottom: 32px;
+      line-height: 1.35;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      border: 1px solid #222;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative;
+    }
+    .panel:hover { border-color: #444; transform: translateY(-1px); }
+    .panel.selected { border-color: #e5e5e5; }
+    .panel.selected .panel-label { background: #e5e5e5; color: #000; }
+
+    .panel-label {
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: #161616;
+      color: #888;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #252525;
+      color: #666;
+      font-weight: 500;
+    }
+    .panel.selected .badge { background: #333; color: #999; }
+
+    .screen {
+      background: #000;
+      height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ORB */
+    .orb {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 38%, #2a2a2a, #111 70%);
+      border: 1px solid #333;
+      box-shadow: 0 0 30px rgba(255,255,255,0.03);
+    }
+    .orb.dimmed { opacity: 0.18; filter: blur(1px); }
+
+    /* idle labels */
+    .idle-label {
+      position: absolute;
+      bottom: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.06em;
+    }
+
+    /* APPROACH A — full screen */
+    .approach-a .screen {
+      flex-direction: column;
+      gap: 0;
+      padding: 28px 24px;
+    }
+    .onboarding-card {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .step-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      background: #0d0d0d;
+      margin-bottom: 4px;
+    }
+    .onboarding-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f0f0f0;
+      text-align: center;
+    }
+    .onboarding-body {
+      font-size: 11.5px;
+      color: #666;
+      text-align: center;
+      line-height: 1.6;
+      max-width: 200px;
+    }
+    .dots {
+      display: flex; gap: 6px; margin-top: 4px;
+    }
+    .dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #333;
+    }
+    .dot.active { background: #e5e5e5; }
+    .mock-btn {
+      margin-top: 8px;
+      padding: 8px 24px;
+      border-radius: 6px;
+      background: #e5e5e5;
+      color: #000;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+    }
+    .mock-btn-ghost {
+      margin-top: 4px;
+      padding: 6px 16px;
+      border-radius: 6px;
+      background: transparent;
+      color: #444;
+      font-size: 11px;
+      font-weight: 500;
+      border: none;
+    }
+
+    /* APPROACH B — dialog overlay */
+    .approach-b .screen {
+      flex-direction: column;
+    }
+    .idle-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .wordmark {
+      font-size: 11px;
+      color: #333;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .dialog-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .dialog-box {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      padding: 24px 22px 20px;
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .dialog-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f0f0;
+      text-align: center;
+    }
+    .dialog-body {
+      font-size: 10.5px;
+      color: #555;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* descriptions */
+    .panel-desc {
+      padding: 14px 16px;
+      border-top: 1px solid #1a1a1a;
+      background: #0d0d0d;
+    }
+    .panel-desc h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ccc;
+      margin-bottom: 5px;
+    }
+    .panel-desc p {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.55;
+    }
+    .tag-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #161616;
+      color: #555;
+      border: 1px solid #222;
+    }
+    .tag.green { color: #4caf7d; border-color: #1a3328; background: #0d1f18; }
+    .tag.yellow { color: #c9a84c; border-color: #2e2414; background: #1a1508; }
+
+    .select-hint {
+      text-align: center;
+      font-size: 11px;
+      color: #444;
+      margin-top: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 640px) {
+      .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Onboarding Design</h1>
+  <p class="question">Which approach feels right for the first-time walkthrough?</p>
+
+  <div class="split">
+
+    <!-- APPROACH A -->
+    <div class="panel approach-a" data-choice="a" onclick="toggleSelect(this)">
+      <div class="panel-label">
+        A <span class="badge">Recommended</span> Full-screen phase
+      </div>
+      <div class="screen">
+        <div class="onboarding-card">
+          <div class="step-icon">🎨</div>
+          <div class="onboarding-title">Make it yours</div>
+          <div class="onboarding-body">
+            Beyond the waveform — pick from graphic styles that match your brand.
+          </div>
+          <div class="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot active"></div>
+            <div class="dot"></div>
+          </div>
+          <button class="mock-btn">Next →</button>
+          <button class="mock-btn-ghost">Skip</button>
+        </div>
+      </div>
+      <div class="panel-desc">
+        <h3>Full-screen takeover</h3>
+        <p>A new <code>onboarding</code> phase in the state machine. Replaces the idle screen entirely on first visit. Same pattern as recording/export.</p>
+        <div class="tag-row">
+          <span class="tag green">Clean architecture</span>
+          <span class="tag green">Immersive</span>
+          <span class="tag">More code</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPROACH B -->
+    <div class="panel approach-b" data-choice="b" onclick="toggleSelect(this)">
+      <div class="panel-label">
+        B — Dialog overlay
+      </div>
+      <div class="screen">
+        <div class="idle-bg">
+          <div class="wordmark">ord<strong>io</strong></div>
+          <div class="orb dimmed"></div>
+        </div>
+        <div class="dialog-overlay">
+          <div class="dialog-box">
+            <div class="step-icon">🎨</div>
+            <div class="dialog-title">Make it yours</div>
+            <div class="dialog-body">
+              Beyond the waveform — pick from graphic styles that match your brand.
+            </div>
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot active"></div>
+              <div class="dot"></div>
+            </div>
+            <button class="mock-btn" style="font-size:11px;padding:7px 20px;">Next →</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-desc">
+        <h3>Dialog overlay</h3>
+        <p>A shadcn <code>&lt;Dialog&gt;</code> opens automatically on first visit. Idle screen (Orb) is blurred behind it. No new state machine phase needed.</p>
+        <div class="tag-row">
+          <span class="tag green">Less code</span>
+          <span class="tag yellow">Orb visible but inaccessible</span>
+          <span class="tag yellow">Feels dismissible</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="select-hint">Click a panel to select → then tell me in the terminal</p>
+</body>
+</html>

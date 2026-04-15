@@ -2,7 +2,7 @@
 
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { useAnimationTick } from '@/hooks/useAnimationTick';
+import { useAnimationTick } from '@/hooks/playback/useAnimationTick';
 
 interface BarsWaveformProps {
   level: number;

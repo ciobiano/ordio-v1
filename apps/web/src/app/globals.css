@@ -355,6 +355,45 @@ body {
   animation: ripple-out 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── CSS fallback orb animations (used when WebGL is unavailable) ─ */
+@keyframes orb-fallback-breathe {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(0.97);
+    filter: brightness(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes orb-fallback-pulse {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(0.98);
+    filter: brightness(0.95) saturate(1.1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+    filter: brightness(1.12) saturate(1.3);
+  }
+}
+
+/* ── Orb glow ring ────────────────────────────────────────────── */
+/* Companion halo behind the orb sphere — opacity driven by data-state
+   and the --orb-intensity CSS custom property set on the parent. */
+.orb-glow-ring {
+  background: radial-gradient(
+    circle,
+    rgba(97, 194, 253, 0.25) 0%,
+    rgba(0, 97, 253, 0.12) 40%,
+    transparent 70%
+  );
+}
+
 /* Clips WebGL canvas to a circle without overflow:hidden, which doesn't
    reliably clip GL drawing buffers on mobile and conflicts with Framer
    Motion layout projections during layoutId transitions. */

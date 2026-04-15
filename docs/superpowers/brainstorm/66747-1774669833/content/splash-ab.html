@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Splash A vs C</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px 48px;
+  }
+
+  .label-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .label-row span { cursor: pointer; padding: 6px 16px; border-radius: 20px; border: 1px solid #333; transition: all 0.2s; }
+  .label-row span:hover { border-color: #666; color: #fff; }
+  .label-row span.active { border-color: #fff; color: #fff; background: rgba(255,255,255,0.06); }
+
+  .split {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+    max-width: 960px;
+    align-items: flex-start;
+  }
+
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panel-label {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #555;
+    font-weight: 600;
+  }
+
+  .mockup-frame {
+    border: 1px solid #222;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #080808;
+    position: relative;
+    aspect-ratio: 9/16;
+    max-height: 540px;
+    cursor: pointer;
+    transition: border-color 0.25s;
+  }
+  .mockup-frame:hover { border-color: #444; }
+  .mockup-frame.selected { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
+
+  .check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+  }
+  .mockup-frame.selected .check { opacity: 1; }
+  .check svg { width: 14px; height: 14px; }
+
+  /* ── OPTION A: Branded Gate ── */
+  .mockup-a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px 32px;
+    gap: 0;
+  }
+
+  .a-logo {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  .a-tagline {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.01em;
+    margin-bottom: 52px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .a-cta {
+    width: 100%;
+    max-width: 200px;
+    padding: 14px 0;
+    background: #fff;
+    color: #000;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  .a-signin {
+    margin-top: 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
+  }
+  .a-signin span { color: rgba(255,255,255,0.5); }
+
+  /* ── OPTION C: Animated Intro ── */
+  .mockup-c {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Orb */
+  .c-orb {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(255,255,255,0.18) 0%,
+      rgba(255,255,255,0.04) 45%,
+      rgba(180,180,200,0.06) 70%,
+      rgba(60,60,80,0.2) 100%
+    );
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      0 0 60px rgba(255,255,255,0.04),
+      0 0 120px rgba(200,200,255,0.03);
+    animation: orbPulse 3s ease-in-out infinite;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .c-orb::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+      rgba(255,255,255,0.08) 0%,
+      transparent 60%
+    );
+  }
+
+  /* Waveform bars inside/around orb */
+  .c-bars {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+  }
+  .c-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.3);
+    animation: barBounce var(--dur) ease-in-out infinite alternate;
+  }
+
+  @keyframes orbPulse {
+    0%, 100% { transform: scale(1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 60px rgba(255,255,255,0.04); }
+    50% { transform: scale(1.04); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 80px rgba(255,255,255,0.07); }
+  }
+
+  @keyframes barBounce {
+    from { height: var(--min); }
+    to   { height: var(--max); }
+  }
+
+  .c-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-top: 16px;
+    animation: fadeUp 1s ease forwards;
+    opacity: 0;
+    animation-delay: 0.4s;
+  }
+
+  .c-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 6px;
+    animation: fadeUp 1s ease forwards;
+    opacity: 0;
+    animation-delay: 0.7s;
+    letter-spacing: 0.01em;
+  }
+
+  .c-tap {
+    margin-top: 48px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    animation: fadeUp 1s ease forwards;
+    opacity: 0;
+    animation-delay: 1.4s;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .c-progress {
+    margin-top: 12px;
+    width: 48px;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 1px;
+    overflow: hidden;
+    animation: fadeUp 1s ease forwards;
+    opacity: 0;
+    animation-delay: 1.4s;
+  }
+  .c-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.4);
+    border-radius: 1px;
+    animation: progressFill 2.5s ease forwards;
+    animation-delay: 1.6s;
+  }
+
+  @keyframes progressFill {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Ambient glow behind orb */
+  .c-glow {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* description cards */
+  .desc-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.45);
+  }
+  .desc-card strong { color: rgba(255,255,255,0.75); display: block; margin-bottom: 4px; font-size: 12px; }
+
+  .vote-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    justify-content: center;
+  }
+  .vote-btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #333;
+    background: transparent;
+    color: #fff;
+    transition: all 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .vote-btn:hover { background: rgba(255,255,255,0.08); border-color: #555; }
+  .vote-btn.primary { background: #fff; color: #000; border-color: #fff; }
+  .vote-btn.primary:hover { background: #e8e8e8; }
+</style>
+</head>
+<body>
+
+<div style="text-align:center; margin-bottom: 28px;">
+  <h2 style="font-size:18px; font-weight:600; letter-spacing:-0.02em; margin-bottom:6px;">Splash screen: A vs C</h2>
+  <p style="font-size:13px; color:#555;">Click a mockup to select it. Both replace the landing page at <code style="font-size:11px; background:#1a1a1a; padding:2px 6px; border-radius:4px; color:#888;">/</code></p>
+</div>
+
+<div class="split">
+
+  <!-- OPTION A -->
+  <div class="panel">
+    <div class="panel-label">A — Branded Gate</div>
+    <div class="mockup-frame" id="frame-a" onclick="select('a')">
+      <div class="check">
+        <svg viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="mockup-a">
+        <div class="a-logo">Ordio</div>
+        <div class="a-tagline">Turn your voice into<br>shareable video.</div>
+        <div class="a-cta">Get started →</div>
+        <div class="a-signin">Already have an account? <span>Sign in</span></div>
+      </div>
+    </div>
+    <div class="desc-card">
+      <strong>Static. Instant. Zero friction.</strong>
+      Logo + tagline + one CTA. Loads instantly. Works great as an auth-gate — Clerk modal opens on click. No animation to wait through.
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="panel">
+    <div class="panel-label">C — Animated Intro</div>
+    <div class="mockup-frame" id="frame-c" onclick="select('c')">
+      <div class="check">
+        <svg viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="mockup-c">
+        <div class="c-glow"></div>
+        <div class="c-orb">
+          <div class="c-bars">
+            <div class="c-bar" style="--min:4px;--max:18px;--dur:0.6s;"></div>
+            <div class="c-bar" style="--min:8px;--max:24px;--dur:0.8s;"></div>
+            <div class="c-bar" style="--min:6px;--max:20px;--dur:0.5s;"></div>
+            <div class="c-bar" style="--min:10px;--max:26px;--dur:0.9s;"></div>
+            <div class="c-bar" style="--min:4px;--max:16px;--dur:0.7s;"></div>
+            <div class="c-bar" style="--min:8px;--max:22px;--dur:0.6s;"></div>
+            <div class="c-bar" style="--min:6px;--max:18px;--dur:0.85s;"></div>
+            <div class="c-bar" style="--min:4px;--max:14px;--dur:0.55s;"></div>
+            <div class="c-bar" style="--min:9px;--max:24px;--dur:0.75s;"></div>
+          </div>
+        </div>
+        <div class="c-title">Ordio</div>
+        <div class="c-sub">Your voice, beautifully framed.</div>
+        <div class="c-tap">Tap to begin</div>
+        <div class="c-progress"><div class="c-progress-fill"></div></div>
+      </div>
+    </div>
+    <div class="desc-card">
+      <strong>Cinematic. App-like. Memorable.</strong>
+      Orb pulses in, title fades up, auto-progress bar. Feels like opening a premium app. Sets the tone before the create page.
+    </div>
+  </div>
+
+</div>
+
+<div class="vote-row">
+  <button class="vote-btn" onclick="select('a')">Choose A</button>
+  <button class="vote-btn primary" onclick="select('c')">Choose C</button>
+</div>
+
+<script>
+let chosen = null;
+function select(choice) {
+  chosen = choice;
+  document.getElementById('frame-a').classList.toggle('selected', choice === 'a');
+  document.getElementById('frame-c').classList.toggle('selected', choice === 'c');
+  // record for companion
+  if (window.__recordChoice) window.__recordChoice(choice, choice === 'a' ? 'Option A – Branded Gate' : 'Option C – Animated Intro');
+}
+</script>
+</body>
+</html>

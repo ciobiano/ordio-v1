@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass Sheet Preview v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+    color: #FAF8F5;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem; }
+  .subtitle { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 1.8rem; text-align: center; }
+
+  .app-bg {
+    width: 100%;
+    max-width: 380px;
+    height: 640px;
+    position: relative;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background:
+      radial-gradient(ellipse 60% 55% at 50% 30%, rgba(255,180,200,0.14) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 45% at 30% 50%, rgba(120,200,220,0.10) 0%, transparent 70%),
+      #050505;
+  }
+
+  .app-content {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 50px;
+    gap: 14px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wordmark { font-size: 13px; color: rgba(255,255,255,0.3); font-weight: 300; letter-spacing: 0.06em; }
+  .orb-hint {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(255,190,210,0.5), rgba(160,220,230,0.45), rgba(255,200,170,0.5), rgba(200,180,240,0.4), rgba(255,190,210,0.5));
+    opacity: 0.45;
+    filter: blur(2px);
+  }
+
+  /* ── Glass sheet ── */
+  .sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 24px 24px 0 0;
+    background: rgba(18, 18, 20, 0.72);
+    backdrop-filter: blur(40px) saturate(160%);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    border-top: 1px solid rgba(255,255,255,0.16);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 0 0 28px;
+    z-index: 10;
+  }
+
+  /* Header row: drag handle area + close button */
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 12px 14px 6px;
+  }
+  .drag-handle {
+    width: 40px; height: 5px;
+    background: rgba(255,255,255,0.28);
+    border-radius: 3px;
+  }
+  /* Close button — top right */
+  .close-btn {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.10);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .close-btn svg { width: 12px; height: 12px; stroke: rgba(255,255,255,0.55); stroke-width: 2; stroke-linecap: round; }
+
+  .sheet-inner { padding: 8px 18px 0; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.48);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section-sublabel {
+    font-size: 10px;
+    color: rgba(255,255,255,0.28);
+    margin: 9px 0 7px;
+  }
+
+  .segment {
+    display: flex;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+  }
+  .seg-item {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 11.5px;
+    text-align: center;
+    color: rgba(255,255,255,0.36);
+    border-left: 1px solid rgba(255,255,255,0.08);
+  }
+  .seg-item:first-child { border-left: none; }
+  .seg-item.active {
+    background: rgba(255,255,255,0.15);
+    color: #FAF8F5;
+    font-weight: 600;
+  }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 13px 0; }
+
+  .radio-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 7px;
+    border-radius: 10px;
+  }
+  .radio-row.selected { background: rgba(255,255,255,0.05); }
+  .radio-dot {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.22);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .radio-dot.checked { border-color: #FAF8F5; background: #FAF8F5; }
+  .radio-dot.checked::after { content:''; width:5px; height:5px; border-radius:50%; background:#121214; }
+  .radio-label { font-size: 12px; font-weight: 600; color: #FAF8F5; }
+  .radio-label.dim { color: rgba(255,255,255,0.42); font-weight: 400; }
+  .radio-desc { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
+
+  /* annotation callout */
+  .callout {
+    margin-top: 1.5rem;
+    max-width: 380px;
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .callout p { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+  .callout strong { color: rgba(255,255,255,0.8); }
+</style>
+</head>
+<body>
+  <h1>Sheet — full contents + close button</h1>
+  <p class="subtitle">Frame options restored · X button top-right · glass material</p>
+
+  <div class="app-bg">
+    <div class="app-content">
+      <p class="wordmark">ord<strong>io</strong></p>
+      <div class="orb-hint"></div>
+    </div>
+
+    <div class="sheet">
+      <!-- Header: drag handle + close -->
+      <div class="sheet-header">
+        <div class="drag-handle"></div>
+        <div class="close-btn">
+          <svg viewBox="0 0 12 12" fill="none">
+            <line x1="2" y1="2" x2="10" y2="10"/>
+            <line x1="10" y1="2" x2="2" y2="10"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="sheet-inner">
+
+        <!-- Waveform Style -->
+        <p class="section-label">Waveform Style</p>
+        <div class="segment">
+          <div class="seg-item active">Bars</div>
+          <div class="seg-item">Circle</div>
+          <div class="seg-item">Spectrum</div>
+          <div class="seg-item">None</div>
+        </div>
+
+        <!-- Graphic overlay sub-row -->
+        <p class="section-sublabel">Graphic overlay</p>
+        <div class="segment">
+          <div class="seg-item active">Frame 1</div>
+          <div class="seg-item">Frame 2</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Caption Position -->
+        <p class="section-label">Caption Position</p>
+        <div class="segment">
+          <div class="seg-item active">Bottom</div>
+          <div class="seg-item">Center</div>
+          <div class="seg-item">Karaoke</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Audio Enhancement -->
+        <p class="section-label">Audio Enhancement</p>
+        <div class="radio-row selected">
+          <div class="radio-dot checked"></div>
+          <div><div class="radio-label">Standard</div><div class="radio-desc">No processing</div></div>
+        </div>
+        <div class="radio-row">
+          <div class="radio-dot"></div>
+          <div><div class="radio-label dim">Clean</div><div class="radio-desc">AI noise removal · ~3s</div></div>
+        </div>
+        <div class="radio-row">
+          <div class="radio-dot"></div>
+          <div><div class="radio-label dim">HD Remaster</div><div class="radio-desc">Denoise + enhance · ~15s</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Close button:</strong> 28px pill, 10% white fill, X icon at 55% opacity. Sits top-right in the header row alongside the drag handle. Tapping it or the backdrop both dismiss — consistent with Apple's action sheet pattern.
+    </p>
+    <p style="margin-top:8px;">
+      <strong>Frame options:</strong> These were always in the code as a second segmented row under "Graphic overlay". The mockup just hadn't rendered them yet.
+    </p>
+  </div>
+
+</body>
+</html>

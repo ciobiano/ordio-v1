@@ -1,5 +1,5 @@
 import type { StyleConfig } from '@Ordio/shared/schemas';
-import type { GraphicStyleId } from '@/lib/store';
+import type { GraphicStyleId } from '@/stores';
 import {
   WAVEFORM_CENTER_Y_FLIPPED,
 } from '@/lib/waveforms/constants';

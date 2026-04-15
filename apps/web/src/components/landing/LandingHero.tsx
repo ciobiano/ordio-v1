@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Orb } from '@/components/primitives/Orb'
+import { Orb } from '@/components/primitives/orb/Orb'
 
 const BARS = [14,22,32,26,38,28,40,34,24,30,36,20,16,26,22,18,28,35,38,29,24,19,14,21]
 

@@ -1,0 +1,248 @@
+<h2>Canvas Text + Visual Zone — Layout Comparison</h2>
+<p class="subtitle">Same content, three approaches to how text sits relative to the waveform. Which composition feels right?</p>
+
+<style>
+  .canvas-row {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .canvas-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .canvas-wrap.selected .canvas-frame {
+    outline: 2px solid #3b82f6;
+    outline-offset: 4px;
+  }
+  .canvas-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888;
+    text-align: center;
+  }
+  .canvas-frame {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #222;
+  }
+  /* Zone overlays */
+  .zone {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zone-label-right {
+    position: absolute;
+    right: 4px;
+    font-size: 7px;
+    color: rgba(255,255,255,0.22);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  /* Text block */
+  .canvas-text {
+    position: absolute;
+    left: 0; right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 0 16px;
+  }
+  /* Waveform bars */
+  .waveform {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .bar {
+    width: 3px;
+    border-radius: 2px;
+    background: #fff;
+    opacity: 0.85;
+  }
+  /* Safe zone indicators */
+  .safe-top { position: absolute; top: 0; left: 0; right: 0; height: 16px; background: rgba(255,255,255,0.03); border-bottom: 1px dashed rgba(255,255,255,0.06); }
+  .safe-bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 16px; background: rgba(255,255,255,0.03); border-top: 1px dashed rgba(255,255,255,0.06); }
+  .waveform-zone-bg { position: absolute; left: 0; right: 0; background: rgba(255,255,255,0.04); }
+
+  .note {
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+    max-width: 160px;
+    line-height: 1.5;
+  }
+  .note strong { color: #aaa; }
+  .option-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-bottom: 2px;
+    display: inline-block;
+  }
+</style>
+
+<div class="canvas-row">
+
+  <!-- A: Current behavior -->
+  <div class="canvas-wrap" onclick="select(this, 'a')">
+    <span class="option-tag" style="background:#1e1e1e; color:#888;">A — Current</span>
+    <div class="canvas-frame">
+      <!-- safe zone overlay top -->
+      <div class="safe-top"></div>
+      <!-- waveform zone bg -->
+      <div class="waveform-zone-bg" style="top:130px; height:28px;"></div>
+      <!-- safe zone overlay bottom -->
+      <div class="safe-bottom"></div>
+
+      <!-- Text at ~29% (current bug: centers in [0, captionBottom]) -->
+      <!-- captionBottom = 200 * 0.59 = 118px. textY = (118 - 28) / 2 = 45px. center at 59px = 29.5% -->
+      <div class="canvas-text" style="top: 45px; font-size:14px;">
+        "The quick brown<br>fox jumps over"
+      </div>
+
+      <!-- Waveform at 72% = 144px center -->
+      <div class="waveform" style="top: 130px; height: 28px;">
+        <div class="bar" style="height:8px;"></div>
+        <div class="bar" style="height:18px;"></div>
+        <div class="bar" style="height:26px;"></div>
+        <div class="bar" style="height:14px;"></div>
+        <div class="bar" style="height:20px;"></div>
+        <div class="bar" style="height:28px;"></div>
+        <div class="bar" style="height:10px;"></div>
+        <div class="bar" style="height:22px;"></div>
+        <div class="bar" style="height:16px;"></div>
+        <div class="bar" style="height:24px;"></div>
+        <div class="bar" style="height:12px;"></div>
+        <div class="bar" style="height:20px;"></div>
+      </div>
+
+      <!-- dead space indicator -->
+      <!-- gap between text bottom (~73px) and waveform top (130px) = 57px -->
+      <div style="position:absolute; left:6px; right:6px; top:73px; height:57px; border-left: 1px solid rgba(239,68,68,0.3); border-right: 1px solid rgba(239,68,68,0.3); border-top: 1px dashed rgba(239,68,68,0.4); border-bottom: 1px dashed rgba(239,68,68,0.4);">
+        <span style="display:block; text-align:center; font-size:7px; color:rgba(239,68,68,0.6); margin-top:22px; letter-spacing:0.05em;">57px dead gap</span>
+      </div>
+    </div>
+    <div class="note"><strong>Text floats high</strong><br>Big dead gap above waveform. Unintentional.</div>
+  </div>
+
+  <!-- B: Zone-centered (fix top padding in formula) -->
+  <div class="canvas-wrap" onclick="select(this, 'b')">
+    <span class="option-tag" style="background:#1e3a1e; color:#4ade80;">B — Zone-Centered</span>
+    <div class="canvas-frame">
+      <div class="safe-top"></div>
+      <div class="waveform-zone-bg" style="top:130px; height:28px;"></div>
+      <div class="safe-bottom"></div>
+
+      <!-- topPad = 16px. captionBottom = 118px. zone = 118-16 = 102px. textY = 16 + (102-28)/2 = 16+37 = 53px. center at 67px = 33.5% -->
+      <div class="canvas-text" style="top: 53px;">
+        "The quick brown<br>fox jumps over"
+      </div>
+
+      <div class="waveform" style="top: 130px; height: 28px;">
+        <div class="bar" style="height:8px;"></div>
+        <div class="bar" style="height:18px;"></div>
+        <div class="bar" style="height:26px;"></div>
+        <div class="bar" style="height:14px;"></div>
+        <div class="bar" style="height:20px;"></div>
+        <div class="bar" style="height:28px;"></div>
+        <div class="bar" style="height:10px;"></div>
+        <div class="bar" style="height:22px;"></div>
+        <div class="bar" style="height:16px;"></div>
+        <div class="bar" style="height:24px;"></div>
+        <div class="bar" style="height:12px;"></div>
+        <div class="bar" style="height:20px;"></div>
+      </div>
+    </div>
+    <div class="note"><strong>Centers in safe zone</strong><br>Respects top padding, balanced between top and waveform.</div>
+  </div>
+
+  <!-- C: No visual zone — full center (reference) -->
+  <div class="canvas-wrap" onclick="select(this, 'c')">
+    <span class="option-tag" style="background:#1a1a30; color:#93c5fd;">C — No Visual (auto)</span>
+    <div class="canvas-frame">
+      <div class="safe-top"></div>
+      <div class="safe-bottom"></div>
+
+      <!-- True center: textY = (200 - 28) / 2 = 86px. center at 100px = 50% -->
+      <div class="canvas-text" style="top: 86px;">
+        "The quick brown<br>fox jumps over"
+      </div>
+      <!-- No waveform — just silence marker -->
+      <div style="position:absolute; bottom: 24px; left:0; right:0; text-align:center;">
+        <span style="font-size:8px; color:rgba(255,255,255,0.15); letter-spacing:0.08em; text-transform:uppercase;">no waveform selected</span>
+      </div>
+    </div>
+    <div class="note"><strong>Default when no visual</strong><br>Pure vertical center. Should be automatic — no user setting needed.</div>
+  </div>
+
+</div>
+
+<!-- Bottom layout: waveform at top + text below (alternative composition) -->
+<div style="margin-top: 36px; border-top: 1px solid #1e1e1e; padding-top: 28px;">
+  <h3 style="text-align:center; margin-bottom: 6px;">Bonus: Alternative composition</h3>
+  <p class="subtitle" style="text-align:center;">Waveform at top, captions below — flipped layout used by some audiogram tools</p>
+
+  <div class="canvas-row" style="margin-top: 16px;">
+    <div class="canvas-wrap" onclick="select(this, 'd')">
+      <span class="option-tag" style="background:#1e1e1e; color:#888;">D — Flip (waveform top)</span>
+      <div class="canvas-frame">
+        <div class="safe-top"></div>
+        <div class="safe-bottom"></div>
+
+        <!-- Waveform at 28% center -->
+        <div class="waveform" style="top: 42px; height: 28px;">
+          <div class="bar" style="height:8px;"></div>
+          <div class="bar" style="height:18px;"></div>
+          <div class="bar" style="height:26px;"></div>
+          <div class="bar" style="height:14px;"></div>
+          <div class="bar" style="height:20px;"></div>
+          <div class="bar" style="height:28px;"></div>
+          <div class="bar" style="height:10px;"></div>
+          <div class="bar" style="height:22px;"></div>
+          <div class="bar" style="height:16px;"></div>
+          <div class="bar" style="height:24px;"></div>
+          <div class="bar" style="height:12px;"></div>
+          <div class="bar" style="height:20px;"></div>
+        </div>
+
+        <!-- Text centered in lower zone (70-92%) -->
+        <div class="canvas-text" style="top: 126px;">
+          "The quick brown<br>fox jumps over"
+        </div>
+      </div>
+      <div class="note"><strong>Alternative — waveform top</strong><br>Reading order: visual → words. Less common but fresh.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function select(el, val) {
+  document.querySelectorAll('.canvas-wrap').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.recordChoice) recordChoice(val, el.querySelector('.note strong').textContent + ' — ' + el.querySelector('.option-tag').textContent);
+}
+</script>

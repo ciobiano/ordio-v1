@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Graphic Styles — Ordio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a; color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    padding: 40px 32px 60px;
+  }
+  h2 { font-size: 22px; font-weight: 500; letter-spacing: -0.4px; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: rgba(255,255,255,0.45); margin-bottom: 32px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .card {
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    overflow: hidden; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s; background: #111;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.28); }
+  .card.selected { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+
+  /* ── Canvas-like preview — mimics the actual export canvas ── */
+  .canvas-preview {
+    background: #000;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 16px 16px;
+    height: 200px;
+  }
+
+  .graphic-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .graphic-area img { max-height: 120px; max-width: 180px; object-fit: contain; }
+
+  /* Caption strip below graphic */
+  .caption-strip {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .caption-default {
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.05);
+  }
+  .caption-highlight { color: #fff; background: rgba(255,255,255,0.12); }
+
+  /* Karaoke-style caption */
+  .caption-karaoke {
+    background: transparent;
+  }
+  .caption-karaoke .word-active { color: #a5b4fc; font-weight: 700; }
+  .caption-karaoke .word-dim { color: rgba(255,255,255,0.35); }
+
+  .card-body { padding: 14px 18px; }
+  .card-body h3 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .card-body p { font-size: 12px; color: rgba(255,255,255,0.42); line-height: 1.55; }
+
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 100px; margin-bottom: 8px;
+  }
+  .tag-yours { background: rgba(34,197,94,0.15); color: #86efac; }
+  .tag-suggest { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    margin-bottom: 12px; margin-top: 28px;
+  }
+
+  .selection-bar {
+    margin-top: 28px; padding: 14px 20px;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    font-size: 13px; color: rgba(255,255,255,0.45); text-align: center;
+  }
+  .selection-bar em { color: #a5b4fc; font-style: normal; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h2>Graphic Styles</h2>
+<p class="subtitle">Static SVG graphic replaces the waveform. Caption appears below — same position as waveform styles. Pick what you want in scope.</p>
+
+<p class="section-label">Your SVG art (frame1 + frame2 = two separate styles)</p>
+<div class="grid">
+
+  <!-- Style 1: frame1, white -->
+  <div class="card" data-choice="frame1-white" onclick="toggleCard(this)">
+    <div class="canvas-preview">
+      <div class="graphic-area">
+        <img src="frame1.svg" style="filter:brightness(0) invert(1);opacity:0.92;" />
+      </div>
+      <div class="caption-strip caption-default">
+        "and that's the <span style="color:#a5b4fc">power</span> of consistency"
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-yours">Your Art</div>
+      <h3>Graphic Style 1 — White</h3>
+      <p>frame1.svg as a static white graphic above the caption. Clean, minimal.</p>
+    </div>
+  </div>
+
+  <!-- Style 2: frame2, white -->
+  <div class="card" data-choice="frame2-white" onclick="toggleCard(this)">
+    <div class="canvas-preview">
+      <div class="graphic-area">
+        <img src="frame2.svg" style="filter:brightness(0) invert(1);opacity:0.92; max-height:90px;" />
+      </div>
+      <div class="caption-strip caption-default">
+        "and that's the <span style="color:#a5b4fc">power</span> of consistency"
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-yours">Your Art</div>
+      <h3>Graphic Style 2 — White</h3>
+      <p>frame2.svg as a static white graphic. Different silhouette, same caption position.</p>
+    </div>
+  </div>
+
+  <!-- Style 3: frame1, accent coloured -->
+  <div class="card" data-choice="frame1-color" onclick="toggleCard(this)">
+    <div class="canvas-preview">
+      <div class="graphic-area">
+        <img src="frame1.svg" style="filter:brightness(0) saturate(100%) invert(55%) sepia(80%) saturate(600%) hue-rotate(210deg) brightness(1.1);opacity:0.95;" />
+      </div>
+      <div class="caption-strip caption-default">
+        "and that's the <span style="color:#a5b4fc">power</span> of consistency"
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-suggest">Suggested</div>
+      <h3>Graphic Style 1 — Coloured</h3>
+      <p>Same SVG tinted with the creator's accent colour. Adds personality without new art.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="section-label">Caption style variants — works with any graphic</p>
+<div class="grid">
+
+  <!-- Bold caption -->
+  <div class="card" data-choice="bold-caption" onclick="toggleCard(this)">
+    <div class="canvas-preview" style="background:#0a0a0a;">
+      <div class="graphic-area">
+        <img src="frame1.svg" style="filter:brightness(0) invert(1);opacity:0.85;" />
+      </div>
+      <div class="caption-strip" style="background:#fff; color:#000; font-size:12px; font-weight:700; border-radius:4px; padding:6px 12px;">
+        "power of consistency over time"
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-suggest">Suggested</div>
+      <h3>Bold Caption Block</h3>
+      <p>White filled caption bar below the graphic — high contrast, great for social.</p>
+    </div>
+  </div>
+
+  <!-- Karaoke word highlight -->
+  <div class="card" data-choice="karaoke-caption" onclick="toggleCard(this)">
+    <div class="canvas-preview">
+      <div class="graphic-area">
+        <img src="frame1.svg" style="filter:brightness(0) invert(1);opacity:0.85;" />
+      </div>
+      <div class="caption-strip caption-karaoke" style="font-size:13px;">
+        <span class="word-dim">and that's the </span><span class="word-active">power </span><span class="word-dim">of consistency</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tag tag-suggest">Suggested</div>
+      <h3>Karaoke Highlight</h3>
+      <p>Active word lit up in accent colour. Works with graphic styles the same as waveform mode.</p>
+    </div>
+  </div>
+
+  <!-- Future: custom upload -->
+  <div class="card" style="border-style:dashed; cursor:default; opacity:0.45; pointer-events:none;">
+    <div class="canvas-preview" style="flex-direction:column; gap:12px;">
+      <div style="font-size:28px; opacity:0.3">+</div>
+      <span style="font-size:12px;color:rgba(255,255,255,0.3)">Upload your own SVG</span>
+    </div>
+    <div class="card-body">
+      <div class="tag" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3)">Future — Pro</div>
+      <h3 style="color:rgba(255,255,255,0.35)">Custom SVG Upload</h3>
+      <p style="color:rgba(255,255,255,0.25)">Creators bring their own graphic art. Phase D+.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="selection-bar" id="sel-bar">
+  Click to select — <em id="sel-count">0</em> selected: <em id="sel-names">none</em>
+</div>
+
+<script>
+  const selected = new Set()
+  function toggleCard(el) {
+    const choice = el.dataset.choice
+    if (selected.has(choice)) { selected.delete(choice); el.classList.remove('selected') }
+    else { selected.add(choice); el.classList.add('selected') }
+    document.getElementById('sel-count').textContent = selected.size
+    document.getElementById('sel-names').textContent = selected.size ? [...selected].join(', ') : 'none'
+    if (window.__ordioRecord) window.__ordioRecord({ type:'click', choice:[...selected].join(','), text:[...selected].join(', ') })
+  }
+</script>
+</body>
+</html>

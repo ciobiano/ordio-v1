@@ -1,28 +1,28 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '@/lib/store';
+import { useUIStore } from '@/stores';
 
 describe('graphicStyle store', () => {
   beforeEach(() => {
-    useStore.setState({ graphicStyle: null });
+    useUIStore.setState({ graphicStyle: null });
   });
 
   it('defaults to null', () => {
-    expect(useStore.getState().graphicStyle).toBeNull();
+    expect(useUIStore.getState().graphicStyle).toBeNull();
   });
 
   it('setGraphicStyle updates graphicStyle', () => {
-    useStore.getState().setGraphicStyle('graphic-frame1');
-    expect(useStore.getState().graphicStyle).toBe('graphic-frame1');
+    useUIStore.getState().setGraphicStyle('graphic-frame1');
+    expect(useUIStore.getState().graphicStyle).toBe('graphic-frame1');
   });
 
   it('setGraphicStyle accepts null to return to waveform mode', () => {
-    useStore.getState().setGraphicStyle('graphic-frame1');
-    useStore.getState().setGraphicStyle(null);
-    expect(useStore.getState().graphicStyle).toBeNull();
+    useUIStore.getState().setGraphicStyle('graphic-frame1');
+    useUIStore.getState().setGraphicStyle(null);
+    expect(useUIStore.getState().graphicStyle).toBeNull();
   });
 
   it('setGraphicStyle accepts graphic-frame2', () => {
-    useStore.getState().setGraphicStyle('graphic-frame2');
-    expect(useStore.getState().graphicStyle).toBe('graphic-frame2');
+    useUIStore.getState().setGraphicStyle('graphic-frame2');
+    expect(useUIStore.getState().graphicStyle).toBe('graphic-frame2');
   });
 });

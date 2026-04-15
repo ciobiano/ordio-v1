@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ordio Creation Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#e2e2e4",
+              "on-tertiary-container": "#fffbff",
+              "on-primary": "#ffffff",
+              "tertiary-fixed-dim": "#ffb595",
+              "on-secondary": "#ffffff",
+              "outline-variant": "#c1c6d7",
+              "secondary": "#5d5e63",
+              "on-primary-fixed": "#001f25",
+              "on-secondary-container": "#626267",
+              "on-surface-variant": "#414755",
+              "background": "#0a0a0a",
+              "on-secondary-fixed": "#1a1b1f",
+              "on-error": "#ffffff",
+              "secondary-fixed": "#e3e2e7",
+              "on-primary-fixed-variant": "#004e5a",
+              "on-primary-container": "#f8fdff",
+              "inverse-primary": "#61d6ee",
+              "primary-fixed": "#a5eeff",
+              "inverse-surface": "#2f3132",
+              "outline": "#717786",
+              "tertiary-fixed": "#ffdbcc",
+              "on-background": "#f9f9fb",
+              "on-surface": "#f9f9fb",
+              "on-secondary-fixed-variant": "#46464b",
+              "surface-bright": "#1a1c1d",
+              "surface-variant": "#2f3132",
+              "on-tertiary-fixed-variant": "#7c2e00",
+              "error-container": "#ffdad6",
+              "surface-tint": "#006878",
+              "surface-container-high": "#282a2c",
+              "secondary-fixed-dim": "#c6c6cb",
+              "primary": "#006575",
+              "surface-container-low": "#161819",
+              "tertiary-container": "#c64f00",
+              "error": "#ba1a1a",
+              "primary-container": "#008093",
+              "surface-dim": "#111314",
+              "surface-container": "#1c1e20",
+              "surface-container-lowest": "#000000",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#9e3d00",
+              "secondary-container": "#2f3132",
+              "surface": "#0a0a0a",
+              "inverse-on-surface": "#1a1c1d",
+              "on-error-container": "#93000a",
+              "primary-fixed-dim": "#61d6ee",
+              "on-tertiary-fixed": "#351000"
+            },
+            fontFamily: {
+              "headline": ["Inter", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .custom-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        background: #2f3132;
+        height: 4px;
+        border-radius: 2px;
+      }
+      .custom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: #ffffff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body overflow-hidden h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/5 dark:bg-zinc-900/40 glass">
+<div class="flex items-center justify-between px-6 h-16 max-w-full">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold tracking-tighter text-cyan-900 dark:text-cyan-400">Ordio</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors font-sans tracking-tight font-semibold text-lg" href="#">Discover</a>
+<a class="text-cyan-700 dark:text-cyan-300 border-b-2 border-cyan-700 dark:border-cyan-300 pb-1 font-sans tracking-tight font-semibold text-lg" href="#">Library</a>
+<a class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors font-sans tracking-tight font-semibold text-lg" href="#">Collections</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 text-sm">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-9 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-primary placeholder:text-zinc-600" placeholder="Search project assets..." type="text"/>
+</div>
+<button class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container px-5 py-1.5 rounded-full text-white text-sm font-semibold active:scale-95 transition-transform">
+<span>Export</span>
+<span class="material-symbols-outlined text-sm">ios_share</span>
+</button>
+<button class="p-2 hover:bg-zinc-100/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-zinc-400" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+<div class="bg-zinc-200/10 dark:bg-zinc-800/30 h-[0.5px] w-full absolute bottom-0"></div>
+</header>
+<main class="flex flex-1 pt-16 h-full overflow-hidden">
+<!-- Sidebar Left: Library & Assets -->
+<aside class="w-72 bg-surface-dim flex flex-col p-4 border-r border-zinc-800/50">
+<div class="flex items-center justify-between mb-6 px-2">
+<h2 class="text-xs uppercase tracking-widest font-bold text-zinc-500">Assets</h2>
+<button class="text-primary p-1 hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+</button>
+</div>
+<div class="space-y-6 overflow-y-auto no-scrollbar flex-1">
+<!-- Library Category -->
+<div>
+<label class="px-2 text-[10px] font-bold text-zinc-600 uppercase mb-2 block">Recent Recordings</label>
+<div class="space-y-1">
+<div class="flex items-center gap-3 p-2 bg-zinc-800/40 rounded-xl group cursor-pointer border border-transparent hover:border-zinc-700 transition-all">
+<div class="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary text-xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium truncate">Podcast Intro.wav</p>
+<p class="text-[10px] text-zinc-500">02:45 • High Quality</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-xl group cursor-pointer hover:bg-zinc-800/40 transition-all">
+<div class="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center">
+<span class="material-symbols-outlined text-zinc-600 text-xl">music_note</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium truncate">Background Ambient.mp3</p>
+<p class="text-[10px] text-zinc-500">05:12 • 320kbps</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Collections -->
+<div>
+<label class="px-2 text-[10px] font-bold text-zinc-600 uppercase mb-2 block">SFX Library</label>
+<div class="grid grid-cols-2 gap-2">
+<div class="aspect-square rounded-xl bg-zinc-900 flex flex-col items-center justify-center gap-2 hover:bg-zinc-800 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-zinc-500 group-hover:text-primary transition-colors">graphic_eq</span>
+<span class="text-[10px] text-zinc-400">Transitions</span>
+</div>
+<div class="aspect-square rounded-xl bg-zinc-900 flex flex-col items-center justify-center gap-2 hover:bg-zinc-800 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-zinc-500 group-hover:text-primary transition-colors">bolt</span>
+<span class="text-[10px] text-zinc-400">Impacts</span>
+</div>
+</div>
+</div>
+<!-- Media Preview Card -->
+<div class="mt-4 p-4 rounded-2xl bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 border border-zinc-700/30">
+<img alt="Music production visualization" class="w-full h-32 object-cover rounded-lg mb-3 shadow-lg" data-alt="Vibrant audio waveform on a dark digital display" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNttbdo4oBib3tO8dxYFGmkMrsXt7RwvJXie7537Vn9cbw_mZs93bBMtHZmbWZVg0EndkfNK3azuvRjCZg2kHCtjhclViMhLlqNUHLvj5DmKwh8U2vwPsecA-YcasqoYkFvjZTAfZR121c4BjDGee7rTVpmLVrYBkVpxJxH3R-ZjS_OuTH8M_3fCYI8VzF1_AacrYQU4MoWh7ePjB1IFMoJ8GxDW0Emdp2d_i37qTa2DoOEsp83pWR7TQOQf9pLwdPhmGQrQG-G_VT"/>
+<h3 class="text-sm font-bold mb-1">Editor Tip</h3>
+<p class="text-xs text-zinc-400 leading-relaxed">Use Command+K to quickly split your clips at the playhead position.</p>
+</div>
+</div>
+<!-- Bottom Left Nav -->
+<div class="mt-auto pt-4 border-t border-zinc-800/50 flex flex-col gap-1">
+<button class="flex items-center gap-3 p-2 text-zinc-400 hover:bg-zinc-800/50 rounded-lg transition-all text-sm">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+<span>Settings</span>
+</button>
+<button class="flex items-center gap-3 p-2 text-zinc-400 hover:bg-zinc-800/50 rounded-lg transition-all text-sm">
+<span class="material-symbols-outlined text-lg" data-icon="help_outline">help_outline</span>
+<span>Help Center</span>
+</button>
+</div>
+</aside>
+<!-- Central Canvas: Audio/Video Editing -->
+<section class="flex-1 flex flex-col bg-surface relative overflow-hidden">
+<!-- Canvas Header -->
+<div class="p-6 flex items-center justify-between">
+<div>
+<h1 class="text-3xl font-black tracking-tight mb-1">Untitled Episode 01</h1>
+<p class="text-xs text-zinc-500 font-medium tracking-wide">DRAFT SAVED AT 14:20 PM</p>
+</div>
+<div class="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-full border border-zinc-800">
+<button class="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"><span class="material-symbols-outlined">undo</span></button>
+<button class="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"><span class="material-symbols-outlined">redo</span></button>
+<div class="w-[1px] h-4 bg-zinc-800 mx-1"></div>
+<button class="flex items-center gap-2 px-4 py-1.5 hover:bg-zinc-800 rounded-full transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-sm">auto_fix_high</span>
+<span>Auto-Enhance</span>
+</button>
+</div>
+</div>
+<!-- Workspace -->
+<div class="flex-1 flex flex-col items-center justify-center px-12 pb-12">
+<!-- Preview Window -->
+<div class="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden bg-zinc-900 shadow-2xl group">
+<img alt="Abstract gradient background" class="w-full h-full object-cover opacity-60" data-alt="Deep blue and purple cosmic gradient background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbAyaL546_fIPeK40sNeY3WP9rHSXJlx85OlaAwHXJ9IdWh-vY01Sxs9iPToH_5QDogxX47ugIC7s8Hbv8k_kWFX_sng2gqr2nNJ_mOgAICbF_uGdOVZnekC1_xKNJIxTtishnBscuW_JGrxxoReC86cHLJkEHeKp3VWVxdMcyC8FXudA9yKKjvmsjQ99lThfGXK-mbdHxStBGWiEA4qubWy3s1CCm6O-HXBiGX9m1KSNGoqC0KEp0CFO926-5Xpz02yK85QxHHFYJ"/>
+<!-- Overlay Controls -->
+<div class="absolute inset-0 flex flex-col items-center justify-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm">
+<button class="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Audio Waveform Visualization -->
+<div class="absolute bottom-12 left-0 right-0 h-24 px-12 flex items-end gap-0.5 justify-center opacity-80">
+<div class="flex-1 bg-white/20 h-1/4 rounded-full"></div>
+<div class="flex-1 bg-white/30 h-1/2 rounded-full"></div>
+<div class="flex-1 bg-white/40 h-3/4 rounded-full"></div>
+<div class="flex-1 bg-primary h-full rounded-full shadow-[0_0_15px_rgba(0,101,117,0.8)]"></div>
+<div class="flex-1 bg-primary h-5/6 rounded-full"></div>
+<div class="flex-1 bg-primary-container h-4/5 rounded-full"></div>
+<div class="flex-1 bg-white/40 h-2/3 rounded-full"></div>
+<div class="flex-1 bg-white/30 h-1/3 rounded-full"></div>
+<div class="flex-1 bg-white/20 h-1/6 rounded-full"></div>
+</div>
+<!-- Captions Preview -->
+<div class="absolute bottom-6 left-0 right-0 text-center">
+<span class="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-lg text-sm font-medium tracking-tight text-white border border-white/10">
+                            "Welcome to the first episode of Ordio Creation Studio."
+                        </span>
+</div>
+</div>
+</div>
+<!-- Timeline -->
+<div class="h-48 bg-surface-container-low border-t border-zinc-800/50 flex flex-col">
+<div class="flex items-center h-10 px-6 justify-between border-b border-zinc-800/30">
+<div class="flex items-center gap-4 text-[10px] font-bold text-zinc-600 uppercase">
+<span>Timeline</span>
+<span class="text-primary">00:02:45:12</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-zinc-500 text-lg cursor-pointer">zoom_in</span>
+<span class="material-symbols-outlined text-zinc-500 text-lg cursor-pointer">zoom_out</span>
+</div>
+</div>
+<div class="flex-1 relative overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+<!-- Mock Timeline Items -->
+<div class="absolute bottom-0 w-full h-32 px-6 flex flex-col gap-2 justify-center pointer-events-none">
+<div class="h-8 bg-primary/20 border border-primary/30 rounded-lg w-3/4 flex items-center px-4">
+<span class="text-[10px] font-bold text-primary">VOICE_TRACK_01.WAV</span>
+</div>
+<div class="h-8 bg-zinc-800/50 border border-zinc-700/50 rounded-lg w-1/2 flex items-center px-4 ml-24">
+<span class="text-[10px] font-bold text-zinc-500">AMBIENT_LOOP.MP3</span>
+</div>
+</div>
+<!-- Playhead -->
+<div class="absolute left-1/2 top-10 bottom-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(0,101,117,0.5)] z-10">
+<div class="absolute -top-1 -left-1.5 w-3.5 h-3.5 bg-primary rotate-45 rounded-sm"></div>
+</div>
+</div>
+</section>
+<!-- Sidebar Right: Controls -->
+<aside class="w-80 bg-surface-dim border-l border-zinc-800/50 flex flex-col overflow-y-auto no-scrollbar">
+<div class="p-6 space-y-8">
+<!-- Section: Waveform Style -->
+<section>
+<h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Waveform Style</h3>
+<div class="bg-zinc-900/50 p-1 rounded-xl flex mb-4">
+<button class="flex-1 py-1.5 text-xs font-semibold bg-zinc-800 text-white rounded-lg shadow-sm">Bars</button>
+<button class="flex-1 py-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors">Line</button>
+<button class="flex-1 py-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors">Mirror</button>
+</div>
+<div class="space-y-4">
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="text-[11px] font-medium text-zinc-400">Stroke Thickness</label>
+<span class="text-[11px] text-zinc-500">2.5px</span>
+</div>
+<input class="w-full custom-slider" type="range"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="text-[11px] font-medium text-zinc-400">Amplitude</label>
+<span class="text-[11px] text-zinc-500">80%</span>
+</div>
+<input class="w-full custom-slider" type="range"/>
+</div>
+</div>
+</section>
+<!-- Section: Captions -->
+<section>
+<h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Captions</h3>
+<div class="grid grid-cols-2 gap-3 mb-4">
+<button class="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">format_size</span>
+<span class="text-[10px] font-semibold">Classic</span>
+</button>
+<button class="p-3 rounded-2xl bg-zinc-900/30 border border-transparent hover:border-zinc-800 transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-zinc-500">dynamic_form</span>
+<span class="text-[10px] font-semibold text-zinc-500">Dynamic</span>
+</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-zinc-900/50 rounded-xl">
+<span class="text-xs font-medium">Auto-Capitalize</span>
+<div class="w-8 h-4 bg-primary rounded-full relative">
+<div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-zinc-900/50 rounded-xl">
+<span class="text-xs font-medium">Color Palette</span>
+<div class="flex gap-1">
+<div class="w-4 h-4 rounded-full bg-white"></div>
+<div class="w-4 h-4 rounded-full bg-primary"></div>
+<div class="w-4 h-4 rounded-full bg-amber-400"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Background & Scene -->
+<section>
+<h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Background</h3>
+<div class="space-y-3">
+<div class="group cursor-pointer relative rounded-2xl overflow-hidden aspect-[16/9] border border-zinc-800">
+<img alt="Abstract gradient" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Soft pink and blue ethereal abstract gradient" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNgliROctg-QHNMUJoBLBK7Etwvi9ya6wN2HhG-QGCMWLdiVF6umbkVi0DLrs4MUkdUWYNSDtN8uwelhhY65r64FRKHDgVYRXpzJyznTuQRuNuNPGURBi4Vppqhw_RMfHjzDYQqK5rSrEBoOkhnSSp8mKNLsRXiqd0RXqS148_77OAoFt5reX_5j4bOJYBREX37TNZygqRRl30vg3YCVaB3RUAPsObwdy1d9-FQmKJ5-9HiOph0RP7TDaqNUD67-FODvQlMfGkcL3w"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+<span class="text-[10px] font-bold uppercase tracking-tighter">Current Scene</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-zinc-900/50 rounded-xl">
+<span class="text-xs font-medium">Blur Intensity</span>
+<input class="w-24 custom-slider" type="range"/>
+</div>
+</div>
+</section>
+<!-- Footer Stats -->
+<div class="pt-6 mt-4 border-t border-zinc-800/30">
+<div class="flex justify-between items-center text-[10px] font-bold text-zinc-600 uppercase">
+<span>File Size</span>
+<span>124.5 MB</span>
+</div>
+<div class="flex justify-between items-center text-[10px] font-bold text-zinc-600 uppercase mt-2">
+<span>Duration</span>
+<span>00:15:22</span>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Footer: Minimal Editorial -->
+<footer class="w-full py-6 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-900 relative z-50">
+<div class="flex flex-col items-center gap-4 w-full px-8">
+<div class="flex gap-8">
+<a class="text-zinc-400 dark:text-zinc-600 text-[11px] uppercase tracking-widest font-medium hover:text-cyan-700 dark:hover:text-cyan-500 transition-colors cursor-pointer">Privacy Policy</a>
+<a class="text-zinc-400 dark:text-zinc-600 text-[11px] uppercase tracking-widest font-medium hover:text-cyan-700 dark:hover:text-cyan-500 transition-colors cursor-pointer">Terms of Service</a>
+<a class="text-zinc-400 dark:text-zinc-600 text-[11px] uppercase tracking-widest font-medium hover:text-cyan-700 dark:hover:text-cyan-500 transition-colors cursor-pointer">Cookie Settings</a>
+</div>
+<p class="text-zinc-400 dark:text-zinc-600 text-[11px] uppercase tracking-widest font-medium">© 2024 Ordio Editorial. All rights reserved.</p>
+</div>
+</footer>
+</body></html>

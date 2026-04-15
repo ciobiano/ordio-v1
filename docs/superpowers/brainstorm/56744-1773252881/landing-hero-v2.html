@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordio Landing — v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Nav ─── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 17px; letter-spacing: -0.3px;
+  }
+  .nav-logo svg { width: 26px; height: 26px; }
+  .nav-links { display: flex; gap: 32px; font-size: 14px; color: rgba(255,255,255,0.55); }
+  .nav-links span { cursor: pointer; }
+  .nav-links span:hover { color: #fff; }
+  .nav-actions { display: flex; gap: 10px; }
+  .btn-ghost {
+    background: none; border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.75); padding: 7px 16px;
+    border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+  .btn-primary {
+    background: #fff; color: #000; border: none;
+    padding: 7px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ═══════════════════════════════════════════
+     HERO GRID
+     7 equal columns, full viewport width
+     Top border, mid border, bottom border all span col 1→7
+  ═══════════════════════════════════════════ */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows:
+      /* row 1 */ 1px          /* top border line */
+      /* row 2 */ 40px         /* top padding */
+      /* row 3 */ auto         /* product showcase */
+      /* row 4 */ 40px         /* mid padding */
+      /* row 5 */ 1px          /* mid divider line */
+      /* row 6 */ 56px         /* bottom padding */
+      /* row 7 */ auto         /* headline + cta */
+      /* row 8 */ 56px;        /* bottom padding */
+    position: relative;
+    /* right border */
+  }
+
+  /* Full-width horizontal rule lines */
+  .h-rule {
+    grid-column: 1 / -1;
+    background: rgba(255,255,255,0.1);
+    height: 1px;
+  }
+
+  /* Vertical column dividers — absolute, span the whole grid height */
+  .hero-grid-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .hero-grid-lines > span {
+    border-right: 1px solid rgba(255,255,255,0.07);
+  }
+  .hero-grid-lines > span:last-child { border-right: none; }
+  /* Left outer border */
+  .hero-grid-lines::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.07);
+  }
+
+  /* ─── Crosshairs ─── */
+  /* at top-left, top-right, mid-left, mid-right corners */
+  .cx {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .cx::before {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px; background: rgba(255,255,255,0.55);
+    transform: translateX(-50%);
+  }
+  .cx::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 1px; background: rgba(255,255,255,0.55);
+    transform: translateY(-50%);
+  }
+
+  /* Spacer rows */
+  .row-pad { grid-column: 1 / -1; }
+
+  /* ─── Product showcase (rows 2–4, cols 2–6) ─── */
+  .showcase-area {
+    grid-column: 2 / 7;
+    grid-row: 3;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 24px;
+    position: relative;
+  }
+
+  /* Left tag column (col 1, row 3) */
+  .tags-left {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    padding-right: 16px;
+    gap: 20px;
+  }
+  /* Right tag column (col 7, row 3) */
+  .tags-right {
+    grid-column: 7;
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding-left: 16px;
+    gap: 20px;
+  }
+
+  /* Feature tags */
+  .tag {
+    padding: 6px 13px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+  .tag-green  { background: #22c55e; color: #000; }
+  .tag-blue   { background: #3b82f6; color: #fff; }
+  .tag-purple { background: #a855f7; color: #fff; }
+  .tag-orange { background: #f97316; color: #fff; }
+  .tag-pink   { background: #ec4899; color: #fff; }
+  .tag-cyan   { background: #06b6d4; color: #000; }
+
+  /* ─── App card ─── */
+  .app-card {
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 18px 22px 24px;
+    width: 580px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .app-card-header {
+    display: flex; align-items: center; gap: 7px;
+    margin-bottom: 16px; padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28ca41; }
+  .app-card-title { margin-left: 6px; font-size: 12px; color: rgba(255,255,255,0.35); }
+
+  .caption-line {
+    text-align: center; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.01em; color: #fff;
+    background: rgba(255,255,255,0.05);
+    border-radius: 7px; padding: 9px 14px; margin-bottom: 14px;
+  }
+  .caption-line span { color: #a5b4fc; }
+
+  .waveform-area {
+    display: flex; align-items: center; justify-content: center;
+    height: 88px; gap: 3px; margin-bottom: 16px;
+  }
+  .bar {
+    width: 5px; border-radius: 3px;
+    background: linear-gradient(to top, #6366f1, #a5b4fc);
+    animation: pulse 1.4s ease-in-out infinite alternate;
+  }
+  .bar:nth-child(odd) { animation-delay: -0.3s; }
+  .bar:nth-child(3n) { animation-delay: -0.7s; }
+  @keyframes pulse {
+    0% { transform: scaleY(0.25); opacity: 0.45; }
+    100% { transform: scaleY(1); opacity: 1; }
+  }
+
+  .controls-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; padding: 10px 20px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 100px; border: 1px solid rgba(255,255,255,0.08);
+    width: fit-content; margin: 0 auto;
+  }
+  .ctrl-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; color: rgba(255,255,255,0.65);
+    border: none; background: none;
+  }
+  .ctrl-btn.active { background: #fff; color: #000; }
+  .ctrl-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.1); }
+
+  /* ─── Headline block (row 7, cols 2–6) ─── */
+  .headline-block {
+    grid-column: 2 / 7;
+    grid-row: 7;
+    text-align: center;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  h1 {
+    font-size: 50px;
+    font-weight: 500;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+  }
+  .subline {
+    font-size: 16px;
+    color: rgba(255,255,255,0.48);
+    line-height: 1.65;
+    max-width: 520px;
+  }
+  .subline strong { color: rgba(255,255,255,0.82); font-weight: 500; }
+  .cta-row { display: flex; gap: 10px; justify-content: center; }
+  .cta-primary {
+    background: #fff; color: #000; border: none;
+    padding: 13px 26px; border-radius: 100px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .cta-secondary {
+    background: none; color: rgba(255,255,255,0.75);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 13px 26px; border-radius: 100px;
+    font-size: 14px; cursor: pointer;
+  }
+
+  /* ─── Feature walkthrough ─── */
+  .feature-section {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 48px;
+    align-items: start;
+    padding: 72px 120px;
+    max-width: 1100px;
+    margin: 0 auto;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .feature-left h2 {
+    font-size: 30px; font-weight: 400;
+    letter-spacing: -0.5px; line-height: 1.25; margin-bottom: 8px;
+  }
+  .feature-left p { font-size: 14px; color: rgba(255,255,255,0.4); line-height: 1.6; }
+  .feature-right { position: relative; padding-left: 28px; }
+  .timeline-line {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 1px; background: rgba(255,255,255,0.08);
+  }
+  .timeline-progress {
+    position: absolute; left: 0; top: 0; width: 2px; height: 50%;
+    background: linear-gradient(to bottom, #6366f1, #a855f7); border-radius: 1px;
+  }
+  .feature-item {
+    margin-bottom: 36px; padding-bottom: 36px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .feature-item:last-child { border-bottom: none; margin-bottom: 0; }
+  .feature-step {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #6366f1; margin-bottom: 6px;
+  }
+  .feature-title { font-size: 16px; font-weight: 500; margin-bottom: 5px; }
+  .feature-desc { font-size: 13px; color: rgba(255,255,255,0.42); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 26 26" fill="none">
+      <rect width="26" height="26" rx="6" fill="#6366f1"/>
+      <rect x="4" y="12" width="3" height="9" rx="1.5" fill="white"/>
+      <rect x="9"  y="8" width="3" height="13" rx="1.5" fill="white"/>
+      <rect x="14" y="5" width="3" height="16" rx="1.5" fill="white"/>
+      <rect x="19" y="9" width="3" height="12" rx="1.5" fill="white"/>
+    </svg>
+    Ordio
+  </div>
+  <div class="nav-links">
+    <span>Product</span>
+    <span>Pricing</span>
+    <span>Blog</span>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost">Log In</button>
+    <button class="btn-primary">Get Started Free</button>
+  </div>
+</nav>
+
+<!-- ═══ HERO GRID ═══ -->
+<div class="hero-grid" id="heroGrid">
+
+  <!-- Vertical column divider lines overlay -->
+  <div class="hero-grid-lines">
+    <span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+
+  <!-- Row 1: top horizontal rule (full width) -->
+  <div class="h-rule"></div>
+
+  <!-- Row 2: top padding -->
+  <div class="row-pad"></div>
+
+  <!-- Row 3: left tags | showcase | right tags -->
+  <div class="tags-left">
+    <div class="tag tag-green">AI Transcription</div>
+    <div class="tag tag-blue">Wave Styles</div>
+    <div class="tag tag-purple">MP4 Export</div>
+  </div>
+
+  <div class="showcase-area">
+    <div class="app-card">
+      <div class="app-card-header">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="app-card-title">ordio.app — export preview</span>
+      </div>
+      <div class="caption-line">"and that's the <span>power of consistency</span> over time"</div>
+      <div class="waveform-area">
+        <div class="bar" style="height:32px"></div><div class="bar" style="height:52px"></div>
+        <div class="bar" style="height:76px"></div><div class="bar" style="height:62px"></div>
+        <div class="bar" style="height:88px"></div><div class="bar" style="height:68px"></div>
+        <div class="bar" style="height:88px"></div><div class="bar" style="height:80px"></div>
+        <div class="bar" style="height:58px"></div><div class="bar" style="height:72px"></div>
+        <div class="bar" style="height:86px"></div><div class="bar" style="height:48px"></div>
+        <div class="bar" style="height:38px"></div><div class="bar" style="height:62px"></div>
+        <div class="bar" style="height:52px"></div><div class="bar" style="height:44px"></div>
+        <div class="bar" style="height:66px"></div><div class="bar" style="height:84px"></div>
+        <div class="bar" style="height:88px"></div><div class="bar" style="height:70px"></div>
+        <div class="bar" style="height:58px"></div><div class="bar" style="height:46px"></div>
+        <div class="bar" style="height:34px"></div><div class="bar" style="height:50px"></div>
+      </div>
+      <div class="controls-bar">
+        <button class="ctrl-btn">⏮</button>
+        <button class="ctrl-btn active">▶</button>
+        <button class="ctrl-btn">⏭</button>
+        <div class="ctrl-divider"></div>
+        <button class="ctrl-btn">🎵</button>
+        <button class="ctrl-btn">Aa</button>
+        <button class="ctrl-btn">⬛</button>
+        <div class="ctrl-divider"></div>
+        <button class="ctrl-btn">⬇</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tags-right">
+    <div class="tag tag-orange">Caption Editor</div>
+    <div class="tag tag-pink">Custom Fonts</div>
+    <div class="tag tag-cyan">No Server</div>
+  </div>
+
+  <!-- Row 4: mid padding -->
+  <div class="row-pad"></div>
+
+  <!-- Row 5: mid horizontal rule (full width) -->
+  <div class="h-rule"></div>
+
+  <!-- Row 6: bottom padding -->
+  <div class="row-pad"></div>
+
+  <!-- Row 7: headline block -->
+  <div class="headline-block">
+    <h1>Your voice,<br>beautifully visualised.</h1>
+    <p class="subline">
+      Record or upload audio. Get <strong>AI transcription</strong>. Export a stunning audiogram video —
+      all in the browser, no account required.
+    </p>
+    <div class="cta-row">
+      <button class="cta-primary">Create Audiogram Free</button>
+      <button class="cta-secondary">See how it works</button>
+    </div>
+  </div>
+
+  <!-- Row 8: bottom padding -->
+  <div class="row-pad"></div>
+
+</div><!-- /hero-grid -->
+
+<!-- Crosshairs injected by JS after layout -->
+<script>
+  function placeCrosshair(x, y) {
+    const el = document.createElement('div');
+    el.className = 'cx';
+    el.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:20;`;
+    document.body.appendChild(el);
+  }
+
+  function positionCrosshairs() {
+    const grid = document.getElementById('heroGrid');
+    const r = grid.getBoundingClientRect();
+
+    // Find the mid h-rule (row 5) — it's the 2nd .h-rule
+    const rules = grid.querySelectorAll('.h-rule');
+    const midRule = rules[1].getBoundingClientRect();
+
+    // Left/right edges of column 1 and 7
+    const cols = grid.querySelectorAll('.hero-grid-lines > span');
+    const colW = r.width / 7;
+
+    // Top-left corner (col1 left edge, grid top)
+    placeCrosshair(r.left, r.top);
+    // Top-right corner (col7 right edge, grid top)
+    placeCrosshair(r.right, r.top);
+    // Mid-left corner
+    placeCrosshair(r.left, midRule.top);
+    // Mid-right corner
+    placeCrosshair(r.right, midRule.top);
+    // Bottom corners
+    placeCrosshair(r.left, r.bottom);
+    placeCrosshair(r.right, r.bottom);
+  }
+
+  window.addEventListener('load', positionCrosshairs);
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.cx').forEach(e => e.remove());
+    positionCrosshairs();
+  });
+</script>
+
+<!-- Feature walkthrough -->
+<div class="feature-section">
+  <div class="feature-left">
+    <h2>Record once.<br>Publish everywhere.</h2>
+    <p>From raw audio to export-ready video in under a minute.</p>
+  </div>
+  <div class="feature-right">
+    <div class="timeline-line"></div>
+    <div class="timeline-progress"></div>
+    <div class="feature-item">
+      <div class="feature-step">Step 01</div>
+      <div class="feature-title">Record or upload.</div>
+      <div class="feature-desc">Capture directly in the browser or drop in any MP3, WAV, or M4A file. No app to install.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-step">Step 02</div>
+      <div class="feature-title">Instant AI transcription.</div>
+      <div class="feature-desc">Whisper-powered word-level captions appear automatically. Edit any word with a click.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-step">Step 03</div>
+      <div class="feature-title">Style it your way.</div>
+      <div class="feature-desc">Pick a waveform, font, colour, and aspect ratio. Preview updates live — what you see is what exports.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-step">Step 04</div>
+      <div class="feature-title">Export and share.</div>
+      <div class="feature-desc">Download a crisp MP4 ready for Twitter, LinkedIn, Instagram, or TikTok.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

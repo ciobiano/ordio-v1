@@ -2,11 +2,11 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useStore } from '@/lib/store';
-import { useCapabilities } from '@/hooks/useCapabilities';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useCheckout } from '@/hooks/useCheckout';
-import { usePaymentRedirect } from '@/hooks/usePaymentRedirect';
+import { useUIStore } from '@/stores';
+import { useCapabilities } from '@/hooks/recording/useCapabilities';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import { useCheckout } from '@/hooks/billing/useCheckout';
+import { usePaymentRedirect } from '@/hooks/billing/usePaymentRedirect';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { CapabilityBanner } from '@/components/primitives';
@@ -14,7 +14,7 @@ import { AuthGate, UpgradeSheet, OnboardingDialog } from '@/components/soul';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 
 function CreateLayoutContent({ children }: { children: React.ReactNode }) {
-  const { upgradeTarget, setUpgradeTarget } = useStore();
+  const { upgradeTarget, setUpgradeTarget } = useUIStore();
   const capabilities = useCapabilities();
   const { isLoading } = useCurrentUser();
   const { isSignedIn } = useAuth();

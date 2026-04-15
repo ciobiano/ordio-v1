@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, it, expect } from 'vitest';
-import { concatAudioBuffers } from '@/lib/decodeMediaToAudioBuffer';
+import { concatAudioBuffers } from '@/lib/media';
 
 /** setup.ts stubs AudioContext without createBuffer; use a minimal real stub for these tests. */
 class DecodeTestAudioContext {

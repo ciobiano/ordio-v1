@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fileExtension } from '@/hooks/useVideoExporter';
+import { fileExtension } from '@/hooks/video/useVideoExporter';
 
 describe('fileExtension()', () => {
   it('returns mp4 for video/mp4 mime types', () => {

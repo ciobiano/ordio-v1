@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { TransitionOverlay } from './primitives/TransitionOverlay'
+import { TransitionOverlay } from './primitives/overlay/TransitionOverlay'
 
 // ─── Context ────────────────────────────────────────────────────────────────
 

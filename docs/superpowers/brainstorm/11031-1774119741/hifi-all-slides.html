@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All 4 slides — final</title>
+  <script src="/helper.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #060606;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 36px 24px 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .eyebrow { font-size: 11px; color: #444; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+    .page-title { font-size: 18px; font-weight: 600; color: #bbb; margin-bottom: 8px; text-align: center; }
+    .page-sub { font-size: 12px; color: #3a3a3a; margin-bottom: 36px; text-align: center; }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    .phone {
+      width: 200px;
+      height: 380px;
+      background: #000;
+      border-radius: 28px;
+      border: 1px solid #1a1a1a;
+      box-shadow: 0 0 0 1px #111, 0 24px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
+      overflow: hidden;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .idle-bg {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    }
+    .bg-wm { font-size: 9px; font-weight: 300; color: #1a1a1a; letter-spacing: 0.12em; }
+    .bg-wm span { font-weight: 600; }
+    .bg-orb { width: 68px; height: 68px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #1c1c1c, #080808 60%, #000); border: 1px solid #141414; }
+    .bg-lbl { font-size: 8px; color: #111; }
+
+    .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(12px); }
+
+    .dialog {
+      position: absolute;
+      left: 12px; right: 12px;
+      background: #0f0f0f;
+      border: 1px solid #1e1e1e;
+      border-radius: 16px;
+      padding: 20px 16px 16px;
+      display: flex; flex-direction: column; align-items: center;
+      box-shadow: 0 -1px 0 rgba(255,255,255,0.04) inset, 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .icon-ring {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid #222; background: radial-gradient(circle at 40% 35%, #1a1a1a, #0a0a0a);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
+    }
+    .icon-ring svg { width: 17px; height: 17px; stroke: #666; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .d-title { font-size: 13px; font-weight: 700; color: #f2f2f2; text-align: center; margin-bottom: 6px; line-height: 1.25; letter-spacing: -0.01em; }
+    .d-body { font-size: 9.5px; color: #555; text-align: center; line-height: 1.65; margin-bottom: 14px; max-width: 160px; }
+
+    /* Slide-specific visual elements */
+    .wave-row {
+      display: flex; align-items: flex-end; gap: 2px; height: 20px; margin-bottom: 14px;
+    }
+    .wbar { width: 3px; border-radius: 2px; background: #252525; }
+
+    .mini-orb {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2a2a2a, #0d0d0d 70%);
+      border: 1px solid #252525;
+      margin-bottom: 14px;
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.015);
+    }
+
+    .caption-pill {
+      background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 6px;
+      padding: 6px 10px; margin-bottom: 14px; width: 100%; text-align: center;
+    }
+    .caption-pill span { font-size: 8px; color: #555; font-style: italic; }
+
+    .tiles {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; margin-bottom: 14px;
+    }
+    .tile {
+      aspect-ratio: 1; background: #080808; border: 1px solid #181818; border-radius: 7px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    }
+    .tile.lit { border-color: #2e2e2e; background: #0d0d0d; }
+    .tile svg { width: 12px; height: 12px; stroke: #252525; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+    .tile.lit svg { stroke: #5a5a5a; }
+    .tile-lbl { font-size: 5.5px; color: #222; font-weight: 500; letter-spacing: 0.03em; }
+    .tile.lit .tile-lbl { color: #4a4a4a; }
+
+    /* Footer: dots left, circle arrow right */
+    .footer {
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
+    }
+    .dots { display: flex; gap: 5px; align-items: center; }
+    .dot { width: 3px; height: 3px; border-radius: 50%; background: #1e1e1e; }
+    .dot.active { background: #888; width: 10px; border-radius: 2px; }
+
+    .circle-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #f0f0f0; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .circle-btn svg { width: 13px; height: 13px; stroke: #000; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Skip link — slide 1 only */
+    .skip-link { font-size: 8px; color: #333; margin-top: 6px; }
+
+    /* Slide label */
+    .slide-label { text-align: center; }
+    .slide-num { font-size: 10px; font-weight: 600; color: #3a3a3a; letter-spacing: 0.06em; text-transform: uppercase; }
+    .slide-name { font-size: 12px; font-weight: 500; color: #777; margin-top: 2px; }
+
+    .hint { font-size: 11px; color: #2e2e2e; margin-top: 28px; letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+
+  <p class="eyebrow">Final design — all slides</p>
+  <p class="page-title">4-slide onboarding walkthrough</p>
+  <p class="page-sub">shadcn Dialog · backdrop blur · dots left · arrow right</p>
+
+  <div class="row">
+
+    <!-- SLIDE 1 -->
+    <div class="col">
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="bg-wm">ord<span>io</span></div>
+          <div class="bg-orb"></div>
+          <div class="bg-lbl">Tap to record</div>
+        </div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring">
+            <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </div>
+          <div class="d-title">Your voice, ready to share</div>
+          <div class="d-body">Record or upload audio. Ordio turns it into a polished, captioned video.</div>
+          <div class="wave-row">
+            <div class="wbar" style="height:5px"></div>
+            <div class="wbar" style="height:10px"></div>
+            <div class="wbar" style="height:7px"></div>
+            <div class="wbar" style="height:16px"></div>
+            <div class="wbar" style="height:9px"></div>
+            <div class="wbar" style="height:13px"></div>
+            <div class="wbar" style="height:6px"></div>
+            <div class="wbar" style="height:11px"></div>
+            <div class="wbar" style="height:8px"></div>
+            <div class="wbar" style="height:14px"></div>
+            <div class="wbar" style="height:5px"></div>
+            <div class="wbar" style="height:9px"></div>
+          </div>
+          <div class="footer">
+            <div class="dots">
+              <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <button class="circle-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+          <div class="skip-link">Skip intro</div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">01</div>
+        <div class="slide-name">The hook</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2 -->
+    <div class="col">
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="bg-wm">ord<span>io</span></div>
+          <div class="bg-orb"></div>
+          <div class="bg-lbl">Tap to record</div>
+        </div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="d-title">Tap the orb to begin</div>
+          <div class="d-body">Speak naturally. Or upload an MP3, WAV, or M4A — up to 50 MB.</div>
+          <div class="mini-orb"></div>
+          <div class="footer">
+            <div class="dots">
+              <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <button class="circle-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">02</div>
+        <div class="slide-name">How to start</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 -->
+    <div class="col">
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="bg-wm">ord<span>io</span></div>
+          <div class="bg-orb"></div>
+          <div class="bg-lbl">Tap to record</div>
+        </div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring">
+            <svg viewBox="0 0 24 24"><path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 Z"/></svg>
+          </div>
+          <div class="d-title">Captions, automatically</div>
+          <div class="d-body">AI transcribes every word and syncs captions to your audio. No editing required.</div>
+          <div class="caption-pill"><span>"...your voice, perfectly timed"</span></div>
+          <div class="footer">
+            <div class="dots">
+              <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+            </div>
+            <button class="circle-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">03</div>
+        <div class="slide-name">AI captions</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4 -->
+    <div class="col">
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="bg-wm">ord<span>io</span></div>
+          <div class="bg-orb"></div>
+          <div class="bg-lbl">Tap to record</div>
+        </div>
+        <div class="backdrop"></div>
+        <div class="dialog">
+          <div class="icon-ring">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10.5" r="1.5" fill="#666" stroke="none"/><circle cx="12" cy="7" r="1.5" fill="#666" stroke="none"/><circle cx="15.5" cy="10.5" r="1.5" fill="#666" stroke="none"/></svg>
+          </div>
+          <div class="d-title">Not just a waveform</div>
+          <div class="d-body">Swap styles in the export screen — graphic frames, bars, circle, spectrogram.</div>
+          <div class="tiles">
+            <div class="tile lit">
+              <svg viewBox="0 0 24 24"><rect x="3" y="10" width="3" height="10" rx="1"/><rect x="8" y="6" width="3" height="14" rx="1"/><rect x="13" y="8" width="3" height="12" rx="1"/><rect x="18" y="4" width="3" height="16" rx="1"/></svg>
+              <span class="tile-lbl">Bars</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4 Q16 8 12 12 Q8 16 12 20"/></svg>
+              <span class="tile-lbl">Circle</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span class="tile-lbl">Frame</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24"><rect x="3" y="14" width="2" height="6" rx="0.5"/><rect x="7" y="9" width="2" height="11" rx="0.5"/><rect x="11" y="6" width="2" height="14" rx="0.5"/><rect x="15" y="10" width="2" height="10" rx="0.5"/><rect x="19" y="12" width="2" height="8" rx="0.5"/></svg>
+              <span class="tile-lbl">Spectrum</span>
+            </div>
+          </div>
+          <div class="footer">
+            <div class="dots">
+              <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+            </div>
+            <!-- Last slide: filled circle with checkmark instead of arrow -->
+            <button class="circle-btn" style="background:#f0f0f0;">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">04</div>
+        <div class="slide-name">Style reveal ★</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="hint">Does this complete flow feel right? Approve to move to the design doc.</p>
+
+</body>
+</html>

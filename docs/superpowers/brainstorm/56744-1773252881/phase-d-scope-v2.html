@@ -1,0 +1,111 @@
+<h2>Phase D — What should we build first?</h2>
+<p class="subtitle">Select everything you want in scope. Multi-select on.</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 24px;">
+
+  <div>
+    <p class="label" style="margin-bottom: 12px;">⚡ Performance</p>
+    <div class="options" data-multiselect>
+      <div class="option" data-choice="webworker" onclick="toggleSelect(this)">
+        <div class="letter">A</div>
+        <div class="content">
+          <h3>Web Worker Encoding</h3>
+          <p>Move MP4 encoding off the main thread — no UI freeze during export</p>
+        </div>
+      </div>
+      <div class="option" data-choice="offscreencanvas" onclick="toggleSelect(this)">
+        <div class="letter">B</div>
+        <div class="content">
+          <h3>OffscreenCanvas</h3>
+          <p>Render waveform frames in a worker — faster, smoother preview</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="label" style="margin-bottom: 12px; margin-top: 20px;">🤖 AI</p>
+    <div class="options" data-multiselect>
+      <div class="option" data-choice="clipextract" onclick="toggleSelect(this)">
+        <div class="letter">F</div>
+        <div class="content">
+          <h3>AI Clip Extraction</h3>
+          <p>Auto-find the best 60s clip from a long recording using LLM scoring</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="label" style="margin-bottom: 12px;">🎨 Visual / UX</p>
+    <div class="options" data-multiselect>
+      <div class="option selected" data-choice="waveforms" onclick="toggleSelect(this)">
+        <div class="letter">C</div>
+        <div class="content">
+          <h3>New Waveform Styles</h3>
+          <p>Additional visualisation variants beyond bars, circle, spectrogram</p>
+        </div>
+      </div>
+      <div class="option" data-choice="videobg" onclick="toggleSelect(this)">
+        <div class="letter">D</div>
+        <div class="content">
+          <h3>Video Background</h3>
+          <p>Loop a video clip behind the waveform (talking-head style)</p>
+        </div>
+      </div>
+      <div class="option selected" data-choice="logo" onclick="toggleSelect(this)">
+        <div class="letter">E</div>
+        <div class="content">
+          <h3>Logo / Custom Watermark</h3>
+          <p>Let creators overlay their own branding on exports (Pro feature)</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="label" style="margin-bottom: 12px; margin-top: 20px;">🔗 Distribution</p>
+    <div class="options" data-multiselect>
+      <div class="option" data-choice="social" onclick="toggleSelect(this)">
+        <div class="letter">G</div>
+        <div class="content">
+          <h3>Social Publishing</h3>
+          <p>Post directly to Twitter/X, LinkedIn, Instagram from the export screen</p>
+        </div>
+      </div>
+      <div class="option" data-choice="rss" onclick="toggleSelect(this)">
+        <div class="letter">H</div>
+        <div class="content">
+          <h3>RSS Auto-generation</h3>
+          <p>Auto-generate a podcast RSS feed from exported audiograms</p>
+        </div>
+      </div>
+      <div class="option" data-choice="batch" onclick="toggleSelect(this)">
+        <div class="letter">I</div>
+        <div class="content">
+          <h3>Batch Export</h3>
+          <p>Export multiple audiograms at once — Agency tier feature</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="label" style="margin-bottom: 12px;">✏️ Other (write-in)</p>
+    <div class="options" data-multiselect>
+      <div class="option selected" data-choice="landing" onclick="toggleSelect(this)">
+        <div class="letter">J</div>
+        <div class="content">
+          <h3>Landing Page</h3>
+          <p>Marketing site — hero, demo, pricing, social proof, waitlist/CTA</p>
+        </div>
+      </div>
+      <div class="option" data-choice="other1" onclick="toggleSelect(this)" style="min-height: 80px; cursor: pointer;">
+        <div class="letter">+</div>
+        <div class="content">
+          <h3 style="color: var(--text-secondary);">Add your own…</h3>
+          <p style="font-style: italic;">Tell me in the terminal what else you want</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 24px; text-align: center;">Previous selections pre-filled (C, E, J). Adjust as needed.</p>

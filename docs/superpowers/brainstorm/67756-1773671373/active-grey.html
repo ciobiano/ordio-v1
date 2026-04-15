@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active Grey Calibration</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #060606;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+    color: #FAF8F5;
+  }
+  h1 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .subtitle { font-size: 0.75rem; color: rgba(255,255,255,0.38); margin-bottom: 1.8rem; text-align: center; line-height: 1.5; max-width: 480px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .opt {
+    cursor: pointer;
+    border-radius: 18px;
+    border: 2px solid transparent;
+    transition: border-color 0.18s;
+    overflow: hidden;
+  }
+  .opt:hover { border-color: rgba(255,255,255,0.1); }
+  .opt.selected { border-color: rgba(255,255,255,0.32); }
+
+  /* Orb bleed bg */
+  .bg {
+    position: relative;
+    height: 310px;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 26%, rgba(255,180,200,0.17) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 50% at 26% 54%, rgba(120,200,220,0.12) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 35% at 74% 66%, rgba(255,200,170,0.09) 0%, transparent 60%),
+      #060606;
+  }
+  .orb {
+    position: absolute;
+    top: 14px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 60px; border-radius: 50%;
+    background: conic-gradient(from 0deg,rgba(255,190,210,0.55),rgba(160,220,230,0.5),rgba(255,200,170,0.55),rgba(200,180,240,0.45),rgba(255,190,210,0.55));
+    opacity: 0.45; filter: blur(1.5px);
+  }
+
+  /* Glass sheet */
+  .sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 14px 14px 0 0;
+    background: rgba(18,18,20,0.72);
+    backdrop-filter: blur(40px) saturate(160%);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    border-top: 1px solid rgba(255,255,255,0.16);
+    padding: 8px 12px 14px;
+  }
+  .dh { width:30px;height:4px;border-radius:2px;background:rgba(255,255,255,0.28);margin:0 auto 10px; }
+  .sl { font-size:8px;font-weight:600;color:rgba(255,255,255,0.44);letter-spacing:0.13em;text-transform:uppercase;margin-bottom:5px; }
+  .seg { display:flex;border:1px solid rgba(255,255,255,0.12);border-radius:9px;overflow:hidden;background:rgba(255,255,255,0.02);margin-bottom:9px; }
+  .si { flex:1;padding:6px 0;font-size:9px;text-align:center;color:rgba(255,255,255,0.28);border-left:1px solid rgba(255,255,255,0.07); }
+  .si:first-child { border-left:none; }
+  .rr { display:flex;align-items:center;gap:7px;padding:5px 5px;border-radius:7px; }
+  .rd { width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center; }
+  .rd.on::after { content:'';width:4px;height:4px;border-radius:50%;background:#0e0e10; }
+  .rt { font-size:9.5px;font-weight:600; }
+  .rt.dim { color:rgba(255,255,255,0.32);font-weight:400; }
+  .rs { font-size:8px;color:rgba(255,255,255,0.22);margin-top:1px; }
+
+  /* Subtle — 20% */
+  .subtle .si.on { background:rgba(255,255,255,0.20);color:#FAF8F5;font-weight:600; }
+  .subtle .rr.on { background:rgba(255,255,255,0.06); }
+  .subtle .rd.on { border-color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.7); }
+  .subtle .rt.on { color:rgba(255,255,255,0.85); }
+
+  /* Standard — 26% */
+  .standard .si.on { background:rgba(255,255,255,0.26);color:#FAF8F5;font-weight:700; }
+  .standard .rr.on { background:rgba(255,255,255,0.08); }
+  .standard .rd.on { border-color:#FAF8F5;background:#FAF8F5; }
+  .standard .rt.on { color:#FAF8F5; }
+
+  /* Bold — 34% */
+  .bold .si.on { background:rgba(255,255,255,0.34);color:#FAF8F5;font-weight:700; }
+  .bold .rr.on { background:rgba(255,255,255,0.10); }
+  .bold .rd.on { border-color:#FAF8F5;background:#FAF8F5; }
+  .bold .rt.on { color:#FAF8F5; }
+
+  /* labels */
+  .lbl { padding: 10px 12px 12px; }
+  .lname { font-size:11px;font-weight:700;margin-bottom:3px; }
+  .ldesc { font-size:9.5px;color:rgba(255,255,255,0.38);line-height:1.5; }
+  .lcode { font-family:monospace;font-size:9px;color:rgba(255,255,255,0.28);margin-top:4px; }
+  .rec { display:inline-block;margin-top:4px;padding:1px 6px;background:rgba(255,255,255,0.09);border-radius:99px;font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.55); }
+</style>
+</head>
+<body>
+  <h1>Grey active state — three weights</h1>
+  <p class="subtitle">All previewed on real glass over the orb background. Active = white alpha fill only, no color.</p>
+
+  <div class="row">
+
+    <!-- Subtle -->
+    <div class="opt subtle" onclick="pick(this,'a')">
+      <div class="bg">
+        <div class="orb"></div>
+        <div class="sheet">
+          <div class="dh"></div>
+          <div class="sl">Waveform</div>
+          <div class="seg">
+            <div class="si on">Bars</div>
+            <div class="si">Circle</div>
+            <div class="si">None</div>
+          </div>
+          <div class="sl">Enhancement</div>
+          <div class="rr on">
+            <div class="rd on"></div>
+            <div><div class="rt on">Standard</div><div class="rs">No processing</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">Clean</div><div class="rs">~3s</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">HD</div><div class="rs">~15s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="lbl">
+        <div class="lname">Subtle</div>
+        <div class="ldesc">Delicate lift. Selected feels like a slight elevation, not a hard contrast.</div>
+        <div class="lcode">seg: rgba(255,255,255,0.20)</div>
+      </div>
+    </div>
+
+    <!-- Standard -->
+    <div class="opt standard" onclick="pick(this,'b')">
+      <div class="bg">
+        <div class="orb"></div>
+        <div class="sheet">
+          <div class="dh"></div>
+          <div class="sl">Waveform</div>
+          <div class="seg">
+            <div class="si on">Bars</div>
+            <div class="si">Circle</div>
+            <div class="si">None</div>
+          </div>
+          <div class="sl">Enhancement</div>
+          <div class="rr on">
+            <div class="rd on"></div>
+            <div><div class="rt on">Standard</div><div class="rs">No processing</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">Clean</div><div class="rs">~3s</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">HD</div><div class="rs">~15s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="lbl">
+        <div class="lname">Standard</div>
+        <div class="ldesc">Clear, unambiguous selection. Matches Apple Control Center tile weight.</div>
+        <div class="lcode">seg: rgba(255,255,255,0.26)</div>
+        <span class="rec">★ my pick</span>
+      </div>
+    </div>
+
+    <!-- Bold -->
+    <div class="opt bold" onclick="pick(this,'c')">
+      <div class="bg">
+        <div class="orb"></div>
+        <div class="sheet">
+          <div class="dh"></div>
+          <div class="sl">Waveform</div>
+          <div class="seg">
+            <div class="si on">Bars</div>
+            <div class="si">Circle</div>
+            <div class="si">None</div>
+          </div>
+          <div class="sl">Enhancement</div>
+          <div class="rr on">
+            <div class="rd on"></div>
+            <div><div class="rt on">Standard</div><div class="rs">No processing</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">Clean</div><div class="rs">~3s</div></div>
+          </div>
+          <div class="rr">
+            <div class="rd"></div>
+            <div><div class="rt dim">HD</div><div class="rs">~15s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="lbl">
+        <div class="lname">Bold</div>
+        <div class="ldesc">Hard contrast. Selected segment stands out strongly. Risks feeling heavy on the glass.</div>
+        <div class="lcode">seg: rgba(255,255,255,0.34)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function pick(el, choice) {
+      document.querySelectorAll('.opt').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      if (window.__superpowers_record) {
+        window.__superpowers_record({ type:'click', choice, text: el.querySelector('.lname').textContent });
+      }
+    }
+  </script>
+</body>
+</html>

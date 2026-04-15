@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active State Colors</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050505;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+    color: #FAF8F5;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem; }
+  .subtitle { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 2rem; text-align: center; line-height: 1.5; }
+
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    cursor: pointer;
+    padding: 14px 12px 16px;
+    border-radius: 16px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .col:hover { border-color: rgba(255,255,255,0.1); }
+  .col.selected { border-color: rgba(255,255,255,0.3); }
+
+  .col-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .col-desc {
+    font-size: 10px;
+    color: rgba(255,255,255,0.38);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  /* Sheet container per column */
+  .sheet-mini {
+    background: rgba(18,18,20,0.72);
+    backdrop-filter: blur(40px) saturate(160%);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 14px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 6px;
+  }
+
+  /* Segmented control */
+  .segment {
+    display: flex;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.02);
+  }
+  .seg-item {
+    flex: 1;
+    padding: 7px 0;
+    font-size: 10px;
+    text-align: center;
+    color: rgba(255,255,255,0.32);
+    border-left: 1px solid rgba(255,255,255,0.07);
+  }
+  .seg-item:first-child { border-left: none; }
+
+  /* Rose */
+  .rose .seg-item.active {
+    background: rgba(255,154,181,0.18);
+    color: #FF9AB5;
+    font-weight: 700;
+    border-left-color: rgba(255,154,181,0.15);
+  }
+  .rose .radio-dot.checked { border-color: #FF9AB5; background: #FF9AB5; }
+  .rose .radio-dot.checked::after { background: #0d0d0e; }
+  .rose .radio-row.selected { background: rgba(255,154,181,0.08); }
+  .rose .radio-label { color: #FF9AB5; }
+
+  /* Sky */
+  .sky .seg-item.active {
+    background: rgba(114,212,228,0.18);
+    color: #72D4E4;
+    font-weight: 700;
+    border-left-color: rgba(114,212,228,0.15);
+  }
+  .sky .radio-dot.checked { border-color: #72D4E4; background: #72D4E4; }
+  .sky .radio-dot.checked::after { background: #0d0d0e; }
+  .sky .radio-row.selected { background: rgba(114,212,228,0.08); }
+  .sky .radio-label { color: #72D4E4; }
+
+  /* Green */
+  .green .seg-item.active {
+    background: rgba(63,185,80,0.18);
+    color: #3fb950;
+    font-weight: 700;
+    border-left-color: rgba(63,185,80,0.15);
+  }
+  .green .radio-dot.checked { border-color: #3fb950; background: #3fb950; }
+  .green .radio-dot.checked::after { background: #0d0d0e; }
+  .green .radio-row.selected { background: rgba(63,185,80,0.08); }
+  .green .radio-label { color: #3fb950; }
+
+  /* Radio rows */
+  .radio-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 6px;
+    border-radius: 8px;
+  }
+  .radio-dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .radio-dot.checked::after {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .radio-label {
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .radio-label.dim {
+    color: rgba(255,255,255,0.38);
+    font-weight: 400;
+  }
+  .radio-desc { font-size: 9px; color: rgba(255,255,255,0.25); margin-top: 1px; }
+
+  /* Swatch */
+  .swatch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .swatch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+  .swatch-hex {
+    font-size: 10px;
+    font-family: monospace;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.07); }
+
+  .rec-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    margin-top: 4px;
+    align-self: flex-start;
+  }
+</style>
+</head>
+<body>
+  <h1>Active state accent — which color?</h1>
+  <p class="subtitle">All from the existing palette. Click a column to select.</p>
+
+  <div class="columns">
+
+    <!-- Rose -->
+    <div class="col rose" onclick="select(this,'a')" data-choice="a">
+      <div class="swatch-row">
+        <div class="swatch" style="background:#FF9AB5;"></div>
+        <div>
+          <div class="col-label" style="color:#FF9AB5;">Orb Rose</div>
+          <div class="swatch-hex">#FF9AB5</div>
+        </div>
+      </div>
+      <div class="col-desc">Brightened from the orb's pink layer. Warm, tactile, playful. Connects the UI to the orb's personality.</div>
+
+      <div class="sheet-mini">
+        <div>
+          <div class="section-label">Waveform Style</div>
+          <div class="segment">
+            <div class="seg-item active">Bars</div>
+            <div class="seg-item">Circle</div>
+            <div class="seg-item">None</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div class="section-label">Enhancement</div>
+          <div class="radio-row selected">
+            <div class="radio-dot checked"></div>
+            <div><div class="radio-label">Standard</div><div class="radio-desc">No processing</div></div>
+          </div>
+          <div class="radio-row">
+            <div class="radio-dot"></div>
+            <div><div class="radio-label dim">Clean</div><div class="radio-desc">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sky -->
+    <div class="col sky" onclick="select(this,'b')" data-choice="b">
+      <div class="swatch-row">
+        <div class="swatch" style="background:#72D4E4;"></div>
+        <div>
+          <div class="col-label" style="color:#72D4E4;">Orb Sky</div>
+          <div class="swatch-hex">#72D4E4</div>
+        </div>
+      </div>
+      <div class="col-desc">Brightened from the orb's blue layer. Cool, crisp, "sounds like audio." Apple Teal territory — HIG-native feel.</div>
+
+      <div class="sheet-mini">
+        <div>
+          <div class="section-label">Waveform Style</div>
+          <div class="segment">
+            <div class="seg-item active">Bars</div>
+            <div class="seg-item">Circle</div>
+            <div class="seg-item">None</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div class="section-label">Enhancement</div>
+          <div class="radio-row selected">
+            <div class="radio-dot checked"></div>
+            <div><div class="radio-label">Standard</div><div class="radio-desc">No processing</div></div>
+          </div>
+          <div class="radio-row">
+            <div class="radio-dot"></div>
+            <div><div class="radio-label dim">Clean</div><div class="radio-desc">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="rec-badge">★ my pick</div>
+    </div>
+
+    <!-- Green -->
+    <div class="col green" onclick="select(this,'c')" data-choice="c">
+      <div class="swatch-row">
+        <div class="swatch" style="background:#3fb950;"></div>
+        <div>
+          <div class="col-label" style="color:#3fb950;">Accent Green</div>
+          <div class="swatch-hex">#3fb950</div>
+        </div>
+      </div>
+      <div class="col-desc">Already in the design system as --accent-green. Familiar to the brand, reads "active/live." Could conflict with recording states.</div>
+
+      <div class="sheet-mini">
+        <div>
+          <div class="section-label">Waveform Style</div>
+          <div class="segment">
+            <div class="seg-item active">Bars</div>
+            <div class="seg-item">Circle</div>
+            <div class="seg-item">None</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div class="section-label">Enhancement</div>
+          <div class="radio-row selected">
+            <div class="radio-dot checked"></div>
+            <div><div class="radio-label">Standard</div><div class="radio-desc">No processing</div></div>
+          </div>
+          <div class="radio-row">
+            <div class="radio-dot"></div>
+            <div><div class="radio-label dim">Clean</div><div class="radio-desc">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function select(el, choice) {
+      document.querySelectorAll('.col').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      if (window.__superpowers_record) {
+        window.__superpowers_record({ type: 'click', choice, text: el.querySelector('.col-label').textContent });
+      }
+    }
+  </script>
+</body>
+</html>

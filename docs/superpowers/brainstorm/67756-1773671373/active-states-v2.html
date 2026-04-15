@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active State on Glass</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050505;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+    color: #FAF8F5;
+    gap: 0;
+  }
+  h1 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .subtitle {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.38);
+    margin-bottom: 1.6rem;
+    text-align: center;
+    line-height: 1.55;
+    max-width: 480px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 640px;
+  }
+
+  /* Each option: simulated orb bg → glass sheet on top */
+  .option-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 18px;
+    padding: 3px;
+    border: 2px solid transparent;
+    transition: border-color 0.18s;
+  }
+  .option-wrap:hover { border-color: rgba(255,255,255,0.12); }
+  .option-wrap.selected { border-color: rgba(255,255,255,0.35); }
+
+  /* Simulated app background with orb bleed */
+  .orb-bg {
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    height: 280px;
+  }
+  .orb-bg-inner {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 28%, rgba(255,180,200,0.18) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 50% at 28% 55%, rgba(120,200,220,0.13) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 35% at 72% 65%, rgba(255,200,170,0.10) 0%, transparent 60%),
+      #060606;
+  }
+  /* Orb circle hint */
+  .orb-circle {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(255,190,210,0.55), rgba(160,220,230,0.5), rgba(255,200,170,0.55), rgba(200,180,240,0.45), rgba(255,190,210,0.55));
+    opacity: 0.5;
+    filter: blur(1.5px);
+  }
+
+  /* Glass sheet sits at bottom of orb-bg */
+  .glass-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 16px 16px 0 0;
+    background: rgba(18,18,20,0.72);
+    backdrop-filter: blur(40px) saturate(160%);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    border-top: 1px solid rgba(255,255,255,0.16);
+    padding: 10px 12px 14px;
+  }
+  .drag { width:32px;height:4px;border-radius:2px;background:rgba(255,255,255,0.28);margin:0 auto 10px; }
+  .s-label {
+    font-size: 8.5px; font-weight:600;
+    color:rgba(255,255,255,0.45);
+    letter-spacing:0.13em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+
+  /* Segmented */
+  .seg {
+    display:flex;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px;
+    overflow:hidden;
+    background:rgba(255,255,255,0.02);
+    margin-bottom:10px;
+  }
+  .seg-i {
+    flex:1; padding:6px 0;
+    font-size:9.5px;
+    text-align:center;
+    color:rgba(255,255,255,0.3);
+    border-left:1px solid rgba(255,255,255,0.07);
+  }
+  .seg-i:first-child { border-left:none; }
+
+  /* Radio rows */
+  .r-row { display:flex;align-items:center;gap:8px;padding:6px 5px;border-radius:8px; }
+  .r-dot {
+    width:12px;height:12px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.2);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .r-dot.on::after { content:'';width:4px;height:4px;border-radius:50%;background:#0e0e10; }
+  .r-text { font-size:10px;font-weight:600; }
+  .r-text.dim { color:rgba(255,255,255,0.35);font-weight:400; }
+  .r-sub { font-size:8.5px;color:rgba(255,255,255,0.22);margin-top:1px; }
+
+  /* Per-color active states */
+  /* A: Apple Yellow */
+  .opt-a .seg-i.on { background:rgba(255,214,10,0.18);color:#FFD60A;font-weight:700; }
+  .opt-a .r-row.on { background:rgba(255,214,10,0.09); }
+  .opt-a .r-dot.on { border-color:#FFD60A;background:#FFD60A; }
+  .opt-a .r-text.on { color:#FFD60A; }
+
+  /* B: Seafoam */
+  .opt-b .seg-i.on { background:rgba(50,205,175,0.18);color:#32CDAF;font-weight:700; }
+  .opt-b .r-row.on { background:rgba(50,205,175,0.09); }
+  .opt-b .r-dot.on { border-color:#32CDAF;background:#32CDAF; }
+  .opt-b .r-text.on { color:#32CDAF; }
+
+  /* C: Coral */
+  .opt-c .seg-i.on { background:rgba(255,107,107,0.18);color:#FF6B6B;font-weight:700; }
+  .opt-c .r-row.on { background:rgba(255,107,107,0.09); }
+  .opt-c .r-dot.on { border-color:#FF6B6B;background:#FF6B6B; }
+  .opt-c .r-text.on { color:#FF6B6B; }
+
+  /* D: Soft Gold / Honey — warm but not orange */
+  .opt-d .seg-i.on { background:rgba(255,195,100,0.18);color:#FFC364;font-weight:700; }
+  .opt-d .r-row.on { background:rgba(255,195,100,0.09); }
+  .opt-d .r-dot.on { border-color:#FFC364;background:#FFC364; }
+  .opt-d .r-text.on { color:#FFC364; }
+
+  /* bottom label */
+  .opt-label { padding: 2px 4px; }
+  .opt-name { font-size:11px;font-weight:700;margin-bottom:2px; }
+  .opt-desc { font-size:10px;color:rgba(255,255,255,0.38);line-height:1.5; }
+  .rec { display:inline-block;padding:1px 6px;background:rgba(255,255,255,0.1);border-radius:99px;font-size:9px;font-weight:700;color:rgba(255,255,255,0.6);margin-top:3px; }
+</style>
+</head>
+<body>
+  <h1>Active state — tested on real glass + orb bleed</h1>
+  <p class="subtitle">Each preview shows the control in context — glass sheet over the warm orb background. Same 18% tint for the active fill, full color for text and radio dot.</p>
+
+  <div class="grid">
+
+    <!-- A: Apple Yellow -->
+    <div class="option-wrap opt-a" onclick="pick(this,'a')">
+      <div class="orb-bg">
+        <div class="orb-bg-inner"></div>
+        <div class="orb-circle"></div>
+        <div class="glass-sheet">
+          <div class="drag"></div>
+          <div class="s-label">Waveform Style</div>
+          <div class="seg">
+            <div class="seg-i on">Bars</div>
+            <div class="seg-i">Circle</div>
+            <div class="seg-i">None</div>
+          </div>
+          <div class="s-label">Enhancement</div>
+          <div class="r-row on">
+            <div class="r-dot on"></div>
+            <div><div class="r-text on">Standard</div><div class="r-sub">No processing</div></div>
+          </div>
+          <div class="r-row">
+            <div class="r-dot"></div>
+            <div><div class="r-text dim">Clean</div><div class="r-sub">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="opt-label">
+        <div class="opt-name" style="color:#FFD60A;">Yellow — #FFD60A</div>
+        <div class="opt-desc">Apple System Yellow. High luminance cuts through any glass tint. Energetic, warm-harmonic with the orb pinks. Unexpected for audio = distinctive.</div>
+        <span class="rec">★ my pick</span>
+      </div>
+    </div>
+
+    <!-- B: Seafoam -->
+    <div class="option-wrap opt-b" onclick="pick(this,'b')">
+      <div class="orb-bg">
+        <div class="orb-bg-inner"></div>
+        <div class="orb-circle"></div>
+        <div class="glass-sheet">
+          <div class="drag"></div>
+          <div class="s-label">Waveform Style</div>
+          <div class="seg">
+            <div class="seg-i on">Bars</div>
+            <div class="seg-i">Circle</div>
+            <div class="seg-i">None</div>
+          </div>
+          <div class="s-label">Enhancement</div>
+          <div class="r-row on">
+            <div class="r-dot on"></div>
+            <div><div class="r-text on">Standard</div><div class="r-sub">No processing</div></div>
+          </div>
+          <div class="r-row">
+            <div class="r-dot"></div>
+            <div><div class="r-text dim">Clean</div><div class="r-sub">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="opt-label">
+        <div class="opt-name" style="color:#32CDAF;">Seafoam — #32CDAF</div>
+        <div class="opt-desc">Not green, not blue — sits between them. Fresh and crisp on glass. Reads cleanly against the warm orb bleed without competing.</div>
+      </div>
+    </div>
+
+    <!-- C: Coral -->
+    <div class="option-wrap opt-c" onclick="pick(this,'c')">
+      <div class="orb-bg">
+        <div class="orb-bg-inner"></div>
+        <div class="orb-circle"></div>
+        <div class="glass-sheet">
+          <div class="drag"></div>
+          <div class="s-label">Waveform Style</div>
+          <div class="seg">
+            <div class="seg-i on">Bars</div>
+            <div class="seg-i">Circle</div>
+            <div class="seg-i">None</div>
+          </div>
+          <div class="s-label">Enhancement</div>
+          <div class="r-row on">
+            <div class="r-dot on"></div>
+            <div><div class="r-text on">Standard</div><div class="r-sub">No processing</div></div>
+          </div>
+          <div class="r-row">
+            <div class="r-dot"></div>
+            <div><div class="r-text dim">Clean</div><div class="r-sub">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="opt-label">
+        <div class="opt-name" style="color:#FF6B6B;">Coral — #FF6B6B</div>
+        <div class="opt-desc">Vivid and warm — more saturated than the orb's soft rose so it stays distinct. Playful and expressive. Risk: may look error-adjacent to some eyes.</div>
+      </div>
+    </div>
+
+    <!-- D: Honey Gold -->
+    <div class="option-wrap opt-d" onclick="pick(this,'d')">
+      <div class="orb-bg">
+        <div class="orb-bg-inner"></div>
+        <div class="orb-circle"></div>
+        <div class="glass-sheet">
+          <div class="drag"></div>
+          <div class="s-label">Waveform Style</div>
+          <div class="seg">
+            <div class="seg-i on">Bars</div>
+            <div class="seg-i">Circle</div>
+            <div class="seg-i">None</div>
+          </div>
+          <div class="s-label">Enhancement</div>
+          <div class="r-row on">
+            <div class="r-dot on"></div>
+            <div><div class="r-text on">Standard</div><div class="r-sub">No processing</div></div>
+          </div>
+          <div class="r-row">
+            <div class="r-dot"></div>
+            <div><div class="r-text dim">Clean</div><div class="r-sub">AI noise · ~3s</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="opt-label">
+        <div class="opt-name" style="color:#FFC364;">Honey Gold — #FFC364</div>
+        <div class="opt-desc">Warm amber, not orange. Glows beautifully on dark glass. Close to yellow but softer — feels more premium, less attention-grabbing.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function pick(el, choice) {
+      document.querySelectorAll('.option-wrap').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      if (window.__superpowers_record) {
+        window.__superpowers_record({ type: 'click', choice, text: el.querySelector('.opt-name').textContent });
+      }
+    }
+  </script>
+</body>
+</html>

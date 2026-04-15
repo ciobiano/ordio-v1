@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hi-fi: Slide 4 v2</title>
+  <script src="/helper.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #060606;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 24px 48px;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .page-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #bbb;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .phone {
+      width: 320px;
+      height: 580px;
+      background: #000;
+      border-radius: 40px;
+      border: 1px solid #1a1a1a;
+      box-shadow:
+        0 0 0 1px #111,
+        0 40px 80px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .idle-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .bg-wordmark { font-size: 11px; font-weight: 300; color: #1a1a1a; letter-spacing: 0.12em; }
+    .bg-wordmark span { font-weight: 600; }
+    .bg-orb {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1c1c1c 0%, #080808 60%, #000 100%);
+      border: 1px solid #161616;
+    }
+    .bg-label { font-size: 10px; color: #141414; font-weight: 500; letter-spacing: 0.05em; }
+
+    .backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .dialog {
+      position: absolute;
+      left: 20px; right: 20px;
+      background: #0f0f0f;
+      border: 1px solid #1e1e1e;
+      border-radius: 20px;
+      padding: 28px 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow:
+        0 -1px 0 rgba(255,255,255,0.04) inset,
+        0 30px 60px rgba(0,0,0,0.6);
+    }
+
+    .icon-ring {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 1px solid #222;
+      background: radial-gradient(circle at 40% 35%, #1a1a1a, #0a0a0a);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.02);
+    }
+    .icon-ring svg {
+      width: 22px; height: 22px;
+      stroke: #666; fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .dialog-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f2f2f2;
+      text-align: center;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    .dialog-body {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      line-height: 1.65;
+      margin-bottom: 20px;
+      max-width: 220px;
+    }
+
+    .style-tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .tile {
+      aspect-ratio: 1;
+      background: #080808;
+      border: 1px solid #1a1a1a;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .tile.lit { border-color: #333; background: #0d0d0d; }
+    .tile svg { width: 18px; height: 18px; stroke: #2e2e2e; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+    .tile.lit svg { stroke: #666; }
+    .tile-label { font-size: 7.5px; color: #2a2a2a; font-weight: 500; letter-spacing: 0.04em; }
+    .tile.lit .tile-label { color: #555; }
+
+    /* Footer: dots left, button right */
+    .dialog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #1e1e1e;
+    }
+    .dot.active {
+      background: #888;
+      width: 14px;
+      border-radius: 2px;
+    }
+
+    /* Button — bottom right, compact */
+    .continue-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: #f0f0f0;
+      color: #000;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset;
+    }
+
+    .status-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    .status-time { font-size: 11px; font-weight: 600; color: #2a2a2a; }
+    .status-icons { display: flex; gap: 4px; align-items: center; }
+    .status-dot { width: 14px; height: 7px; border-radius: 2px; background: #1a1a1a; }
+
+    .caption {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #3a3a3a;
+      line-height: 1.6;
+    }
+    .caption strong { color: #666; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+  <p class="eyebrow">High-fidelity preview — v2</p>
+  <p class="page-title">Button bottom-right</p>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <div class="status-dot"></div>
+        <div class="status-dot"></div>
+        <div class="status-dot"></div>
+      </div>
+    </div>
+
+    <div class="idle-bg">
+      <div class="bg-wordmark">ord<span>io</span></div>
+      <div class="bg-orb"></div>
+      <div class="bg-label">Tap to record</div>
+    </div>
+
+    <div class="backdrop"></div>
+
+    <div class="dialog">
+      <div class="icon-ring">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="9" cy="10" r="1.5" fill="#666" stroke="none"/>
+          <circle cx="13" cy="7" r="1.5" fill="#666" stroke="none"/>
+          <circle cx="16" cy="11" r="1.5" fill="#666" stroke="none"/>
+          <path d="M12 21c.55 0 1-.45 1-1v-1c0-.55-.2-1.05-.53-1.41"/>
+        </svg>
+      </div>
+
+      <div class="dialog-title">Not just a waveform</div>
+      <div class="dialog-body">Pick a visual style in the export screen — or go full graphic.</div>
+
+      <div class="style-tiles">
+        <div class="tile lit">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="10" width="3" height="10" rx="1"/>
+            <rect x="8" y="6" width="3" height="14" rx="1"/>
+            <rect x="13" y="8" width="3" height="12" rx="1"/>
+            <rect x="18" y="4" width="3" height="16" rx="1"/>
+          </svg>
+          <span class="tile-label">Bars</span>
+        </div>
+        <div class="tile">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8"/>
+            <path d="M12 4 Q16 8 12 12 Q8 16 12 20"/>
+          </svg>
+          <span class="tile-label">Circle</span>
+        </div>
+        <div class="tile">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="3" y1="15" x2="21" y2="15"/>
+          </svg>
+          <span class="tile-label">Frame</span>
+        </div>
+        <div class="tile">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="14" width="2" height="6" rx="0.5"/>
+            <rect x="7" y="10" width="2" height="10" rx="0.5"/>
+            <rect x="11" y="6" width="2" height="14" rx="0.5"/>
+            <rect x="15" y="9" width="2" height="11" rx="0.5"/>
+            <rect x="19" y="12" width="2" height="8" rx="0.5"/>
+          </svg>
+          <span class="tile-label">Spectrum</span>
+        </div>
+      </div>
+
+      <!-- Footer: dots left · button right -->
+      <div class="dialog-footer">
+        <div class="dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot active"></div>
+        </div>
+        <button class="continue-btn">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="caption">
+    Dots bottom-left &nbsp;·&nbsp; <strong>Continue →</strong> bottom-right<br>
+    Same footer pattern applies to all 4 slides (Next → / Continue →)
+  </p>
+
+</body>
+</html>

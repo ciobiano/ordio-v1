@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock FontFace and document.fonts before importing the module
 const mockLoad = vi.fn().mockResolvedValue(undefined);
-const mockFontFace = vi.fn().mockImplementation(function (_family: string, _src: string, _descriptors: object) {
+const mockFontFace = vi.fn().mockImplementation(function (
+  _family: string,
+  _src: string,
+  _descriptors: object
+) {
   return { load: mockLoad };
 });
 
@@ -19,7 +23,7 @@ vi.stubGlobal('document', {
 });
 
 // Import after stubbing globals
-const { loadFont } = await import('../lib/fontLoader');
+const { loadFont } = await import('../lib/loaders');
 
 describe('fontLoader', () => {
   beforeEach(() => {
@@ -32,7 +36,7 @@ describe('fontLoader', () => {
     expect(mockFontFace).toHaveBeenCalledWith(
       'Geist',
       'url(/fonts/Geist-Regular.woff2)',
-      expect.objectContaining({ weight: '400' }),
+      expect.objectContaining({ weight: '400' })
     );
     expect(mockLoad).toHaveBeenCalled();
     expect(mockFontsAdd).toHaveBeenCalled();

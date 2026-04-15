@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordio Splash — 3 States</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px 64px;
+  gap: 28px;
+}
+
+h1 { font-size: 16px; font-weight: 600; color: #888; letter-spacing: 0.04em; }
+
+.frames {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.frame-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.frame-label {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.frame-sub {
+  font-size: 11px;
+  color: #3a3a3a;
+  text-align: center;
+  max-width: 180px;
+  line-height: 1.5;
+}
+
+/* Phone frame */
+.phone {
+  width: 200px;
+  height: 420px;
+  border-radius: 30px;
+  border: 1.5px solid #2a2a2a;
+  overflow: hidden;
+  position: relative;
+  background: #060606;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* ────────────────────────────────────────────
+   SHARED SPLASH BG (all 3 states)
+   ──────────────────────────────────────────── */
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background: #060606;
+  overflow: hidden;
+}
+
+/* Subtle warm radial glow in center */
+.splash-bg::before {
+  content: '';
+  position: absolute;
+  top: 38%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,200,150,0.04) 0%,
+    rgba(255,150,80,0.02) 40%,
+    transparent 70%
+  );
+}
+
+/* Orbit rings */
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.06);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.ring-1 { width: 160px; height: 160px; top: 38%; }
+.ring-2 { width: 260px; height: 260px; top: 38%; }
+
+/* Center orb */
+.center-orb {
+  position: absolute;
+  top: 38%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    rgba(255,255,255,0.15) 0%,
+    rgba(255,255,255,0.04) 45%,
+    rgba(180,160,200,0.06) 70%,
+    rgba(40,40,60,0.3) 100%
+  );
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 30px rgba(255,255,255,0.03);
+  animation: orbPulse 3s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+}
+.center-orb span {
+  font-size: 11px; font-weight: 700; letter-spacing: -0.02em; color: rgba(255,255,255,0.85);
+}
+
+@keyframes orbPulse {
+  0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 30px rgba(255,255,255,0.03); }
+  50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 50px rgba(255,255,255,0.06); }
+}
+
+/* ── Floating audiogram cards ── */
+.card {
+  position: absolute;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Card content */
+.card-wave { padding: 5px 5px 3px; }
+.card-cap {
+  font-size: 4.5px;
+  color: rgba(255,255,255,0.5);
+  padding: 0 5px 4px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* Landscape cards on ring 2 */
+.card-ls {
+  width: 68px; height: 42px;
+  animation: floatA 4s ease-in-out infinite;
+}
+/* Portrait cards on ring 1 */
+.card-pt {
+  width: 36px; height: 54px;
+  animation: floatB 3.5s ease-in-out infinite;
+}
+/* Square cards */
+.card-sq {
+  width: 44px; height: 44px;
+  animation: floatC 4.5s ease-in-out infinite;
+}
+
+@keyframes floatA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes floatB { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
+@keyframes floatC { 0%,100% { transform: translateY(0) rotate(1deg); } 50% { transform: translateY(-3px) rotate(-1deg); } }
+
+/* Card positions around the two rings (top: relative to splash-bg) */
+/* Ring 1 (inner, r≈80px, center at top:38%) */
+.pos-1 { top: calc(38% - 80px - 27px); left: calc(50% - 18px); } /* top */
+.pos-2 { top: calc(38% + 30px); left: calc(50% + 60px); } /* right */
+.pos-3 { top: calc(38% + 28px); left: calc(50% - 96px); } /* left */
+
+/* Ring 2 (outer, r≈130px, center at top:38%) */
+.pos-4 { top: calc(38% - 130px - 21px); left: calc(50% + 40px); } /* top-right */
+.pos-5 { top: calc(38% - 60px); left: calc(50% + 98px); } /* right */
+.pos-6 { top: calc(38% + 80px); left: calc(50% + 50px); } /* bottom-right */
+.pos-7 { top: calc(38% + 70px); left: calc(50% - 110px); } /* bottom-left */
+.pos-8 { top: calc(38% - 120px); left: calc(50% - 110px); } /* top-left */
+
+/* SVG waveform helpers */
+.wave-bars { display: flex; align-items: flex-end; gap: 1.5px; height: 18px; padding: 0 2px; }
+.wave-bars span {
+  display: block; width: 2.5px; border-radius: 1px;
+  background: rgba(255,255,255,0.5);
+}
+.wave-bars.accent span { background: rgba(255,180,80,0.7); }
+.wave-bars.muted span { background: rgba(255,255,255,0.25); }
+
+.circle-wave {
+  width: 28px; height: 28px;
+  margin: 3px auto;
+  position: relative;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+}
+.circle-inner {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+}
+
+.spec-rows { padding: 3px 4px; display: flex; flex-direction: column; gap: 1.5px; }
+.spec-row { height: 2.5px; border-radius: 1px; background: rgba(255,255,255,0.15); position: relative; overflow: hidden; }
+.spec-fill { height: 100%; border-radius: 1px; background: rgba(255,255,255,0.45); }
+
+/* ────────────────────────────────────────────
+   BOTTOM CONTENT AREA (overlaid)
+   ──────────────────────────────────────────── */
+.bottom-area {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0 20px 28px;
+  z-index: 10;
+}
+
+.brand-eyebrow {
+  font-size: 8px; font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 4px;
+}
+.brand-name {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #fff;
+  margin-bottom: 3px;
+}
+.brand-tag {
+  font-size: 10px; color: rgba(255,255,255,0.35);
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Primary CTA */
+.cta-primary {
+  width: 100%;
+  padding: 11px 0;
+  background: #fff;
+  color: #000;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.cta-secondary {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+}
+.cta-secondary span { color: rgba(255,255,255,0.55); }
+
+/* Gradient fade so content is readable */
+.bottom-fade {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 55%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(6,6,6,0.85) 50%, #060606 100%);
+  pointer-events: none;
+  z-index: 9;
+}
+
+/* ────────────────────────────────────────────
+   STATE 2: AUTH SHEET
+   ──────────────────────────────────────────── */
+.auth-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 18px 18px 28px;
+  z-index: 20;
+  color: #000;
+}
+
+.sheet-handle {
+  width: 28px; height: 3px;
+  background: #ddd;
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.sheet-logo {
+  font-size: 16px;
+  color: #000;
+  margin-bottom: 10px;
+}
+.sheet-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 3px; }
+.sheet-sub { font-size: 10px; color: #888; margin-bottom: 16px; line-height: 1.5; }
+
+.auth-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 7px;
+  cursor: pointer;
+}
+.auth-btn.dark { background: #111; color: #fff; }
+.auth-btn.light { background: #f3f3f3; color: #111; }
+
+.auth-social { display: flex; gap: 8px; }
+.auth-social .auth-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+/* Social icons */
+.apple-icon, .google-icon { font-size: 13px; }
+
+/* ────────────────────────────────────────────
+   STATE 3: RETURNING USER — glass pill
+   ──────────────────────────────────────────── */
+.glass-bottom {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 28px;
+}
+
+.glass-pill {
+  width: 100%;
+  padding: 12px 0;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+.returning-name {
+  font-size: 9px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+
+</style>
+</head>
+<body>
+
+<h1>Ordio Splash — 3 States</h1>
+
+<div class="frames">
+
+  <!-- ══ STATE 1: New User Splash ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 1</div>
+    <div class="phone">
+      <div class="splash-bg">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="center-orb"><span>O</span></div>
+
+        <!-- Card 1: Landscape bars - top -->
+        <div class="card card-ls pos-1" style="animation-delay:0s">
+          <div class="card-wave">
+            <div class="wave-bars">
+              <span style="height:6px"></span><span style="height:12px"></span><span style="height:9px"></span>
+              <span style="height:16px"></span><span style="height:10px"></span><span style="height:14px"></span>
+              <span style="height:7px"></span><span style="height:11px"></span><span style="height:8px"></span>
+              <span style="height:13px"></span><span style="height:6px"></span><span style="height:10px"></span>
+              <span style="height:15px"></span><span style="height:9px"></span><span style="height:12px"></span>
+            </div>
+          </div>
+          <div class="card-cap">"...the thing about habits—"</div>
+        </div>
+
+        <!-- Card 2: Portrait circle - right inner -->
+        <div class="card card-pt pos-2" style="animation-delay:0.5s">
+          <div class="circle-wave" style="margin-top:6px">
+            <div class="circle-inner"></div>
+          </div>
+          <div class="card-cap" style="margin-top:3px">"Episode 7: Growth"</div>
+        </div>
+
+        <!-- Card 3: Square bars - left inner -->
+        <div class="card card-sq pos-3" style="animation-delay:1s">
+          <div class="card-wave" style="padding-top:7px">
+            <div class="wave-bars accent" style="height:22px">
+              <span style="height:8px"></span><span style="height:16px"></span><span style="height:11px"></span>
+              <span style="height:20px"></span><span style="height:14px"></span><span style="height:18px"></span>
+              <span style="height:9px"></span><span style="height:15px"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Landscape spectrogram - top right outer -->
+        <div class="card card-ls pos-4" style="animation-delay:0.3s">
+          <div class="spec-rows" style="padding-top:8px">
+            <div class="spec-row"><div class="spec-fill" style="width:80%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:55%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:90%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:40%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:70%"></div></div>
+          </div>
+        </div>
+
+        <!-- Card 5: Portrait bars - right outer -->
+        <div class="card card-pt pos-5" style="animation-delay:0.8s">
+          <div class="card-wave" style="padding-top:8px">
+            <div class="wave-bars muted" style="justify-content:center">
+              <span style="height:6px"></span><span style="height:14px"></span><span style="height:9px"></span>
+              <span style="height:18px"></span><span style="height:11px"></span>
+            </div>
+          </div>
+          <div class="card-cap">"...just ship it already"</div>
+        </div>
+
+        <!-- Card 6: Square - bottom right outer -->
+        <div class="card card-sq pos-6" style="animation-delay:1.2s">
+          <div class="circle-wave" style="width:34px;height:34px;margin:4px auto 0">
+            <div class="circle-inner" style="width:10px;height:10px"></div>
+          </div>
+        </div>
+
+        <!-- Card 7: Landscape - bottom left outer -->
+        <div class="card card-ls pos-7" style="animation-delay:0.6s">
+          <div class="card-wave">
+            <div class="wave-bars">
+              <span style="height:10px"></span><span style="height:7px"></span><span style="height:15px"></span>
+              <span style="height:11px"></span><span style="height:17px"></span><span style="height:8px"></span>
+              <span style="height:13px"></span><span style="height:10px"></span><span style="height:16px"></span>
+              <span style="height:9px"></span><span style="height:14px"></span><span style="height:7px"></span>
+              <span style="height:12px"></span><span style="height:10px"></span><span style="height:11px"></span>
+            </div>
+          </div>
+          <div class="card-cap">"My solo founder story"</div>
+        </div>
+
+        <!-- Card 8: Portrait - top left outer -->
+        <div class="card card-pt pos-8" style="animation-delay:1.5s">
+          <div class="card-wave" style="padding-top:8px">
+            <div class="wave-bars accent" style="justify-content:center">
+              <span style="height:8px"></span><span style="height:20px"></span><span style="height:12px"></span>
+              <span style="height:16px"></span><span style="height:9px"></span>
+            </div>
+          </div>
+          <div class="card-cap">"Morning pod—"</div>
+        </div>
+      </div><!-- /splash-bg -->
+
+      <div class="bottom-fade"></div>
+      <div class="bottom-area">
+        <div class="brand-eyebrow">for podcasters</div>
+        <div class="brand-name">Ordio</div>
+        <div class="brand-tag">Turn your voice into<br>shareable audiograms.</div>
+        <div class="cta-primary">Get Started</div>
+        <div class="cta-secondary">Have an account? <span>Sign in</span></div>
+      </div>
+    </div>
+    <div class="frame-sub">Unauthenticated. Full animated splash + CTA.</div>
+  </div>
+
+  <!-- ══ STATE 2: Auth Sheet ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 2</div>
+    <div class="phone">
+      <!-- Same splash bg, dimmed -->
+      <div class="splash-bg" style="filter:brightness(0.45)">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="center-orb"><span>O</span></div>
+        <div class="card card-ls pos-1"><div class="card-wave"><div class="wave-bars"><span style="height:6px"></span><span style="height:12px"></span><span style="height:9px"></span><span style="height:16px"></span><span style="height:10px"></span><span style="height:14px"></span><span style="height:7px"></span><span style="height:11px"></span><span style="height:8px"></span><span style="height:13px"></span></div></div><div class="card-cap">"...the thing about habits—"</div></div>
+        <div class="card card-pt pos-2"><div class="circle-wave" style="margin-top:6px"><div class="circle-inner"></div></div><div class="card-cap" style="margin-top:3px">"Episode 7"</div></div>
+        <div class="card card-sq pos-3"><div class="card-wave" style="padding-top:7px"><div class="wave-bars accent" style="height:22px"><span style="height:8px"></span><span style="height:16px"></span><span style="height:11px"></span><span style="height:20px"></span><span style="height:14px"></span></div></div></div>
+        <div class="card card-ls pos-7"><div class="card-wave"><div class="wave-bars"><span style="height:10px"></span><span style="height:7px"></span><span style="height:15px"></span><span style="height:11px"></span><span style="height:8px"></span></div></div></div>
+      </div>
+
+      <!-- Auth sheet slides up -->
+      <div class="auth-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-logo">✦</div>
+        <div class="sheet-title">Get Started</div>
+        <div class="sheet-sub">Record, transcribe, and share your voice as beautiful audiograms.</div>
+        <div class="auth-btn dark">Continue with Email</div>
+        <div class="auth-social">
+          <div class="auth-btn light"><span class="apple-icon">⬛</span> Apple</div>
+          <div class="auth-btn light"><span class="google-icon">G</span> Google</div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-sub">Tap "Get Started" → bottom sheet slides up with Clerk auth.</div>
+  </div>
+
+  <!-- ══ STATE 3: Returning User ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 3</div>
+    <div class="phone">
+      <div class="splash-bg">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="center-orb"><span>O</span></div>
+
+        <!-- Same cards -->
+        <div class="card card-ls pos-1" style="animation-delay:0s"><div class="card-wave"><div class="wave-bars"><span style="height:6px"></span><span style="height:12px"></span><span style="height:9px"></span><span style="height:16px"></span><span style="height:10px"></span><span style="height:14px"></span><span style="height:7px"></span><span style="height:11px"></span><span style="height:8px"></span><span style="height:13px"></span></div></div><div class="card-cap">"...the thing about habits—"</div></div>
+        <div class="card card-pt pos-2" style="animation-delay:0.5s"><div class="circle-wave" style="margin-top:6px"><div class="circle-inner"></div></div><div class="card-cap" style="margin-top:3px">"Episode 7: Growth"</div></div>
+        <div class="card card-sq pos-3" style="animation-delay:1s"><div class="card-wave" style="padding-top:7px"><div class="wave-bars accent" style="height:22px"><span style="height:8px"></span><span style="height:16px"></span><span style="height:11px"></span><span style="height:20px"></span><span style="height:14px"></span><span style="height:18px"></span><span style="height:9px"></span><span style="height:15px"></span></div></div></div>
+        <div class="card card-ls pos-4" style="animation-delay:0.3s"><div class="spec-rows" style="padding-top:8px"><div class="spec-row"><div class="spec-fill" style="width:80%"></div></div><div class="spec-row"><div class="spec-fill" style="width:55%"></div></div><div class="spec-row"><div class="spec-fill" style="width:90%"></div></div><div class="spec-row"><div class="spec-fill" style="width:40%"></div></div><div class="spec-row"><div class="spec-fill" style="width:70%"></div></div></div></div>
+        <div class="card card-pt pos-5" style="animation-delay:0.8s"><div class="card-wave" style="padding-top:8px"><div class="wave-bars muted" style="justify-content:center"><span style="height:6px"></span><span style="height:14px"></span><span style="height:9px"></span><span style="height:18px"></span><span style="height:11px"></span></div></div><div class="card-cap">"...just ship it"</div></div>
+        <div class="card card-sq pos-6" style="animation-delay:1.2s"><div class="circle-wave" style="width:34px;height:34px;margin:4px auto 0"><div class="circle-inner" style="width:10px;height:10px"></div></div></div>
+        <div class="card card-ls pos-7" style="animation-delay:0.6s"><div class="card-wave"><div class="wave-bars"><span style="height:10px"></span><span style="height:7px"></span><span style="height:15px"></span><span style="height:11px"></span><span style="height:17px"></span><span style="height:8px"></span></div></div><div class="card-cap">"My solo founder story"</div></div>
+        <div class="card card-pt pos-8" style="animation-delay:1.5s"><div class="card-wave" style="padding-top:8px"><div class="wave-bars accent" style="justify-content:center"><span style="height:8px"></span><span style="height:20px"></span><span style="height:12px"></span><span style="height:16px"></span><span style="height:9px"></span></div></div><div class="card-cap">"Morning pod—"</div></div>
+      </div>
+
+      <div class="bottom-fade"></div>
+
+      <!-- Returning user bottom -->
+      <div class="glass-bottom" style="z-index:10">
+        <div class="returning-name">Welcome back, Ralph</div>
+        <div class="glass-pill">Continue →</div>
+      </div>
+    </div>
+    <div class="frame-sub">Already signed in. Same splash. Glass pill → goes to /create.</div>
+  </div>
+
+</div>
+
+<div style="text-align:center; margin-top:8px;">
+  <p style="font-size:12px; color:#444; line-height:1.8;">
+    State 1 → tap "Get Started" → State 2 (auth sheet).<br>
+    State 3 → tap "Continue" → <code style="font-size:10px; background:#1a1a1a; padding:2px 5px; border-radius:3px; color:#666;">/create</code>
+  </p>
+</div>
+
+</body>
+</html>

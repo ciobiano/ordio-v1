@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordio Splash v2</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 64px;
+  gap: 24px;
+}
+
+h1 { font-size: 14px; font-weight: 600; color: #555; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.frames {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.frame-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.frame-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+.frame-sub { font-size: 10px; color: #3a3a3a; text-align: center; max-width: 170px; line-height: 1.6; }
+
+/* Phone */
+.phone {
+  width: 196px;
+  height: 424px;
+  border-radius: 32px;
+  border: 1.5px solid #222;
+  overflow: hidden;
+  position: relative;
+  background: #050505;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+}
+
+/* ── SPLASH BG ── */
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Center warm glow */
+.center-glow {
+  position: absolute;
+  top: 37%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,200,120,0.06) 0%, rgba(255,120,60,0.02) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Orbit rings */
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  top: 37%; left: 50%;
+  transform: translate(-50%,-50%);
+}
+.ring-1 { width: 148px; height: 148px; border: 1px solid rgba(255,255,255,0.07); }
+.ring-2 { width: 246px; height: 246px; border: 1px dashed rgba(255,255,255,0.04); }
+
+/* Center orb */
+.c-orb {
+  position: absolute;
+  top: 37%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    rgba(255,255,255,0.18) 0%,
+    rgba(255,255,255,0.05) 45%,
+    rgba(180,160,210,0.08) 70%,
+    rgba(30,30,50,0.4) 100%
+  );
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 30px rgba(255,255,255,0.04);
+  animation: orbPulse 3s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.c-orb-label { font-size: 10px; font-weight: 700; letter-spacing: -0.02em; color: rgba(255,255,255,0.8); }
+
+@keyframes orbPulse {
+  0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 30px rgba(255,255,255,0.04); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 0 50px rgba(255,255,255,0.08); }
+}
+
+/* ── AUDIOGRAM CARDS ── */
+.acard {
+  position: absolute;
+  border-radius: 9px;
+  background: #0e0e0e;
+  border: 1px solid;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+}
+/* float animations with varied phase */
+@keyframes f0 { 0%,100%{transform:translateY(0) rotate(0deg)}  50%{transform:translateY(-5px) rotate(1deg)} }
+@keyframes f1 { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-4px) rotate(1.5deg)} }
+@keyframes f2 { 0%,100%{transform:translateY(0) rotate(1deg)}  50%{transform:translateY(-6px) rotate(-1deg)} }
+@keyframes f3 { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-3px) rotate(1deg)} }
+@keyframes f4 { 0%,100%{transform:translateY(0) rotate(1.5deg)} 50%{transform:translateY(-5px) rotate(-0.5deg)} }
+@keyframes f5 { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-4px) rotate(0.5deg)} }
+@keyframes f6 { 0%,100%{transform:translateY(0) rotate(0.5deg)} 50%{transform:translateY(-6px) rotate(-1.5deg)} }
+@keyframes f7 { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-3px) rotate(1deg)} }
+
+/* Card sizes */
+.ls { width: 66px; height: 40px; } /* landscape 16:9-ish */
+.pt { width: 34px; height: 52px; } /* portrait */
+.sq { width: 42px; height: 42px; } /* square */
+
+/*
+  Phone center reference: top=37%*424≈157px, left=50%*196=98px
+  Ring1 r=74px, Ring2 r=123px
+
+  Card positions (top-left corner of card):
+  Ring 1 (r=74):
+    top (270°):   center(98,83)   → ls: (65,63),  pt: (81,57),  sq:(77,62)
+    right (0°):   center(172,157) → pt: (155,131)
+    left (180°):  center(24,157)  → sq: (3,136)
+  Ring 2 (r=123):
+    45°:  center(185,70)  → ls: (152,50)
+    135°: center(185,244) → sq: (164,223)
+    180°: center(98,280)  → ls: (65,260)
+    225°: center(11,244)  → pt: (-6,218) → clamp to (0,218)
+    315°: center(11,70)   → ls: (-8,50) → clamp to (-2,50)
+*/
+
+/* Ring 1 */
+.p0 { top: 60px;  left: 65px;  animation: f0 3.8s ease-in-out infinite; }          /* top — landscape */
+.p1 { top: 130px; left: 152px; animation: f1 4.2s ease-in-out infinite 0.5s; }     /* right — portrait */
+.p2 { top: 134px; left: 3px;   animation: f2 3.5s ease-in-out infinite 1.0s; }     /* left — square */
+
+/* Ring 2 */
+.p3 { top: 45px;  left: 130px; animation: f3 4.5s ease-in-out infinite 0.2s; }     /* top-right — portrait */
+.p4 { top: 220px; left: 146px; animation: f4 3.9s ease-in-out infinite 0.8s; }     /* right-low — square */
+.p5 { top: 256px; left: 65px;  animation: f5 4.1s ease-in-out infinite 1.3s; }     /* bottom — landscape */
+.p6 { top: 215px; left: -2px;  animation: f6 3.7s ease-in-out infinite 0.4s; }     /* bottom-left — portrait */
+.p7 { top: 44px;  left: -4px;  animation: f7 4.4s ease-in-out infinite 1.6s; }     /* top-left — landscape */
+
+/* Waveform bars inside cards */
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  padding: 4px 5px 3px;
+}
+.bars span {
+  display: block;
+  width: 2.5px;
+  border-radius: 1.5px;
+  /* color set per card via --c */
+  background: var(--c);
+}
+.card-cap {
+  font-size: 4px;
+  padding: 0 5px 3px;
+  line-height: 1.5;
+  font-weight: 500;
+  opacity: 0.55;
+  color: #fff;
+}
+
+/* Circle waveform */
+.circ {
+  margin: 6px auto 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  display: flex; align-items: center; justify-content: center;
+}
+.circ-dot { width: 7px; height: 7px; border-radius: 50%; }
+.circ-cap { font-size: 4px; padding: 2px 4px 3px; text-align: center; opacity: 0.5; color: #fff; }
+
+/* Spectrogram */
+.spec { padding: 5px 5px 3px; display: flex; flex-direction: column; gap: 2px; }
+.spec-row { height: 3px; border-radius: 1.5px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.spec-fill { height: 100%; border-radius: 1.5px; background: var(--c); }
+
+/* ── BOTTOM AREA (States 1 & 2) ── */
+.bot-fade {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(5,5,5,0.88) 45%, #050505 100%);
+  pointer-events: none; z-index: 9;
+}
+
+.bot-content {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 18px 24px; z-index: 10;
+}
+.eyebrow { font-size: 7px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.28); margin-bottom: 3px; }
+.wordmark { font-size: 20px; font-weight: 700; letter-spacing: -0.04em; margin-bottom: 2px; }
+.tagline { font-size: 9px; color: rgba(255,255,255,0.32); margin-bottom: 18px; text-align: center; line-height: 1.55; }
+.cta-main {
+  width: 100%; padding: 10px 0; background: #fff; color: #000;
+  border-radius: 9px; font-size: 11px; font-weight: 700;
+  text-align: center; margin-bottom: 7px; cursor: pointer;
+}
+.cta-link { font-size: 9px; color: rgba(255,255,255,0.28); }
+.cta-link span { color: rgba(255,255,255,0.5); }
+
+/* ── STATE 2: AUTH SHEET ── */
+.auth-sheet {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #fff; border-radius: 18px 18px 0 0;
+  padding: 14px 16px 24px; z-index: 20; color: #000;
+}
+.handle { width: 26px; height: 3px; background: #e0e0e0; border-radius: 2px; margin: 0 auto 12px; }
+.sh-mark { font-size: 16px; margin-bottom: 7px; }
+.sh-title { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 2px; }
+.sh-sub { font-size: 9px; color: #999; margin-bottom: 13px; line-height: 1.5; }
+.sh-btn { width: 100%; padding: 9px; border-radius: 8px; font-size: 10px; font-weight: 600; text-align: center; margin-bottom: 6px; cursor: pointer; }
+.sh-btn.dark { background: #111; color: #fff; }
+.sh-btn.light { background: #f2f2f2; color: #111; }
+.sh-row { display: flex; gap: 6px; }
+.sh-row .sh-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+/* ── STATE 3: GLASS SLIDER ── */
+.glass-bot {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 18px 28px; z-index: 10;
+}
+.return-hint { font-size: 8px; color: rgba(255,255,255,0.22); margin-bottom: 8px; letter-spacing: 0.03em; }
+
+.slider-track {
+  width: 100%;
+  height: 46px;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 23px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Shimmer hint animation */
+.slider-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  animation: shimmer 2.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%,100% { transform: translateX(-100%); }
+  60% { transform: translateX(120%); }
+}
+
+.slider-label {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: -0.01em;
+  user-select: none;
+  padding-left: 42px; /* offset for thumb */
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  animation: thumbHint 2.4s ease-in-out infinite;
+}
+@keyframes thumbHint {
+  0%, 40%, 100% { transform: translateX(0); }
+  20% { transform: translateX(8px); }
+}
+
+.thumb-arrow {
+  width: 14px; height: 14px;
+  opacity: 0.6;
+}
+
+</style>
+</head>
+<body>
+
+<h1>Ordio Splash — v2</h1>
+
+<div class="frames">
+
+  <!-- ══ STATE 1: New user ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 1 — New User</div>
+    <div class="phone">
+      <div class="splash-bg">
+        <div class="center-glow"></div>
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="c-orb"><span class="c-orb-label">O</span></div>
+
+        <!-- Card 0: top, landscape, AMBER waveform -->
+        <div class="acard ls p0" style="border-color:rgba(251,146,60,0.35); box-shadow:0 4px 20px rgba(251,146,60,0.08),0 0 0 0 #0e0e0e">
+          <div class="bars" style="--c:#FB923C; height:24px">
+            <span style="height:6px"></span><span style="height:14px"></span><span style="height:9px"></span>
+            <span style="height:18px"></span><span style="height:11px"></span><span style="height:16px"></span>
+            <span style="height:8px"></span><span style="height:13px"></span><span style="height:10px"></span>
+            <span style="height:19px"></span><span style="height:7px"></span><span style="height:12px"></span>
+          </div>
+          <div class="card-cap">"...the real turning point"</div>
+        </div>
+
+        <!-- Card 1: right, portrait, BLUE circle -->
+        <div class="acard pt p1" style="border-color:rgba(96,165,250,0.3)">
+          <div class="circ" style="border-color:rgba(96,165,250,0.5)">
+            <div class="circ-dot" style="background:rgba(96,165,250,0.6)"></div>
+          </div>
+          <div class="circ-cap">"Episode 7:<br>Growth"</div>
+        </div>
+
+        <!-- Card 2: left, square, ROSE bars -->
+        <div class="acard sq p2" style="border-color:rgba(244,114,182,0.3)">
+          <div class="bars" style="--c:#F472B6; height:26px; padding-top:8px; justify-content:center">
+            <span style="height:8px"></span><span style="height:20px"></span><span style="height:13px"></span>
+            <span style="height:18px"></span><span style="height:10px"></span><span style="height:16px"></span>
+          </div>
+        </div>
+
+        <!-- Card 3: top-right, portrait, EMERALD bars -->
+        <div class="acard pt p3" style="border-color:rgba(52,211,153,0.3)">
+          <div class="bars" style="--c:#34D399; height:22px; padding-top:10px; justify-content:center">
+            <span style="height:10px"></span><span style="height:18px"></span><span style="height:8px"></span>
+            <span style="height:15px"></span><span style="height:12px"></span>
+          </div>
+          <div class="card-cap" style="text-align:center">Solo pod</div>
+        </div>
+
+        <!-- Card 4: right-low, square, VIOLET circle -->
+        <div class="acard sq p4" style="border-color:rgba(167,139,250,0.3)">
+          <div class="circ" style="border-color:rgba(167,139,250,0.5); margin-top:4px">
+            <div class="circ-dot" style="background:rgba(167,139,250,0.6)"></div>
+          </div>
+          <div class="circ-cap">Shorts</div>
+        </div>
+
+        <!-- Card 5: bottom, landscape, TEAL spectrogram -->
+        <div class="acard ls p5" style="border-color:rgba(45,212,191,0.3)">
+          <div class="spec" style="--c:#2DD4BF; padding-top:7px">
+            <div class="spec-row"><div class="spec-fill" style="width:75%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:50%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:88%"></div></div>
+            <div class="spec-row"><div class="spec-fill" style="width:40%"></div></div>
+          </div>
+        </div>
+
+        <!-- Card 6: bottom-left, portrait, YELLOW bars -->
+        <div class="acard pt p6" style="border-color:rgba(252,211,77,0.3)">
+          <div class="bars" style="--c:#FCD34D; height:22px; padding-top:10px; justify-content:center">
+            <span style="height:12px"></span><span style="height:8px"></span><span style="height:19px"></span>
+            <span style="height:14px"></span><span style="height:10px"></span>
+          </div>
+          <div class="card-cap" style="text-align:center">"...ship it"</div>
+        </div>
+
+        <!-- Card 7: top-left, landscape, CORAL bars -->
+        <div class="acard ls p7" style="border-color:rgba(251,113,133,0.3)">
+          <div class="bars" style="--c:#FB7185; height:24px">
+            <span style="height:8px"></span><span style="height:15px"></span><span style="height:11px"></span>
+            <span style="height:20px"></span><span style="height:7px"></span><span style="height:17px"></span>
+            <span style="height:13px"></span><span style="height:10px"></span><span style="height:16px"></span>
+            <span style="height:9px"></span><span style="height:14px"></span><span style="height:6px"></span>
+          </div>
+        </div>
+
+      </div><!-- /splash-bg -->
+
+      <div class="bot-fade"></div>
+      <div class="bot-content">
+        <div class="eyebrow">for creators</div>
+        <div class="wordmark">Ordio</div>
+        <div class="tagline">Turn your voice into<br>shareable audiograms.</div>
+        <div class="cta-main">Get Started</div>
+        <div class="cta-link">Have an account? <span>Sign in</span></div>
+      </div>
+    </div>
+    <div class="frame-sub">Animated cards orbit the Orb. Tap "Get Started" →</div>
+  </div>
+
+  <!-- ══ STATE 2: Auth Sheet ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 2 — Auth</div>
+    <div class="phone">
+      <div class="splash-bg" style="filter:brightness(0.35)">
+        <div class="center-glow"></div>
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="c-orb"><span class="c-orb-label">O</span></div>
+        <!-- just a few visible cards -->
+        <div class="acard ls p0" style="border-color:rgba(251,146,60,0.35)"><div class="bars" style="--c:#FB923C; height:24px"><span style="height:6px"></span><span style="height:14px"></span><span style="height:18px"></span><span style="height:11px"></span><span style="height:16px"></span><span style="height:8px"></span><span style="height:13px"></span></div></div>
+        <div class="acard pt p1" style="border-color:rgba(96,165,250,0.3)"><div class="circ" style="border-color:rgba(96,165,250,0.5)"><div class="circ-dot" style="background:rgba(96,165,250,0.6)"></div></div></div>
+        <div class="acard ls p7" style="border-color:rgba(251,113,133,0.3)"><div class="bars" style="--c:#FB7185; height:24px"><span style="height:8px"></span><span style="height:15px"></span><span style="height:20px"></span><span style="height:7px"></span><span style="height:13px"></span><span style="height:9px"></span></div></div>
+        <div class="acard pt p6" style="border-color:rgba(252,211,77,0.3)"><div class="bars" style="--c:#FCD34D; height:22px; padding-top:10px; justify-content:center"><span style="height:12px"></span><span style="height:19px"></span><span style="height:10px"></span></div></div>
+      </div>
+
+      <!-- Clerk-style auth sheet -->
+      <div class="auth-sheet">
+        <div class="handle"></div>
+        <div class="sh-mark">✦</div>
+        <div class="sh-title">Welcome to Ordio</div>
+        <div class="sh-sub">Record, transcribe, and share your voice as beautiful audiograms.</div>
+        <div class="sh-btn dark">Continue with Email</div>
+        <div class="sh-row">
+          <div class="sh-btn light">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.46 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.701"/></svg>
+            Apple
+          </div>
+          <div class="sh-btn light">
+            <svg width="12" height="12" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Google
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-sub">Bottom sheet slides up. Background dims. Clerk auth.</div>
+  </div>
+
+  <!-- ══ STATE 3: Returning User ══ -->
+  <div class="frame-wrap">
+    <div class="frame-label">State 3 — Returning</div>
+    <div class="phone">
+      <div class="splash-bg">
+        <div class="center-glow"></div>
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="c-orb"><span class="c-orb-label">O</span></div>
+
+        <!-- Full card set -->
+        <div class="acard ls p0" style="border-color:rgba(251,146,60,0.35)"><div class="bars" style="--c:#FB923C; height:24px"><span style="height:6px"></span><span style="height:14px"></span><span style="height:9px"></span><span style="height:18px"></span><span style="height:11px"></span><span style="height:16px"></span><span style="height:8px"></span><span style="height:13px"></span><span style="height:10px"></span><span style="height:19px"></span><span style="height:7px"></span><span style="height:12px"></span></div><div class="card-cap">"...the real turning point"</div></div>
+        <div class="acard pt p1" style="border-color:rgba(96,165,250,0.3)"><div class="circ" style="border-color:rgba(96,165,250,0.5)"><div class="circ-dot" style="background:rgba(96,165,250,0.6)"></div></div><div class="circ-cap">"Episode 7:<br>Growth"</div></div>
+        <div class="acard sq p2" style="border-color:rgba(244,114,182,0.3)"><div class="bars" style="--c:#F472B6; height:26px; padding-top:8px; justify-content:center"><span style="height:8px"></span><span style="height:20px"></span><span style="height:13px"></span><span style="height:18px"></span><span style="height:10px"></span><span style="height:16px"></span></div></div>
+        <div class="acard pt p3" style="border-color:rgba(52,211,153,0.3)"><div class="bars" style="--c:#34D399; height:22px; padding-top:10px; justify-content:center"><span style="height:10px"></span><span style="height:18px"></span><span style="height:8px"></span><span style="height:15px"></span><span style="height:12px"></span></div><div class="card-cap" style="text-align:center">Solo pod</div></div>
+        <div class="acard sq p4" style="border-color:rgba(167,139,250,0.3)"><div class="circ" style="border-color:rgba(167,139,250,0.5); margin-top:4px"><div class="circ-dot" style="background:rgba(167,139,250,0.6)"></div></div><div class="circ-cap">Shorts</div></div>
+        <div class="acard ls p5" style="border-color:rgba(45,212,191,0.3)"><div class="spec" style="--c:#2DD4BF; padding-top:7px"><div class="spec-row"><div class="spec-fill" style="width:75%"></div></div><div class="spec-row"><div class="spec-fill" style="width:50%"></div></div><div class="spec-row"><div class="spec-fill" style="width:88%"></div></div><div class="spec-row"><div class="spec-fill" style="width:40%"></div></div></div></div>
+        <div class="acard pt p6" style="border-color:rgba(252,211,77,0.3)"><div class="bars" style="--c:#FCD34D; height:22px; padding-top:10px; justify-content:center"><span style="height:12px"></span><span style="height:8px"></span><span style="height:19px"></span><span style="height:14px"></span><span style="height:10px"></span></div><div class="card-cap" style="text-align:center">"...ship it"</div></div>
+        <div class="acard ls p7" style="border-color:rgba(251,113,133,0.3)"><div class="bars" style="--c:#FB7185; height:24px"><span style="height:8px"></span><span style="height:15px"></span><span style="height:11px"></span><span style="height:20px"></span><span style="height:7px"></span><span style="height:17px"></span><span style="height:13px"></span><span style="height:10px"></span><span style="height:16px"></span><span style="height:9px"></span><span style="height:14px"></span><span style="height:6px"></span></div></div>
+      </div>
+
+      <div class="bot-fade"></div>
+
+      <!-- Glass slider bottom -->
+      <div class="glass-bot">
+        <div class="return-hint">Welcome back, Ralph ·</div>
+        <div class="slider-track">
+          <div class="slider-label">Slide to continue</div>
+          <div class="slider-thumb">
+            <!-- chevron right -->
+            <svg class="thumb-arrow" viewBox="0 0 20 20" fill="none">
+              <path d="M7 5l5 5-5 5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-sub">Signed in. Same splash + frosted glass slide-to-continue.</div>
+  </div>
+
+</div>
+
+<div style="text-align:center; max-width:540px; margin-top:8px;">
+  <p style="font-size:11px; color:#3a3a3a; line-height:1.9;">
+    8 audiogram cards in 3 formats (landscape, portrait, square) · 8 accent colors · 2 orbital rings<br>
+    Slider thumb pulses right to hint interaction · Shimmer sweeps the track
+  </p>
+</div>
+
+</body>
+</html>

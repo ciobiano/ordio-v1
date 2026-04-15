@@ -1,0 +1,96 @@
+<h2>How generous should the rounding be?</h2>
+<p class="subtitle">Same HIG-faithful colors. The only difference is corner radius across the sheet and its controls.</p>
+
+<div class="split">
+
+  <!-- Option A: Apple Standard -->
+  <div class="mockup" style="cursor:pointer" onclick="toggleSelect(this)" data-choice="a">
+    <div class="mockup-header">A — Apple Standard (current-ish)</div>
+    <div class="mockup-body" style="background:#111111;padding:16px;font-family:system-ui,sans-serif;">
+      <!-- Sheet top -->
+      <div style="background:#161616;border-radius:16px 16px 0 0;padding:12px 16px 20px;border:1px solid rgba(255,255,255,0.1);border-bottom:none;">
+        <!-- Drag handle -->
+        <div style="width:36px;height:4px;background:rgba(255,255,255,0.25);border-radius:2px;margin:0 auto 16px;"></div>
+
+        <!-- Section label -->
+        <p style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 8px;">Waveform Style</p>
+        <!-- Segmented — rounded-lg (8px) -->
+        <div style="display:flex;border:1px solid rgba(255,255,255,0.14);border-radius:8px;overflow:hidden;">
+          <div style="flex:1;padding:7px 0;font-size:12px;text-align:center;background:rgba(255,255,255,0.14);color:#FAF8F5;font-weight:500;">Bars</div>
+          <div style="flex:1;padding:7px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">Circle</div>
+          <div style="flex:1;padding:7px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">Spectrum</div>
+          <div style="flex:1;padding:7px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">None</div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:rgba(255,255,255,0.08);margin:14px 0;"></div>
+
+        <!-- Radio list: Audio Enhancement -->
+        <p style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Audio Enhancement</p>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="width:14px;height:14px;border-radius:50%;border:2px solid #FAF8F5;background:#FAF8F5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#111;"></div>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:500;color:#FAF8F5;margin:0;">Standard</p>
+            <p style="font-size:10px;color:rgba(255,255,255,0.35);margin:0;">No processing</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+          <div style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);flex-shrink:0;"></div>
+          <div>
+            <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;">Clean</p>
+            <p style="font-size:10px;color:rgba(255,255,255,0.25);margin:0;">AI noise removal · ~3s</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Playful Apple -->
+  <div class="mockup" style="cursor:pointer" onclick="toggleSelect(this)" data-choice="b">
+    <div class="mockup-header">B — Playful Apple</div>
+    <div class="mockup-body" style="background:#111111;padding:16px;font-family:system-ui,sans-serif;">
+      <!-- Sheet top — more rounded -->
+      <div style="background:#161616;border-radius:24px 24px 0 0;padding:12px 16px 20px;border:1px solid rgba(255,255,255,0.1);border-bottom:none;">
+        <!-- Drag handle — slightly wider -->
+        <div style="width:40px;height:5px;background:rgba(255,255,255,0.28);border-radius:3px;margin:0 auto 16px;"></div>
+
+        <!-- Section label — slightly bolder -->
+        <p style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 8px;">Waveform Style</p>
+        <!-- Segmented — rounded-xl (12px), taller -->
+        <div style="display:flex;border:1px solid rgba(255,255,255,0.14);border-radius:12px;overflow:hidden;">
+          <div style="flex:1;padding:9px 0;font-size:12px;text-align:center;background:rgba(255,255,255,0.14);color:#FAF8F5;font-weight:600;">Bars</div>
+          <div style="flex:1;padding:9px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">Circle</div>
+          <div style="flex:1;padding:9px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">Spectrum</div>
+          <div style="flex:1;padding:9px 0;font-size:12px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.38);">None</div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:rgba(255,255,255,0.08);margin:14px 0;"></div>
+
+        <!-- Radio list: Audio Enhancement -->
+        <p style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Audio Enhancement</p>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid rgba(255,255,255,0.07);border-radius:10px;">
+          <div style="width:16px;height:16px;border-radius:50%;border:2px solid #FAF8F5;background:#FAF8F5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#161616;"></div>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:600;color:#FAF8F5;margin:0;">Standard</p>
+            <p style="font-size:10px;color:rgba(255,255,255,0.35);margin:0;">No processing</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px;">
+          <div style="width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);flex-shrink:0;"></div>
+          <div>
+            <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;">Clean</p>
+            <p style="font-size:10px;color:rgba(255,255,255,0.25);margin:0;">AI noise removal · ~3s</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:1.5rem;text-align:center;">Click either mockup to select it.</p>

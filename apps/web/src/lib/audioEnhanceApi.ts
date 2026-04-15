@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import type { EnhanceTier } from '@/lib/store';
+import type { EnhanceTier } from '@/stores';
 
 const ENHANCE_URL = process.env.NEXT_PUBLIC_ENHANCE_URL ?? '';
 

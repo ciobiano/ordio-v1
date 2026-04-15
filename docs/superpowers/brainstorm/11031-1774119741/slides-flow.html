@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Slides</title>
+  <script src="/helper.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0a;
+      color: #e5e5e5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 32px 24px 48px;
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .question {
+      font-size: 20px;
+      font-weight: 600;
+      color: #f0f0f0;
+      margin-bottom: 8px;
+    }
+    .sub {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 32px;
+    }
+
+    .slides-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 1000px;
+      margin: 0 auto 36px;
+    }
+
+    /* Outer shell: idle bg + dialog */
+    .phone {
+      border: 1px solid #1e1e1e;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      aspect-ratio: 9/16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Idle background (blurred) */
+    .idle-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      filter: blur(2px);
+      opacity: 0.25;
+    }
+    .wordmark { font-size: 9px; color: #aaa; letter-spacing: 0.1em; }
+    .orb {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 38%, #2a2a2a, #111 70%);
+      border: 1px solid #2a2a2a;
+    }
+    .mic-hint { font-size: 8px; color: #555; margin-top: 4px; }
+
+    /* Overlay */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Dialog box */
+    .dialog {
+      background: #111;
+      border: 1px solid #252525;
+      border-radius: 14px;
+      padding: 20px 18px 16px;
+      width: 85%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .slide-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid #252525;
+      background: #0d0d0d;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .slide-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f0f0;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .slide-body {
+      font-size: 9.5px;
+      color: #555;
+      text-align: center;
+      line-height: 1.65;
+    }
+
+    /* Style swatches for slide 4 */
+    .swatches {
+      display: flex;
+      gap: 5px;
+      margin: 3px 0;
+    }
+    .swatch {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid #222;
+      background: #0d0d0d;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+    .swatch.active { border-color: #555; }
+
+    /* Waveform preview for slide 1 */
+    .wave-mini {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 18px;
+    }
+    .bar {
+      width: 3px;
+      border-radius: 2px;
+      background: #333;
+    }
+
+    .dots {
+      display: flex; gap: 5px;
+      margin-top: 2px;
+    }
+    .dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: #252525;
+    }
+    .dot.active { background: #aaa; }
+
+    .btn {
+      width: 100%;
+      padding: 8px;
+      border-radius: 7px;
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      border: none;
+      background: #e5e5e5;
+      color: #000;
+    }
+    .btn.ghost {
+      background: transparent;
+      color: #333;
+      font-weight: 400;
+      font-size: 9px;
+      padding: 4px;
+    }
+
+    /* Slide label below */
+    .slide-label {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .slide-num {
+      font-size: 10px;
+      font-weight: 600;
+      color: #444;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .slide-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Feedback area */
+    .feedback-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 20px 24px;
+      background: #0d0d0d;
+    }
+    .feedback-section h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+    .feedback-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .feedback-item { font-size: 11px; }
+    .feedback-item .label {
+      font-size: 9.5px;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+    .feedback-item .value {
+      color: #777;
+      line-height: 1.5;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: #333;
+      margin-top: 28px;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Onboarding slides — Dialog B</h1>
+  <p class="question">4-slide walkthrough inside a shadcn Dialog</p>
+  <p class="sub">Idle screen (Orb) visible but blurred behind. Each slide advances with Next. Last slide shows Continue.</p>
+
+  <div class="slides-row">
+
+    <!-- SLIDE 1 -->
+    <div>
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="wordmark">ordio</div>
+          <div class="orb"></div>
+          <div class="mic-hint">Tap to record</div>
+        </div>
+        <div class="overlay">
+          <div class="dialog">
+            <div class="slide-icon">🎙️</div>
+            <div class="slide-title">Your voice, ready to share</div>
+            <div class="slide-body">
+              Record or upload audio. Ordio turns it into a polished, captioned video.
+            </div>
+            <div class="wave-mini">
+              <div class="bar" style="height:6px"></div>
+              <div class="bar" style="height:12px"></div>
+              <div class="bar" style="height:8px"></div>
+              <div class="bar" style="height:16px"></div>
+              <div class="bar" style="height:10px"></div>
+              <div class="bar" style="height:14px"></div>
+              <div class="bar" style="height:7px"></div>
+              <div class="bar" style="height:11px"></div>
+              <div class="bar" style="height:9px"></div>
+            </div>
+            <div class="dots">
+              <div class="dot active"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+            <button class="btn">Next →</button>
+            <button class="btn ghost">Skip intro</button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">Slide 1</div>
+        <div class="slide-name">The hook</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2 -->
+    <div>
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="wordmark">ordio</div>
+          <div class="orb"></div>
+          <div class="mic-hint">Tap to record</div>
+        </div>
+        <div class="overlay">
+          <div class="dialog">
+            <div class="slide-icon">⏺️</div>
+            <div class="slide-title">Tap the orb to begin</div>
+            <div class="slide-body">
+              Hit record, speak naturally. Or upload an MP3, WAV, or M4A — up to 50 MB.
+            </div>
+            <!-- mini orb hint -->
+            <div style="width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#2a2a2a,#111 70%);border:1px solid #2a2a2a;margin:2px 0;"></div>
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot active"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+            <button class="btn">Next →</button>
+            <button class="btn ghost">Skip intro</button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">Slide 2</div>
+        <div class="slide-name">How to start</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 -->
+    <div>
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="wordmark">ordio</div>
+          <div class="orb"></div>
+          <div class="mic-hint">Tap to record</div>
+        </div>
+        <div class="overlay">
+          <div class="dialog">
+            <div class="slide-icon">✨</div>
+            <div class="slide-title">Captions, automatically</div>
+            <div class="slide-body">
+              AI transcribes every word and syncs captions to your audio. No editing required.
+            </div>
+            <!-- caption preview -->
+            <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:6px;padding:6px 10px;width:100%;text-align:center;">
+              <span style="font-size:8px;color:#777;font-style:italic;">"...your voice, perfectly timed"</span>
+            </div>
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot active"></div>
+              <div class="dot"></div>
+            </div>
+            <button class="btn">Next →</button>
+            <button class="btn ghost">Skip intro</button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">Slide 3</div>
+        <div class="slide-name">AI captions</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4 -->
+    <div>
+      <div class="phone">
+        <div class="idle-bg">
+          <div class="wordmark">ordio</div>
+          <div class="orb"></div>
+          <div class="mic-hint">Tap to record</div>
+        </div>
+        <div class="overlay">
+          <div class="dialog">
+            <div class="slide-icon">🎨</div>
+            <div class="slide-title">Not just a waveform</div>
+            <div class="slide-body">
+              Swap styles in the export screen — graphic frames, bars, circle, spectrogram.
+            </div>
+            <div class="swatches">
+              <div class="swatch active">〰️</div>
+              <div class="swatch">⭕</div>
+              <div class="swatch">🖼️</div>
+              <div class="swatch">📊</div>
+            </div>
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot active"></div>
+            </div>
+            <button class="btn">Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="slide-label">
+        <div class="slide-num">Slide 4</div>
+        <div class="slide-name">Style reveal ★</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Content summary -->
+  <div class="feedback-section">
+    <h3>Slide content summary — does this feel right?</h3>
+    <div class="feedback-grid">
+      <div class="feedback-item">
+        <div class="label">Slide 1</div>
+        <div class="value">Hook — what Ordio does in one sentence</div>
+      </div>
+      <div class="feedback-item">
+        <div class="label">Slide 2</div>
+        <div class="value">Action — tap orb or upload a file</div>
+      </div>
+      <div class="feedback-item">
+        <div class="label">Slide 3</div>
+        <div class="value">Magic — AI captions auto-generated</div>
+      </div>
+      <div class="feedback-item">
+        <div class="label">Slide 4 ★</div>
+        <div class="value">"Not just a waveform" — style reveal, Continue</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">Does the 4-slide flow feel right? Any slides to cut, add, or reword? Tell me in the terminal.</p>
+
+</body>
+</html>

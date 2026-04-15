@@ -1,6 +1,6 @@
 'use client';
 
-import type { WaveformVariant } from '@/lib/store';
+import type { WaveformVariant } from '@/stores';
 import BarsWaveform from './BarsWaveform';
 import CircleWaveform from './CircleWaveform';
 import SpectrogramWaveform from './SpectrogramWaveform';
