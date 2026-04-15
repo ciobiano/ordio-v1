@@ -10,10 +10,15 @@ import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
 import { useAudioRecorder } from '@/hooks/audio/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/audio/useAudioAnalyser';
 import { useTranscription } from '@/hooks/recording/useTranscription';
-import { useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
-import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import {
+  AudioProcessingError,
+  type AudioProcessingFailureStage,
+  useAudioProcessing,
+} from '@/hooks/audio/useAudioProcessing';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useVAD } from '@/hooks/recording/useVAD';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 import IdleState from '@/components/soul/states/IdleState';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,12 +42,45 @@ const UserAvatarButton = dynamic(() => import('@/components/soul/auth/UserAvatar
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
+interface ProcessingAlertState {
+  stage: AudioProcessingFailureStage;
+  title: string;
+  detail: string;
+}
+
+function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState {
+  if (error.stage === 'enhancement') {
+    return {
+      stage: error.stage,
+      title: 'Enhancement failed',
+      detail:
+        'Processing stopped before transcription. For faster recovery and lower additional AI usage, turn enhancement off and retry.',
+    };
+  }
+
+  if (error.stage === 'transcription') {
+    return {
+      stage: error.stage,
+      title: 'Transcription failed',
+      detail:
+        'Processing stopped and you were returned to your previous screen. Review your recording or upload and retry when ready.',
+    };
+  }
+
+  return {
+    stage: error.stage,
+    title: 'Processing failed',
+    detail: 'Processing stopped safely. You can adjust settings and retry from this screen.',
+  };
+}
+
 export default function CreatePage() {
   const router = useRouter();
   const { currentState, setCurrentState, setUpgradeTarget } = useUIStore();
   const resetUI = useUIStore((s) => s.resetUI);
   const resetCapture = useCaptureStore((s) => s.resetCapture);
   const resetProcessing = useProcessingStore((s) => s.resetProcessing);
+  const setEnhanceTier = useProcessingStore((s) => s.setEnhanceTier);
 
   const reset = useCallback(() => {
     resetCapture();
@@ -54,6 +92,7 @@ export default function CreatePage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [micDenied, setMicDenied] = useState(false);
+  const [processingAlert, setProcessingAlert] = useState<ProcessingAlertState | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -61,9 +100,24 @@ export default function CreatePage() {
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
   const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
-  const { tier } = useCurrentUser();
   const capabilities = useCapabilities();
   const vad = useVAD(recorder.isRecording);
+
+  const handleProcessingFailure = useCallback((err: unknown) => {
+    if (err instanceof AudioProcessingError) {
+      const alert = buildProcessingAlert(err);
+      setProcessingAlert(alert);
+      toast.error(alert.title);
+      return;
+    }
+    const fallbackAlert: ProcessingAlertState = {
+      stage: 'processing',
+      title: 'Processing failed',
+      detail: 'Processing stopped safely. You can retry from your previous screen.',
+    };
+    setProcessingAlert(fallbackAlert);
+    toast.error(fallbackAlert.title);
+  }, []);
 
   useEffect(() => {
     if (!recorder.isRecording) {
@@ -94,6 +148,7 @@ export default function CreatePage() {
 
   const handleStartRecording = useCallback(async () => {
     setIsStarting(true);
+    setProcessingAlert(null);
     transcription.clearTranscript();
     try {
       const stream = await recorder.startRecording();
@@ -125,15 +180,18 @@ export default function CreatePage() {
 
   const handleProceed = useCallback(async () => {
     if (!recorder.audioBlob) return;
+    setProcessingAlert(null);
     try {
       const sessionId = await processAudio(recorder.audioBlob);
+      if (!sessionId) return;
       router.push(`/create/export/${sessionId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Processing failed');
+      handleProcessingFailure(err);
     }
-  }, [recorder.audioBlob, processAudio, router]);
+  }, [recorder.audioBlob, processAudio, router, handleProcessingFailure]);
 
   const handleRestart = useCallback(async () => {
+    setProcessingAlert(null);
     recorder.resetRecording();
     try {
       await handleStartRecording();
@@ -147,6 +205,7 @@ export default function CreatePage() {
     async (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      setProcessingAlert(null);
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error('File too large. Maximum 50 MB.');
@@ -155,28 +214,71 @@ export default function CreatePage() {
 
       try {
         const sessionId = await processAudio(file);
+        if (!sessionId) return;
         router.push(`/create/export/${sessionId}`);
-      } catch {
-        toast.error('Could not read this file. Try M4A, MP3, WAV, MOV, MP4, or MKV.');
+      } catch (err) {
+        handleProcessingFailure(err);
       }
 
       if (e.target) e.target.value = '';
     },
-    [processAudio, router]
+    [processAudio, router, handleProcessingFailure]
   );
 
   const handleReset = useCallback(() => {
     cancelProcessing();
     recorder.resetRecording();
     transcription.clearTranscript();
+    setProcessingAlert(null);
     reset();
   }, [cancelProcessing, recorder, transcription, reset]);
+
+  const handleDisableEnhancement = useCallback(() => {
+    setEnhanceTier('none');
+    setProcessingAlert(null);
+    toast.success('Enhancement disabled. Retry when ready.');
+  }, [setEnhanceTier]);
 
   return (
     <main
       id="main-content"
       className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
     >
+      {processingAlert && (
+        <div className="fixed top-4 left-1/2 z-30 w-[min(92vw,42rem)] -translate-x-1/2">
+          <Alert
+            variant="destructive"
+            className="border border-red-400/40 bg-red-950/90 text-red-50 shadow-lg backdrop-blur-sm"
+          >
+            <AlertTitle className="text-red-50">{processingAlert.title}</AlertTitle>
+            <AlertDescription className="text-red-100/90 leading-relaxed">
+              {processingAlert.detail}
+            </AlertDescription>
+            <div className="col-start-2 mt-3 flex flex-wrap justify-end gap-2">
+              {processingAlert.stage === 'enhancement' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDisableEnhancement}
+                  className="border-red-300/40 bg-transparent text-red-50 hover:bg-red-900/60 hover:text-white"
+                >
+                  Turn enhancement off
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setProcessingAlert(null)}
+                className="text-red-100 hover:bg-red-900/60 hover:text-white"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
       {currentState === 'idle' && (
         <div className="fixed top-4 right-4 z-20">
           <UserAvatarButton />

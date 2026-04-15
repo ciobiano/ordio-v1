@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Mock } from 'vitest';
-import { useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
+import { AudioProcessingError, useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
 
 // Mock Convex hooks
@@ -27,10 +27,11 @@ const mockSetTranscript = vi.fn();
 const mockSetTranscriptionSource = vi.fn();
 const mockSetIsEnhancing = vi.fn();
 const mockSetEnhanceProgress = vi.fn();
+let mockCurrentState: 'idle' | 'recording' = 'idle';
 
 vi.mock('@/stores', () => ({
   useUIStore: vi.fn((selector: (s: unknown) => unknown) =>
-    selector({ setCurrentState: mockSetCurrentState, currentState: 'idle' })
+    selector({ setCurrentState: mockSetCurrentState, currentState: mockCurrentState })
   ),
   useCaptureStore: vi.fn(() => ({
     setAudioBuffer: mockSetAudioBuffer,
@@ -87,6 +88,7 @@ describe('useAudioProcessing', () => {
   beforeEach(async () => {
     // Reset call counts but preserve mock implementations
     vi.clearAllMocks();
+    mockCurrentState = 'idle';
     const channel = new Float32Array(44_100);
     channel.fill(0.1);
     const decodedBuffer = {
@@ -121,7 +123,7 @@ describe('useAudioProcessing', () => {
     // UI Store - uses selector pattern
     const useUIStoreMock = storesModule.useUIStore as unknown as Mock;
     useUIStoreMock.mockImplementation((selector: (s: unknown) => unknown) =>
-      selector({ setCurrentState: mockSetCurrentState, currentState: 'idle' })
+      selector({ setCurrentState: mockSetCurrentState, currentState: mockCurrentState })
     );
 
     // Capture Store
@@ -175,7 +177,8 @@ describe('useAudioProcessing', () => {
     expect(sessionId).toBe('abc123sessionId');
   });
 
-  it('sets currentState to idle and throws on processing error', async () => {
+  it('restores currentState to the pre-processing state on processing error', async () => {
+    mockCurrentState = 'recording';
     // Failing mutation — generateUploadUrl throws
     const failingMutation = vi.fn().mockRejectedValue(new Error('Upload failed'));
 
@@ -191,8 +194,8 @@ describe('useAudioProcessing', () => {
     await act(async () => {
       await expect(result.current.processAudio(blob)).rejects.toThrow('Audio processing failed');
     });
-
-    expect(mockSetCurrentState).toHaveBeenCalledWith('idle');
+    expect(mockSetCurrentState).toHaveBeenNthCalledWith(1, 'processing');
+    expect(mockSetCurrentState).toHaveBeenLastCalledWith('recording');
   });
 
   it('transcodes unsupported video mime types to wav before transcription', async () => {
@@ -222,5 +225,101 @@ describe('useAudioProcessing', () => {
     const transcribeArg = (mockTranscription.transcribeAudio as Mock).mock.calls[0]?.[0] as Blob;
     expect(transcribeArg).toBeInstanceOf(Blob);
     expect(transcribeArg.type).toBe('audio/wav');
+  });
+
+  it('transcodes unknown mime uploads to wav before transcription', async () => {
+    const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
+    const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
+
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock
+      .mockReturnValueOnce(mockGenerateUploadUrl)
+      .mockReturnValueOnce(mockCreateSession);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ storageId: 'storage_abc' }),
+    });
+
+    const blob = new Blob(['unknown data'], { type: '' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await result.current.processAudio(blob);
+    });
+
+    const transcribeArg = (mockTranscription.transcribeAudio as Mock).mock.calls[0]?.[0] as Blob;
+    expect(transcribeArg).toBeInstanceOf(Blob);
+    expect(transcribeArg.type).toBe('audio/wav');
+  });
+
+  it('stops processing immediately when enhancement fails', async () => {
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock.mockReturnValue(vi.fn());
+
+    const storesModule = await import('@/stores');
+    const useProcessingStoreMock = storesModule.useProcessingStore as unknown as Mock & {
+      getState: Mock;
+    };
+    useProcessingStoreMock.getState = vi.fn(() => ({ enhanceTier: 'clean' }));
+
+    const enhanceModule = await import('@/lib/audioEnhanceApi');
+    (enhanceModule.enhanceAudio as Mock).mockResolvedValue({
+      ok: false,
+      blob: new Blob(['fallback'], { type: 'audio/webm' }),
+      error: 'Enhancement service unavailable',
+    });
+
+    const blob = new Blob(['audio data'], { type: 'audio/webm' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await expect(result.current.processAudio(blob)).rejects.toMatchObject<AudioProcessingError>({
+        stage: 'enhancement',
+      });
+    });
+
+    expect(mockTranscription.transcribeAudio).not.toHaveBeenCalled();
+    expect(mockSetCurrentState).toHaveBeenLastCalledWith('idle');
+  });
+
+  it('stops before session creation when transcription fails', async () => {
+    const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
+    const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
+
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock
+      .mockReturnValueOnce(mockGenerateUploadUrl)
+      .mockReturnValueOnce(mockCreateSession);
+
+    (mockTranscription.transcribeAudio as Mock).mockRejectedValue(
+      new Error('Transcription provider unavailable')
+    );
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ storageId: 'storage_abc' }),
+    });
+
+    const blob = new Blob(['audio data'], { type: 'audio/webm' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await expect(result.current.processAudio(blob)).rejects.toMatchObject<AudioProcessingError>({
+        stage: 'transcription',
+      });
+    });
+
+    expect(mockCreateSession).not.toHaveBeenCalled();
+    expect(mockSetCurrentState).toHaveBeenLastCalledWith('idle');
   });
 });

@@ -1,4 +1,3 @@
-import { toast } from 'sonner';
 import type { EnhanceTier } from '@/stores';
 
 const ENHANCE_URL = process.env.NEXT_PUBLIC_ENHANCE_URL ?? '';
@@ -9,7 +8,6 @@ export type EnhanceResult =
 
 function handleEnhanceError(error: string): void {
   console.error('[audio-enhance]', error);
-  toast.error('Audio enhancement is unavailable right now. Please try again later.');
 }
 
 export async function enhanceAudio(

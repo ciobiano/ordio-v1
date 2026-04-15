@@ -4,10 +4,10 @@ import { useMutation } from 'convex/react';
 import { api } from '@Ordio/convex';
 import type { GenericId } from 'convex/values';
 import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
+import type { AppPhase } from '@/stores';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
-import { toast } from 'sonner';
 
 const WHISPER_SIZE_LIMIT = 4 * 1024 * 1024; // 4MB - under Vercel 4.5MB limit
 interface UseAudioProcessingReturn {
@@ -15,7 +15,19 @@ interface UseAudioProcessingReturn {
   processAudio: (blob: Blob) => Promise<string>;
   cancelProcessing: () => void;
 }
-const WHISPER_SUPPORTED_MIME_TYPES = new Set([
+
+export type AudioProcessingFailureStage = 'enhancement' | 'transcription' | 'processing';
+
+export class AudioProcessingError extends Error {
+  stage: AudioProcessingFailureStage;
+
+  constructor(stage: AudioProcessingFailureStage, message: string, cause?: unknown) {
+    super(message, { cause });
+    this.name = 'AudioProcessingError';
+    this.stage = stage;
+  }
+}
+const WHISPER_SUPPORTED_AUDIO_MIME_TYPES = new Set([
   'audio/flac',
   'audio/m4a',
   'audio/mp3',
@@ -29,8 +41,6 @@ const WHISPER_SUPPORTED_MIME_TYPES = new Set([
   'audio/x-flac',
   'audio/x-m4a',
   'audio/x-wav',
-  'video/mp4',
-  'video/webm',
 ]);
 
 function normalizeMimeType(mimeType: string): string {
@@ -39,8 +49,44 @@ function normalizeMimeType(mimeType: string): string {
 
 function shouldTranscodeForWhisper(mimeType: string): boolean {
   const normalized = normalizeMimeType(mimeType);
-  if (!normalized) return false;
-  return !WHISPER_SUPPORTED_MIME_TYPES.has(normalized);
+  if (!normalized) return true;
+  if (normalized.startsWith('video/')) return true;
+  return !WHISPER_SUPPORTED_AUDIO_MIME_TYPES.has(normalized);
+}
+
+function pickWhisperWavSampleRate(durationSec: number): number {
+  if (!Number.isFinite(durationSec) || durationSec <= 0) return 16_000;
+  const maxMonoSampleRate = Math.floor((WHISPER_SIZE_LIMIT - 44) / (durationSec * 2));
+  if (maxMonoSampleRate >= 16_000) return 16_000;
+  if (maxMonoSampleRate >= 12_000) return 12_000;
+  if (maxMonoSampleRate >= 8_000) return 8_000;
+  return 8_000;
+}
+
+async function normalizeAudioForWhisper(audioBuffer: AudioBuffer): Promise<AudioBuffer> {
+  if (typeof window === 'undefined' || typeof window.OfflineAudioContext === 'undefined') {
+    return audioBuffer;
+  }
+
+  const targetSampleRate = pickWhisperWavSampleRate(audioBuffer.duration);
+  const alreadyOptimized =
+    audioBuffer.numberOfChannels === 1 && audioBuffer.sampleRate === targetSampleRate;
+  if (alreadyOptimized) return audioBuffer;
+
+  const frameCount = Math.max(1, Math.ceil(audioBuffer.duration * targetSampleRate));
+  const offlineCtx = new window.OfflineAudioContext(1, frameCount, targetSampleRate);
+  const source = offlineCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(offlineCtx.destination);
+  source.start(0);
+  return offlineCtx.startRendering();
+}
+
+function targetMp3BitrateKbps(durationSec: number): number {
+  const safePayloadBits = Math.max(0, (WHISPER_SIZE_LIMIT - 32 * 1024) * 8); // keep headroom for multipart
+  const seconds = Math.max(durationSec, 1);
+  const calculatedKbps = Math.floor(safePayloadBits / seconds / 1000);
+  return Math.max(24, Math.min(96, calculatedKbps));
 }
 
 function audioBufferToWavBytes(audioBuffer: AudioBuffer): ArrayBuffer {
@@ -108,7 +154,20 @@ async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSigna
     const wavUint8 = new Uint8Array(wavBytes);
     await ffmpeg.writeFile('input.wav', wavUint8);
 
-    await ffmpeg.exec(['-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '96k', 'output.mp3']);
+    const bitrateKbps = targetMp3BitrateKbps(audioBuffer.duration);
+    await ffmpeg.exec([
+      '-i',
+      'input.wav',
+      '-ac',
+      '1',
+      '-ar',
+      '16000',
+      '-acodec',
+      'libmp3lame',
+      '-b:a',
+      `${bitrateKbps}k`,
+      'output.mp3',
+    ]);
 
     if (abort.aborted) {
       await ffmpeg.deleteFile('input.wav');
@@ -120,7 +179,11 @@ async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSigna
     await ffmpeg.deleteFile('input.wav');
     await ffmpeg.deleteFile('output.mp3');
 
-    return new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
+    const compressed = new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
+    if (compressed.size > WHISPER_SIZE_LIMIT) {
+      throw new Error('Compressed audio still exceeds production upload limit');
+    }
+    return compressed;
   } catch (err) {
     console.error('reduceAudioForWhisper failed:', err);
     throw err;
@@ -135,6 +198,7 @@ async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSigna
 export function useAudioProcessing(
   transcription: UseTranscriptionReturn
 ): UseAudioProcessingReturn {
+  const currentState = useUIStore((s) => s.currentState);
   const setCurrentState = useUIStore((s) => s.setCurrentState);
   const { setAudioBuffer, setAudioBlob, setAudioDuration } = useCaptureStore();
   const { setTranscript, setTranscriptionSource, setIsEnhancing, setEnhanceProgress } =
@@ -164,6 +228,7 @@ export function useAudioProcessing(
 
   const processAudio = useCallback(
     async (inputBlob: Blob): Promise<string> => {
+      const stateBeforeProcessing: AppPhase = currentState === 'processing' ? 'idle' : currentState;
       let blob = inputBlob;
       const rawBlob = inputBlob;
       const abort = new AbortController();
@@ -250,11 +315,18 @@ export function useAudioProcessing(
         if (enhanceTier !== 'none') {
           setIsEnhancing(true);
           setProcessingProgress(15);
-          const result = await enhanceAudio(blob, enhanceTier, (p) => {
-            setEnhanceProgress(p);
-            setProcessingProgress(15 + (p / 100) * 25);
-          });
-          if (result.ok) {
+          try {
+            const result = await enhanceAudio(blob, enhanceTier, (p) => {
+              setEnhanceProgress(p);
+              setProcessingProgress(15 + (p / 100) * 25);
+            });
+            if (!result.ok) {
+              throw new AudioProcessingError(
+                'enhancement',
+                'Audio enhancement failed. Processing stopped before transcription.',
+                new Error(result.error)
+              );
+            }
             const enhancedCtx = new AudioContext();
             let enhancedBuffer: AudioBuffer;
             try {
@@ -268,9 +340,10 @@ export function useAudioProcessing(
             setAudioDuration(enhancedBuffer.duration);
             blob = result.blob;
             transcriptionBuffer = enhancedBuffer;
+          } finally {
+            setIsEnhancing(false);
+            setEnhanceProgress(0);
           }
-          setIsEnhancing(false);
-          setEnhanceProgress(0);
           setProcessingProgress(40);
         }
 
@@ -278,36 +351,58 @@ export function useAudioProcessing(
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         setProcessingProgress(baseTranscribe + 5);
 
-        // If too large, FFmpeg compress to MP3 first (don't convert to WAV)
-        const needsCompression =
-          shouldTranscodeForWhisper(rawBlob.type) || rawBlob.size > WHISPER_SIZE_LIMIT;
+        const shouldTranscode = shouldTranscodeForWhisper(rawBlob.type);
+        let whisperReadyBuffer: AudioBuffer | null = null;
+        const getWhisperReadyBuffer = async (): Promise<AudioBuffer> => {
+          if (!whisperReadyBuffer) {
+            whisperReadyBuffer = await normalizeAudioForWhisper(transcriptionBuffer);
+          }
+          return whisperReadyBuffer;
+        };
         let transcriptionBlob: Blob;
-        if (needsCompression) {
-          transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
-        } else if (shouldTranscodeForWhisper(rawBlob.type)) {
-          transcriptionBlob = audioBufferToWavBlob(transcriptionBuffer);
+        if (shouldTranscode) {
+          transcriptionBlob = audioBufferToWavBlob(await getWhisperReadyBuffer());
         } else {
           transcriptionBlob = rawBlob;
         }
+        if (transcriptionBlob.size > WHISPER_SIZE_LIMIT) {
+          try {
+            transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
+          } catch {
+            // FFmpeg can fail in some production environments; retry with whisper-normalized WAV.
+            const fallbackWav = audioBufferToWavBlob(await getWhisperReadyBuffer());
+            if (fallbackWav.size <= WHISPER_SIZE_LIMIT) {
+              transcriptionBlob = fallbackWav;
+            } else {
+              throw new Error('Audio file is too large to transcribe in production');
+            }
+          }
+        }
 
-        const [words, storageId] = await Promise.all([
-          // 3a: Whisper transcription
-          transcriptionRef.current.transcribeAudio(transcriptionBlob),
+        const transcriptionTask = transcriptionRef.current
+          .transcribeAudio(transcriptionBlob)
+          .catch((err) => {
+            throw new AudioProcessingError(
+              'transcription',
+              err instanceof Error ? err.message : 'Transcription failed',
+              err
+            );
+          });
 
-          // 3b: Upload audio to Convex storage (two-step)
-          (async () => {
-            const uploadUrl = await generateUploadUrlRef.current();
-            const uploadRes = await fetch(uploadUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': blob.type },
-              body: blob,
-              signal: abort.signal,
-            });
-            if (!uploadRes.ok) throw new Error('Audio upload failed');
-            const { storageId } = (await uploadRes.json()) as { storageId: string };
-            return storageId as GenericId<'_storage'>;
-          })(),
-        ]);
+        const uploadTask = (async () => {
+          const uploadUrl = await generateUploadUrlRef.current();
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': blob.type },
+            body: blob,
+            signal: abort.signal,
+          });
+          if (!uploadRes.ok) throw new Error('Audio upload failed');
+          const { storageId } = (await uploadRes.json()) as { storageId: string };
+          return storageId as GenericId<'_storage'>;
+        })();
+
+        const [words, storageId] = await Promise.all([transcriptionTask, uploadTask]);
         // #region agent log
         fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
           method: 'POST',
@@ -327,8 +422,6 @@ export function useAudioProcessing(
         if (words.length > 0) {
           setTranscript(words);
           setTranscriptionSource('whisper');
-        } else if (transcription.error) {
-          toast.error(transcription.error);
         }
         setProcessingProgress(85);
 
@@ -347,13 +440,15 @@ export function useAudioProcessing(
         return sessionId;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          // User cancelled — stay idle, no error toast
-          setCurrentState('idle');
+          setCurrentState(stateBeforeProcessing);
           return '';
         }
-        setCurrentState('idle');
+        setCurrentState(stateBeforeProcessing);
         console.error('[useAudioProcessing]', err);
-        throw new Error('Audio processing failed', { cause: err });
+        if (err instanceof AudioProcessingError) {
+          throw err;
+        }
+        throw new AudioProcessingError('processing', 'Audio processing failed', err);
       } finally {
         abortControllerRef.current = null;
       }
@@ -367,6 +462,7 @@ export function useAudioProcessing(
       setTranscriptionSource,
       setIsEnhancing,
       setEnhanceProgress,
+      currentState,
     ]
   );
 

@@ -57,9 +57,9 @@ export function useTranscription(): UseTranscriptionReturn {
       setTranscript(words);
       return words;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Transcription failed';
-      setError(message);
-      return [];
+      const normalizedError = err instanceof Error ? err : new Error('Transcription failed');
+      setError(normalizedError.message);
+      throw normalizedError;
     } finally {
       setIsTranscribing(false);
     }
