@@ -179,11 +179,17 @@ export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: 
     if (ctx.measureText(testLine).width <= maxWidth) {
       currentLine = testLine;
     } else {
-      lines.push(currentLine);
-      currentLine = words[i];
+      const canBreakAtPunctuation = /[.,;!?]$/.test(currentLine);
+      if (canBreakAtPunctuation) {
+        lines.push(currentLine);
+        currentLine = words[i];
+      } else {
+        lines.push(currentLine);
+        currentLine = words[i];
+      }
     }
   }
-  lines.push(currentLine);
+  if (currentLine) lines.push(currentLine);
 
   return lines;
 }
