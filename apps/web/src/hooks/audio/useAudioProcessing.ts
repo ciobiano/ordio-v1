@@ -7,6 +7,9 @@ import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
+import { toast } from 'sonner';
+
+const WHISPER_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB - give buffer under 25MB limit
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
@@ -90,6 +93,35 @@ function audioBufferToWavBlob(audioBuffer: AudioBuffer): Blob {
   return new Blob([audioBufferToWavBytes(audioBuffer)], { type: 'audio/wav' });
 }
 
+async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSignal): Promise<Blob> {
+  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+  const ffmpeg = new FFmpeg();
+
+  const baseUrl = `${window.location.origin}/ffmpeg`;
+  await ffmpeg.load({
+    coreURL: `${baseUrl}/ffmpeg-core.js`,
+    wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
+  });
+
+  const wavBytes = audioBufferToWavBytes(audioBuffer);
+  const wavUint8 = new Uint8Array(wavBytes);
+  await ffmpeg.writeFile('input.wav', wavUint8);
+
+  await ffmpeg.exec(['-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '128k', 'output.mp3']);
+
+  if (abort.aborted) {
+    await ffmpeg.deleteFile('input.wav');
+    await ffmpeg.deleteFile('output.mp3');
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
+  const outputData = (await ffmpeg.readFile('output.mp3')) as Uint8Array;
+  await ffmpeg.deleteFile('input.wav');
+  await ffmpeg.deleteFile('output.mp3');
+
+  return new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
+}
+
 /**
  * Handles the decode → transcribe → upload → finalize pipeline.
  * Returns a Convex session ID that the caller uses to navigate to
@@ -100,7 +132,8 @@ export function useAudioProcessing(
 ): UseAudioProcessingReturn {
   const setCurrentState = useUIStore((s) => s.setCurrentState);
   const { setAudioBuffer, setAudioBlob, setAudioDuration } = useCaptureStore();
-  const { setTranscript, setTranscriptionSource, setIsEnhancing, setEnhanceProgress } = useProcessingStore();
+  const { setTranscript, setTranscriptionSource, setIsEnhancing, setEnhanceProgress } =
+    useProcessingStore();
 
   const [processingProgress, setProcessingProgress] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -239,9 +272,19 @@ export function useAudioProcessing(
         // Step 3: Transcribe + upload in parallel (25–85%)
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         setProcessingProgress(baseTranscribe + 5);
-        const transcriptionBlob = shouldTranscodeForWhisper(rawBlob.type)
-          ? audioBufferToWavBlob(transcriptionBuffer)
-          : rawBlob;
+
+        // Ensure transcription blob is under 20MB limit for Whisper
+        let transcriptionBlob: Blob;
+        if (shouldTranscodeForWhisper(rawBlob.type)) {
+          transcriptionBlob = audioBufferToWavBlob(transcriptionBuffer);
+        } else {
+          transcriptionBlob = rawBlob;
+        }
+
+        // If still too large, compress with FFmpeg to MP3 128k
+        if (transcriptionBlob.size > WHISPER_SIZE_LIMIT) {
+          transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
+        }
 
         const [words, storageId] = await Promise.all([
           // 3a: Whisper transcription
@@ -280,6 +323,8 @@ export function useAudioProcessing(
         if (words.length > 0) {
           setTranscript(words);
           setTranscriptionSource('whisper');
+        } else if (transcription.error) {
+          toast.error(transcription.error);
         }
         setProcessingProgress(85);
 
