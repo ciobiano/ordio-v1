@@ -11,6 +11,46 @@ const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
 const WORDS_PER_PHRASE = 6;
 const MIN_CAPTION_SAFE_ZONE = 0.02;
+const PHRASE_FADE_DURATION = 0.15;
+
+let lastPhraseIndex = -1;
+let lastPhraseText = '';
+
+function getPhraseTransition(
+  transcript: Word[],
+  currentTime: number
+): { currentText: string; prevText: string; progress: number } {
+  const currentIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
+
+  if (currentIdx !== lastPhraseIndex && currentIdx >= 0) {
+    const start = currentIdx * WORDS_PER_PHRASE;
+    const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
+    const newText = transcript
+      .slice(start, end)
+      .map((w) => w.text)
+      .join(' ');
+    const prevText = lastPhraseText;
+
+    lastPhraseIndex = currentIdx;
+    lastPhraseText = newText;
+
+    return { currentText: newText, prevText, progress: 0 };
+  }
+
+  const wordIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
+  if (wordIdx >= 0) {
+    const start = wordIdx * WORDS_PER_PHRASE;
+    const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
+    const text = transcript
+      .slice(start, end)
+      .map((w) => w.text)
+      .join(' ');
+    lastPhraseText = text;
+    return { currentText: text, prevText: '', progress: 1 };
+  }
+
+  return { currentText: '', prevText: lastPhraseText, progress: 1 };
+}
 
 export function drawCaptions(
   ctx: CanvasRenderingContext2D,
@@ -25,18 +65,16 @@ export function drawCaptions(
 
   const { width, height, textColor, fontFamily, fontSize } = style;
   const padding = width * CAPTION_PADDING;
-  const maxWidth = width - padding * 2;
 
-  const phrase = getCurrentPhrase(transcript, currentTime);
-  if (!phrase || phrase.length === 0) return;
+  const transition = getPhraseTransition(transcript, currentTime);
+  if (!transition.currentText && !transition.prevText) return;
 
-  const text = phrase.map((w) => w.text).join(' ');
+  const text = transition.currentText || transition.prevText;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = textColor;
 
-  const lines = wrapText(ctx, text, maxWidth);
+  const lines = [text];
   const lineHeight = fontSize * 1.4;
   const totalHeight = lines.length * lineHeight;
   const safePad = height * CAPTION_PADDING;
@@ -72,9 +110,18 @@ export function drawCaptions(
   ctx.textAlign = 'left';
   const leftX = padding;
 
-  for (let i = 0; i < lines.length; i++) {
-    ctx.fillText(lines[i], leftX, textY + i * lineHeight + lineHeight / 2);
+  if (prevText && progress < 1) {
+    ctx.globalAlpha = 1 - progress;
+    ctx.fillStyle = textColor;
+    ctx.fillText(prevText, leftX, textY + lineHeight / 2);
+    ctx.globalAlpha = progress;
+  } else {
+    ctx.globalAlpha = 1;
   }
+
+  ctx.fillStyle = textColor;
+  ctx.fillText(text, leftX, textY + lineHeight / 2);
+  ctx.globalAlpha = 1;
 }
 
 function getCurrentPhrase(transcript: Word[], currentTime: number): Word[] {
