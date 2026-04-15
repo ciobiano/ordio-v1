@@ -5,7 +5,7 @@ import type { StyleConfig } from '@Ordio/shared/schemas';
 export const WAVEFORM_CENTER_Y = 0.72;
 export const WAVEFORM_CENTER_Y_FLIPPED = 1 - WAVEFORM_CENTER_Y; // 0.28
 export const WAVEFORM_MAX_AMP = 0.07;
-export const GAP_ABOVE_WAVEFORM = 0.06;
+export const GAP_ABOVE_WAVEFORM = 0.05;
 export const WAVEFORM_WIDTH_RATIO = 0.82;
 export const BAR_COUNT = 48;
 export const BAR_GAP = 5;

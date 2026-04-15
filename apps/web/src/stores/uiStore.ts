@@ -54,7 +54,7 @@ const initialPersisted = {
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,
-  canvasLayout: 'standard' as CanvasLayout,
+  canvasLayout: 'compact' as CanvasLayout,
   captionMode: 'phrase' as CaptionMode,
   format: 'square' as FormatVariant,
 };
@@ -71,8 +71,7 @@ export const useUIStore = create<UIState>()(
       ...initialSession,
 
       setTheme: (theme) => set({ theme }),
-      setStyle: (newStyle) =>
-        set((state) => ({ style: { ...state.style, ...newStyle } })),
+      setStyle: (newStyle) => set((state) => ({ style: { ...state.style, ...newStyle } })),
       setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
       setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
       setCanvasLayout: (canvasLayout) => set({ canvasLayout }),

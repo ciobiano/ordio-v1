@@ -43,7 +43,7 @@ export function renderFrame(
   const { width, height } = style;
   const currentTime = frameIndex / FPS;
   const duration = totalFrames / FPS;
-  const layout = canvasLayout ?? 'standard';
+  const layout = canvasLayout ?? 'top';
   const flipped = layout === 'flipped';
 
   // 1. Background

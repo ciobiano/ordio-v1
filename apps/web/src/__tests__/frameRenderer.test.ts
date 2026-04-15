@@ -83,7 +83,7 @@ describe('renderFrame', () => {
   });
 
   it('renders without crashing for all canvas layouts', () => {
-    const layouts = ['standard', 'compact', 'flipped'] as const;
+    const layouts = ['top', 'compact', 'flipped'] as const;
     for (const layout of layouts) {
       const ctx = createMockCtx();
       expect(() => renderFrame(ctx, 15, 90, makeOptions({ canvasLayout: layout }))).not.toThrow();

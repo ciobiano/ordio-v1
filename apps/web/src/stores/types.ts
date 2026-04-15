@@ -6,7 +6,7 @@ export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 
 /** How the canvas is composed: where the visual sits and where captions sit */
-export type CanvasLayout = 'standard' | 'compact' | 'flipped';
+export type CanvasLayout = 'top' | 'compact' | 'flipped';
 
 /** How captions are revealed frame-by-frame */
 export type CaptionMode = 'phrase' | 'karaoke';

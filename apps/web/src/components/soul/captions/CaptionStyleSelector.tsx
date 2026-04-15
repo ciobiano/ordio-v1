@@ -10,13 +10,13 @@ import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
 
 const LAYOUTS: { value: CanvasLayout; label: string; featureKey?: FeatureKey }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'compact',  label: 'Compact' },
-  { value: 'flipped',  label: 'Flipped', featureKey: 'layout_flipped' },
+  { value: 'top', label: 'Top' },
+  { value: 'compact', label: 'Compact' },
+  { value: 'flipped', label: 'Flipped', featureKey: 'layout_flipped' },
 ];
 
 const MODES: { value: CaptionMode; label: string; featureKey?: FeatureKey }[] = [
-  { value: 'phrase',  label: 'Phrase' },
+  { value: 'phrase', label: 'Phrase' },
   { value: 'karaoke', label: 'Karaoke', featureKey: 'caption_karaoke' },
 ];
 
@@ -25,12 +25,12 @@ interface CaptionStyleSelectorProps {
 }
 
 export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorProps) {
-  const canvasLayout  = useUIStore((s) => s.canvasLayout);
+  const canvasLayout = useUIStore((s) => s.canvasLayout);
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout);
-  const captionMode   = useUIStore((s) => s.captionMode);
-  const setCaptionMode  = useUIStore((s) => s.setCaptionMode);
+  const captionMode = useUIStore((s) => s.captionMode);
+  const setCaptionMode = useUIStore((s) => s.setCaptionMode);
   const layoutRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const modeRefs   = useRef<(HTMLButtonElement | null)[]>([]);
+  const modeRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { isLocked } = useFeatureGates();
 
   const handleLayoutKey = (e: React.KeyboardEvent, i: number) => {
@@ -64,14 +64,18 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2" role="radiogroup" aria-label="Canvas layout">
-        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">Layout:</span>
+        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
+          Layout:
+        </span>
         {LAYOUTS.map(({ value, label, featureKey }, i) => {
           const locked = featureKey ? isLocked(featureKey) : false;
           const isSelected = canvasLayout === value;
           return (
             <div key={value} className="relative">
               <button
-                ref={(el) => { layoutRefs.current[i] = el; }}
+                ref={(el) => {
+                  layoutRefs.current[i] = el;
+                }}
                 role="radio"
                 aria-checked={isSelected}
                 tabIndex={isSelected ? 0 : -1}
@@ -82,7 +86,10 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
                 {label}
               </button>
               {locked && featureKey && (
-                <LockBadge onClick={() => onLocked?.(featureKey)} label={`${label} layout requires Creator`} />
+                <LockBadge
+                  onClick={() => onLocked?.(featureKey)}
+                  label={`${label} layout requires Creator`}
+                />
               )}
             </div>
           );
@@ -90,14 +97,18 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
       </div>
 
       <div className="flex items-center gap-2" role="radiogroup" aria-label="Caption mode">
-        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">Mode:</span>
+        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
+          Mode:
+        </span>
         {MODES.map(({ value, label, featureKey }, i) => {
           const locked = featureKey ? isLocked(featureKey) : false;
           const isSelected = captionMode === value;
           return (
             <div key={value} className="relative">
               <button
-                ref={(el) => { modeRefs.current[i] = el; }}
+                ref={(el) => {
+                  modeRefs.current[i] = el;
+                }}
                 role="radio"
                 aria-checked={isSelected}
                 tabIndex={isSelected ? 0 : -1}
@@ -108,7 +119,10 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
                 {label}
               </button>
               {locked && featureKey && (
-                <LockBadge onClick={() => onLocked?.(featureKey)} label={`${label} captions require Creator`} />
+                <LockBadge
+                  onClick={() => onLocked?.(featureKey)}
+                  label={`${label} captions require Creator`}
+                />
               )}
             </div>
           );

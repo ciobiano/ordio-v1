@@ -49,10 +49,13 @@ export function drawCaptions(
     const minSafeZone = height * MIN_CAPTION_SAFE_ZONE;
     const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
     const maxTextY = captionBottom - minSafeZone - totalHeight;
-    textY =
-      layout === 'compact'
-        ? maxTextY
-        : Math.min(safePad + (captionBottom - safePad - totalHeight) / 2, maxTextY);
+    if (layout === 'top') {
+      textY = Math.min(height * 0.28, maxTextY);
+    } else if (layout === 'compact') {
+      textY = maxTextY;
+    } else {
+      textY = Math.min(safePad + (captionBottom - safePad - totalHeight) / 2, maxTextY);
+    }
     textY = Math.max(textY, safePad);
   } else {
     const waveformBottom = WAVEFORM_CENTER_Y_FLIPPED * height + height * WAVEFORM_MAX_AMP;
