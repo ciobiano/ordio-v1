@@ -1,13 +1,16 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CanvasLayout } from '@/stores';
-import { WAVEFORM_CENTER_Y_FLIPPED } from '@/lib/waveforms/constants';
+import {
+  WAVEFORM_CENTER_Y,
+  WAVEFORM_CENTER_Y_FLIPPED,
+  WAVEFORM_MAX_AMP,
+  GAP_ABOVE_WAVEFORM,
+} from '@/lib/waveforms/constants';
 
-const WAVEFORM_CENTER_Y = 0.72;
-const WAVEFORM_MAX_AMP = 0.07;
-const GAP_ABOVE_WAVEFORM = 0.06;
 const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
 const WORDS_PER_PHRASE = 6;
+const MIN_CAPTION_SAFE_ZONE = 0.02;
 
 export function drawCaptions(
   ctx: CanvasRenderingContext2D,
@@ -43,19 +46,24 @@ export function drawCaptions(
     textY = (height - totalHeight) / 2;
   } else if (!flipped) {
     const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
+    const minSafeZone = height * MIN_CAPTION_SAFE_ZONE;
     const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
+    const maxTextY = captionBottom - minSafeZone - totalHeight;
     textY =
       layout === 'compact'
-        ? captionBottom - totalHeight
-        : safePad + ((captionBottom - safePad) - totalHeight) / 2;
+        ? maxTextY
+        : Math.min(safePad + (captionBottom - safePad - totalHeight) / 2, maxTextY);
+    textY = Math.max(textY, safePad);
   } else {
-    const waveformBottom = height * WAVEFORM_CENTER_Y_FLIPPED + height * WAVEFORM_MAX_AMP;
+    const waveformBottom = WAVEFORM_CENTER_Y_FLIPPED * height + height * WAVEFORM_MAX_AMP;
     const captionTop = waveformBottom + height * GAP_ABOVE_WAVEFORM;
     const captionBottom = height - safePad;
+    const minTextY = captionTop;
     textY =
       layout === 'compact'
-        ? captionTop
-        : captionTop + ((captionBottom - captionTop) - totalHeight) / 2;
+        ? minTextY
+        : Math.max(minTextY, captionTop + (captionBottom - captionTop - totalHeight) / 2);
+    textY = Math.min(textY, captionBottom - totalHeight);
   }
 
   ctx.textAlign = 'center';
@@ -107,11 +115,7 @@ function findCurrentPhraseIndex(
   return Math.floor(wordIdx / wordsPerPhrase);
 }
 
-export function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number
-): string[] {
+export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = words[0] || '';

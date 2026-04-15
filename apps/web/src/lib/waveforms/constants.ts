@@ -5,6 +5,7 @@ import type { StyleConfig } from '@Ordio/shared/schemas';
 export const WAVEFORM_CENTER_Y = 0.72;
 export const WAVEFORM_CENTER_Y_FLIPPED = 1 - WAVEFORM_CENTER_Y; // 0.28
 export const WAVEFORM_MAX_AMP = 0.07;
+export const GAP_ABOVE_WAVEFORM = 0.06;
 export const WAVEFORM_WIDTH_RATIO = 0.82;
 export const BAR_COUNT = 48;
 export const BAR_GAP = 5;
@@ -28,10 +29,7 @@ export function getCurrentAmplitude(
 ): number {
   if (waveformData.length === 0 || duration <= 0) return 0;
   const progress = currentTime / duration;
-  const sampleIndex = Math.min(
-    Math.floor(progress * waveformData.length),
-    waveformData.length - 1
-  );
+  const sampleIndex = Math.min(Math.floor(progress * waveformData.length), waveformData.length - 1);
   return waveformData[Math.max(0, sampleIndex)];
 }
 
@@ -59,7 +57,10 @@ export interface BarLayout {
 
 export function computeBarLayout(canvasWidth: number): BarLayout {
   const totalGaps = (BAR_COUNT - 1) * BAR_GAP;
-  const barWidth = Math.max(BAR_MIN_WIDTH, (canvasWidth * WAVEFORM_WIDTH_RATIO - totalGaps) / BAR_COUNT);
+  const barWidth = Math.max(
+    BAR_MIN_WIDTH,
+    (canvasWidth * WAVEFORM_WIDTH_RATIO - totalGaps) / BAR_COUNT
+  );
   const startX = (canvasWidth - (BAR_COUNT * barWidth + totalGaps)) / 2;
   return { barWidth, startX };
 }

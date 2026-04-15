@@ -1,10 +1,11 @@
 import type { StyleConfig } from '@Ordio/shared/schemas';
 import type { GraphicStyleId } from '@/stores';
-import {
-  WAVEFORM_CENTER_Y_FLIPPED,
-} from '@/lib/waveforms/constants';
+import { WAVEFORM_CENTER_Y_FLIPPED } from '@/lib/waveforms/constants';
 
 const WAVEFORM_CENTER_Y = 0.72;
+
+const GRAPHIC_WIDTH_RATIO = 0.7;
+const GRAPHIC_HEIGHT_RATIO = 0.3;
 
 export function drawGraphic(
   ctx: CanvasRenderingContext2D,
@@ -16,14 +17,12 @@ export function drawGraphic(
   const { width, height } = style;
   const aspectRatio = img.naturalWidth / img.naturalHeight;
 
-  // Fit within 70% width and 30% height, preserving aspect ratio
-  const maxW = width * 0.7;
-  const maxH = height * 0.3;
+  const maxW = width * GRAPHIC_WIDTH_RATIO;
+  const maxH = height * GRAPHIC_HEIGHT_RATIO;
   const fitByWidth = maxW / aspectRatio <= maxH;
   const drawW = fitByWidth ? maxW : maxH * aspectRatio;
   const drawH = fitByWidth ? maxW / aspectRatio : maxH;
 
-  // Centre horizontally; vertically centred on the visual zone
   const centerY = flipped ? WAVEFORM_CENTER_Y_FLIPPED : WAVEFORM_CENTER_Y;
   const drawX = (width - drawW) / 2;
   const drawY = height * centerY - drawH / 2;
