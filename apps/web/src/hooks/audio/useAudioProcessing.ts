@@ -9,7 +9,7 @@ import { decodeBlobToAudioBuffer } from '@/lib/media';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
 import { toast } from 'sonner';
 
-const WHISPER_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB - give buffer under 25MB limit
+const WHISPER_SIZE_LIMIT = 4 * 1024 * 1024; // 4MB - under Vercel 4.5MB limit
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;

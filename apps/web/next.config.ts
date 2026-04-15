@@ -16,6 +16,17 @@ const ffmpegCoreDist = path.join(
 );
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+        ],
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: [
       'three',
@@ -29,7 +40,10 @@ const nextConfig: NextConfig = {
 
     config.ignoreWarnings = [
       ...(config.ignoreWarnings || []),
-      { message: /require function is used in a way in which dependencies cannot be statically extracted/ },
+      {
+        message:
+          /require function is used in a way in which dependencies cannot be statically extracted/,
+      },
     ];
 
     config.plugins.push(
