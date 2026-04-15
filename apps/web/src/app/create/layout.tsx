@@ -10,7 +10,8 @@ import { usePaymentRedirect } from '@/hooks/billing/usePaymentRedirect';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { CapabilityBanner } from '@/components/primitives';
-import { AuthGate, UpgradeSheet, OnboardingDialog } from '@/components/soul';
+import { UpgradeSheet, OnboardingDialog } from '@/components/soul';
+import { SplashScreen } from '@/components/splash/SplashScreen';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 
 function CreateLayoutContent({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,7 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
   if (isLoading) return null;
 
   if (!isSignedIn) {
-    return <AuthGate />;
+    return <SplashScreen />;
   }
 
   return (
@@ -38,7 +39,7 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
       <UpgradeSheet
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
-        feature={upgradeTarget === 'export_limit' ? undefined : upgradeTarget ?? undefined}
+        feature={upgradeTarget === 'export_limit' ? undefined : (upgradeTarget ?? undefined)}
         onUpgrade={() =>
           startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
         }
