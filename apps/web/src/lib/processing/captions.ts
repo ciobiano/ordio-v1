@@ -110,11 +110,11 @@ export function drawCaptions(
   ctx.textAlign = 'left';
   const leftX = padding;
 
-  if (prevText && progress < 1) {
-    ctx.globalAlpha = 1 - progress;
+  if (transition.prevText && transition.progress < 1) {
+    ctx.globalAlpha = 1 - transition.progress;
     ctx.fillStyle = textColor;
-    ctx.fillText(prevText, leftX, textY + lineHeight / 2);
-    ctx.globalAlpha = progress;
+    ctx.fillText(transition.prevText, leftX, textY + lineHeight / 2);
+    ctx.globalAlpha = transition.progress;
   } else {
     ctx.globalAlpha = 1;
   }
