@@ -74,9 +74,10 @@ export function drawCaptions(
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
 
-  const lines = [text];
+  const maxTextWidth = width - padding * 2;
+  const wrappedLines = wrapText(ctx, text, maxTextWidth);
   const lineHeight = fontSize * 1.4;
-  const totalHeight = lines.length * lineHeight;
+  const totalHeight = wrappedLines.length * lineHeight;
   const safePad = height * CAPTION_PADDING;
 
   let textY: number;
@@ -110,18 +111,21 @@ export function drawCaptions(
   ctx.textAlign = 'left';
   const leftX = padding;
 
-  if (transition.prevText && transition.progress < 1) {
-    ctx.globalAlpha = 1 - transition.progress;
-    ctx.fillStyle = textColor;
-    ctx.fillText(transition.prevText, leftX, textY + lineHeight / 2);
-    ctx.globalAlpha = transition.progress;
-  } else {
+  const renderText = (linesToRender: string[], alpha: number) => {
+    ctx.globalAlpha = alpha;
+    linesToRender.forEach((line, idx) => {
+      ctx.fillStyle = textColor;
+      ctx.fillText(line, leftX, textY + idx * lineHeight + lineHeight / 2);
+    });
     ctx.globalAlpha = 1;
+  };
+
+  if (transition.prevText && transition.progress < 1) {
+    const prevWrapped = wrapText(ctx, transition.prevText, maxTextWidth);
+    renderText(prevWrapped, 1 - transition.progress);
   }
 
-  ctx.fillStyle = textColor;
-  ctx.fillText(text, leftX, textY + lineHeight / 2);
-  ctx.globalAlpha = 1;
+  renderText(wrappedLines, transition.progress);
 }
 
 function getCurrentPhrase(transcript: Word[], currentTime: number): Word[] {

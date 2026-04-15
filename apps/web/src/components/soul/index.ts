@@ -11,4 +11,3 @@ export { RecordingState } from './recording/RecordingState';
 export { default as StyleControls } from './captions/StyleControls';
 export { default as UpgradeSheet } from './modals/UpgradeSheet';
 export { default as StyleModeSelector } from './captions/StyleModeSelector';
-export { default as OnboardingDialog } from './modals/OnboardingDialog';

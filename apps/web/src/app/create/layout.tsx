@@ -10,7 +10,7 @@ import { usePaymentRedirect } from '@/hooks/billing/usePaymentRedirect';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { CapabilityBanner } from '@/components/primitives';
-import { UpgradeSheet, OnboardingDialog } from '@/components/soul';
+import { UpgradeSheet } from '@/components/soul';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 
@@ -44,8 +44,6 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
           startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
         }
       />
-
-      <OnboardingDialog />
 
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/4 text-[length:var(--text-footnote)]
