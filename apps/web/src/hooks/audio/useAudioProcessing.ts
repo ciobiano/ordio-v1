@@ -12,6 +12,83 @@ interface UseAudioProcessingReturn {
   processAudio: (blob: Blob) => Promise<string>;
   cancelProcessing: () => void;
 }
+const WHISPER_SUPPORTED_MIME_TYPES = new Set([
+  'audio/flac',
+  'audio/m4a',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/mpeg',
+  'audio/mpga',
+  'audio/ogg',
+  'audio/oga',
+  'audio/wav',
+  'audio/webm',
+  'audio/x-flac',
+  'audio/x-m4a',
+  'audio/x-wav',
+  'video/mp4',
+  'video/webm',
+]);
+
+function normalizeMimeType(mimeType: string): string {
+  return mimeType.toLowerCase().split(';')[0]?.trim() ?? '';
+}
+
+function shouldTranscodeForWhisper(mimeType: string): boolean {
+  const normalized = normalizeMimeType(mimeType);
+  if (!normalized) return false;
+  return !WHISPER_SUPPORTED_MIME_TYPES.has(normalized);
+}
+
+function audioBufferToWavBytes(audioBuffer: AudioBuffer): ArrayBuffer {
+  const numChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const numSamples = audioBuffer.length;
+  const bytesPerSample = 2; // int16 PCM
+  const dataSize = numSamples * numChannels * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+  view.setUint16(32, numChannels * bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  const channels: Float32Array[] = [];
+  for (let c = 0; c < numChannels; c++) {
+    channels.push(audioBuffer.getChannelData(c));
+  }
+
+  let offset = 44;
+  for (let i = 0; i < numSamples; i++) {
+    for (let c = 0; c < numChannels; c++) {
+      const sample = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return buffer;
+}
+
+function audioBufferToWavBlob(audioBuffer: AudioBuffer): Blob {
+  return new Blob([audioBufferToWavBytes(audioBuffer)], { type: 'audio/wav' });
+}
 
 /**
  * Handles the decode → transcribe → upload → finalize pipeline.
@@ -81,9 +158,11 @@ export function useAudioProcessing(
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
         setProcessingProgress(10);
         let decoded: AudioBuffer;
+        let transcriptionBuffer: AudioBuffer;
         try {
           const { audioBuffer, decodePath } = await decodeBlobToAudioBuffer(blob);
           decoded = audioBuffer;
+          transcriptionBuffer = audioBuffer;
           // #region agent log
           fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
             method: 'POST',
@@ -150,6 +229,7 @@ export function useAudioProcessing(
             setAudioBuffer(enhancedBuffer);
             setAudioDuration(enhancedBuffer.duration);
             blob = result.blob;
+            transcriptionBuffer = enhancedBuffer;
           }
           setIsEnhancing(false);
           setEnhanceProgress(0);
@@ -159,10 +239,13 @@ export function useAudioProcessing(
         // Step 3: Transcribe + upload in parallel (25–85%)
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         setProcessingProgress(baseTranscribe + 5);
+        const transcriptionBlob = shouldTranscodeForWhisper(rawBlob.type)
+          ? audioBufferToWavBlob(transcriptionBuffer)
+          : rawBlob;
 
         const [words, storageId] = await Promise.all([
           // 3a: Whisper transcription
-          transcriptionRef.current.transcribeAudio(rawBlob),
+          transcriptionRef.current.transcribeAudio(transcriptionBlob),
 
           // 3b: Upload audio to Convex storage (two-step)
           (async () => {

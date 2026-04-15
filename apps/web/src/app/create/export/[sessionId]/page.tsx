@@ -12,6 +12,7 @@ import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
+import { decodeBlobToAudioBuffer } from '@/lib/media';
 import ExportState from '@/components/soul/states/ExportState';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -36,7 +37,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
 
   const { audioBuffer, setAudioBuffer, setAudioBlob, setAudioDuration } = useCaptureStore();
 
-  const { transcript, setTranscript } = useProcessingStore();
+  const { setTranscript } = useProcessingStore();
 
   const { setUpgradeTarget, format, waveformStyle, canvasLayout, captionMode, graphicStyle } =
     useUIStore();
@@ -88,11 +89,9 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
       try {
         const res = await fetch(audioUrlResult);
         const arrayBuf = await res.arrayBuffer();
-        const audioCtx = new AudioContext();
-        const decoded = await audioCtx.decodeAudioData(arrayBuf);
-        void audioCtx.close();
 
         const blob = new Blob([arrayBuf], { type: session.mimeType });
+        const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
         setAudioBuffer(decoded);
         setAudioBlob(blob);
         setAudioDuration(decoded.duration);

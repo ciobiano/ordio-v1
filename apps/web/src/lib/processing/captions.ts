@@ -66,11 +66,11 @@ export function drawCaptions(
     textY = Math.min(textY, captionBottom - totalHeight);
   }
 
-  ctx.textAlign = 'center';
-  const centerX = width / 2;
+  ctx.textAlign = 'left';
+  const leftX = padding;
 
   for (let i = 0; i < lines.length; i++) {
-    ctx.fillText(lines[i], centerX, textY + i * lineHeight + lineHeight / 2);
+    ctx.fillText(lines[i], leftX, textY + i * lineHeight + lineHeight / 2);
   }
 }
 

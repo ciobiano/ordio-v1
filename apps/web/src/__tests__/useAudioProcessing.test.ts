@@ -87,14 +87,19 @@ describe('useAudioProcessing', () => {
   beforeEach(async () => {
     // Reset call counts but preserve mock implementations
     vi.clearAllMocks();
+    const channel = new Float32Array(44_100);
+    channel.fill(0.1);
+    const decodedBuffer = {
+      duration: 1,
+      length: 44_100,
+      numberOfChannels: 1,
+      sampleRate: 44_100,
+      getChannelData: vi.fn(() => channel),
+    } as unknown as AudioBuffer;
 
     const decodeMod = await import('@/lib/media');
     (decodeMod.decodeBlobToAudioBuffer as Mock).mockResolvedValue({
-      audioBuffer: {
-        duration: 5.0,
-        numberOfChannels: 1,
-        sampleRate: 44100,
-      } as AudioBuffer,
+      audioBuffer: decodedBuffer,
       decodePath: 'native' as const,
     });
 
@@ -188,5 +193,34 @@ describe('useAudioProcessing', () => {
     });
 
     expect(mockSetCurrentState).toHaveBeenCalledWith('idle');
+  });
+
+  it('transcodes unsupported video mime types to wav before transcription', async () => {
+    const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
+    const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
+
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock
+      .mockReturnValueOnce(mockGenerateUploadUrl)
+      .mockReturnValueOnce(mockCreateSession);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ storageId: 'storage_abc' }),
+    });
+
+    const blob = new Blob(['video data'], { type: 'video/quicktime' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await result.current.processAudio(blob);
+    });
+
+    const transcribeArg = (mockTranscription.transcribeAudio as Mock).mock.calls[0]?.[0] as Blob;
+    expect(transcribeArg).toBeInstanceOf(Blob);
+    expect(transcribeArg.type).toBe('audio/wav');
   });
 });
