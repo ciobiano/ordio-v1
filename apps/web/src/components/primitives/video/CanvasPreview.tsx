@@ -20,6 +20,8 @@ interface CanvasPreviewProps {
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
   className?: string;
+  showGrid?: boolean;
+  gridSize?: number;
 }
 
 function getFormatLabel(format: FormatVariant): string {
@@ -63,17 +65,21 @@ export default function CanvasPreview({
   showWatermark = false,
   graphicStyle,
   className,
+  showGrid = false,
+  gridSize = 24,
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveformDataRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
   const currentTimeRef = useRef(0);
   const [fontLoaded, setFontLoaded] = useState(false);
+  const [displayTime, setDisplayTime] = useState(0);
 
   // Sync currentTime to ref synchronously — no effect needed, no dep tracking
   currentTimeRef.current = playback.currentTime;
 
   const transcript = useProcessingStore((s) => s.transcript);
+  const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
 
@@ -97,7 +103,27 @@ export default function CanvasPreview({
     }
   }, [audioBuffer]);
 
+  // HUD time display (listen to playback time updates)
+  useEffect(() => {
+    const unbindTime = playback.registerTimeListener((t) => {
+      setDisplayTime(t);
+    });
+    return unbindTime;
+  }, [playback]);
+
   const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions(format);
+
+  // Optional grid overlay styling
+  const gridOverlayStyle = {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage:
+      `linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), ` +
+      `linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)`,
+    backgroundSize: `${gridSize}px ${gridSize}px`,
+    pointerEvents: 'none',
+    mixBlendMode: 'overlay',
+  } as const;
 
   const drawCurrentFrame = useCallback(() => {
     const canvas = canvasRef.current;
@@ -122,10 +148,11 @@ export default function CanvasPreview({
       canvasLayout,
       showWatermark,
       graphicStyle,
+      captionGroups,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {
@@ -145,6 +172,20 @@ export default function CanvasPreview({
     }
   }, [playback.isPlaying, drawCurrentFrame]);
 
+  // Keyboard shortcut: Space to toggle play/pause (ignore inputs)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase() ?? '';
+      if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') return;
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (playback.isPlaying) playback.pause(); else playback.play();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [playback]);
+
   return (
     <div className={cn('relative rounded-xl overflow-hidden shadow-2xl', getContainerClass(format), className)}>
       <canvas
@@ -156,6 +197,30 @@ export default function CanvasPreview({
         tabIndex={-1}
         aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
+      {/* Optional grid overlay for composition studies */}
+      {showGrid && <div aria-hidden="true" style={gridOverlayStyle} />}
+      {/* HUD: time & format badge */}
+      <div className="absolute top-2 left-2 z-20 bg-black/40 text-xs text-white px-2 py-0.5 rounded backdrop-blur" aria-hidden="true">
+        {getFormatLabel(format)} • {formatTime(displayTime)} / {formatTime(playback.duration)}
+      </div>
+      {/* Center Play/Pause control for quick interaction */}
+      <button
+        aria-label={playback.isPlaying ? 'Pause preview' : 'Play preview'}
+        onClick={() => (playback.isPlaying ? playback.pause() : playback.play())}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 rounded-full bg-black/60 hover:bg-black/80 text-white w-12 h-12 flex items-center justify-center border border-white/20 shadow-xl"
+        style={{ padding: 0 }}
+      >
+        {playback.isPlaying ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Pause" role="img">
+            <rect x="6" y="5" width="4" height="14" fill="currentColor" rx="1" />
+            <rect x="14" y="5" width="4" height="14" fill="currentColor" rx="1" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Play" role="img">
+            <path d="M8 5v14l11-7-11-7z" fill="currentColor" />
+          </svg>
+        )}
+      </button>
       <span
         className="absolute top-2 right-2 text-xs font-medium tracking-wider uppercase
                    text-white/40 bg-black/40 px-1.5 py-0.5 rounded"

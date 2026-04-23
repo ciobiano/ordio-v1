@@ -10,10 +10,8 @@ export { loadFont, loadGraphic, getGraphic } from './loaders';
 // Media processing
 export { decodeBlobToAudioBuffer, concatAudioBuffers, detectSilentRegions } from './media';
 
-// Canvas processing
 export { drawCaptions, drawWatermark } from './processing';
 
-// Individual exports
 export { enhanceAudio, type EnhanceResult } from './audioEnhanceApi';
 export { FEATURE_GATES, tierHasAccess, type FeatureKey, type UserTier } from './featureGates';
 export { drawGraphic } from './graphic';

@@ -1,5 +1,5 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CanvasLayout } from '@/stores';
+import type { CanvasLayout, CaptionGroup } from '@/stores';
 import {
   WAVEFORM_CENTER_Y,
   WAVEFORM_CENTER_Y_FLIPPED,
@@ -9,47 +9,85 @@ import {
 
 const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
-const WORDS_PER_PHRASE = 6;
 const MIN_CAPTION_SAFE_ZONE = 0.02;
 const PHRASE_FADE_DURATION = 0.15;
-
-let lastPhraseIndex = -1;
-let lastPhraseText = '';
-
+const WORDS_PER_PHRASE = 6;
 function getPhraseTransition(
   transcript: Word[],
-  currentTime: number
-): { currentText: string; prevText: string; progress: number } {
-  const currentIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
+  currentTime: number,
+  groups?: CaptionGroup[] | undefined
+): { currentText: string; prevText: string; progress: number; groupIndex: number } {
+  // If we have custom groups, use them (no fading, instant cut)
+  if (groups && groups.length > 0) {
+    const currentGroupIdx = groups.findIndex(
+      g => currentTime >= g.start && currentTime < g.end
+    );
+    
+    if (currentGroupIdx >= 0) {
+      return { 
+        currentText: groups[currentGroupIdx].text, 
+        prevText: '', 
+        progress: 1, 
+        groupIndex: currentGroupIdx 
+      };
+    }
+    
+    // Find next upcoming group if we are in a gap
+    const nextGroupIdx = groups.findIndex(g => g.start > currentTime);
+    if (nextGroupIdx > 0) {
+      return { 
+        currentText: '', 
+        prevText: groups[nextGroupIdx - 1].text, 
+        progress: 1, 
+        groupIndex: -1 
+      };
+    }
+    
+    // Past all groups
+    if (groups.length > 0 && currentTime >= groups[groups.length - 1].end) {
+      return {
+        currentText: '',
+        prevText: groups[groups.length - 1].text,
+        progress: 1,
+        groupIndex: -1
+      };
+    }
 
-  if (currentIdx !== lastPhraseIndex && currentIdx >= 0) {
+    return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
+  }
+  
+  // Fallback: auto-phrase grouping (6 words per phrase)
+  const currentIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
+  
+  if (currentIdx >= 0) {
     const start = currentIdx * WORDS_PER_PHRASE;
     const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
-    const newText = transcript
-      .slice(start, end)
-      .map((w) => w.text)
-      .join(' ');
-    const prevText = lastPhraseText;
-
-    lastPhraseIndex = currentIdx;
-    lastPhraseText = newText;
-
-    return { currentText: newText, prevText, progress: 0 };
+    const text = transcript.slice(start, end).map(w => w.text).join(' ');
+    
+    // Calculate pure time-based fade
+    const firstWordStart = transcript[start].start;
+    const timeSinceStart = currentTime - firstWordStart;
+    const progress = Math.min(1, Math.max(0, timeSinceStart / PHRASE_FADE_DURATION));
+    
+    let prevText = '';
+    if (progress < 1 && currentIdx > 0) {
+      const prevStart = (currentIdx - 1) * WORDS_PER_PHRASE;
+      const prevEnd = Math.min(prevStart + WORDS_PER_PHRASE, transcript.length);
+      prevText = transcript.slice(prevStart, prevEnd).map(w => w.text).join(' ');
+    }
+    
+    return { currentText: text, prevText, progress, groupIndex: currentIdx };
   }
 
-  const wordIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
-  if (wordIdx >= 0) {
-    const start = wordIdx * WORDS_PER_PHRASE;
-    const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
-    const text = transcript
-      .slice(start, end)
-      .map((w) => w.text)
-      .join(' ');
-    lastPhraseText = text;
-    return { currentText: text, prevText: '', progress: 1 };
+  // Find the last active phrase if we are past the end
+  if (transcript.length > 0 && currentTime >= transcript[transcript.length - 1].end) {
+    const lastIdx = Math.floor((transcript.length - 1) / WORDS_PER_PHRASE);
+    const start = lastIdx * WORDS_PER_PHRASE;
+    const text = transcript.slice(start).map(w => w.text).join(' ');
+    return { currentText: '', prevText: text, progress: 1, groupIndex: -1 };
   }
 
-  return { currentText: '', prevText: lastPhraseText, progress: 1 };
+  return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
 }
 
 export function drawCaptions(
@@ -59,14 +97,15 @@ export function drawCaptions(
   style: StyleConfig,
   layout: CanvasLayout,
   hasVisualZone: boolean,
-  flipped = false
+  flipped = false,
+  groups?: CaptionGroup[] | undefined
 ): void {
   if (transcript.length === 0) return;
 
-  const { width, height, textColor, fontFamily, fontSize } = style;
+  const { width, height, textColor, fontFamily, fontSize, lineSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
   const padding = width * CAPTION_PADDING;
 
-  const transition = getPhraseTransition(transcript, currentTime);
+  const transition = getPhraseTransition(transcript, currentTime, groups);
   if (!transition.currentText && !transition.prevText) return;
 
   const text = transition.currentText || transition.prevText;
@@ -76,7 +115,7 @@ export function drawCaptions(
 
   const maxTextWidth = width - padding * 2;
   const wrappedLines = wrapText(ctx, text, maxTextWidth);
-  const lineHeight = fontSize * 1.4;
+  const lineHeight = fontSize * lineHeightMultiplier + lineSpacing;
   const totalHeight = wrappedLines.length * lineHeight;
   const safePad = height * CAPTION_PADDING;
 

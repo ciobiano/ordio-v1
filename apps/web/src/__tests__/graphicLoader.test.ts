@@ -57,6 +57,12 @@ describe('graphicLoader', () => {
     expect(img.src).toContain('frame2.svg');
   });
 
+  it('getGraphic returns null for uncached graphic', async () => {
+    vi.resetModules();
+    const { getGraphic } = await import('@/lib/loaders');
+    expect(getGraphic('graphic-frame1')).toBeNull();
+  });
+
   it('loadGraphic rejects on load error', async () => {
     vi.stubGlobal(
       'Image',

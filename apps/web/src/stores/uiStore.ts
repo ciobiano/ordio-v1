@@ -51,6 +51,8 @@ const initialPersisted = {
     fontFamily: 'Inter' as const,
     fontSize: 72,
     waveColor: '#ffffff',
+    lineSpacing: 0,
+    lineHeight: 1.4,
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,

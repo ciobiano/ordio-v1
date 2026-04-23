@@ -20,6 +20,22 @@ const MODES: { value: CaptionMode; label: string; featureKey?: FeatureKey }[] = 
   { value: 'karaoke', label: 'Karaoke', featureKey: 'caption_karaoke' },
 ];
 
+const LINE_HEIGHT_PRESETS = [
+  { value: 1.2, label: '1.2' },
+  { value: 1.4, label: '1.4' },
+  { value: 1.6, label: '1.6' },
+  { value: 1.8, label: '1.8' },
+  { value: 2.0, label: '2.0' },
+];
+
+const LINE_SPACING_PRESETS = [
+  { value: 0, label: '0' },
+  { value: 4, label: '4' },
+  { value: 8, label: '8' },
+  { value: 12, label: '12' },
+  { value: 16, label: '16' },
+];
+
 interface CaptionStyleSelectorProps {
   onLocked?: (feature: FeatureKey) => void;
 }
@@ -29,9 +45,14 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout);
   const captionMode = useUIStore((s) => s.captionMode);
   const setCaptionMode = useUIStore((s) => s.setCaptionMode);
+  const style = useUIStore((s) => s.style);
+  const setStyle = useUIStore((s) => s.setStyle);
   const layoutRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const modeRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { isLocked } = useFeatureGates();
+
+  const lineHeight = style.lineHeight ?? 1.4;
+  const lineSpacing = style.lineSpacing ?? 0;
 
   const handleLayoutKey = (e: React.KeyboardEvent, i: number) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -125,6 +146,50 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
                 />
               )}
             </div>
+          );
+        })}
+      </div>
+
+      {/* Line Height control */}
+      <div className="flex items-center gap-2" role="radiogroup" aria-label="Line height">
+        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
+          Line:
+        </span>
+        {LINE_HEIGHT_PRESETS.map(({ value, label }) => {
+          const isSelected = lineHeight === value;
+          return (
+            <button
+              key={value}
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => setStyle({ lineHeight: value })}
+              className={cn(optionBtn({ shape: 'pill', tone: 'white', active: isSelected }))}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Line Spacing control */}
+      <div className="flex items-center gap-2" role="radiogroup" aria-label="Line spacing">
+        <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
+          Space:
+        </span>
+        {LINE_SPACING_PRESETS.map(({ value, label }) => {
+          const isSelected = lineSpacing === value;
+          return (
+            <button
+              key={value}
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => setStyle({ lineSpacing: value })}
+              className={cn(optionBtn({ shape: 'pill', tone: 'white', active: isSelected }))}
+            >
+              {label}
+            </button>
           );
         })}
       </div>

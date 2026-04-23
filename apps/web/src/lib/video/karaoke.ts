@@ -1,4 +1,5 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
+import type { CaptionGroup } from '@/stores/types';
 
 const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
@@ -78,15 +79,33 @@ export function drawKaraokeCaptions(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
-  style: StyleConfig
+  style: StyleConfig,
+  groups?: CaptionGroup[]
 ): void {
   if (transcript.length === 0) return;
 
-  const { width, height, textColor, fontFamily, fontSize } = style;
+  const { width, height, textColor, fontFamily, fontSize, lineSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
   const padding = width * CAPTION_PADDING;
   const maxWidth = width - padding * 2;
 
-  const scene = getKaraokeScene(transcript, currentTime);
+  // Use groups to determine active scene if provided
+  let scene: Word[];
+  if (groups && groups.length > 0) {
+    const activeGroup = groups.find(g => currentTime >= g.start && currentTime < g.end);
+    if (activeGroup) {
+      scene = activeGroup.wordIndices.map(i => transcript[i]).filter(Boolean);
+    } else {
+      // Find the next upcoming group
+      const nextGroup = groups.find(g => g.start > currentTime);
+      if (nextGroup) {
+        scene = nextGroup.wordIndices.slice(0, KARAOKE_MAX_SCENE_WORDS).map(i => transcript[i]).filter(Boolean);
+      } else {
+        scene = transcript.slice(0, KARAOKE_MAX_SCENE_WORDS);
+      }
+    }
+  } else {
+    scene = getKaraokeScene(transcript, currentTime);
+  }
   if (scene.length === 0) return;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
@@ -94,7 +113,7 @@ export function drawKaraokeCaptions(
   ctx.textAlign = 'left';
 
   const spaceWidth = ctx.measureText(' ').width;
-  const lineHeight = fontSize * 1.4;
+  const lineHeight = fontSize * lineHeightMultiplier + lineSpacing;
 
   const measured: KaraokeWord[] = scene.map((w) => ({
     text: w.text,

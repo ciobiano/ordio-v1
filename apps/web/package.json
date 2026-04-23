@@ -11,7 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:scrap": "node scripts/test-scrap-analyzer.js",
+    "test:complexity": "npx complexity-report --threshold 10",
+    "test:circular": "madge --circular --extensions ts,tsx src/stores src/components src/lib src/hooks",
+    "test:acceptance": "vitest run src/__tests__/features"
   },
   "dependencies": {
     "@Ordio/convex": "workspace:*",
@@ -50,8 +54,11 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^12.8.1",
+    "@cucumber/pretty-formatter": "^3.2.0",
     "@eslint/eslintrc": "^3.3.5",
     "@playwright/test": "^1.58.2",
+    "@pythonidaer/complexity-report": "^1.0.18",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -65,6 +72,7 @@
     "eslint": "^8",
     "eslint-config-next": "15.3.3",
     "jsdom": "^28.1.0",
+    "madge": "^8.0.0",
     "shadcn": "^4.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",

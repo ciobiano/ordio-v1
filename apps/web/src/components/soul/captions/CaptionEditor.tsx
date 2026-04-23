@@ -4,27 +4,53 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { useProcessingStore } from '@/stores';
-import type { Word } from '@Ordio/shared/schemas';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  PlayIcon,
+  ScissorIcon,
+  ArrowUp01Icon,
+  ArrowDown01Icon,
+  MoreHorizontalIcon,
+  Undo02Icon,
+  Redo02Icon,
+} from '@hugeicons/core-free-icons';
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer';
 
-const WORDS_PER_PHRASE = 6;
+// ─── Variants ─────────────────────────────────────────────────────────────
 
-const chip = cva(
-  'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-[44px]',
+const captionRow = cva(
+  'group flex w-full items-start gap-3 px-3 py-3 text-left transition-colors duration-100 cursor-pointer border-l-2 outline-none min-h-[52px] focus-visible:ring-1 focus-visible:ring-ring/50',
   {
     variants: {
-      active: {
-        true:  'bg-accent border-border text-foreground px-2.5 py-1',
-        false: 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white/80 hover:bg-white/[0.08] px-2.5 py-1',
-      },
-      focused: {
-        true:  'ring-1 ring-white/40',
-        false: '',
+      state: {
+        idle:     'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30',
+        active:   'border-accent text-foreground bg-accent/5',
+        selected: 'border-white/20 text-foreground bg-white/[0.04]',
       },
     },
-    defaultVariants: { active: false, focused: false },
+    defaultVariants: { state: 'idle' },
   }
 );
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function formatTimestamp(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// ─── Props ─────────────────────────────────────────────────────────────────
 
 interface CaptionEditorProps {
   currentTime: number;
@@ -33,200 +59,357 @@ interface CaptionEditorProps {
   trimmer?: UseAudioTrimmerReturn;
 }
 
-export default function CaptionEditor({ currentTime, onSeek, isTranscribing, trimmer }: CaptionEditorProps) {
-  const transcript = useProcessingStore((s) => s.transcript);
-  const setTranscript = useProcessingStore((s) => s.setTranscript);
-  const transcriptionSource = useProcessingStore((s) => s.transcriptionSource);
+// ─── Component ─────────────────────────────────────────────────────────────
 
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const chipRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const containerRef = useRef<HTMLDivElement>(null);
+export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: CaptionEditorProps) {
+  const transcript         = useProcessingStore((s) => s.transcript);
+  const captionGroups      = useProcessingStore((s) => s.captionGroups);
+  const selectedGroupIndices = useProcessingStore((s) => s.selectedGroupIndices);
+  const captionUndoStack   = useProcessingStore((s) => s.captionUndoStack);
+  const captionRedoStack   = useProcessingStore((s) => s.captionRedoStack);
+  const splitAtWord           = useProcessingStore((s) => s.splitAtWord);
+  const splitAtTime           = useProcessingStore((s) => s.splitAtTime);
+  const mergeDown             = useProcessingStore((s) => s.mergeDown);
+  const mergeUp               = useProcessingStore((s) => s.mergeUp);
+  const mergeUpAtCursor       = useProcessingStore((s) => s.mergeUpAtCursor);
+  const mergeDownAtCursor     = useProcessingStore((s) => s.mergeDownAtCursor);
+  const selectGroup           = useProcessingStore((s) => s.selectGroup);
+  const clearSelection        = useProcessingStore((s) => s.clearSelection);
+  const undoCaptions          = useProcessingStore((s) => s.undoCaptions);
+  const redoCaptions          = useProcessingStore((s) => s.redoCaptions);
 
-  const isActive = useCallback(
-    (word: Word) => currentTime >= word.start && currentTime < word.end,
-    [currentTime]
-  );
+  // The word position within the selected group where the cursor sits.
+  // cursorPosition = N means the cursor is before word[N], so:
+  //   - words [0..N-1] stay in segment A
+  //   - word[N] and onwards become segment B
+  // null = no cursor placed yet (Split will use playhead time instead)
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
-  // Auto-scroll active word into view during playback
+  // The single selected group index (last clicked)
+  const selectedGroupIdx = selectedGroupIndices.length > 0
+    ? selectedGroupIndices[selectedGroupIndices.length - 1]
+    : null;
+
+  const groupRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const canUndo = captionUndoStack.length > 0;
+  const canRedo = captionRedoStack.length > 0;
+
+  // Auto-scroll active group into view during playback
   useEffect(() => {
-    if (editingIndex !== null) return;
-    const activeIdx = transcript.findIndex((w) => currentTime >= w.start && currentTime < w.end);
+    const activeIdx = captionGroups.findIndex(
+      (g) => currentTime >= g.start && currentTime < g.end
+    );
     if (activeIdx < 0) return;
-    const el = chipRefs.current.get(activeIdx);
-    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [currentTime, transcript, editingIndex]);
+    groupRefs.current.get(activeIdx)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [currentTime, captionGroups]);
 
-  const handleChipClick = useCallback(
-    (index: number) => {
-      setFocusedIndex(index);
-      onSeek?.(transcript[index].start);
-    },
-    [transcript, onSeek]
-  );
+  // Clear cursor when selection changes
+  useEffect(() => {
+    setCursorPosition(null);
+  }, [selectedGroupIdx]);
 
-  const handleChipDoubleClick = useCallback(
-    (index: number) => {
-      setEditingIndex(index);
-      setEditValue(transcript[index].text);
-      setTimeout(() => inputRef.current?.select(), 0);
-    },
-    [transcript]
-  );
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
 
-  const commitEdit = useCallback(() => {
-    if (editingIndex === null) return;
-    const trimmed = editValue.trim();
-    if (trimmed) {
-      const updated: Word[] = transcript.map((w, i) =>
-        i === editingIndex ? { ...w, text: trimmed } : w
-      );
-      setTranscript(updated);
-    } else {
-      const updated = transcript.filter((_, i) => i !== editingIndex);
-      setTranscript(updated);
-    }
-    setEditingIndex(null);
-  }, [editingIndex, editValue, transcript, setTranscript]);
-
-  const handleEditKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') commitEdit();
-      if (e.key === 'Escape') setEditingIndex(null);
-    },
-    [commitEdit]
-  );
-
-  const handleContainerKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (editingIndex !== null) return;
-      if (transcript.length === 0) return;
-
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (e.key === 'Escape') {
+        clearSelection();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        const next = focusedIndex === null ? 0 : Math.min(focusedIndex + 1, transcript.length - 1);
-        setFocusedIndex(next);
-        chipRefs.current.get(next)?.focus();
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        undoCaptions();
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
         e.preventDefault();
-        const prev = focusedIndex === null ? 0 : Math.max(focusedIndex - 1, 0);
-        setFocusedIndex(prev);
-        chipRefs.current.get(prev)?.focus();
-      } else if (e.key === 'Enter' && focusedIndex !== null) {
-        e.preventDefault();
-        handleChipDoubleClick(focusedIndex);
+        redoCaptions();
       }
-    },
-    [editingIndex, focusedIndex, transcript.length, handleChipDoubleClick]
-  );
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [clearSelection, undoCaptions, redoCaptions]);
 
-  const setChipRef = useCallback((index: number, el: HTMLButtonElement | null) => {
-    if (el) chipRefs.current.set(index, el);
-    else chipRefs.current.delete(index);
+  const setGroupRef = useCallback((idx: number, el: HTMLDivElement | null) => {
+    if (el) groupRefs.current.set(idx, el);
+    else groupRefs.current.delete(idx);
   }, []);
+
+  // ── Action handlers ───────────────────────────────────────────────────────
+
+  const handleSplit = useCallback(() => {
+    if (selectedGroupIdx === null) return;
+    if (cursorPosition !== null) {
+      // Cursor-based split: cursor is before cursorPosition, so that word starts segment B
+      splitAtWord(selectedGroupIdx, cursorPosition);
+      setCursorPosition(null);
+    } else {
+      // Playhead-based split: no cursor placed
+      splitAtTime(selectedGroupIdx, currentTime);
+    }
+  }, [selectedGroupIdx, cursorPosition, splitAtWord, splitAtTime, currentTime]);
+
+  const handleMergeUp = useCallback(() => {
+    if (selectedGroupIdx === null || selectedGroupIdx <= 0) return;
+    // If cursor is set: send words before cursor up; words from cursor stay
+    // If no cursor: merge entire group up (CapCut default)
+    mergeUpAtCursor(selectedGroupIdx, cursorPosition);
+    setCursorPosition(null);
+  }, [selectedGroupIdx, cursorPosition, mergeUpAtCursor]);
+
+  const handleMergeDown = useCallback(() => {
+    if (selectedGroupIdx === null || selectedGroupIdx >= captionGroups.length - 1) return;
+    // If cursor is set: send words from cursor down; words before cursor stay
+    // If no cursor: merge entire group down (CapCut default)
+    mergeDownAtCursor(selectedGroupIdx, cursorPosition);
+    setCursorPosition(null);
+  }, [selectedGroupIdx, cursorPosition, captionGroups.length, mergeDownAtCursor]);
+
+  // ── Guards ────────────────────────────────────────────────────────────────
 
   if (isTranscribing) {
     return (
-      <div className="py-6 text-center">
-        <p className="text-muted-foreground text-sm">Transcribing...</p>
+      <div className="flex flex-col items-center justify-center py-10 gap-2">
+        <p className="text-sm text-muted-foreground">Transcribing audio…</p>
+        <p className="text-xs text-muted-foreground/60">This may take a moment</p>
       </div>
     );
   }
 
   if (!transcript || transcript.length === 0) {
     return (
-      <div className="py-6 text-center">
-        <p className="text-muted-foreground text-sm">No captions available</p>
-        <p className="text-muted-foreground text-xs mt-1">
+      <div className="flex flex-col items-center justify-center py-10 gap-2">
+        <p className="text-sm text-muted-foreground">No captions available</p>
+        <p className="text-xs text-muted-foreground/60">
           Check microphone permissions or try again
         </p>
       </div>
     );
   }
 
+  // ── Derived state ─────────────────────────────────────────────────────────
+
+  const canSplit = selectedGroupIdx !== null && captionGroups[selectedGroupIdx]?.wordIndices.length >= 2;
+  const canMergeUp = selectedGroupIdx !== null && selectedGroupIdx > 0;
+  const canMergeDown = selectedGroupIdx !== null && selectedGroupIdx < captionGroups.length - 1;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div
-      ref={containerRef}
       role="region"
       aria-label="Caption editor"
-      onKeyDown={handleContainerKeyDown}
+      className="flex flex-col h-full"
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-white/50 text-xs uppercase tracking-[0.18em]">
-          Transcript — click to seek, double-click to edit
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 shrink-0">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.15em]">
+          Edit captions
         </p>
-        {transcriptionSource && (
-          <span
-            className={cn(
-              'text-xs uppercase tracking-[0.15em] px-1.5 py-0.5 rounded font-medium',
-              transcriptionSource === 'whisper'
-                ? 'bg-[--accent-green]/15 text-[--accent-green]/80'
-                : 'bg-muted text-muted-foreground'
-            )}
+        {selectedGroupIdx !== null && (
+          <button
+            onClick={clearSelection}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear selection"
           >
-            {transcriptionSource === 'whisper' ? 'OpenAI Whisper' : 'Web Speech'}
-          </span>
+            Done
+          </button>
         )}
       </div>
 
-      <ul className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto list-none p-0 m-0">
-        {transcript.map((word, i) => {
-          const active = isActive(word);
-          const isFocused = focusedIndex === i;
-          const isTabStop = isFocused || (focusedIndex === null && i === 0);
-          const showSeparator = i > 0 && i % WORDS_PER_PHRASE === 0;
+      <Separator />
 
-          if (editingIndex === i) {
+      {/* Caption list */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="flex flex-col py-1" role="list">
+          {captionGroups.map((group, gi) => {
+            const isActive   = currentTime >= group.start && currentTime < group.end;
+            const isSelected = selectedGroupIdx === gi;
+            const rowState   = isActive ? 'active' : isSelected ? 'selected' : 'idle';
+            const selectedGroup = captionGroups[gi];
+
             return (
-              <li key={i} className="inline-flex items-center">
-                {showSeparator && (
-                  <span className="w-px h-5 bg-accent mx-1 shrink-0" aria-hidden="true" />
-                )}
-                <input
-                  ref={inputRef}
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={commitEdit}
-                  onKeyDown={handleEditKeyDown}
-                  aria-label={`Edit word: ${word.text}`}
-                  className="px-2 py-0.5 rounded-md text-sm border
-                             bg-accent border-border text-white
-                             outline-none min-w-8 max-w-48"
-                  style={{ width: `${Math.max(editValue.length, 3) * 0.6 + 1}rem` }}
-                  autoFocus
-                />
-              </li>
+              <div key={gi} role="listitem">
+                {/* Group row: left column (icon+time) pinned top, text fills right */}
+                <div
+                  ref={(el) => setGroupRef(gi, el)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectGroup(gi, false);
+                      onSeek?.(group.start);
+                    }
+                  }}
+                  onClick={() => {
+                    selectGroup(gi, false);
+                    onSeek?.(group.start);
+                  }}
+                  aria-label={`Caption at ${formatTimestamp(group.start)}: ${group.text}`}
+                  aria-pressed={isSelected}
+                  className={captionRow({ state: rowState })}
+                >
+                  {/* Left column: icon + timestamp, stays pinned to top */}
+                  <div className="flex items-center gap-1.5 shrink-0 self-start pt-0.5">
+                    <HugeiconsIcon
+                      icon={PlayIcon}
+                      size={11}
+                      className={cn(
+                        'transition-colors',
+                        isActive ? 'text-primary' : 'text-muted-foreground/40'
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs tabular-nums text-muted-foreground font-mono w-10">
+                      {formatTimestamp(group.start)}
+                    </span>
+                  </div>
+
+                  {/* Text / cursor zone */}
+                  <span className="flex-1 text-sm leading-relaxed">
+                    {isSelected ? (
+                      // Selected: words become tappable zones with cursor between them
+                      <span className="flex flex-wrap items-baseline gap-x-0 gap-y-1">
+                        {selectedGroup.wordIndices.map((wi, posInGroup) => {
+                          const word = transcript[wi];
+                          if (!word) return null;
+                          const isCursorHere = cursorPosition === posInGroup;
+
+                          return (
+                            <span key={wi} className="inline-flex items-baseline">
+                              {/* Cursor zone — clickable area before this word (not before the first word) */}
+                              {posInGroup > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCursorPosition(
+                                      isCursorHere ? null : posInGroup
+                                    );
+                                  }}
+                                  aria-label={`Place split cursor before ${word.text}`}
+                                  className="inline-flex items-center justify-center w-4 h-5 cursor-text select-none outline-none group/cursor"
+                                >
+                                  {isCursorHere ? (
+                                    // Active cursor: blinking accent bar
+                                    <span
+                                      className="inline-block w-0.5 h-4 rounded-full bg-primary animate-caret-blink"
+                                      aria-hidden="true"
+                                    />
+                                  ) : (
+                                    // Inactive: invisible touch target, faint on hover
+                                    <span
+                                      className="inline-block w-0.5 h-3 rounded-full bg-transparent group-hover/cursor:bg-white/20 transition-colors"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </button>
+                              )}
+
+                              {/* Word — plain text, no click handler on itself */}
+                              <span
+                                className={cn(
+                                  'text-sm',
+                                  isCursorHere ? 'text-foreground' : 'text-foreground/80'
+                                )}
+                              >
+                                {word.text}
+                              </span>
+                            </span>
+                          );
+                        })}
+                      </span>
+                    ) : (
+                      group.text
+                    )}
+                  </span>
+                </div>
+              </div>
             );
+          })}
+        </div>
+      </ScrollArea>
+
+      <Separator />
+
+      {/* Bottom action bar: max 3 visible + overflow dropdown */}
+      <div
+        className="flex items-center justify-around px-2 py-2 shrink-0 gap-1"
+        role="toolbar"
+        aria-label="Caption actions"
+      >
+        {/* Split */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSplit}
+          disabled={!canSplit}
+          aria-label={
+            cursorPosition !== null
+              ? 'Split at cursor position'
+              : 'Split at playhead'
           }
+          className="flex-1 gap-1.5 text-xs"
+        >
+          <HugeiconsIcon icon={ScissorIcon} size={14} aria-hidden="true" />
+          {cursorPosition !== null ? 'Split here' : 'Split'}
+        </Button>
 
-          const isDeleted = trimmer?.trimState.deletedWordIndices.has(i) ?? false;
+        {/* Merge Up */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleMergeUp}
+          disabled={!canMergeUp}
+          aria-label="Merge with previous caption"
+          className="flex-1 gap-1.5 text-xs"
+        >
+          <HugeiconsIcon icon={ArrowUp01Icon} size={14} aria-hidden="true" />
+          Merge ↑
+        </Button>
 
-          return (
-            <li key={i} className="inline-flex items-center">
-              {showSeparator && (
-                <span className="w-px h-5 bg-accent mx-1 shrink-0" aria-hidden="true" />
-              )}
-              <button
-                ref={(el) => setChipRef(i, el)}
-                tabIndex={isTabStop ? 0 : -1}
-                onClick={() => handleChipClick(i)}
-                onDoubleClick={() => handleChipDoubleClick(i)}
-                onFocus={() => setFocusedIndex(i)}
-                aria-label={`Word: ${word.text} at ${word.start.toFixed(1)}s${active ? ' (active)' : ''}${isDeleted ? ' (deleted)' : ''}`}
-                className={cn(
-                  isDeleted
-                    ? 'inline-flex items-center rounded-md text-sm border transition-all duration-100 cursor-pointer select-none outline-none min-h-11 px-2.5 py-1 bg-destructive/12 border-destructive/30 text-destructive line-through opacity-50'
-                    : chip({ active, focused: isFocused })
-                )}
-              >
-                {word.text}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+        {/* Merge Down */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleMergeDown}
+          disabled={!canMergeDown}
+          aria-label="Merge with next caption"
+          className="flex-1 gap-1.5 text-xs"
+        >
+          <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
+          Merge ↓
+        </Button>
+
+        {/* Overflow: Undo / Redo + future actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
+            aria-label="More caption actions"
+          >
+            <HugeiconsIcon icon={MoreHorizontalIcon} size={16} aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="end">
+            <DropdownMenuItem
+              onClick={undoCaptions}
+              disabled={!canUndo}
+              aria-label="Undo last caption action"
+            >
+              <HugeiconsIcon icon={Undo02Icon} size={14} aria-hidden="true" />
+              Undo
+              <span className="ml-auto text-xs text-muted-foreground">⌘Z</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={redoCaptions}
+              disabled={!canRedo}
+              aria-label="Redo last caption action"
+            >
+              <HugeiconsIcon icon={Redo02Icon} size={14} aria-hidden="true" />
+              Redo
+              <span className="ml-auto text-xs text-muted-foreground">⌘⇧Z</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }

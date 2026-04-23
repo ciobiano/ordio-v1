@@ -52,7 +52,9 @@ export function ExportControls({
 
       <div className={cn(
         panelCard,
-        'mx-4 mb-4 mt-2 px-4 py-4',
+        'flex flex-col overflow-hidden',
+        'h-[45vh] min-h-[350px] md:h-[550px]',
+        'mx-4 mb-4 mt-2 px-2 py-4',
         'md:mx-0 md:mb-0 md:mt-0 md:rounded-none md:border-0 md:bg-transparent'
       )}>
         {activePanel === 'captions' && (

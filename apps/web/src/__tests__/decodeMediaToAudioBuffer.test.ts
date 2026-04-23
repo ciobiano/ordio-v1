@@ -48,4 +48,30 @@ describe('concatAudioBuffers', () => {
   it('throws on empty input', () => {
     expect(() => concatAudioBuffers([])).toThrow(/no buffers/);
   });
+
+  it('throws on sample rate mismatch', () => {
+    const ctx = new AudioContext();
+    const a = ctx.createBuffer(1, 40, 44100);
+    const b = ctx.createBuffer(1, 40, 48000);
+    expect(() => concatAudioBuffers([a, b])).toThrow(/sample rate/);
+    void ctx.close();
+  });
+
+  it('throws on channel count mismatch', () => {
+    const ctx = new AudioContext();
+    const a = ctx.createBuffer(1, 40, 44100);
+    const b = ctx.createBuffer(2, 40, 44100);
+    expect(() => concatAudioBuffers([a, b])).toThrow(/channel/);
+    void ctx.close();
+  });
+
+  it('concatenates multiple buffers', () => {
+    const ctx = new AudioContext();
+    const a = ctx.createBuffer(1, 10, 44100);
+    const b = ctx.createBuffer(1, 20, 44100);
+    const c = ctx.createBuffer(1, 30, 44100);
+    const merged = concatAudioBuffers([a, b, c]);
+    expect(merged.length).toBe(60);
+    void ctx.close();
+  });
 });

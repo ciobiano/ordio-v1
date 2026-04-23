@@ -28,3 +28,23 @@ export function getCanvasDimensions(format: FormatVariant): { width: number; hei
 export type Theme = 'dark' | 'light';
 export type TranscriptionSource = 'whisper' | null;
 export type EnhanceTier = 'none' | 'clean' | 'hd';
+
+/**
+ * A CaptionGroup is a timed caption segment — a timeline block that contains
+ * one or more words. Modelled after CapCut's caption segments.
+ *
+ * IMPORTANT: `start` and `end` are independently owned timeline block boundaries.
+ * They are NOT derived from the first/last word's timestamps. After a split, the
+ * two resulting groups inherit the original block's start/end respectively, so
+ * the timeline coverage is preserved without shrink-wrapping to word edges.
+ */
+export interface CaptionGroup {
+  /** Words belonging to this group, must be contiguous in the transcript */
+  wordIndices: number[];
+  /** Combined text of all words, recomputed on merge/split */
+  text: string;
+  /** Block start time (seconds) — independently owned, not necessarily first word's start */
+  start: number;
+  /** Block end time (seconds) — independently owned, not necessarily last word's end */
+  end: number;
+}

@@ -36,6 +36,10 @@ export const StyleConfigSchema = z.object({
   fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display']),
   fontSize: z.number().positive(),
   waveColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  /** Additional spacing between wrapped lines (pixels) */
+  lineSpacing: z.number().min(0).default(0),
+  /** Line height multiplier (e.g., 1.4 = 140% of fontSize) */
+  lineHeight: z.number().min(0.5).max(3).default(1.4),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;
