@@ -34,41 +34,36 @@ export function IdleState({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn py-10">
-      {/* Wordmark */}
       <p className="text-white/45 text-2xl font-light tracking-tight mb-8">
         ord<span className="font-medium">io</span>
       </p>
 
-      {/* Orb — primary CTA */}
       <Orb
         state={orbState}
-        intensity={isLoading ? 0.4 : 0}
+        intensity={isLoading ? 0.35 : 0}
         onClick={canRecord && !isLoading && !micDenied ? onStartRecording : undefined}
         ariaLabel="Start recording"
         layoutId="orb"
       />
 
-      {/* Status label sits directly below the orb */}
       <p className={micDenied ? 'text-white/45 text-sm' : 'text-white/60 text-sm'}>{statusLabel}</p>
 
-      {/* Mic-denied fix link */}
       {micDenied && (
         <a
           href="https://support.google.com/chrome/answer/2693767"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white/30 text-xs underline underline-offset-2 -mt-2 hover:text-white/50 transition-colors"
+          className="text-white/35 text-xs underline underline-offset-2 hover:text-white/55 transition-colors"
         >
           How to fix &rarr;
         </a>
       )}
 
-      {/* Upload option */}
       <Button
         type="button"
         variant="ghost"
         onClick={() => fileInputRef.current?.click()}
-        className="text-white/30 text-xs hover:text-white/50 hover:bg-transparent transition-colors mt-2 h-auto py-1"
+        className="text-white/35 text-xs hover:text-white/55 hover:bg-transparent transition-colors mt-2 h-auto py-1"
       >
         or upload audio or video
       </Button>

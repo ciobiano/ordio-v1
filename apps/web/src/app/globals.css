@@ -198,9 +198,44 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
+  background: #000;
+  color: rgba(255, 255, 255, 0.95);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role='button'],
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+.mobile-glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+}
+
+.mobile-glass-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+@supports not ((backdrop-filter: blur(1px))) {
+  .mobile-glass {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-glass-button {
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* ── Focus states (WCAG AA — 3:1 against dark backgrounds) ── */
@@ -273,17 +308,17 @@ body {
 
 /* ── Orb component styles ─────────────────────────────────── */
 .orb-glow {
-  background: radial-gradient(circle, rgba(255, 180, 200, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(97, 194, 253, 0.12) 0%, transparent 70%);
 }
 
 .orb-gradient {
   background: conic-gradient(
     from 0deg,
-    rgba(255, 190, 210, 0.7),
-    rgba(160, 220, 230, 0.6),
-    rgba(255, 200, 170, 0.7),
-    rgba(200, 180, 240, 0.5),
-    rgba(255, 190, 210, 0.7)
+    rgba(11, 44, 140, 0.75),
+    rgba(0, 97, 253, 0.72),
+    rgba(97, 194, 253, 0.64),
+    rgba(18, 62, 166, 0.72),
+    rgba(11, 44, 140, 0.75)
   );
 }
 
@@ -309,9 +344,9 @@ body {
 .orb-core[data-state='active'] {
   box-shadow:
     0 0 calc(40px + var(--orb-intensity) * 40px)
-      rgba(255, 180, 200, calc(0.1 + var(--orb-intensity) * 0.15)),
+      rgba(97, 194, 253, calc(0.1 + var(--orb-intensity) * 0.15)),
     0 0 calc(60px + var(--orb-intensity) * 60px)
-      rgba(120, 200, 220, calc(0.05 + var(--orb-intensity) * 0.08));
+      rgba(0, 97, 253, calc(0.05 + var(--orb-intensity) * 0.1));
 }
 
 .orb-glow-ring[data-state='active'] {

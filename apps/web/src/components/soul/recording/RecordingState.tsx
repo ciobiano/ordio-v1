@@ -75,19 +75,19 @@ export function RecordingState({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/90 px-4 pb-4 pt-5"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Back / cancel — top-left corner, always visible */}
-      <div className="absolute top-4 left-4">
+      <div className="absolute left-4 top-4 safe-pt">
         <Button
           type="button"
           variant="ghost"
           onClick={onCancel}
           aria-label="Cancel recording"
-          className={roundIconBtn({ intent: 'nav' })}
+          className={`${roundIconBtn({ intent: 'nav' })} mobile-glass-button text-white/70 hover:bg-white/10 hover:text-white`}
         >
           <Image
             src="/icons/arrow-left.svg"
@@ -112,7 +112,7 @@ export function RecordingState({
       </div>
 
       {/* Bottom bar */}
-      <div className="w-full px-6 pb-10 pt-4">
+      <div className="mobile-glass w-full max-w-md rounded-[2rem] px-5 pb-6 pt-4 safe-pb">
         {phase === 'recording' ? (
           /* Active recording: Pause · Stop · Settings */
           <div className="flex items-center justify-center gap-8">
@@ -120,7 +120,7 @@ export function RecordingState({
             <Button
               type="button"
               variant="ghost"
-              className={roundIconBtn({ intent: 'pause' })}
+              className={`${roundIconBtn({ intent: 'pause' })} mobile-glass-button`}
               onClick={isPaused ? onResumeRecording : onPauseRecording}
               aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
             >
@@ -149,7 +149,7 @@ export function RecordingState({
             <Button
               type="button"
               variant="ghost"
-              className={roundIconBtn({ intent: 'stop' })}
+              className={`${roundIconBtn({ intent: 'stop' })} shadow-[0_20px_40px_rgba(127,29,29,0.28)]`}
               onClick={handleStop}
               aria-label="Stop recording"
             >
@@ -160,7 +160,7 @@ export function RecordingState({
             <Button
               type="button"
               variant="ghost"
-              className={roundIconBtn({ intent: 'settings' })}
+              className={`${roundIconBtn({ intent: 'settings' })} mobile-glass-button`}
               onClick={() => setSettingsOpen(true)}
               aria-label="Recording settings"
             >
@@ -184,14 +184,14 @@ export function RecordingState({
               className={proceedBtn()}
               onClick={onProceed}
               disabled={recordingTime === 0}
-              aria-label="Proceed to editing"
+              aria-label="Process recording"
               aria-disabled={recordingTime === 0}
             >
-              {recordingTime === 0 ? 'Recording too short' : 'Proceed'}
+              {recordingTime === 0 ? 'Recording too short' : 'Process recording'}
             </Button>
 
             {/* 44px touch targets on secondary actions */}
-            <div className="flex items-center gap-1 text-xs">
+            <div className="flex items-center gap-1 text-xs text-white/45">
               <Button
                 type="button"
                 variant="ghost"

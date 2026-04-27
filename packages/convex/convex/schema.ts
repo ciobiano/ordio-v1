@@ -47,9 +47,12 @@ export default defineSchema({
       end: v.number(),
     })), // Word[] from Whisper
     tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')), // user's tier at creation time
+    title: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
     expiresAt: v.number(), // Unix timestamp (ms)
     createdAt: v.number(), // Unix timestamp (ms)
   })
   .index("by_user_id", ["userId"])
+  .index("by_user_created", ["userId", "createdAt"])
   .index("by_expires_at", ["expiresAt"])
 });

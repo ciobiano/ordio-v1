@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() { echo "[gstack-upgrade] $*"; }
+
+detect_install_type() {
+  if [ -d "$HOME/.claude/skills/gstack/.git" ]; then
+    INSTALL_TYPE="local-git"; INSTALL_DIR="$HOME/.claude/skills/gstack"
+  elif [ -d "$HOME/.gstack/repos/gstack/.git" ]; then
+    INSTALL_TYPE="global-git"; INSTALL_DIR="$HOME/.gstack/repos/gstack"
+  elif [ -d ".claude/skills/gstack/.git" ]; then
+    INSTALL_TYPE="local-git"; INSTALL_DIR=".claude/skills/gstack"
+  elif [ -d ".agents/skills/gstack/.git" ]; then
+    INSTALL_TYPE="local-git"; INSTALL_DIR=".agents/skills/gstack"
+  elif [ -d ".claude/skills/gstack" ]; then
+    INSTALL_TYPE="vendored"; INSTALL_DIR=".claude/skills/gstack"
+  elif [ -d "$HOME/.claude/skills/gstack" ]; then
+    INSTALL_TYPE="vendored-global"; INSTALL_DIR="$HOME/.claude/skills/gstack"
+  else
+    echo "ERROR: gstack not found" >&2
+    exit 1
+  fi
+  log "Install type: ${INSTALL_TYPE} at ${INSTALL_DIR}"
+}
+
+get_old_version() {
+  if [ -f "$INSTALL_DIR/VERSION" ]; then
+    cat "$INSTALL_DIR/VERSION"
+  else
+    echo "unknown"
+  fi
+}
+
+perform_upgrade() {
+  case "$INSTALL_TYPE" in
+    global-git|local-git)
+      log "Upgrading via git in $INSTALL_DIR"
+      pushd "$INSTALL_DIR" >/dev/null
+      STASH_OUTPUT=$(git stash 2>&1 || true)
+      git fetch origin
+      if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        git reset --hard origin/main
+      else
+        if git rev-parse --verify origin/master >/dev/null 2>&1; then
+          git reset --hard origin/master
+        else
+          log "Cannot find origin/main or origin/master; aborting."
+          popd >/dev/null
+          exit 1
+        fi
+      fi
+      if [ -n "$STASH_OUTPUT" ]; then
+        log "Note: local changes were stashed during upgrade. Run 'git stash pop' to restore."
+      fi
+      if [ -x ./setup ]; then
+        ./setup || { log "setup failed"; exit 1; }
+      fi
+      popd >/dev/null
+      ;;
+    vendored|vendored-global)
+      log "Upgrading vendored gstack"
+      PARENT=$(dirname "$INSTALL_DIR")
+      TMP_DIR=$(mktemp -d)
+      git clone --depth 1 https://github.com/garrytan/gstack.git "$TMP_DIR/gstack"
+      mv "$INSTALL_DIR" "${INSTALL_DIR}.bak"
+      mv "$TMP_DIR/gstack" "$INSTALL_DIR"
+      if [ -x "$INSTALL_DIR/setup" ]; then
+        (cd "$INSTALL_DIR" && ./setup) || { log "Setup after upgrade failed"; mv "${INSTALL_DIR}.bak" "$INSTALL_DIR"; exit 1; }
+      fi
+      rm -rf "${INSTALL_DIR}.bak" "$TMP_DIR"
+      ;;
+    *)
+      log "Unsupported install type for upgrade: $INSTALL_TYPE"
+      exit 1
+      ;;
+  esac
+}
+
+write_marker_and_clear() {
+  OLD_VERSION=$(get_old_version)
+  mkdir -p ~/.gstack
+  echo "$OLD_VERSION" > ~/.gstack/just-upgraded-from
+  rm -f ~/.gstack/last-update-check
+  rm -f ~/.gstack/update-snoozed
+}
+
+show_whats_new() {
+  NEW_VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "")
+  if [ -n "$NEW_VERSION" ] && [ -f "$INSTALL_DIR/CHANGELOG.md" ]; then
+    log "What's new in gstack v$NEW_VERSION (from $OLD_VERSION):"
+    # Simple bullets from changelog; not exhaustive
+    awk '/^## /{flag=1; next} flag{ if ($0 ~ /^- /) print "-" $0 }' "$INSTALL_DIR/CHANGELOG.md" | head -n 7
+  else
+    log "Upgrade complete. See CHANGELOG for details."
+  fi
+}
+
+## Main
+detect_install_type
+OLD_VERSION=$(get_old_version)
+log "Upgrading from version: ${OLD_VERSION}"
+perform_upgrade
+write_marker_and_clear
+show_whats_new
+log "Upgrade complete."

@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
 export type ToolbarPanel = 'captions' | 'style' | 'format' | 'trim'
@@ -26,45 +27,54 @@ const TOOLBAR_ITEMS: ToolbarItem[] = [
 
 export function IconToolbar({ activePanel, onPanelChange }: IconToolbarProps) {
   return (
-    <div className="flex justify-around py-2 px-6">
-      {TOOLBAR_ITEMS.map((item) => {
-        const isActive = activePanel === item.id
-        return (
-          <Button
-            key={item.id}
-            type="button"
-            variant="ghost"
-            aria-label={item.label}
-            aria-pressed={isActive}
-            onClick={() => onPanelChange(item.id)}
-            className="flex flex-col items-center gap-1 h-auto py-1 px-2 hover:bg-transparent"
-          >
-            <span
+    <ScrollArea className="w-full whitespace-nowrap">
+      <div className="flex min-w-max gap-2 px-4 py-3">
+        {TOOLBAR_ITEMS.map((item) => {
+          const isActive = activePanel === item.id
+          return (
+            <Button
+              key={item.id}
+              type="button"
+              variant="ghost"
+              aria-label={item.label}
+              aria-pressed={isActive}
+              onClick={() => onPanelChange(item.id)}
               className={cn(
-                'w-11 h-11 rounded-lg flex items-center justify-center transition-colors',
-                isActive ? 'bg-accent' : 'bg-muted'
+                'mobile-glass-button flex h-12 items-center gap-2 rounded-2xl px-3.5 hover:bg-white/10',
+                isActive && 'bg-white text-slate-950 hover:bg-white/92'
               )}
             >
-              <Image
-                src={item.iconSrc}
-                width={18}
-                height={18}
-                alt=""
-                aria-hidden="true"
-                className={cn('invert transition-opacity', isActive ? 'opacity-100' : 'opacity-50')}
-              />
-            </span>
-            <span
-              className={cn(
-                'text-xs transition-colors',
-                isActive ? 'text-foreground font-medium' : 'text-muted-foreground'
-              )}
-            >
-              {item.label}
-            </span>
-          </Button>
-        )
-      })}
-    </div>
+              <span
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-xl transition-colors',
+                  isActive ? 'bg-slate-950/10' : 'bg-white/8'
+                )}
+              >
+                <Image
+                  src={item.iconSrc}
+                  width={16}
+                  height={16}
+                  alt=""
+                  aria-hidden="true"
+                  className={cn(
+                    'transition-opacity',
+                    isActive ? 'opacity-90' : 'invert opacity-70'
+                  )}
+                />
+              </span>
+              <span
+                className={cn(
+                  'text-sm transition-colors',
+                  isActive ? 'font-medium text-slate-950' : 'text-white/72'
+                )}
+              >
+                {item.label}
+              </span>
+            </Button>
+          )
+        })}
+      </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   )
 }

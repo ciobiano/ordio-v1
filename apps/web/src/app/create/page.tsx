@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import IdleState from '@/components/soul/states/IdleState';
+import SavedAudioPanel from '@/components/saved-audio/SavedAudioPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const RecordingState = dynamic(
@@ -242,8 +243,9 @@ export default function CreatePage() {
   return (
     <main
       id="main-content"
-      className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
+      className="relative min-h-dvh overflow-hidden px-4 pb-28 pt-6 safe-pb safe-pt"
     >
+      <SavedAudioPanel />
       {processingAlert && (
         <div className="fixed top-4 left-1/2 z-30 w-[min(92vw,42rem)] -translate-x-1/2">
           <Alert
@@ -280,20 +282,22 @@ export default function CreatePage() {
         </div>
       )}
       {currentState === 'idle' && (
-        <div className="fixed top-4 right-4 z-20">
+        <div className="fixed right-4 top-4 z-20 safe-pt">
           <UserAvatarButton />
         </div>
       )}
 
       {currentState === 'idle' && (
-        <IdleState
-          onStartRecording={handleStartRecording}
-          onFileUpload={handleFileUpload}
-          canRecord={capabilities.canRecord}
-          isLoading={isStarting}
-          micDenied={micDenied}
-          fileInputRef={fileInputRef}
-        />
+        <div className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-md items-center">
+          <IdleState
+            onStartRecording={handleStartRecording}
+            onFileUpload={handleFileUpload}
+            canRecord={capabilities.canRecord}
+            isLoading={isStarting}
+            micDenied={micDenied}
+            fileInputRef={fileInputRef}
+          />
+        </div>
       )}
 
       {currentState === 'recording' && (

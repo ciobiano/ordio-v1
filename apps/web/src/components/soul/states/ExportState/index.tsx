@@ -179,7 +179,7 @@ export default function ExportState({
         onDownload={onDownload}
       />
 
-      <div className="flex flex-col md:flex-row md:gap-6 md:px-6 md:pb-4 flex-1 md:items-start">
+      <div className="flex flex-1 flex-col gap-4 px-3 pb-4 md:flex-row md:items-start md:gap-6 md:px-6">
         <ExportCanvas
           playback={playback}
           format={format}

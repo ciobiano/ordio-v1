@@ -1,13 +1,25 @@
 // packages/convex/convex/sessions.ts
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query, internalMutation } from "./_generated/server";
-import { requireUser } from "./auth";
+import { getCurrentUser, requireUser } from "./auth";
 
 const RETENTION_MS: Record<string, number> = {
   free:    24 * 60 * 60 * 1000,       // 24 hours
   creator: 30 * 24 * 60 * 60 * 1000,  // 30 days
   pro:     30 * 24 * 60 * 60 * 1000,  // 30 days (same as creator)
 };
+
+function buildFallbackTitle(createdAt: number): string {
+  const date = new Date(createdAt);
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+  return `Recording ${formatted}`;
+}
 
 export const createSession = mutation({
   args: {
@@ -69,6 +81,114 @@ export const getAudioUrl = query({
     // Ownership check — never expose storage URLs to non-owners
     if (session.userId !== user.tokenIdentifier) return null;
     return await ctx.storage.getUrl(session.storageId);
+  },
+});
+
+export const listMySessions = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await getCurrentUser(ctx);
+    if (!identity) return [];
+
+    const now = Date.now();
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_user_id", (q) => q.eq("userId", identity.tokenIdentifier))
+      .collect();
+
+    return sessions
+      .filter((session) => session.expiresAt > now)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((session) => ({
+        id: session._id,
+        name: session.title?.trim() || buildFallbackTitle(session.createdAt),
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt ?? session.createdAt,
+        expiresAt: session.expiresAt,
+        durationMs: Math.round(session.durationSec * 1000),
+      }));
+  },
+});
+
+export const listMySessionsPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { paginationOpts }) => {
+    const identity = await getCurrentUser(ctx);
+    if (!identity) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    const now = Date.now();
+    const results = await ctx.db
+      .query("sessions")
+      .withIndex("by_user_created", (q) => q.eq("userId", identity.tokenIdentifier))
+      .order("desc")
+      .filter((q) => q.gt(q.field("expiresAt"), now))
+      .paginate(paginationOpts);
+
+    return {
+      ...results,
+      page: results.page.map((session) => ({
+        id: session._id,
+        name: session.title?.trim() || buildFallbackTitle(session.createdAt),
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt ?? session.createdAt,
+        expiresAt: session.expiresAt,
+        durationMs: Math.round(session.durationSec * 1000),
+      })),
+    };
+  },
+});
+
+export const renameSession = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    title: v.string(),
+  },
+  handler: async (ctx, { sessionId, title }) => {
+    const identity = await requireUser(ctx);
+    const session = await ctx.db.get(sessionId);
+    if (!session || session.userId !== identity.tokenIdentifier) {
+      throw new Error("Session not found");
+    }
+
+    const normalizedTitle = title.trim();
+    if (normalizedTitle.length === 0) {
+      throw new Error("Title is required");
+    }
+
+    const updatedAt = Date.now();
+    await ctx.db.patch(sessionId, {
+      title: normalizedTitle,
+      updatedAt,
+    });
+
+    return {
+      id: sessionId,
+      name: normalizedTitle,
+      updatedAt,
+    };
+  },
+});
+
+export const deleteSession = mutation({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, { sessionId }) => {
+    const identity = await requireUser(ctx);
+    const session = await ctx.db.get(sessionId);
+    if (!session || session.userId !== identity.tokenIdentifier) {
+      throw new Error("Session not found");
+    }
+
+    await ctx.storage.delete(session.storageId);
+    await ctx.db.delete(sessionId);
+    return { success: true };
   },
 });
 

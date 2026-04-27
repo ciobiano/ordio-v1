@@ -7,20 +7,12 @@ import { useProcessingStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   PlayIcon,
   ScissorIcon,
   ArrowUp01Icon,
   ArrowDown01Icon,
-  MoreHorizontalIcon,
   Undo02Icon,
   Redo02Icon,
 } from '@hugeicons/core-free-icons';
@@ -201,19 +193,32 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.15em]">
           Edit captions
         </p>
-        {selectedGroupIdx !== null && (
-          <button
-            onClick={clearSelection}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Clear selection"
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
+            onClick={undoCaptions}
+            disabled={!canUndo}
+            aria-label="Undo"
           >
-            Done
-          </button>
-        )}
+            <HugeiconsIcon icon={Undo02Icon} size={14} aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
+            onClick={redoCaptions}
+            disabled={!canRedo}
+            aria-label="Redo"
+          >
+            <HugeiconsIcon icon={Redo02Icon} size={14} aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
       <Separator />
@@ -379,36 +384,6 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
           <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
           Merge ↓
         </Button>
-
-        {/* Overflow: Undo / Redo + future actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
-            aria-label="More caption actions"
-          >
-            <HugeiconsIcon icon={MoreHorizontalIcon} size={16} aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end">
-            <DropdownMenuItem
-              onClick={undoCaptions}
-              disabled={!canUndo}
-              aria-label="Undo last caption action"
-            >
-              <HugeiconsIcon icon={Undo02Icon} size={14} aria-hidden="true" />
-              Undo
-              <span className="ml-auto text-xs text-muted-foreground">⌘Z</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={redoCaptions}
-              disabled={!canRedo}
-              aria-label="Redo last caption action"
-            >
-              <HugeiconsIcon icon={Redo02Icon} size={14} aria-hidden="true" />
-              Redo
-              <span className="ml-auto text-xs text-muted-foreground">⌘⇧Z</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   );

@@ -144,11 +144,10 @@ float hash(vec2 p) {
 }
 
 void main() {
-  // ⚡ AGGRESSIVE WIND PARAMETERS — fast, dynamic flow
-  // Speaking boosts wind speed for more "alive" feel
-  float windSpeed = 0.038 + uEnergy * 0.022 + uIsSpeaking * 0.025;
-  vec2 windDir = normalize(vec2(1.0, 0.25));         // Stronger rightward push
-  float turbulence = 0.42 + uEnergy * 0.22 + uIsSpeaking * 0.15;
+  // Calm cloud motion to match the reference orb style.
+  float windSpeed = 0.017 + uEnergy * 0.012 + uIsSpeaking * 0.01;
+  vec2 windDir = normalize(vec2(0.82, 0.22));
+  float turbulence = 0.22 + uEnergy * 0.12 + uIsSpeaking * 0.08;
   
   // ---- Layer 1: Fast-moving base cloud layer ----
   vec2 windOffset1 = windDir * uTime * windSpeed * 1.4;
@@ -159,14 +158,14 @@ void main() {
   // ---- Layer 2: Aggressive turbulent eddies ----
   vec2 windOffset2 = windDir * uTime * windSpeed * 2.1 + vec2(uTime * 0.065);
   float cloudLayer2 = snoise(
-    vec3(vObjPos.xy * 1.05 + windOffset2, vObjPos.z * 0.75)
+    vec3(vObjPos.xy * 0.95 + windOffset2, vObjPos.z * 0.7)
     + vec3(snoise(vObjPos * 0.38 + uTime * 0.032)) * turbulence
   ) * 0.5 + 0.5;
   
   // ---- Layer 3: Rapid cirrus streaks ----
   vec2 windOffset3 = windDir * uTime * windSpeed * 2.9;
   float cloudLayer3 = snoise(
-    vec3(vObjPos.xy * 1.7 + windOffset3, vObjPos.z * 1.15 + uTime * 0.021)
+    vec3(vObjPos.xy * 1.45 + windOffset3, vObjPos.z * 1.0 + uTime * 0.016)
   ) * 0.5 + 0.5;
   
   // Composite with emphasis on mid-layer turbulence
@@ -194,27 +193,27 @@ void main() {
   
   // 🌧️ STORM BASE (Navy) — Dense cloud bottoms, heavy precipitation zones
   // Forms at low altitude + high density + windward compression
-  vec3 colorStormBase = vec3(0.00, 0.02, 0.38);  // Deep navy-indigo
+  vec3 colorStormBase = vec3(0.02, 0.08, 0.32);
   float stormFactor = (1.0 - altitude) * cloudDensity * (0.6 + windExposure * 0.4);
   stormFactor = smoothstep(0.25, 0.75, stormFactor);
   
   // ☁️ MAIN CLOUD BODY (Azure) — Stratocumulus layer, bulk of the formation
   // Mid-altitude + medium density, stretched by wind shear
-  vec3 colorCloudBody = vec3(0.00, 0.38, 0.99);  // Vibrant azure-blue
+  vec3 colorCloudBody = vec3(0.16, 0.62, 0.96);
   float cloudBodyFactor = mix(altitude, 1.0 - abs(altitude - 0.45) * 2.2, 0.55);
   cloudBodyFactor *= smoothstep(0.2, 0.8, cloudDensity);
   cloudBodyFactor *= (0.7 + windExposure * 0.3);  // Slightly more on windward side
   
   // ☀️ SUNLIT CLOUD TOPS (White) — Cumulus peaks catching light
   // Upper-mid altitude + lower density (thinner = brighter) + leeward spread
-  vec3 colorSunlit = vec3(0.94, 0.98, 1.00);  // Near-white
+  vec3 colorSunlit = vec3(0.96, 0.98, 1.00);
   float sunlitFactor = altitude * (1.0 - cloudDensity * 0.5) * (1.1 - windExposure * 0.3);
   sunlitFactor = pow(sunlitFactor, 0.85);  // Broaden the zone slightly
   sunlitFactor = smoothstep(0.18, 0.58, sunlitFactor);
   
   // 💨 CIRRUS WISPS (Sky-Cyan) — High-altitude ice crystals swept by jet stream
   // High altitude + very low density + stretched in wind direction
-  vec3 colorCirrus = vec3(0.38, 0.76, 1.00);  // Luminous sky-cyan
+  vec3 colorCirrus = vec3(0.66, 0.86, 1.00);
   float cirrusFactor = pow(altitude, 1.4) * (1.0 - cloudDensity * 0.7);
   cirrusFactor *= (0.4 + windExposure * 0.6);  // Strongly biased toward wind direction!
   cirrusFactor = smoothstep(0.22, 0.72, cirrusFactor);
@@ -231,18 +230,18 @@ void main() {
   color = mix(colorStormBase * 0.25, color, vignette);
   
   // Outer rim — enhanced cyan-azure glow, intensifies when speaking
-  float fresnel = pow(1.0 - max(facing, 0.0), 2.8);
-  color += fresnel * vec3(0.38, 0.76, 1.00) * 0.65 * (0.5 + uEnergy * 0.5 + uIsSpeaking * 0.4);
+  float fresnel = pow(1.0 - max(facing, 0.0), 2.9);
+  color += fresnel * vec3(0.52, 0.82, 1.00) * 0.32 * (0.45 + uEnergy * 0.35 + uIsSpeaking * 0.25);
 
   // Subtle pulse shimmer — slower frequency for meditative quality
-  float pulse = 0.5 + 0.5 * sin(uTime * (0.9 + uEnergy * 0.6) + uAudioLevel * 1.8);
-  color += pulse * 0.04 * uEnergy;
+  float pulse = 0.5 + 0.5 * sin(uTime * (0.62 + uEnergy * 0.3) + uAudioLevel * 1.2);
+  color += pulse * 0.02 * uEnergy;
 
   // ---- Film grain / organic noise ----
   // Screen-space grain: use gl_FragCoord + animated time seed
   vec2 grainUV = gl_FragCoord.xy + vec2(uTime * 97.3, uTime * 53.7);
   float grain = hash(grainUV) * 2.0 - 1.0;  // [-1, 1]
-  float grainStrength = 0.026;               // Refined subtlety for cleaner look
+  float grainStrength = 0.014;
   color += grain * grainStrength;
 
   // Render as emissive since we manage our own shading for the cloud volume
