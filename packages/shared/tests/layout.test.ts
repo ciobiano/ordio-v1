@@ -10,7 +10,9 @@ describe('Layout Engine', () => {
     textColor: '#ffffff',
     fontFamily: 'Inter',
     fontSize: 20,
-    waveColor: '#ff0000'
+    waveColor: '#ff0000',
+    lineSpacing: 0,
+    lineHeight: 1.4
   };
 
   it('should split long text into multiple lines', () => {

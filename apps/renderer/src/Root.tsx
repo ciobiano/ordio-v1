@@ -27,6 +27,8 @@ export const RemotionRoot: React.FC = () => {
             fontFamily: 'Inter',
             fontSize: 48,
             waveColor: '#ff0000',
+            lineSpacing: 0,
+            lineHeight: 1.4,
           },
           audioStorageId: 'default',
         }}
