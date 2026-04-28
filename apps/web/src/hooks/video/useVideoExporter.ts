@@ -47,7 +47,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
         // Read current style/variant state from store
         const { transcript } = useProcessingStore.getState();
-        const { style, waveformStyle, captionMode, canvasLayout, graphicStyle } = useUIStore.getState();
+        const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle } = useUIStore.getState();
 
         const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
         const result = await encode({
@@ -57,6 +57,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
           style,
           waveformStyle,
           captionMode,
+          captionAnimation,
           canvasLayout,
           showWatermark,
           graphicStyle,

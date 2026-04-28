@@ -1,4 +1,54 @@
 @import 'tailwindcss';
+/* Premium fonts now wired for mobile Apple feel: Poppins (headings) + HelveticaNeueCyr (body) */
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HelveticaNeueCyr';
+  src: url('/fonts/HelveticaNeueCyr-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HelveticaNeueCyr';
+  src: url('/fonts/HelveticaNeueCyr-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HelveticaNeueCyr';
+  src: url('/fonts/HelveticaNeueCyr-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TrendSansOne';
+  src: url('/fonts/TrendSansOne.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
@@ -134,6 +184,8 @@
   --color-accent-green: var(--accent-green);
   --color-surface-sheet: var(--surface-sheet);
   --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Poppins', ui-sans-serif, system-ui;
+  --font-body: 'HelveticaNeueCyr', ui-sans-serif, system-ui;
   --animate-wave-pulse: wave-pulse 1.4s ease-in-out infinite alternate;
   --font-heading: var(--font-heading);
   --color-btn-circle-bg: var(--btn-circle-bg);
@@ -194,7 +246,7 @@ html {
 
 body {
   font-family:
-    var(--font-jakarta),
+    var(--font-body),
     system-ui,
     -apple-system,
     sans-serif;
@@ -205,6 +257,12 @@ body {
   line-height: 1.6;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Headings use the Apple-friendly heading font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
 }
 
 button,
@@ -340,17 +398,30 @@ select {
     inset 0 -4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Active state — glow intensity driven by --orb-intensity */
-.orb-core[data-state='active'] {
+/* Voice phases — glow intensity driven by --orb-intensity */
+.orb-core[data-phase='listening'],
+.orb-core[data-phase='speaking'] {
   box-shadow:
-    0 0 calc(40px + var(--orb-intensity) * 40px)
-      rgba(97, 194, 253, calc(0.1 + var(--orb-intensity) * 0.15)),
-    0 0 calc(60px + var(--orb-intensity) * 60px)
-      rgba(0, 97, 253, calc(0.05 + var(--orb-intensity) * 0.1));
+    0 0 calc(26px + var(--orb-intensity) * 24px)
+      rgba(97, 194, 253, calc(0.08 + var(--orb-intensity) * 0.1)),
+    0 0 calc(40px + var(--orb-intensity) * 36px)
+      rgba(0, 97, 253, calc(0.04 + var(--orb-intensity) * 0.08));
 }
 
-.orb-glow-ring[data-state='active'] {
-  opacity: calc(0.6 + var(--orb-intensity) * 0.4);
+.orb-glow-ring[data-phase='listening'] {
+  opacity: calc(0.32 + var(--orb-intensity) * 0.22);
+}
+
+.orb-glow-ring[data-phase='speaking'] {
+  opacity: calc(0.46 + var(--orb-intensity) * 0.28);
+}
+
+.orb-glow-ring[data-phase='thinking'] {
+  opacity: 0.2;
+}
+
+.orb-glow-ring[data-phase='idle'] {
+  opacity: 0.16;
 }
 
 @keyframes pulse-ring {

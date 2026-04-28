@@ -44,6 +44,26 @@ Example: `Record your <strong>story</strong>` — light + bold within the same h
 
 Tracking: headlines use `tracking-tight`. Eyebrows use `tracking-wide`.
 
+## Mobile Apple Feel (Mobile-First)
+Target a clean, Apple-app like look for iOS devices.
+- Typography: System fonts first (SF Pro Display / SF Pro Text), with Apple-like crisp rendering.
+- Surface: Frosted glass surfaces with slight elevation; use backdrop-filter blur where supported.
+- Controls: Large tap targets, generous vertical rhythm, rounded pills for CTAs.
+- Color: High-contrast white on near-black canvas; maintain small accent color usage rather than loud.
+- Imagery: Minimal hero ornamentation; focus on typography and whitespace.
+- Example tokens:
+  - Font-family: ui-sans-serif, -apple-system, "SF Pro Display", "SF Pro Text", Roboto, Arial, sans-serif
+  - Heading sizes: Display 34-40px on mobile, body 16px
+  - Border radii: 14-20px for surfaces
+  - CTA: white background, black text, radius 14px
+- Motion: subtle, no parallax; prefer fade/slide with quick durations (200-300ms)
+- Fonts: Use two fonts from Designer Pack: Poppins for headings and HelveticaNeueCyr for body. Copy the actual font files to assets/fonts and register with @font-face. Then update typography tokens:
+- Heading font-family: 'Poppins', ui-sans-serif, system-ui
+- Body font-family: 'HelveticaNeueCyr', ui-sans-serif, system-ui
+- Ensure font files are loaded locally and included in the build.
+- If you can't provide the actual font files yet, wire the CSS tokens now and drop the real font files later.
+- Accessibility: ensure accessible contrast, large tap targets, proper focus ring
+
 ---
 
 ## Spacing
@@ -110,6 +130,24 @@ The upper 60% of the splash canvas contains a subtle ambient waveform visualizat
 - **Mobile-first.** Primary target: 375px–430px viewport width.
 - **Desktop behavior:** Not yet specified. See Pass 6 TODO.
 - Touch targets: 44px minimum (per Apple HIG). Splash CTA is `h-14` (56px) ✅. Dash buttons are `h-0.5` visually but need `min-h-[44px]` wrapper for touch.
+
+---
+
+## Phase 3: Page-by-Page Visual Audit (Mobile)
+
+- Pages to audit (mobile):
+- Home: /
+- Create: /create
+- Dashboard: /dashboard
+- Settings: /settings
+- Auth: /login, /signin, /auth, /sso
+
+- For each page:
+- goto <url>
+- snapshot -i -a -o "$REPORT_DIR/screenshots/<page>-mobile-annotated.png"
+- responsive "$REPORT_DIR/screenshots/<page>-mobile.png"
+- console --errors
+- perf
 
 ---
 

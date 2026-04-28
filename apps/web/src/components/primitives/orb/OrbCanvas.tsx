@@ -5,7 +5,7 @@ import { OrbMesh } from './OrbMesh';
 import { isWebGLAvailable } from '@/lib/webgl-detect';
 
 interface OrbCanvasProps {
-  state: 'dormant' | 'active' | 'resting';
+  state: 'idle' | 'listening' | 'thinking' | 'speaking';
   intensity: number;
   isSpeaking?: boolean;
 }
@@ -15,8 +15,8 @@ interface OrbCanvasProps {
 // software rendering disabled, etc.).
 // ---------------------------------------------------------------------------
 function OrbFallback({ state, intensity, isSpeaking }: OrbCanvasProps) {
-  const isActive = state === 'active';
-  const isDormant = state === 'dormant';
+  const isActive = state === 'speaking' || state === 'listening';
+  const isDormant = state === 'idle';
 
   const innerOpacity = 0.55 + intensity * 0.3;
   const outerOpacity = 0.12 + intensity * 0.18;
@@ -35,9 +35,9 @@ function OrbFallback({ state, intensity, isSpeaking }: OrbCanvasProps) {
           `radial-gradient(ellipse 100% 100% at 50% 50%, rgba(0,20,120,1) 30%, rgba(0,40,180,0.85) 55%, rgba(97,194,255,${outerOpacity + speakingExtra}) 75%, transparent 100%)`,
         ].join(', '),
         animation: isDormant
-          ? 'orb-fallback-breathe 8s ease-in-out infinite'
+          ? 'orb-fallback-breathe 6s ease-in-out infinite'
           : isActive
-            ? `orb-fallback-pulse ${Math.max(0.6, 1.2 - intensity * 0.4)}s ease-in-out infinite`
+            ? `orb-fallback-pulse ${Math.max(0.8, 1.4 - intensity * 0.35)}s ease-in-out infinite`
             : undefined,
       }}
     />

@@ -1,6 +1,6 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
-import type { WaveformVariant, CaptionMode, GraphicStyleId, CanvasLayout } from '@/stores';
+import type { WaveformVariant, CaptionMode, CaptionAnimation, GraphicStyleId, CanvasLayout } from '@/stores';
 import type { CaptionGroup } from '@/stores/types';
 import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '@/lib/waveforms';
 import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '@/lib/waveforms/constants';
@@ -16,6 +16,7 @@ export interface FrameOptions {
   style: StyleConfig;
   waveformStyle: WaveformVariant;
   captionMode: CaptionMode;
+  captionAnimation?: CaptionAnimation;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
@@ -39,6 +40,7 @@ export function renderFrame(
     style,
     waveformStyle,
     captionMode,
+    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -69,9 +71,9 @@ export function renderFrame(
   // 3. Captions
   const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
   if (captionMode === 'karaoke') {
-    drawKaraokeCaptions(ctx, currentTime, transcript, style, captionGroups);
+    drawKaraokeCaptions(ctx, currentTime, transcript, style, captionGroups, captionAnimation);
   } else {
-    drawCaptions(ctx, currentTime, transcript, style, layout, hasVisualZone, flipped, captionGroups);
+    drawCaptions(ctx, currentTime, transcript, style, layout, hasVisualZone, flipped, captionGroups, captionAnimation);
   }
 
   // 4. Watermark — drawn last so it sits on top

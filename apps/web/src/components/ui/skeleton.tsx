@@ -19,7 +19,7 @@ const skeleton = cva('overflow-hidden relative', {
       '2xl': 'w-16 h-16',
     },
     animation: {
-      pulse: 'animate-pulse',
+      pulse: '',
       shimmer: '',
       ping: '',
     },
@@ -29,12 +29,12 @@ const skeleton = cva('overflow-hidden relative', {
       variant: 'avatar',
       animation: 'shimmer',
       class:
-        'bg-gradient-to-br from-white/10 via-white/5 to-white/10 bg-[length:200%_200%] animate-[shimmer_2.8s_ease-in-out_infinite]',
+        'bg-gradient-to-br from-white/10 via-white/5 to-white/10 bg-[length:200%_200%] motion-safe:animate-[shimmer_2.8s_ease-in-out_infinite]',
     },
     {
       variant: 'avatar',
       animation: 'ping',
-      class: 'bg-white/10 animate-ping [animation-duration:1.5s]',
+      class: 'bg-white/10 motion-safe:animate-ping [animation-duration:1.5s]',
     },
     {
       variant: 'text',
@@ -50,7 +50,7 @@ const skeleton = cva('overflow-hidden relative', {
     },
     {
       variant: 'circle',
-      class: 'bg-white/10 animate-pulse',
+      class: 'bg-white/10 motion-safe:animate-pulse',
     },
   ],
   defaultVariants: {

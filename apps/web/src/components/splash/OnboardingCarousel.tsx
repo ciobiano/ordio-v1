@@ -3,26 +3,20 @@
 import { useState, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const SWIPE_THRESHOLD = 50; // px
+const SWIPE_THRESHOLD = 50;
 
 const SLIDES = [
   {
     eyebrow: 'Record. Transcribe. Share.',
-    headlineStart: 'Turn your voice into a',
-    headlineBold: 'shareable story',
-    headlineEnd: '',
+    headline: 'Turn your voice into a shareable story',
   },
   {
     eyebrow: 'Whisper-accurate captions',
-    headlineStart: 'Every word,',
-    headlineBold: 'time-stamped',
-    headlineEnd: 'automatically',
+    headline: 'Every word, time-stamped automatically',
   },
   {
     eyebrow: 'One tap to export',
-    headlineStart: 'Audiograms that',
-    headlineBold: 'actually look good',
-    headlineEnd: '',
+    headline: 'Audiograms that actually look good',
   },
 ] as const;
 
@@ -68,27 +62,24 @@ export function OnboardingCarousel({ onCTA }: Props) {
       <AnimatePresence mode="sync">
         <motion.div
           key={slide}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="absolute bottom-32 left-6 right-6"
           aria-live="polite"
         >
-          <p className="text-xs text-white/45 mb-1.5 tracking-wide">
+          <p className="text-footnote uppercase tracking-[0.1em] text-white/45 font-medium mb-2">
             {current.eyebrow}
           </p>
-          <h2 className="text-3xl font-light leading-snug tracking-tight text-white">
-            {current.headlineStart}
-            <br />
-            <strong className="font-bold">{current.headlineBold}</strong>
-            {current.headlineEnd ? ` ${current.headlineEnd}` : null}
+          <h2 className="text-[2.125rem] md:text-[2.5rem] leading-[1.12] tracking-[-0.02em] text-white font-heading font-bold">
+            {current.headline}
           </h2>
         </motion.div>
       </AnimatePresence>
 
       {/* Dash progress indicators — 44px touch targets wrapping visual dash */}
-      <div className="absolute  bottom-24 left-6 flex gap-1.5">
+      <div className="absolute bottom-24 left-6 flex gap-1.5">
         {SLIDES.map((_, i) => (
           <button
             key={i}
@@ -97,7 +88,7 @@ export function OnboardingCarousel({ onCTA }: Props) {
             onClick={() => setSlide(i)}
             aria-label={`Go to slide ${i + 1}`}
             aria-current={i === slide ? 'true' : undefined}
-            className="h-11 flex items-center justify-center"
+            className="h-11 flex items-center justify-center cursor-pointer"
           >
             <span
               className={[
@@ -113,8 +104,8 @@ export function OnboardingCarousel({ onCTA }: Props) {
       <button
         onClick={onCTA}
         className="absolute bottom-7 left-4 right-4 h-14 bg-white text-black rounded-2xl
-                   text-sm font-bold tracking-tight
-                   active:scale-95 transition-transform duration-100"
+                   text-sm font-bold tracking-tight cursor-pointer
+                   active:scale-[0.97] transition-transform duration-150"
       >
         Get Started
       </button>

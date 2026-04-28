@@ -1,5 +1,6 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CanvasLayout, CaptionGroup } from '@/stores';
+import type { CanvasLayout, CaptionAnimation, CaptionGroup } from '@/stores';
+import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
 import {
   WAVEFORM_CENTER_Y,
   WAVEFORM_CENTER_Y_FLIPPED,
@@ -11,7 +12,10 @@ const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
 const MIN_CAPTION_SAFE_ZONE = 0.02;
 const PHRASE_FADE_DURATION = 0.15;
-const WORDS_PER_PHRASE = 6;
+
+function hasPulse(animation: CaptionAnimation): boolean {
+  return animation === 'pulse' || animation === 'sweep-pulse';
+}
 function getPhraseTransition(
   transcript: Word[],
   currentTime: number,
@@ -56,35 +60,31 @@ function getPhraseTransition(
     return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
   }
   
-  // Fallback: auto-phrase grouping (6 words per phrase)
-  const currentIdx = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
+  // Fallback: smart segmentation (pause + punctuation + readability limits)
+  const segments = buildSmartSegments(transcript);
+  const currentIdx = findActiveSegmentIndex(segments, currentTime);
   
   if (currentIdx >= 0) {
-    const start = currentIdx * WORDS_PER_PHRASE;
-    const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
-    const text = transcript.slice(start, end).map(w => w.text).join(' ');
+    const segment = segments[currentIdx];
+    const text = segment.text;
     
     // Calculate pure time-based fade
-    const firstWordStart = transcript[start].start;
+    const firstWordStart = segment.start;
     const timeSinceStart = currentTime - firstWordStart;
     const progress = Math.min(1, Math.max(0, timeSinceStart / PHRASE_FADE_DURATION));
     
     let prevText = '';
     if (progress < 1 && currentIdx > 0) {
-      const prevStart = (currentIdx - 1) * WORDS_PER_PHRASE;
-      const prevEnd = Math.min(prevStart + WORDS_PER_PHRASE, transcript.length);
-      prevText = transcript.slice(prevStart, prevEnd).map(w => w.text).join(' ');
+      prevText = segments[currentIdx - 1].text;
     }
     
     return { currentText: text, prevText, progress, groupIndex: currentIdx };
   }
 
-  // Find the last active phrase if we are past the end
+  // Find the last active segment if we are past the end
   if (transcript.length > 0 && currentTime >= transcript[transcript.length - 1].end) {
-    const lastIdx = Math.floor((transcript.length - 1) / WORDS_PER_PHRASE);
-    const start = lastIdx * WORDS_PER_PHRASE;
-    const text = transcript.slice(start).map(w => w.text).join(' ');
-    return { currentText: '', prevText: text, progress: 1, groupIndex: -1 };
+    const last = segments[segments.length - 1];
+    return { currentText: '', prevText: last?.text ?? '', progress: 1, groupIndex: -1 };
   }
 
   return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
@@ -98,7 +98,8 @@ export function drawCaptions(
   layout: CanvasLayout,
   hasVisualZone: boolean,
   flipped = false,
-  groups?: CaptionGroup[] | undefined
+  groups?: CaptionGroup[] | undefined,
+  animation: CaptionAnimation = 'sweep-pulse'
 ): void {
   if (transcript.length === 0) return;
 
@@ -150,13 +151,26 @@ export function drawCaptions(
   ctx.textAlign = 'left';
   const leftX = padding;
 
+  const pulseEnabled = hasPulse(animation);
+  const pulseScale = pulseEnabled
+    ? 1 + 0.07 * Math.sin(Math.min(1, transition.progress) * Math.PI)
+    : 1;
+
   const renderText = (linesToRender: string[], alpha: number) => {
+    ctx.save();
     ctx.globalAlpha = alpha;
+    if (pulseScale !== 1) {
+      const centerX = width / 2;
+      const centerY = textY + totalHeight / 2;
+      ctx.translate(centerX, centerY);
+      ctx.scale(pulseScale, pulseScale);
+      ctx.translate(-centerX, -centerY);
+    }
     linesToRender.forEach((line, idx) => {
       ctx.fillStyle = textColor;
       ctx.fillText(line, leftX, textY + idx * lineHeight + lineHeight / 2);
     });
-    ctx.globalAlpha = 1;
+    ctx.restore();
   };
 
   if (transition.prevText && transition.progress < 1) {
@@ -167,68 +181,56 @@ export function drawCaptions(
   renderText(wrappedLines, transition.progress);
 }
 
-function getCurrentPhrase(transcript: Word[], currentTime: number): Word[] {
-  if (transcript.length === 0) return [];
-
-  const phraseIndex = findCurrentPhraseIndex(transcript, currentTime, WORDS_PER_PHRASE);
-  if (phraseIndex < 0) return [];
-
-  const start = phraseIndex * WORDS_PER_PHRASE;
-  const end = Math.min(start + WORDS_PER_PHRASE, transcript.length);
-
-  return transcript.slice(start, end);
-}
-
-function findCurrentPhraseIndex(
-  transcript: Word[],
-  currentTime: number,
-  wordsPerPhrase: number
-): number {
-  let wordIdx = -1;
-  for (let i = 0; i < transcript.length; i++) {
-    if (currentTime >= transcript[i].start && currentTime < transcript[i].end) {
-      wordIdx = i;
-      break;
-    }
-    if (
-      currentTime >= transcript[i].end &&
-      (i === transcript.length - 1 || currentTime < transcript[i + 1].start)
-    ) {
-      wordIdx = i;
-      break;
-    }
-  }
-
-  if (wordIdx < 0 && transcript.length > 0 && currentTime < transcript[0].start) {
-    return 0;
-  }
-
-  if (wordIdx < 0) return -1;
-
-  return Math.floor(wordIdx / wordsPerPhrase);
-}
-
 export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(' ');
-  const lines: string[] = [];
-  let currentLine = words[0] || '';
+  if (words.length <= 1) return words;
 
-  for (let i = 1; i < words.length; i++) {
-    const testLine = `${currentLine} ${words[i]}`;
-    if (ctx.measureText(testLine).width <= maxWidth) {
-      currentLine = testLine;
-    } else {
-      const canBreakAtPunctuation = /[.,;!?]$/.test(currentLine);
-      if (canBreakAtPunctuation) {
-        lines.push(currentLine);
-        currentLine = words[i];
-      } else {
-        lines.push(currentLine);
-        currentLine = words[i];
+  const n = words.length;
+  const startsWithWeakWord = (line: string) => /^(and|or|but|to|of|the|a|an)\b/i.test(line);
+  const cache = new Map<string, number>();
+  const lineText = (i: number, j: number): string => words.slice(i, j).join(' ');
+  const lineWidth = (i: number, j: number): number => {
+    const key = `${i}:${j}`;
+    const hit = cache.get(key);
+    if (hit !== undefined) return hit;
+    const width = ctx.measureText(lineText(i, j)).width;
+    cache.set(key, width);
+    return width;
+  };
+
+  const dp = new Array<number>(n + 1).fill(Number.POSITIVE_INFINITY);
+  const nextBreak = new Array<number>(n + 1).fill(-1);
+  dp[n] = 0;
+
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = i + 1; j <= n; j++) {
+      const width = lineWidth(i, j);
+      if (width > maxWidth) break;
+
+      let cost = Math.pow((maxWidth - width) / Math.max(1, maxWidth), 2);
+      const wordsInLine = j - i;
+
+      if (wordsInLine === 1 && n > 2) cost += 10;
+      if (startsWithWeakWord(lineText(i, j))) cost += 2;
+      if (j !== n) cost += 0.15; // prefer fewer lines when quality is similar
+
+      const total = cost + dp[j];
+      if (total < dp[i]) {
+        dp[i] = total;
+        nextBreak[i] = j;
       }
     }
   }
-  if (currentLine) lines.push(currentLine);
 
-  return lines;
+  if (nextBreak[0] === -1) return [text];
+
+  const lines: string[] = [];
+  let i = 0;
+  while (i < n && nextBreak[i] > i) {
+    const j = nextBreak[i];
+    lines.push(lineText(i, j));
+    i = j;
+  }
+
+  return lines.length > 0 ? lines : [text];
 }

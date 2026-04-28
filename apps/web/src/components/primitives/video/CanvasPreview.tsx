@@ -81,6 +81,7 @@ export default function CanvasPreview({
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
+  const captionAnimation = useUIStore((s) => s.captionAnimation);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
 
   // Load the selected font so canvas can render it, then trigger re-draw
@@ -149,10 +150,11 @@ export default function CanvasPreview({
       showWatermark,
       graphicStyle,
       captionGroups,
+      captionAnimation,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, fontLoaded]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {

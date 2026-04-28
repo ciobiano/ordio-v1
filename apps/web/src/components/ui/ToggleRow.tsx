@@ -3,6 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface ToggleRowProps {
   label: string;
@@ -20,6 +21,12 @@ export default function ToggleRow({
   disabled,
 }: ToggleRowProps) {
   const id = `toggle-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const { trigger } = useHaptics();
+
+  const handleChange = (newChecked: boolean) => {
+    trigger(newChecked ? 'light' : 'light');
+    onChange(newChecked);
+  };
 
   return (
     <div
@@ -46,7 +53,7 @@ export default function ToggleRow({
       <Switch
         id={id}
         checked={checked}
-        onCheckedChange={onChange}
+        onCheckedChange={handleChange}
         disabled={disabled}
       />
     </div>

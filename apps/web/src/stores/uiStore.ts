@@ -11,6 +11,7 @@ import type {
   GraphicStyleId,
   CanvasLayout,
   CaptionMode,
+  CaptionAnimation,
   FormatVariant,
 } from './types';
 
@@ -22,6 +23,7 @@ interface UIState {
   graphicStyle: GraphicStyleId;
   canvasLayout: CanvasLayout;
   captionMode: CaptionMode;
+  captionAnimation: CaptionAnimation;
   format: FormatVariant;
 
   // Transient Session GUI states
@@ -35,6 +37,7 @@ interface UIState {
   setGraphicStyle: (id: GraphicStyleId) => void;
   setCanvasLayout: (layout: CanvasLayout) => void;
   setCaptionMode: (mode: CaptionMode) => void;
+  setCaptionAnimation: (animation: CaptionAnimation) => void;
   setFormat: (format: FormatVariant) => void;
   setCurrentState: (state: AppPhase) => void;
   setUpgradeTarget: (target: FeatureKey | 'export_limit' | null) => void;
@@ -58,6 +61,7 @@ const initialPersisted = {
   graphicStyle: null as GraphicStyleId,
   canvasLayout: 'compact' as CanvasLayout,
   captionMode: 'phrase' as CaptionMode,
+  captionAnimation: 'sweep-pulse' as CaptionAnimation,
   format: 'square' as FormatVariant,
 };
 
@@ -78,6 +82,7 @@ export const useUIStore = create<UIState>()(
       setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
       setCanvasLayout: (canvasLayout) => set({ canvasLayout }),
       setCaptionMode: (captionMode) => set({ captionMode }),
+      setCaptionAnimation: (captionAnimation) => set({ captionAnimation }),
       setFormat: (format) =>
         set((state) => {
           const dims =
@@ -103,6 +108,7 @@ export const useUIStore = create<UIState>()(
         graphicStyle: state.graphicStyle,
         canvasLayout: state.canvasLayout,
         captionMode: state.captionMode,
+        captionAnimation: state.captionAnimation,
         format: state.format,
       }),
     }

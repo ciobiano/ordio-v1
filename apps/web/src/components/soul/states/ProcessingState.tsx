@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import ProgressRing from '@/components/primitives/status/ProgressRing';
 import ProcessingStep from '@/components/primitives/status/ProcessingStep';
 import { Button } from '@/components/ui/button';
 import { useProcessingStore } from '@/stores';
 import type { EnhanceTier } from '@/stores';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface ProcessingStateProps {
   progress: number;
@@ -35,10 +38,22 @@ function deriveStep(progress: number, tier: EnhanceTier): number {
   return 2;
 }
 
+const buttonSpring = {
+  tap: { scale: 0.97, transition: { duration: 0.1 } },
+  hover: { scale: 1.02, transition: { duration: 0.2 } },
+};
+
 export default function ProcessingState({ progress, onCancel }: ProcessingStateProps) {
   const enhanceTier = useProcessingStore((s) => s.enhanceTier);
+  const { trigger } = useHaptics();
   const steps = getSteps(enhanceTier);
   const step = deriveStep(progress, enhanceTier);
+
+  useEffect(() => {
+    if (progress >= 100) {
+      trigger('success');
+    }
+  }, [progress, trigger]);
   return (
     <div className="flex flex-col items-center gap-10 animate-fadeIn">
       <div className="text-center">
@@ -58,7 +73,7 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
         ))}
       </div>
 
-      {onCancel && (
+{onCancel && (
         <Button
           type="button"
           variant="ghost"
@@ -66,7 +81,13 @@ export default function ProcessingState({ progress, onCancel }: ProcessingStateP
           aria-label="Cancel processing"
           className="text-white/30 hover:text-white/50 hover:bg-transparent text-xs transition-colors h-auto py-1"
         >
-          Cancel
+          <motion.div
+            whileTap={buttonSpring.tap}
+            whileHover={buttonSpring.hover}
+            className="flex items-center justify-center"
+          >
+            Cancel
+          </motion.div>
         </Button>
       )}
     </div>

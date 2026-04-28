@@ -5,6 +5,7 @@ import { optionBtn } from '@/lib/variants';
 import { Slider } from '@/components/ui/slider';
 import { useUIStore } from '@/stores';
 import type { StyleConfig } from '@Ordio/shared/schemas';
+import type { CaptionAnimation } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
@@ -21,6 +22,13 @@ const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
   'DM Sans': 'font_dm_sans',
   'Playfair Display': 'font_playfair',
 };
+
+const ANIMATION_OPTIONS: { value: CaptionAnimation; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'sweep', label: 'Sweep' },
+  { value: 'pulse', label: 'Pulse' },
+  { value: 'sweep-pulse', label: 'Sweep + Pulse' },
+];
 
 interface StyleControlsProps {
   onLocked?: (feature: FeatureKey) => void;
@@ -59,6 +67,8 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
 export default function StyleControls({ onLocked }: StyleControlsProps) {
   const style = useUIStore((s) => s.style);
   const setStyle = useUIStore((s) => s.setStyle);
+  const captionAnimation = useUIStore((s) => s.captionAnimation);
+  const setCaptionAnimation = useUIStore((s) => s.setCaptionAnimation);
   const { isLocked } = useFeatureGates();
 
   return (
@@ -119,6 +129,70 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
           value={[style.fontSize]}
           onValueChange={(val) => setStyle({ fontSize: Array.isArray(val) ? val[0] : val })}
           aria-label="Font size"
+        />
+      </div>
+
+      {/* Animation */}
+      <div className="flex flex-col gap-2">
+        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
+          Animation
+        </p>
+        <div className="flex gap-2 flex-wrap" role="radiogroup" aria-label="Caption animation">
+          {ANIMATION_OPTIONS.map(({ value, label }) => {
+            const selected = captionAnimation === value;
+            return (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={selected}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setCaptionAnimation(value)}
+                className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: selected }))}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Line height */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
+            Line height
+          </p>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {(style.lineHeight ?? 1.4).toFixed(2)}
+          </span>
+        </div>
+        <Slider
+          min={1}
+          max={2.4}
+          step={0.05}
+          value={[style.lineHeight ?? 1.4]}
+          onValueChange={(val) => setStyle({ lineHeight: Array.isArray(val) ? val[0] : val })}
+          aria-label="Line height"
+        />
+      </div>
+
+      {/* Line spacing */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
+            Line spacing
+          </p>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {style.lineSpacing ?? 0}px
+          </span>
+        </div>
+        <Slider
+          min={0}
+          max={24}
+          step={1}
+          value={[style.lineSpacing ?? 0]}
+          onValueChange={(val) => setStyle({ lineSpacing: Array.isArray(val) ? val[0] : val })}
+          aria-label="Line spacing"
         />
       </div>
     </div>

@@ -1,4 +1,5 @@
 // apps/web/src/app/create/layout.tsx
+// HIG-compliant layout: minimal chrome, content-first, proper safe areas
 'use client';
 
 import { Suspense } from 'react';
@@ -31,11 +32,20 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh bg-black text-[--primary] font-[family-name:var(--font-jakarta)]">
-      {!capabilities.isLoading && <CapabilityBanner warnings={capabilities.warnings} />}
+    <div className="relative min-h-dvh bg-black text-[--primary] font-[family-name:var(--font-jakarta)]">
+      {/* Capability warnings - ephemeral, non-blocking */}
+      {!capabilities.isLoading && capabilities.warnings.length > 0 && (
+        <div className="absolute top-0 left-0 right-0 z-30">
+          <CapabilityBanner warnings={capabilities.warnings} />
+        </div>
+      )}
 
-      {children}
+      {/* Main content area with proper safe area insets */}
+      <main className="relative z-10">
+        {children}
+      </main>
 
+      {/* Upgrade sheet - modal overlay */}
       <UpgradeSheet
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
@@ -45,6 +55,7 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
         }
       />
 
+      {/* Brand watermark - subtle, non-interactive */}
       <div
         className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 text-white/4 text-[length:var(--text-footnote)]
                    tracking-[0.2em] uppercase pointer-events-none select-none"

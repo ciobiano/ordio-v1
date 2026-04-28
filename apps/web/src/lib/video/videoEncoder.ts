@@ -12,7 +12,7 @@ import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from './frameRenderer';
 import { loadFont } from '@/lib/loaders';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { WaveformVariant, CaptionMode, CanvasLayout, GraphicStyleId } from '@/stores';
+import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@/lib/loaders';
 
 export interface EncodeVideoOptions {
@@ -30,6 +30,8 @@ export interface EncodeVideoOptions {
   captionMode: CaptionMode;
   /** Canvas composition layout */
   canvasLayout?: CanvasLayout;
+  /** Caption animation style */
+  captionAnimation?: CaptionAnimation;
   /** Show "Made with Ordio" watermark — true for free tier */
   showWatermark?: boolean;
   /** Graphic style to render — null or undefined = use waveform */
@@ -63,6 +65,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     style,
     waveformStyle,
     captionMode,
+    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -123,6 +126,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     style,
     waveformStyle,
     captionMode,
+    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,

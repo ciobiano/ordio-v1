@@ -1,50 +1,23 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionGroup } from '@/stores/types';
+import type { CaptionAnimation, CaptionGroup } from '@/stores/types';
+import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
 
 const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
 const KARAOKE_MAX_LINES = 3;
 const KARAOKE_MIN_WORDS_PER_LINE = 3;
 const KARAOKE_MAX_SCENE_WORDS = 15;
-const KARAOKE_SENTENCE_RE = /[.?!;]$/;
 const KARAOKE_PAGE_FADE_DURATION = 0.15;
 const KARAOKE_INACTIVE_ALPHA = 0.65;
 const KARAOKE_STROKE_COLOR = 'rgba(0,0,0,0.85)';
+const KARAOKE_LINE_PAUSE_BREAK = 0.24;
 
 /** Damped spring ease — fast entry with a small overshoot, settles quickly. */
 function springEase(t: number): number {
   return 1 - Math.exp(-8 * t) * Math.cos(12 * t);
 }
 
-function getKaraokeScene(transcript: Word[], currentTime: number): Word[] {
-  if (transcript.length === 0) return [];
-
-  let currentIdx = 0;
-  for (let i = 0; i < transcript.length; i++) {
-    if (currentTime >= transcript[i].start) currentIdx = i;
-    else break;
-  }
-
-  let sceneStart = 0;
-  for (let i = currentIdx - 1; i >= 0; i--) {
-    if (KARAOKE_SENTENCE_RE.test(transcript[i].text.trim())) {
-      sceneStart = i + 1;
-      break;
-    }
-  }
-
-  let sceneEnd = Math.min(sceneStart + KARAOKE_MAX_SCENE_WORDS, transcript.length);
-  for (let i = sceneStart; i < transcript.length; i++) {
-    if (KARAOKE_SENTENCE_RE.test(transcript[i].text.trim())) {
-      sceneEnd = i + 1;
-      break;
-    }
-  }
-
-  return transcript.slice(sceneStart, sceneEnd);
-}
-
-type KaraokeWord = { text: string; start: number; end: number; wordWidth: number };
+type KaraokeWord = { text: string; start: number; end: number; wordWidth: number; pauseToNext: number };
 
 function buildKaraokeLines(
   words: KaraokeWord[],
@@ -57,11 +30,11 @@ function buildKaraokeLines(
 
   for (const word of words) {
     const needed = line.length === 0 ? word.wordWidth : lineWidth + spaceWidth + word.wordWidth;
-    const prevIsSentenceEnd =
-      line.length > 0 && KARAOKE_SENTENCE_RE.test(line[line.length - 1].text.trim());
+    const prevPauseToNext = line.length > 0 ? line[line.length - 1].pauseToNext : 0;
+    const prevHasNaturalPause = prevPauseToNext >= KARAOKE_LINE_PAUSE_BREAK;
     const widthOverflow = line.length >= KARAOKE_MIN_WORDS_PER_LINE && needed > maxWidth;
 
-    if (line.length > 0 && (prevIsSentenceEnd || widthOverflow)) {
+    if (line.length > 0 && (prevHasNaturalPause || widthOverflow)) {
       lines.push(line);
       line = [word];
       lineWidth = word.wordWidth;
@@ -75,12 +48,21 @@ function buildKaraokeLines(
   return lines;
 }
 
+function hasSweep(animation: CaptionAnimation): boolean {
+  return animation === 'sweep' || animation === 'sweep-pulse';
+}
+
+function hasPulse(animation: CaptionAnimation): boolean {
+  return animation === 'pulse' || animation === 'sweep-pulse';
+}
+
 export function drawKaraokeCaptions(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  groups?: CaptionGroup[]
+  groups?: CaptionGroup[],
+  animation: CaptionAnimation = 'sweep-pulse'
 ): void {
   if (transcript.length === 0) return;
 
@@ -104,7 +86,14 @@ export function drawKaraokeCaptions(
       }
     }
   } else {
-    scene = getKaraokeScene(transcript, currentTime);
+    const segments = buildSmartSegments(transcript);
+    const segIdx = findActiveSegmentIndex(segments, currentTime);
+    if (segIdx >= 0) {
+      const seg = segments[segIdx];
+      scene = transcript.slice(seg.startIndex, Math.min(seg.endIndex, seg.startIndex + KARAOKE_MAX_SCENE_WORDS));
+    } else {
+      scene = transcript.slice(0, KARAOKE_MAX_SCENE_WORDS);
+    }
   }
   if (scene.length === 0) return;
 
@@ -120,7 +109,11 @@ export function drawKaraokeCaptions(
     start: w.start,
     end: w.end,
     wordWidth: ctx.measureText(w.text).width,
+    pauseToNext: 0,
   }));
+  for (let i = 0; i < measured.length - 1; i++) {
+    measured[i].pauseToNext = Math.max(0, measured[i + 1].start - measured[i].end);
+  }
 
   const allLines = buildKaraokeLines(measured, spaceWidth, maxWidth);
 
@@ -159,7 +152,7 @@ export function drawKaraokeCaptions(
       const wordAlpha = isActive ? 1.0 : KARAOKE_INACTIVE_ALPHA;
 
       let scale = 1.0;
-      if (isActive) {
+      if (isActive && hasPulse(animation)) {
         const wordDuration = Math.max(0.05, word.end - word.start);
         const progress = Math.min(1, ((currentTime - word.start) / wordDuration) * 4);
         scale = 1 + 0.12 * springEase(progress);
@@ -175,13 +168,35 @@ export function drawKaraokeCaptions(
         ctx.translate(-cx, -lineY);
       }
 
+      const wordDuration = Math.max(0.05, word.end - word.start);
+      const rawProgress = (currentTime - word.start) / wordDuration;
+      const progress = Math.min(1, Math.max(0, rawProgress));
+      const useSweep = isActive && hasSweep(animation);
+
       ctx.lineJoin = 'round';
       ctx.lineWidth = strokeWidth;
       ctx.strokeStyle = KARAOKE_STROKE_COLOR;
       ctx.strokeText(word.text, wordX, lineY);
 
-      ctx.fillStyle = fillColor;
+      // Base text layer
+      ctx.fillStyle = textColor;
       ctx.fillText(word.text, wordX, lineY);
+
+      if (useSweep) {
+        // Active layer reveals left->right exactly with word timing.
+        const revealWidth = Math.max(0, word.wordWidth * progress);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(wordX, lineY - lineHeight * 0.6, revealWidth, lineHeight * 1.2);
+        ctx.clip();
+        ctx.fillStyle = style.waveColor;
+        ctx.fillText(word.text, wordX, lineY);
+        ctx.restore();
+      } else if (isActive || currentTime >= word.end) {
+        // No sweep mode: active/current words get direct highlight.
+        ctx.fillStyle = fillColor;
+        ctx.fillText(word.text, wordX, lineY);
+      }
 
       ctx.restore();
     }

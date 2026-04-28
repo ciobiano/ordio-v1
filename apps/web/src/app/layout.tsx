@@ -9,6 +9,8 @@ const geistMonoHeading = Geist_Mono({subsets:['latin'],variable:'--font-heading'
 
 const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'});
 
+// Local fonts are now loaded from the public fonts folder via CSS only
+
 const plusJakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
   subsets: ['latin'],

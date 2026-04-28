@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import type { ChangeEvent, RefObject } from 'react';
 import { Orb } from '@/components/primitives/orb/Orb';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,9 @@ export function IdleState({
   micDenied = false,
   fileInputRef,
 }: IdleStateProps) {
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedFromHoldRef = useRef(false);
+
   const orbState = isLoading ? 'resting' : micDenied ? 'resting' : 'dormant';
 
   let statusLabel: string;
@@ -29,8 +33,40 @@ export function IdleState({
   } else if (micDenied) {
     statusLabel = 'Microphone access denied';
   } else {
-    statusLabel = 'Tap to record';
+    statusLabel = 'Press and hold to record';
   }
+
+  const clearHoldTimer = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePressStart = useCallback(() => {
+    if (!canRecord || isLoading || micDenied) return;
+    startedFromHoldRef.current = false;
+    clearHoldTimer();
+    holdTimerRef.current = setTimeout(() => {
+      startedFromHoldRef.current = true;
+      onStartRecording();
+    }, 220);
+  }, [canRecord, clearHoldTimer, isLoading, micDenied, onStartRecording]);
+
+  const handlePressEnd = useCallback(() => {
+    clearHoldTimer();
+  }, [clearHoldTimer]);
+
+  useEffect(() => clearHoldTimer, [clearHoldTimer]);
+
+  const handleClick = useCallback(() => {
+    if (!canRecord || isLoading || micDenied) return;
+    if (startedFromHoldRef.current) {
+      startedFromHoldRef.current = false;
+      return;
+    }
+    onStartRecording();
+  }, [canRecord, isLoading, micDenied, onStartRecording]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 animate-fadeIn py-10">
@@ -41,7 +77,9 @@ export function IdleState({
       <Orb
         state={orbState}
         intensity={isLoading ? 0.35 : 0}
-        onClick={canRecord && !isLoading && !micDenied ? onStartRecording : undefined}
+        onClick={handleClick}
+        onPressStart={handlePressStart}
+        onPressEnd={handlePressEnd}
         ariaLabel="Start recording"
         layoutId="orb"
       />

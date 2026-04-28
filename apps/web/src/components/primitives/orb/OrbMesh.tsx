@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import CustomShaderMaterial from 'three-custom-shader-material/vanilla';
 
-type OrbState = 'dormant' | 'active' | 'resting';
+type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 interface OrbMeshProps {
   state: OrbState;
@@ -86,20 +86,21 @@ uniform float uTime;
 uniform float uAudioLevel;
 uniform float uEnergy;
 uniform float uIsSpeaking;
+uniform float uPhase;
 
 varying vec3 vObjPos;
 varying vec3 vWorldPos;
 varying vec3 vNormalW;
 
 void main() {
-  float activity = mix(0.30, 1.0, uEnergy);
-  float audioPush = uAudioLevel * 0.27;
+  float activity = mix(0.35, 0.9, uEnergy);
+  float audioPush = uAudioLevel * 0.18;
   
   // Speaking boost — more aggressive displacement when actively speaking
-  float speakingBoost = uIsSpeaking * 0.12;
+  float speakingBoost = uIsSpeaking * 0.08;
   
   // Slower base speed with subtle energy modulation for meditative flow
-  float baseSpeed = 0.06 + uEnergy * 0.02 + uIsSpeaking * 0.025;
+  float baseSpeed = 0.04 + uEnergy * 0.012 + uIsSpeaking * 0.018;
   
   // Warp influence increases with speaking
   vec3 warp = vec3(
@@ -109,11 +110,12 @@ void main() {
   );
 
   // Asymmetrical offset + reduced warp coupling for organic movement
-  float n = snoise((position + warp * 0.18 + vec3(0.37, 0.71, 0.19)) * (1.18 + uEnergy * 0.08 + uIsSpeaking * 0.06) + uTime * 0.04);
+  float n = snoise((position + warp * 0.12 + vec3(0.37, 0.71, 0.19)) * (1.14 + uEnergy * 0.06 + uIsSpeaking * 0.04) + uTime * 0.032);
 
   // Gentler displacement maintaining clear spherical form, boosted by speaking
-  vec3 displaced = position + normal * n * (0.016 + audioPush) * activity * (1.0 + speakingBoost);
-  displaced *= 1.0 + n * 0.008 * (uEnergy + uIsSpeaking * 0.06);
+  float phaseBias = mix(0.9, 1.08, step(2.5, uPhase)); // speaking gets a touch more deformation
+  vec3 displaced = position + normal * n * (0.012 + audioPush) * activity * (1.0 + speakingBoost) * phaseBias;
+  displaced *= 1.0 + n * 0.005 * (uEnergy + uIsSpeaking * 0.04);
 
   vObjPos = displaced;
   vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
@@ -131,6 +133,7 @@ uniform float uTime;
 uniform float uEnergy;
 uniform float uAudioLevel;
 uniform float uIsSpeaking;
+uniform float uPhase;
 
 varying vec3 vObjPos;
 varying vec3 vWorldPos;
@@ -145,9 +148,9 @@ float hash(vec2 p) {
 
 void main() {
   // Calm cloud motion to match the reference orb style.
-  float windSpeed = 0.017 + uEnergy * 0.012 + uIsSpeaking * 0.01;
+  float windSpeed = 0.012 + uEnergy * 0.008 + uIsSpeaking * 0.008;
   vec2 windDir = normalize(vec2(0.82, 0.22));
-  float turbulence = 0.22 + uEnergy * 0.12 + uIsSpeaking * 0.08;
+  float turbulence = 0.16 + uEnergy * 0.08 + uIsSpeaking * 0.05;
   
   // ---- Layer 1: Fast-moving base cloud layer ----
   vec2 windOffset1 = windDir * uTime * windSpeed * 1.4;
@@ -231,11 +234,11 @@ void main() {
   
   // Outer rim — enhanced cyan-azure glow, intensifies when speaking
   float fresnel = pow(1.0 - max(facing, 0.0), 2.9);
-  color += fresnel * vec3(0.52, 0.82, 1.00) * 0.32 * (0.45 + uEnergy * 0.35 + uIsSpeaking * 0.25);
+  color += fresnel * vec3(0.52, 0.82, 1.00) * 0.24 * (0.4 + uEnergy * 0.25 + uIsSpeaking * 0.18);
 
   // Subtle pulse shimmer — slower frequency for meditative quality
   float pulse = 0.5 + 0.5 * sin(uTime * (0.62 + uEnergy * 0.3) + uAudioLevel * 1.2);
-  color += pulse * 0.02 * uEnergy;
+  color += pulse * 0.015 * uEnergy;
 
   // ---- Film grain / organic noise ----
   // Screen-space grain: use gl_FragCoord + animated time seed
@@ -268,6 +271,7 @@ export function OrbMesh({ state, intensity, isSpeaking }: OrbMeshProps) {
       uAudioLevel: { value: 0 },
       uEnergy: { value: 0 },
       uIsSpeaking: { value: 0 },
+      uPhase: { value: 0 },
     }),
     []
   );
@@ -298,18 +302,29 @@ export function OrbMesh({ state, intensity, isSpeaking }: OrbMeshProps) {
   }, [geometry, material]);
 
   useFrame((_, delta) => {
-    const target = state === 'active' ? intensity : 0;
-    // Smoother audio level response for graceful reactivity
-    smoothedLevel.current += (target - smoothedLevel.current) * 0.08;
+    const phase =
+      state === 'idle' ? 0 :
+      state === 'listening' ? 1 :
+      state === 'thinking' ? 2 : 3;
 
-    const energyTarget = state === 'active' ? 1 : 0;
-    // Gentler energy transitions for meditative state changes
-    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.03;
+    const target =
+      phase === 3 ? intensity :
+      phase === 1 ? Math.max(0.08, intensity * 0.5) :
+      phase === 2 ? 0.03 : 0.015;
+    // Smoother audio level response for graceful reactivity
+    smoothedLevel.current += (target - smoothedLevel.current) * 0.06;
+
+    const energyTarget =
+      phase === 0 ? 0.18 :
+      phase === 1 ? 0.48 :
+      phase === 2 ? 0.3 : 0.82;
+    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.035;
 
     // Smooth speaking state transition (~200ms for responsive but not jarring feel)
-    const speakingTarget = isSpeaking ? 1 : 0;
+    const speakingTarget = phase === 3 || isSpeaking ? 1 : 0;
     smoothedSpeaking.current += (speakingTarget - smoothedSpeaking.current) * 0.12;
     uniforms.uIsSpeaking.value = smoothedSpeaking.current;
+    uniforms.uPhase.value += (phase - uniforms.uPhase.value) * 0.12;
 
     uniforms.uTime.value += delta;
     uniforms.uAudioLevel.value = smoothedLevel.current;
@@ -332,7 +347,7 @@ export default function OrbScene() {
       <directionalLight position={[-2, 2, 5]} intensity={1.5} color="#ffffff" />
       <directionalLight position={[3, -1, -3]} intensity={0.5} color="#0055ff" />
 
-      <OrbMesh state="active" intensity={0.7} />
+      <OrbMesh state="speaking" intensity={0.7} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.45, 0]}>
         <planeGeometry args={[12, 12]} />

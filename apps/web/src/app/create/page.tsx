@@ -1,11 +1,12 @@
 // apps/web/src/app/create/page.tsx
+// HIG-compliant: clarity, deference, depth, meaningful motion
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
 import { useAudioRecorder } from '@/hooks/audio/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/audio/useAudioAnalyser';
@@ -38,7 +39,7 @@ const ProcessingState = dynamic(() => import('@/components/soul/states/Processin
 
 const UserAvatarButton = dynamic(() => import('@/components/soul/auth/UserAvatarButton'), {
   ssr: false,
-  loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
+  loading: () => <div className="w-10 h-10 rounded-full bg-white/10" />,
 });
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -75,6 +76,14 @@ function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState
   };
 }
 
+// HIG: Quick, meaningful transitions — no decoration
+const stateTransition = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] as const },
+};
+
 export default function CreatePage() {
   const router = useRouter();
   const { currentState, setCurrentState, setUpgradeTarget } = useUIStore();
@@ -108,7 +117,6 @@ export default function CreatePage() {
     if (err instanceof AudioProcessingError) {
       const alert = buildProcessingAlert(err);
       setProcessingAlert(alert);
-      toast.error(alert.title);
       return;
     }
     const fallbackAlert: ProcessingAlertState = {
@@ -117,7 +125,6 @@ export default function CreatePage() {
       detail: 'Processing stopped safely. You can retry from your previous screen.',
     };
     setProcessingAlert(fallbackAlert);
-    toast.error(fallbackAlert.title);
   }, []);
 
   useEffect(() => {
@@ -127,7 +134,6 @@ export default function CreatePage() {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       return;
     }
-    // Sync VAD state to React state for passing to components
     setIsSpeaking(vad.isSpeaking);
   }, [recorder.isRecording, vad.isSpeaking]);
 
@@ -159,10 +165,6 @@ export default function CreatePage() {
           recorder.error?.toLowerCase().includes('permission');
         if (isDenied) {
           setMicDenied(true);
-        } else {
-          toast.error(
-            recorder.error ?? 'Microphone access denied. Check your browser permissions.'
-          );
         }
         return;
       }
@@ -197,7 +199,6 @@ export default function CreatePage() {
     try {
       await handleStartRecording();
     } catch {
-      toast.error('Failed to restart recording');
       setCurrentState('idle');
     }
   }, [recorder, handleStartRecording, setCurrentState]);
@@ -209,7 +210,6 @@ export default function CreatePage() {
       setProcessingAlert(null);
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error('File too large. Maximum 50 MB.');
         return;
       }
 
@@ -237,89 +237,120 @@ export default function CreatePage() {
   const handleDisableEnhancement = useCallback(() => {
     setEnhanceTier('none');
     setProcessingAlert(null);
-    toast.success('Enhancement disabled. Retry when ready.');
   }, [setEnhanceTier]);
 
   return (
     <main
       id="main-content"
-      className="relative min-h-dvh overflow-hidden px-4 pb-28 pt-6 safe-pb safe-pt"
+      className="relative flex min-h-dvh flex-col items-center justify-center px-4 pb-28 pt-6 safe-pb safe-pt"
     >
       <SavedAudioPanel />
-      {processingAlert && (
-        <div className="fixed top-4 left-1/2 z-30 w-[min(92vw,42rem)] -translate-x-1/2">
-          <Alert
-            variant="destructive"
-            className="border border-red-400/40 bg-red-950/90 text-red-50 shadow-lg backdrop-blur-sm"
+
+      {/* HIG: Alerts as overlays that don't destroy context */}
+      <AnimatePresence>
+        {processingAlert && (
+          <motion.div
+            className="fixed top-4 left-1/2 z-50 w-[min(92vw,42rem)] -translate-x-1/2"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-            <AlertTitle className="text-red-50">{processingAlert.title}</AlertTitle>
-            <AlertDescription className="text-red-100/90 leading-relaxed">
-              {processingAlert.detail}
-            </AlertDescription>
-            <div className="col-start-2 mt-3 flex flex-wrap justify-end gap-2">
-              {processingAlert.stage === 'enhancement' && (
+            <Alert
+              variant="destructive"
+              className="border border-red-400/40 bg-red-950/90 text-red-50 shadow-lg backdrop-blur-sm"
+            >
+              <AlertTitle className="text-red-50">{processingAlert.title}</AlertTitle>
+              <AlertDescription className="text-red-100/90 leading-relaxed">
+                {processingAlert.detail}
+              </AlertDescription>
+              <div className="col-start-2 mt-3 flex flex-wrap justify-end gap-2">
+                {processingAlert.stage === 'enhancement' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDisableEnhancement}
+                    className="border-red-300/40 bg-transparent text-red-50 hover:bg-red-900/60 hover:text-white"
+                  >
+                    Turn enhancement off
+                  </Button>
+                )}
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  onClick={handleDisableEnhancement}
-                  className="border-red-300/40 bg-transparent text-red-50 hover:bg-red-900/60 hover:text-white"
+                  variant="ghost"
+                  onClick={() => setProcessingAlert(null)}
+                  className="text-red-100 hover:bg-red-900/60 hover:text-white"
                 >
-                  Turn enhancement off
+                  Dismiss
                 </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setProcessingAlert(null)}
-                className="text-red-100 hover:bg-red-900/60 hover:text-white"
-              >
-                Dismiss
-              </Button>
-            </div>
-          </Alert>
-        </div>
-      )}
+              </div>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HIG: Avatar button positioned with deference — doesn't block content */}
       {currentState === 'idle' && (
         <div className="fixed right-4 top-4 z-20 safe-pt">
           <UserAvatarButton />
         </div>
       )}
 
-      {currentState === 'idle' && (
-        <div className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-md items-center">
-          <IdleState
-            onStartRecording={handleStartRecording}
-            onFileUpload={handleFileUpload}
-            canRecord={capabilities.canRecord}
-            isLoading={isStarting}
-            micDenied={micDenied}
-            fileInputRef={fileInputRef}
-          />
-        </div>
-      )}
+      {/* HIG: State transitions — meaningful motion only */}
+      <AnimatePresence mode="wait">
+        {currentState === 'idle' && (
+          <motion.div
+            key="idle"
+            className="w-full max-w-md"
+            {...stateTransition}
+          >
+            <IdleState
+              onStartRecording={handleStartRecording}
+              onFileUpload={handleFileUpload}
+              canRecord={capabilities.canRecord}
+              isLoading={isStarting}
+              micDenied={micDenied}
+              fileInputRef={fileInputRef}
+            />
+          </motion.div>
+        )}
 
-      {currentState === 'recording' && (
-        <RecordingState
-          audioLevel={audioLevel}
-          isSpeaking={isSpeaking}
-          isPaused={recorder.isPaused}
-          recordingTime={recorder.recordingTime}
-          onPauseRecording={recorder.pauseRecording}
-          onResumeRecording={recorder.resumeRecording}
-          onStopRecording={handleStopRecording}
-          onRestart={handleRestart}
-          onProceed={handleProceed}
-          onCancel={handleReset}
-          onLocked={setUpgradeTarget}
-        />
-      )}
+        {currentState === 'recording' && (
+          <motion.div
+            key="recording"
+            className="w-full"
+            {...stateTransition}
+          >
+            <RecordingState
+              audioLevel={audioLevel}
+              isSpeaking={isSpeaking}
+              isPaused={recorder.isPaused}
+              recordingTime={recorder.recordingTime}
+              onPauseRecording={recorder.pauseRecording}
+              onResumeRecording={recorder.resumeRecording}
+              onStopRecording={handleStopRecording}
+              onRestart={handleRestart}
+              onProceed={handleProceed}
+              onCancel={handleReset}
+              onLocked={setUpgradeTarget}
+            />
+          </motion.div>
+        )}
 
-      {currentState === 'processing' && (
-        <ProcessingState progress={processingProgress} onCancel={handleReset} />
-      )}
+        {currentState === 'processing' && (
+          <motion.div
+            key="processing"
+            className="w-full"
+            {...stateTransition}
+          >
+            <ProcessingState progress={processingProgress} onCancel={handleReset} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* HIG: Live region for screen readers — invisible but announced */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {currentState === 'recording' && 'Recording started'}
         {currentState === 'processing' && 'Processing audio'}

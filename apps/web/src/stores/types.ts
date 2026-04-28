@@ -10,6 +10,7 @@ export type CanvasLayout = 'top' | 'compact' | 'flipped';
 
 /** How captions are revealed frame-by-frame */
 export type CaptionMode = 'phrase' | 'karaoke';
+export type CaptionAnimation = 'none' | 'sweep' | 'pulse' | 'sweep-pulse';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
 
 export function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {

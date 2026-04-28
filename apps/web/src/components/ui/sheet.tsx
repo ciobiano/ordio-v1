@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -24,12 +25,20 @@ function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
+const springConfig = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 28,
+}
+
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/80 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
+        "fixed inset-0 z-50 bg-black/60 transition-opacity duration-300",
+        "data-[ending-style]:opacity-0 data-[starting-style]:opacity-0",
+        "supports-[backdrop-filter]:backdrop-blur-md",
         className
       )}
       {...props}
@@ -47,6 +56,60 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const reducedMotion = useReducedMotion()
+
+  const getContentAnim = () => {
+    if (reducedMotion) {
+      return {
+        initial: { opacity: 0 },
+        animate: { opacity: 1, scale: 1 },
+        exit: { opacity: 0, scale: 0.98 },
+        transition: { duration: 0.2 },
+      }
+    }
+
+    const slideDistance = '2.5rem'
+    const base = {
+      animate: { scale: 1 },
+      exit: { scale: 0.98 },
+      transition: springConfig,
+    }
+
+    switch (side) {
+      case 'bottom':
+        return {
+          ...base,
+          initial: { y: slideDistance, opacity: 0, scale: 0.98 },
+          animate: { ...base.animate, y: 0, opacity: 1 },
+          exit: { ...base.exit, y: slideDistance, opacity: 0 },
+        }
+      case 'top':
+        return {
+          ...base,
+          initial: { y: `-${slideDistance}`, opacity: 0, scale: 0.98 },
+          animate: { ...base.animate, y: 0, opacity: 1 },
+          exit: { ...base.exit, y: `-${slideDistance}`, opacity: 0 },
+        }
+      case 'left':
+        return {
+          ...base,
+          initial: { x: `-${slideDistance}`, opacity: 0, scale: 0.98 },
+          animate: { ...base.animate, x: 0, opacity: 1 },
+          exit: { ...base.exit, x: `-${slideDistance}`, opacity: 0 },
+        }
+      case 'right':
+      default:
+        return {
+          ...base,
+          initial: { x: slideDistance, opacity: 0, scale: 0.98 },
+          animate: { ...base.animate, x: 0, opacity: 1 },
+          exit: { ...base.exit, x: slideDistance, opacity: 0 },
+        }
+    }
+  }
+
+  const contentAnim = getContentAnim()
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -54,12 +117,31 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col bg-background bg-clip-padding text-sm shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
+          "fixed z-50 flex flex-col bg-background bg-clip-padding text-sm shadow-lg",
+          // Bottom sheet: medium detent (50-85vh) per HIG
+          "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:w-full data-[side=bottom]:border-t",
+          "data-[side=bottom]:min-h-[50vh] data-[side=bottom]:max-h-[85vh] data-[side=bottom]:h-auto",
+          // Side sheets: fixed width, full height
+          "data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r",
+          "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l",
+          // Top sheet: medium detent
+          "data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:w-full data-[side=top]:border-b",
+          "data-[side=top]:min-h-[50vh] data-[side=top]:max-h-[85vh] data-[side=top]:h-auto",
+          // Desktop: constrain width
+          "data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
           className
         )}
         {...props}
       >
-        {children}
+        <motion.div
+          className="flex flex-col h-full"
+          initial={contentAnim.initial}
+          animate={contentAnim.animate}
+          exit={contentAnim.exit}
+          transition={contentAnim.transition}
+        >
+          {children}
+        </motion.div>
         {showCloseButton && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
@@ -68,12 +150,12 @@ function SheetContent({
                 variant="ghost"
                 className="absolute top-4 right-4"
                 size="icon-sm"
-              />
+              >
+                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+                <span className="sr-only">Close</span>
+              </Button>
             }
-          >
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
+          />
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>

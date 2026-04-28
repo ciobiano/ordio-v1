@@ -41,16 +41,47 @@ export function useOverlayLoading(loading: boolean) {
 // ─── Page variants ───────────────────────────────────────────────────────────
 
 const pageVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+    transition: {
+      type: 'spring',
+      stiffness: 300,
+      damping: 30,
+      mass: 0.8,
+    },
   },
   exit: {
     opacity: 0,
-    y: -8,
-    transition: { duration: 0.2, ease: 'easeIn' },
+    y: -12,
+    transition: {
+      type: 'spring',
+      stiffness: 280,
+      damping: 32,
+    },
+  },
+}
+
+const modalVariants: Variants = {
+  hidden: { opacity: 0, y: '100%' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 300,
+      damping: 32,
+      mass: 0.9,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: '8%',
+    transition: {
+      duration: 0.2,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
   },
 }
 
