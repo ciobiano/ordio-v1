@@ -43,19 +43,6 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-function getContainerClass(format: FormatVariant): string {
-  switch (format) {
-    case 'square':
-      return 'w-60 h-60 sm:w-72 sm:h-72 md:w-80 md:h-80';
-    case 'vertical':
-      return 'w-44 h-[312px] sm:w-56 sm:h-96';
-    case 'horizontal':
-      return 'w-full max-w-96 h-44 sm:h-56';
-    case 'instagram':
-      return 'w-52 h-[260px] sm:w-64 sm:h-80';
-  }
-}
-
 export default function CanvasPreview({
   playback,
   format,
@@ -116,6 +103,7 @@ export default function CanvasPreview({
   }, [playback.currentTime]);
 
   const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions(format);
+  const aspectRatio = canvasWidth / canvasHeight;
 
   // Optional grid overlay styling
   const gridOverlayStyle = {
@@ -193,14 +181,17 @@ export default function CanvasPreview({
 
   return (
     <div
+      key={format}
       className={cn(
-        'relative rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10',
-        getContainerClass(format),
+        'relative rounded-xl overflow-hidden w-full',
         className
       )}
       style={{
-        boxShadow:
-          '0 18px 48px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
+        background: '#0a0a0a',
+        border: '1px solid rgba(255,255,255,0.12)',
+        boxShadow: '0 18px 48px rgba(0,0,0,0.42)',
+        animation: 'fadeIn 0.2s ease-out',
+        aspectRatio: aspectRatio,
       }}
     >
       <canvas
@@ -214,9 +205,9 @@ export default function CanvasPreview({
       />
       {/* Optional grid overlay for composition studies */}
       {showGrid && <div aria-hidden="true" style={gridOverlayStyle} />}
-      {/* HUD: time & format badge */}
-      <div className="absolute top-2 left-2 z-20 bg-black/40 text-xs text-white px-2 py-0.5 rounded backdrop-blur" aria-hidden="true">
-        {getFormatLabel(format)} • {formatTime(displayTime)} / {formatTime(playback.duration)}
+      {/* Format badge */}
+      <div className="absolute top-2 left-2 z-20 bg-black/50 text-[clamp(0.625rem,2vw,0.75rem)] text-white/70 px-2 py-0.5 rounded-lg backdrop-blur" aria-hidden="true">
+        {getFormatLabel(format)}
       </div>
       {/* Center Play/Pause control for quick interaction */}
       <button
@@ -236,13 +227,6 @@ export default function CanvasPreview({
           </svg>
         )}
       </button>
-      <span
-        className="absolute top-2 right-2 text-xs font-medium tracking-wider uppercase
-                   text-white/40 bg-black/40 px-1.5 py-0.5 rounded"
-        aria-hidden="true"
-      >
-        {getFormatLabel(format)}
-      </span>
     </div>
   );
 }

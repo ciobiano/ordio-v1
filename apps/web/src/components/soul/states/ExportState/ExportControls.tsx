@@ -42,11 +42,10 @@ export function ExportControls({
   const [activePanel, setActivePanel] = useState<ToolbarPanel>('captions')
 
   return (
-    <div className={cn(
-      'mobile-glass flex flex-col overflow-hidden rounded-[1.8rem] md:w-80 shrink-0',
-      'border border-white/10'
-    )}>
-      <div className="border-b border-white/10">
+    <div className="flex flex-col overflow-hidden rounded-2xl md:w-80 shrink-0
+                    bg-[color:var(--glass-bg)] backdrop-blur-xl
+                    border border-white/[0.08]">
+      <div className="border-b border-white/[0.08]">
         <IconToolbar activePanel={activePanel} onPanelChange={setActivePanel} />
       </div>
 

@@ -170,7 +170,7 @@ export default function ExportState({
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
 
   return (
-    <div className="flex flex-col w-full min-h-dvh animate-fadeIn">
+    <div className="flex flex-col w-full  min-h-dvh animate-fadeIn">
       <ExportHeader
         exportedUrl={exporter.exportedUrl}
         exportDisabled={exportDisabled}
@@ -179,7 +179,7 @@ export default function ExportState({
         onDownload={onDownload}
       />
 
-      <div className="flex flex-1 flex-col gap-4 px-3 pb-4 md:flex-row md:items-start md:gap-6 md:px-6">
+        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row md:items-start md:gap-6 md:px-6">
         <ExportCanvas
           playback={playback}
           format={format}

@@ -23,16 +23,14 @@ export function ExportFooter({ trimIsEmpty, exporter, onDownload }: ExportFooter
   return (
     <div className="px-3 pb-3 md:px-6 shrink-0">
       {trimIsEmpty && (
-        <p role="alert" className="text-center text-sm text-destructive/70 pb-2">
+        <p role="alert" className="text-center text-[length:var(--text-callout)] text-destructive/70 pb-2">
           No audio remaining — adjust trim handles to continue
         </p>
       )}
 
       {(exporter.isExporting || exporter.error || exporter.exportedUrl) && (
-        <div
-          className="mb-4 flex flex-col gap-2"
-        >
-          <div className="mobile-glass rounded-[1.4rem] px-4 py-3">
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="bg-[color:var(--glass-bg)] backdrop-blur-xl rounded-2xl px-4 py-3">
             {exporter.isExporting && (
               <div
                 className="flex flex-col gap-2"
@@ -44,14 +42,14 @@ export function ExportFooter({ trimIsEmpty, exporter, onDownload }: ExportFooter
               >
                 <Progress value={progressPct} className="h-1" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/58">
+                  <span className="text-[length:var(--text-caption)] text-white/50">
                     Exporting&nbsp;{progressPct}%
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={exporter.cancelExport}
-                    className="h-auto px-1 py-0 text-xs text-white/58 hover:text-white"
+                    className="h-auto px-1 py-0 text-[length:var(--text-caption)] text-white/50 hover:text-white transition-colors duration-150 motion-reduce:transition-none"
                   >
                     Cancel
                   </Button>
@@ -60,7 +58,7 @@ export function ExportFooter({ trimIsEmpty, exporter, onDownload }: ExportFooter
             )}
 
             {exporter.error && (
-              <p role="alert" className="text-sm text-red-300">
+              <p role="alert" className="text-[length:var(--text-callout)] text-red-300/90">
                 {exporter.error}
               </p>
             )}
@@ -69,7 +67,9 @@ export function ExportFooter({ trimIsEmpty, exporter, onDownload }: ExportFooter
               <Button
                 type="button"
                 onClick={onDownload}
-                className="h-11 w-full rounded-2xl bg-white text-slate-950 hover:bg-white/90"
+                className="h-11 w-full rounded-xl bg-white text-slate-950 hover:bg-white/90
+                           transition-all duration-150 motion-reduce:transition-none
+                           active:scale-[0.98] font-medium text-[length:var(--text-body)]"
               >
                 Download export
               </Button>

@@ -4,82 +4,30 @@ import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores'
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates'
 import LockBadge from '@/components/ui/LockBadge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { FeatureKey } from '@/lib/featureGates'
 import type { CanvasLayout, CaptionMode, FormatVariant } from '@/stores'
 
-const FORMATS: { value: FormatVariant; label: string; gate?: FeatureKey }[] = [
-  { value: 'square', label: '1:1' },
-  { value: 'vertical', label: '9:16', gate: 'format_vertical' },
-  { value: 'horizontal', label: '16:9', gate: 'format_horizontal' },
-  { value: 'instagram', label: '4:5', gate: 'format_instagram' },
+const FORMATS = [
+  { value: 'square' as FormatVariant, label: '1:1' },
+  { value: 'vertical' as FormatVariant, label: '9:16', gate: 'format_vertical' as FeatureKey },
+  { value: 'horizontal' as FormatVariant, label: '16:9', gate: 'format_horizontal' as FeatureKey },
+  { value: 'instagram' as FormatVariant, label: '4:5', gate: 'format_instagram' as FeatureKey },
 ]
 
-const MODES: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Phrase' },
-  { value: 'karaoke', label: 'Karaoke', gate: 'caption_karaoke' },
+const MODES = [
+  { value: 'phrase' as CaptionMode, label: 'Phrase' },
+  { value: 'karaoke' as CaptionMode, label: 'Karaoke', gate: 'caption_karaoke' as FeatureKey },
 ]
 
-const LAYOUTS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'compact', label: 'Compact' },
-  { value: 'flipped', label: 'Flipped', gate: 'layout_flipped' },
+const LAYOUTS = [
+  { value: 'top' as CanvasLayout, label: 'Top' },
+  { value: 'compact' as CanvasLayout, label: 'Compact' },
+  { value: 'flipped' as CanvasLayout, label: 'Flipped', gate: 'layout_flipped' as FeatureKey },
 ]
 
 interface StageControlBarProps {
   onLocked?: (feature: FeatureKey) => void
-}
-
-function ControlGroup<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  onLocked,
-}: {
-  label: string
-  value: T
-  options: { value: T; label: string; gate?: FeatureKey }[]
-  onChange: (value: T) => void
-  onLocked?: (feature: FeatureKey) => void
-}) {
-  const { isLocked } = useFeatureGates()
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="shrink-0 text-[11px] uppercase tracking-[0.18em] text-white/34">
-        {label}
-      </span>
-      <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
-        {options.map((option) => {
-          const locked = option.gate ? isLocked(option.gate) : false
-          const selected = value === option.value
-          return (
-            <div key={option.value} className="relative">
-              <button
-                type="button"
-                onClick={() => (locked ? onLocked?.(option.gate!) : onChange(option.value))}
-                aria-pressed={selected}
-                className={cn(
-                  'min-h-10 rounded-xl px-3 text-sm transition-colors',
-                  selected
-                    ? 'bg-white text-slate-950 font-medium'
-                    : 'text-white/72 hover:bg-white/8'
-                )}
-              >
-                {option.label}
-              </button>
-              {locked && option.gate && (
-                <LockBadge
-                  onClick={() => onLocked?.(option.gate!)}
-                  label={`${option.label} requires Creator`}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
 }
 
 export function StageControlBar({ onLocked }: StageControlBarProps) {
@@ -89,12 +37,85 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
   const setCaptionMode = useUIStore((s) => s.setCaptionMode)
   const canvasLayout = useUIStore((s) => s.canvasLayout)
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout)
+  const { isLocked } = useFeatureGates()
 
   return (
-    <div className="flex gap-3 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <ControlGroup label="Format" value={format} options={FORMATS} onChange={setFormat} onLocked={onLocked} />
-      <ControlGroup label="Mode" value={captionMode} options={MODES} onChange={setCaptionMode} onLocked={onLocked} />
-      <ControlGroup label="Layout" value={canvasLayout} options={LAYOUTS} onChange={setCanvasLayout} onLocked={onLocked} />
+    <div className="relative flex gap-3 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+      <Select value={format} onValueChange={(v) => setFormat(v as FormatVariant)}>
+        <SelectTrigger size="sm" className="h-11 rounded-xl bg-white/5 px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 border-0">
+          <span className="text-white/40">Format</span>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent side="top" className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
+          {FORMATS.map((opt) => {
+            const locked = opt.gate ? isLocked(opt.gate) : false
+            return (
+              <SelectItem
+                key={opt.value}
+                value={opt.value}
+                disabled={locked}
+                className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
+              >
+                {opt.label}
+                {locked && opt.gate && (
+                  <LockBadge onClick={() => onLocked?.(opt.gate!)} label={`${opt.label} requires Creator`} />
+                )}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
+
+      <Select value={captionMode} onValueChange={(v) => setCaptionMode(v as CaptionMode)}>
+        <SelectTrigger size="sm" className="h-11 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 border-0">
+          <span className="text-white/40">Mode</span>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent side="top" className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
+          {MODES.map((opt) => {
+            const locked = opt.gate ? isLocked(opt.gate) : false
+            return (
+              <SelectItem
+                key={opt.value}
+                value={opt.value}
+                disabled={locked}
+                className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
+              >
+                {opt.label}
+                {locked && opt.gate && (
+                  <LockBadge onClick={() => onLocked?.(opt.gate!)} label={`${opt.label} requires Creator`} />
+                )}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
+
+      <Select value={canvasLayout} onValueChange={(v) => setCanvasLayout(v as CanvasLayout)}>
+        <SelectTrigger size="sm" className="h-11 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 border-0">
+          <span className="text-white/40">Layout</span>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent side="top" className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
+          {LAYOUTS.map((opt) => {
+            const locked = opt.gate ? isLocked(opt.gate) : false
+            return (
+              <SelectItem
+                key={opt.value}
+                value={opt.value}
+                disabled={locked}
+                className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
+              >
+                {opt.label}
+                {locked && opt.gate && (
+                  <LockBadge onClick={() => onLocked?.(opt.gate!)} label={`${opt.label} requires Creator`} />
+                )}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
     </div>
   )
 }

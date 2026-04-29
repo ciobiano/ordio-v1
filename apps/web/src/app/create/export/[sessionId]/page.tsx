@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
-import dynamic from 'next/dynamic';
 import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
 import { usePlayback } from '@/hooks/playback/usePlayback';
@@ -14,22 +13,7 @@ import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
 import ExportState from '@/components/soul/states/ExportState';
-import { Skeleton } from '@/components/ui/skeleton';
 
-const UserAvatarButton = dynamic(() => import('@/components/soul/auth/UserAvatarButton'), {
-  ssr: false,
-  loading: () => <Skeleton variant="avatar" size="lg" animation="shimmer" />,
-});
-
-function formatExpiry(expiresAt: number): string {
-  const remaining = expiresAt - Date.now();
-  if (remaining <= 0) return 'Expired';
-  const hours = Math.floor(remaining / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `Saved for ${days} day${days !== 1 ? 's' : ''}`;
-  if (hours === 0) return 'Expires soon';
-  return `Expires in ${hours}h`;
-}
 
 export default function ExportPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
@@ -117,9 +101,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
     router,
   ]);
 
-  // Load audio into playback once AudioBuffer is ready.
-  // `loadAudio` is a stable useCallback ref — only re-run when audioBuffer changes,
-  // not on every render tick that updates playback.currentTime.
+
   useEffect(() => {
     if (audioBuffer) loadAudio(audioBuffer);
   }, [audioBuffer, loadAudio]);
@@ -167,18 +149,11 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
     );
   }
 
-  return (
+    return (
     <main
       id="main-content"
-      className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 py-16 relative"
+      className="min-h-dvh flex flex-col px-4 sm:px-6 relative"
     >
-      <div className="fixed top-4 right-4 z-20 flex items-center gap-3">
-        <span className="text-[length:var(--text-caption)] text-secondary">
-          {formatExpiry(session.expiresAt)}
-        </span>
-        <UserAvatarButton />
-      </div>
-
       <ExportState
         playback={playback}
         exporter={exporter}
