@@ -14,7 +14,7 @@ describe('store: uiStore', () => {
         fontFamily: 'Inter' as const,
         fontSize: 72,
         waveColor: '#ffffff',
-        lineSpacing: 0,
+        characterSpacing: 0,
         lineHeight: 1.4,
       },
       waveformStyle: 'bars',

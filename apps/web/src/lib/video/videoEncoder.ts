@@ -14,6 +14,7 @@ import { loadFont } from '@/lib/loaders';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@/lib/loaders';
+import type { CaptionGroup } from '@/stores/types';
 
 export interface EncodeVideoOptions {
   /** Canvas element to render frames onto */
@@ -22,6 +23,8 @@ export interface EncodeVideoOptions {
   audioBuffer: AudioBuffer;
   /** Word-level transcript */
   transcript: Word[];
+  /** Editorial caption groups */
+  captionGroups?: CaptionGroup[];
   /** Visual style */
   style: StyleConfig;
   /** Waveform variant */
@@ -62,6 +65,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     canvas,
     audioBuffer,
     transcript,
+    captionGroups,
     style,
     waveformStyle,
     captionMode,
@@ -123,6 +127,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
   const frameOptions: FrameOptions = {
     waveformData,
     transcript,
+    captionGroups,
     style,
     waveformStyle,
     captionMode,

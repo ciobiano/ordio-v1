@@ -11,7 +11,7 @@ describe('Layout Engine', () => {
     fontFamily: 'Inter',
     fontSize: 20,
     waveColor: '#ff0000',
-    lineSpacing: 0,
+    characterSpacing: 0,
     lineHeight: 1.4
   };
 

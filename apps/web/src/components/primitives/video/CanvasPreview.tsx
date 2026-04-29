@@ -75,9 +75,6 @@ export default function CanvasPreview({
   const [fontLoaded, setFontLoaded] = useState(false);
   const [displayTime, setDisplayTime] = useState(0);
 
-  // Sync currentTime to ref synchronously — no effect needed, no dep tracking
-  currentTimeRef.current = playback.currentTime;
-
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
@@ -107,10 +104,16 @@ export default function CanvasPreview({
   // HUD time display (listen to playback time updates)
   useEffect(() => {
     const unbindTime = playback.registerTimeListener((t) => {
+      currentTimeRef.current = t;
       setDisplayTime(t);
     });
     return unbindTime;
   }, [playback]);
+
+  useEffect(() => {
+    currentTimeRef.current = playback.currentTime;
+    setDisplayTime(playback.currentTime);
+  }, [playback.currentTime]);
 
   const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions(format);
 
@@ -189,7 +192,17 @@ export default function CanvasPreview({
   }, [playback]);
 
   return (
-    <div className={cn('relative rounded-xl overflow-hidden shadow-2xl', getContainerClass(format), className)}>
+    <div
+      className={cn(
+        'relative rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10',
+        getContainerClass(format),
+        className
+      )}
+      style={{
+        boxShadow:
+          '0 18px 48px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
+      }}
+    >
       <canvas
         ref={canvasRef}
         width={canvasWidth}

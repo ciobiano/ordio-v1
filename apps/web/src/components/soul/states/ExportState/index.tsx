@@ -188,6 +188,7 @@ export default function ExportState({
           canvasLayout={canvasLayout}
           graphicStyle={graphicStyle}
           showWatermark={showWatermark}
+          onLocked={onLocked}
         />
 
         <ExportControls

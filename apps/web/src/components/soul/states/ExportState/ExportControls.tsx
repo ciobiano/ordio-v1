@@ -8,7 +8,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
 import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
-import FormatToggle from '@/components/soul/recording/FormatToggle'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer'
@@ -63,7 +62,6 @@ export function ExportControls({
               <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
             )}
             {activePanel === 'style' && <StyleControls onLocked={onLocked} />}
-            {activePanel === 'format' && <FormatToggle onLocked={onLocked} />}
             {activePanel === 'trim' && (
               <TrimPanel
                 audioBuffer={audioBuffer}

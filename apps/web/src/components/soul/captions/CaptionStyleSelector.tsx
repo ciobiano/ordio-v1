@@ -28,12 +28,12 @@ const LINE_HEIGHT_PRESETS = [
   { value: 2.0, label: '2.0' },
 ];
 
-const LINE_SPACING_PRESETS = [
+const CHARACTER_SPACING_PRESETS = [
   { value: 0, label: '0' },
+  { value: 2, label: '2' },
   { value: 4, label: '4' },
   { value: 8, label: '8' },
   { value: 12, label: '12' },
-  { value: 16, label: '16' },
 ];
 
 interface CaptionStyleSelectorProps {
@@ -52,7 +52,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
   const { isLocked } = useFeatureGates();
 
   const lineHeight = style.lineHeight ?? 1.4;
-  const lineSpacing = style.lineSpacing ?? 0;
+  const characterSpacing = style.characterSpacing ?? 0;
 
   const handleLayoutKey = (e: React.KeyboardEvent, i: number) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -172,20 +172,20 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
         })}
       </div>
 
-      {/* Line Spacing control */}
-      <div className="flex items-center gap-2" role="radiogroup" aria-label="Line spacing">
+      {/* Character spacing control */}
+      <div className="flex items-center gap-2" role="radiogroup" aria-label="Character spacing">
         <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
-          Space:
+          Track:
         </span>
-        {LINE_SPACING_PRESETS.map(({ value, label }) => {
-          const isSelected = lineSpacing === value;
+        {CHARACTER_SPACING_PRESETS.map(({ value, label }) => {
+          const isSelected = characterSpacing === value;
           return (
             <button
               key={value}
               role="radio"
               aria-checked={isSelected}
               tabIndex={isSelected ? 0 : -1}
-              onClick={() => setStyle({ lineSpacing: value })}
+              onClick={() => setStyle({ characterSpacing: value })}
               className={cn(optionBtn({ shape: 'pill', tone: 'white', active: isSelected }))}
             >
               {label}

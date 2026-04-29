@@ -176,23 +176,23 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
         />
       </div>
 
-      {/* Line spacing */}
+      {/* Character spacing */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-            Line spacing
+            Character spacing
           </p>
           <span className="text-muted-foreground text-xs tabular-nums">
-            {style.lineSpacing ?? 0}px
+            {style.characterSpacing ?? 0}px
           </span>
         </div>
         <Slider
           min={0}
-          max={24}
+          max={12}
           step={1}
-          value={[style.lineSpacing ?? 0]}
-          onValueChange={(val) => setStyle({ lineSpacing: Array.isArray(val) ? val[0] : val })}
-          aria-label="Line spacing"
+          value={[style.characterSpacing ?? 0]}
+          onValueChange={(val) => setStyle({ characterSpacing: Array.isArray(val) ? val[0] : val })}
+          aria-label="Character spacing"
         />
       </div>
     </div>

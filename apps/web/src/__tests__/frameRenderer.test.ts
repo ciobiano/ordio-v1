@@ -34,7 +34,7 @@ const defaultStyle: StyleConfig = {
   fontFamily: 'Inter',
   fontSize: 48,
   waveColor: '#3B82F6',
-  lineSpacing: 0,
+  characterSpacing: 0,
   lineHeight: 1.4,
 };
 

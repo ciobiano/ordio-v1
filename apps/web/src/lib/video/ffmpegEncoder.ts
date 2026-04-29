@@ -17,6 +17,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     canvas,
     audioBuffer,
     transcript,
+    captionGroups,
     style,
     waveformStyle,
     captionMode,
@@ -60,6 +61,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
   const frameOptions: FrameOptions = {
     waveformData,
     transcript,
+    captionGroups,
     style,
     waveformStyle,
     captionMode,

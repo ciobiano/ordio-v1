@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
-export type ToolbarPanel = 'captions' | 'style' | 'format' | 'trim'
+export type ToolbarPanel = 'captions' | 'style' | 'trim'
 
 interface ToolbarItem {
   id: ToolbarPanel
@@ -21,7 +21,6 @@ interface IconToolbarProps {
 const TOOLBAR_ITEMS: ToolbarItem[] = [
   { id: 'captions', label: 'Captions', iconSrc: '/icons/captions.svg' },
   { id: 'style',    label: 'Style',    iconSrc: '/icons/style.svg' },
-  { id: 'format',   label: 'Format',   iconSrc: '/icons/format.svg' },
   { id: 'trim',     label: 'Trim',     iconSrc: '/icons/trim.svg' },
 ]
 

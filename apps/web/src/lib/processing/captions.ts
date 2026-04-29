@@ -1,6 +1,7 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CanvasLayout, CaptionAnimation, CaptionGroup } from '@/stores';
 import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
+import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
 import {
   WAVEFORM_CENTER_Y,
   WAVEFORM_CENTER_Y_FLIPPED,
@@ -12,6 +13,8 @@ const CAPTION_PADDING = 0.08;
 const FONT_WEIGHT = '600';
 const MIN_CAPTION_SAFE_ZONE = 0.02;
 const PHRASE_FADE_DURATION = 0.15;
+const PHRASE_TOP_RATIO = 0.18;
+const PHRASE_TOP_WITH_VISUAL_RATIO = 0.14;
 
 function hasPulse(animation: CaptionAnimation): boolean {
   return animation === 'pulse' || animation === 'sweep-pulse';
@@ -103,7 +106,7 @@ export function drawCaptions(
 ): void {
   if (transcript.length === 0) return;
 
-  const { width, height, textColor, fontFamily, fontSize, lineSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
+  const { width, height, textColor, fontFamily, fontSize, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
   const padding = width * CAPTION_PADDING;
 
   const transition = getPhraseTransition(transcript, currentTime, groups);
@@ -115,25 +118,24 @@ export function drawCaptions(
   ctx.textBaseline = 'middle';
 
   const maxTextWidth = width - padding * 2;
-  const wrappedLines = wrapText(ctx, text, maxTextWidth);
-  const lineHeight = fontSize * lineHeightMultiplier + lineSpacing;
-  const totalHeight = wrappedLines.length * lineHeight;
+  const lineHeight = fontSize * lineHeightMultiplier;
+  const totalHeight = lineHeight;
   const safePad = height * CAPTION_PADDING;
 
   let textY: number;
   if (!hasVisualZone) {
-    textY = (height - totalHeight) / 2;
+    textY = Math.max(safePad, height * PHRASE_TOP_RATIO);
   } else if (!flipped) {
     const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
     const minSafeZone = height * MIN_CAPTION_SAFE_ZONE;
     const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
     const maxTextY = captionBottom - minSafeZone - totalHeight;
     if (layout === 'top') {
-      textY = Math.min(height * 0.28, maxTextY);
+      textY = Math.min(height * PHRASE_TOP_WITH_VISUAL_RATIO, maxTextY);
     } else if (layout === 'compact') {
-      textY = maxTextY;
+      textY = Math.min(height * (PHRASE_TOP_WITH_VISUAL_RATIO + 0.04), maxTextY);
     } else {
-      textY = Math.min(safePad + (captionBottom - safePad - totalHeight) / 2, maxTextY);
+      textY = Math.min(height * 0.2, maxTextY);
     }
     textY = Math.max(textY, safePad);
   } else {
@@ -148,37 +150,48 @@ export function drawCaptions(
     textY = Math.min(textY, captionBottom - totalHeight);
   }
 
-  ctx.textAlign = 'left';
-  const leftX = padding;
+  ctx.textAlign = 'center';
+  const centerX = width / 2;
 
   const pulseEnabled = hasPulse(animation);
   const pulseScale = pulseEnabled
-    ? 1 + 0.07 * Math.sin(Math.min(1, transition.progress) * Math.PI)
+    ? 1 + 0.035 * Math.sin(Math.min(1, transition.progress) * Math.PI)
     : 1;
 
-  const renderText = (linesToRender: string[], alpha: number) => {
+  const renderText = (lineToRender: string, alpha: number) => {
+    const measuredWidth = measureTextWidth(ctx, lineToRender, characterSpacing);
+    const fitScale = measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1;
+
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (pulseScale !== 1) {
-      const centerX = width / 2;
-      const centerY = textY + totalHeight / 2;
-      ctx.translate(centerX, centerY);
-      ctx.scale(pulseScale, pulseScale);
-      ctx.translate(-centerX, -centerY);
-    }
-    linesToRender.forEach((line, idx) => {
-      ctx.fillStyle = textColor;
-      ctx.fillText(line, leftX, textY + idx * lineHeight + lineHeight / 2);
+    const blockCenterY = textY + totalHeight / 2;
+    ctx.translate(centerX, blockCenterY);
+    ctx.scale(fitScale * pulseScale, fitScale * pulseScale);
+    ctx.translate(-centerX, -blockCenterY);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
+    ctx.shadowBlur = Math.max(8, fontSize * 0.12);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(1.25, fontSize * 0.022);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
+    drawSpacedText(ctx, lineToRender, centerX, textY + lineHeight / 2, {
+      textAlign: 'center',
+      mode: 'stroke',
+      characterSpacing,
+    });
+    ctx.fillStyle = textColor;
+    drawSpacedText(ctx, lineToRender, centerX, textY + lineHeight / 2, {
+      textAlign: 'center',
+      mode: 'fill',
+      characterSpacing,
     });
     ctx.restore();
   };
 
   if (transition.prevText && transition.progress < 1) {
-    const prevWrapped = wrapText(ctx, transition.prevText, maxTextWidth);
-    renderText(prevWrapped, 1 - transition.progress);
+    renderText(transition.prevText, 1 - transition.progress);
   }
 
-  renderText(wrappedLines, transition.progress);
+  renderText(text, transition.progress);
 }
 
 export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -193,7 +206,7 @@ export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: 
     const key = `${i}:${j}`;
     const hit = cache.get(key);
     if (hit !== undefined) return hit;
-    const width = ctx.measureText(lineText(i, j)).width;
+    const width = measureTextWidth(ctx, lineText(i, j), 0);
     cache.set(key, width);
     return width;
   };
