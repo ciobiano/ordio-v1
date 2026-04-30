@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import { useCheckout } from '@/hooks/billing/useCheckout'
 import { primaryBtn } from '@/lib/variants'
 import type { FeatureKey } from '@/lib/featureGates'
@@ -49,30 +49,11 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
     : 'Upgrade to Creator to unlock this feature.'
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
-        className="border-0 bg-transparent shadow-none px-4 pb-8 pt-6 flex flex-col items-center"
+    <Drawer open={open} onOpenChange={(v) => !v && onClose()}>
+      <DrawerContent
+        className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh]"
       >
-        <div className="w-full max-w-sm rounded-3xl bg-[--surface-glass-card] backdrop-blur-[40px] backdrop-saturate-[160%] [box-shadow:var(--shadow-glass-top)] px-6 py-6">
-          <div className="w-9 h-[5px] rounded-full bg-white/[0.25] mx-auto mb-5" aria-hidden="true" />
-
-          <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center mb-4 mx-auto">
-            <Image src="/icons/lock.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-50" />
-          </div>
-
-          <h2
-            id="upgrade-sheet-title"
-            className="text-sm font-semibold text-foreground text-center mb-2 leading-snug"
-          >
-            {title}
-          </h2>
-
-          <p className="text-xs text-muted-foreground text-center leading-relaxed mb-6">
-            {body}
-          </p>
-
+        <DrawerTitle className="sr-only">Upgrade to Creator</DrawerTitle>
           <div className="flex flex-col gap-2.5">
             {onUpgrade && (
               <Button
@@ -91,7 +72,7 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
             </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }

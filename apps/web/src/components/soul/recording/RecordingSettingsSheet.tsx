@@ -123,25 +123,12 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent
-        className={cn(
-          'border-0 p-0 flex flex-col',
-          'rounded-t-[24px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[24px]',
-          'bg-[--surface-glass] backdrop-blur-2xl backdrop-saturate-160',
-          '[box-shadow:inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_0.5px_rgba(255,255,255,0.10),0_-12px_40px_rgba(0,0,0,0.8),0_-2px_8px_rgba(0,0,0,0.5)]',
-          'max-h-[70vh]'
-        )}
+        className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 flex flex-col max-h-[70vh] rounded-t-[24px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[24px]"
       >
         <DrawerTitle className="sr-only">Recording Settings</DrawerTitle>
 
         {/* Sticky header: drag handle + close — stays pinned while body scrolls */}
-        <div
-          className="sticky top-0 z-10 flex justify-center pt-3 pb-2 touch-none"
-          style={{
-            background: 'var(--surface-glass)',
-            backdropFilter: 'blur(40px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
-          }}
-        >
+        <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[color:var(--glass-bg)] backdrop-blur-xl">
           <div className="w-10 h-[5px] rounded-full bg-white/[0.28]" />
           <Button
             type="button"
@@ -149,19 +136,9 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
             size="icon"
             aria-label="Close settings"
             onClick={onClose}
-            className={cn(
-              'absolute right-0 top-0 h-auto w-auto',
-              'min-w-[44px] min-h-[44px] rounded-full hover:bg-transparent'
-            )}
+            className="absolute right-0 top-0 min-w-[44px] min-h-[44px] rounded-full hover:bg-transparent"
           >
-            <span
-              className={cn(
-                'w-7 h-7 rounded-full',
-                'bg-white/10 border border-white/10',
-                'flex items-center justify-center',
-                'hover:bg-white/15 transition-colors duration-150'
-              )}
-            >
+            <span className="w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-colors duration-150">
               <Image
                 src="/icons/close.svg"
                 width={12}

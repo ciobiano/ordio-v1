@@ -19,14 +19,12 @@ import {
 } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -229,8 +227,8 @@ export default function SavedAudioPanel() {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger
           render={
             <Button
               variant="ghost"
@@ -243,40 +241,36 @@ export default function SavedAudioPanel() {
           <HugeiconsIcon icon={LibraryIcon} size={22} />
         </SheetTrigger>
 
-        <SheetContent
-          side={sheetSide}
-          showCloseButton={false}
-          className="border-0 bg-transparent p-0 shadow-none data-[side=bottom]:min-h-[50vh] data-[side=bottom]:max-h-[85vh] sm:h-full sm:w-full sm:max-w-[25rem]"
+        <DrawerContent
+          className="flex flex-col bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"
         >
-          <div className="mobile-glass flex h-full w-full flex-col rounded-t-[2rem] sm:rounded-[2rem]">
-            {/* Drag handle - centered, per HIG */}
-            <div className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
+          <DrawerTitle className="sr-only">Saved Audio</DrawerTitle>
+          {/* Drag handle - centered, per HIG */}
+          <div className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
 
-            {/* Header section - clear hierarchy */}
-            <SheetHeader className="gap-4 border-b border-white/10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/85">
-                    <HugeiconsIcon icon={FileAudioIcon} size={18} />
-                  </div>
-                  <SheetTitle className="text-lg font-semibold text-white">
-                    Saved audio
-                  </SheetTitle>
-                </div>
-                <SheetClose
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10"
-                    >
-                      <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
-                      <span className="sr-only">Close</span>
-                    </Button>
-                  }
-                />
+          {/* Header section - clear hierarchy */}
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/85">
+                <HugeiconsIcon icon={FileAudioIcon} size={18} />
               </div>
-            </SheetHeader>
+              <h2 className="text-lg font-semibold text-white">
+                Saved audio
+              </h2>
+            </div>
+            <DrawerClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10"
+                >
+                  <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+                  <span className="sr-only">Close</span>
+                </Button>
+              }
+            />
+          </div>
 
             {/* Search section - proper 44pt touch target */}
             <div className="border-b border-white/10 px-4 py-3 sm:px-5">
@@ -431,8 +425,8 @@ export default function SavedAudioPanel() {
               </div>
             </ScrollArea>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
 
       <Dialog
         open={editingSession !== null}
