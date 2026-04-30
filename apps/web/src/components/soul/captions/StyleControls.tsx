@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { optionBtn } from '@/lib/variants';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUIStore } from '@/stores';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionAnimation } from '@/stores';
@@ -72,71 +73,97 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
   const { isLocked } = useFeatureGates();
 
   return (
-    <div className="flex flex-col gap-4">
+    <Tabs defaultValue="colors" className="flex flex-col gap-4">
+      {/* Apple HIG: Segmented control for in-page tabs */}
+      <TabsList variant="default" className="w-full h-9">
+        <TabsTrigger value="colors" className="text-xs flex-1">Colors</TabsTrigger>
+        <TabsTrigger value="font" className="text-xs flex-1">Font</TabsTrigger>
+        <TabsTrigger value="spacing" className="text-xs flex-1">Spacing</TabsTrigger>
+        <TabsTrigger value="motion" className="text-xs flex-1">Motion</TabsTrigger>
+      </TabsList>
 
-      {/* Colors */}
-      <div className="flex flex-col gap-2.5">
-        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-          Colors
-        </p>
+      {/* Colors Tab */}
+      <TabsContent value="colors" className="flex flex-col gap-2.5 mt-2">
         <ColorRow label="Waveform"   value={style.waveColor}        onChange={(v) => setStyle({ waveColor: v })} />
         <ColorRow label="Background" value={style.backgroundColor}  onChange={(v) => setStyle({ backgroundColor: v })} />
         <ColorRow label="Text"       value={style.textColor}        onChange={(v) => setStyle({ textColor: v })} />
-      </div>
+      </TabsContent>
 
-      {/* Font */}
-      <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-          Font
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          {FONTS.map((font) => {
-            const featureKey = fontFeatureKey[font];
-            const locked = featureKey ? isLocked(featureKey) : false;
-            return (
-              <div key={font} className="relative">
-                <button
-                  onClick={() => setStyle({ fontFamily: font })}
-                  aria-pressed={style.fontFamily === font}
-                  className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: style.fontFamily === font }))}
-                  style={{ fontFamily: font }}
-                >
-                  {font}
-                </button>
-                {locked && featureKey && (
-                  <LockBadge onClick={() => onLocked?.(featureKey)} label={`${font} requires Creator`} />
-                )}
-              </div>
-            );
-          })}
+      {/* Font Tab */}
+      <TabsContent value="font" className="flex flex-col gap-4 mt-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {FONTS.map((font) => {
+              const featureKey = fontFeatureKey[font];
+              const locked = featureKey ? isLocked(featureKey) : false;
+              return (
+                <div key={font} className="relative">
+                  <button
+                    onClick={() => setStyle({ fontFamily: font })}
+                    aria-pressed={style.fontFamily === font}
+                    className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: style.fontFamily === font }))}
+                    style={{ fontFamily: font }}
+                  >
+                    {font}
+                  </button>
+                  {locked && featureKey && (
+                    <LockBadge onClick={() => onLocked?.(featureKey)} label={`${font} requires Creator`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
-
-      {/* Font size */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-            Font size
-          </p>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {style.fontSize}px
-          </span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs">Font size</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{style.fontSize}px</span>
+          </div>
+          <Slider
+            min={32}
+            max={96}
+            step={4}
+            value={[style.fontSize]}
+            onValueChange={(val) => setStyle({ fontSize: Array.isArray(val) ? val[0] : val })}
+            aria-label="Font size"
+          />
         </div>
-        <Slider
-          min={32}
-          max={96}
-          step={4}
-          value={[style.fontSize]}
-          onValueChange={(val) => setStyle({ fontSize: Array.isArray(val) ? val[0] : val })}
-          aria-label="Font size"
-        />
-      </div>
+      </TabsContent>
 
-      {/* Animation */}
-      <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-          Animation
-        </p>
+      {/* Spacing Tab */}
+      <TabsContent value="spacing" className="flex flex-col gap-4 mt-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs">Line height</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{(style.lineHeight ?? 1.4).toFixed(2)}</span>
+          </div>
+          <Slider
+            min={1}
+            max={2.4}
+            step={0.05}
+            value={[style.lineHeight ?? 1.4]}
+            onValueChange={(val) => setStyle({ lineHeight: Array.isArray(val) ? val[0] : val })}
+            aria-label="Line height"
+          />
+        </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs">Character spacing</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{style.characterSpacing ?? 0}px</span>
+          </div>
+          <Slider
+            min={0}
+            max={12}
+            step={1}
+            value={[style.characterSpacing ?? 0]}
+            onValueChange={(val) => setStyle({ characterSpacing: Array.isArray(val) ? val[0] : val })}
+            aria-label="Character spacing"
+          />
+        </div>
+      </TabsContent>
+
+      {/* Motion Tab */}
+      <TabsContent value="motion" className="flex flex-col gap-2 mt-2">
         <div className="flex gap-2 flex-wrap" role="radiogroup" aria-label="Caption animation">
           {ANIMATION_OPTIONS.map(({ value, label }) => {
             const selected = captionAnimation === value;
@@ -154,47 +181,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
             );
           })}
         </div>
-      </div>
-
-      {/* Line height */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-            Line height
-          </p>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {(style.lineHeight ?? 1.4).toFixed(2)}
-          </span>
-        </div>
-        <Slider
-          min={1}
-          max={2.4}
-          step={0.05}
-          value={[style.lineHeight ?? 1.4]}
-          onValueChange={(val) => setStyle({ lineHeight: Array.isArray(val) ? val[0] : val })}
-          aria-label="Line height"
-        />
-      </div>
-
-      {/* Character spacing */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.15em]">
-            Character spacing
-          </p>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {style.characterSpacing ?? 0}px
-          </span>
-        </div>
-        <Slider
-          min={0}
-          max={12}
-          step={1}
-          value={[style.characterSpacing ?? 0]}
-          onValueChange={(val) => setStyle({ characterSpacing: Array.isArray(val) ? val[0] : val })}
-          aria-label="Character spacing"
-        />
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }

@@ -11,7 +11,7 @@ import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import FormatToggle from '@/components/soul/shared/FormatToggle'
-import { SubtitleIcon, PaintBoardIcon, ScissorIcon, ResizeIcon } from '@hugeicons/core-free-icons'
+import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon } from '@hugeicons/core-free-icons'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer'
@@ -33,9 +33,9 @@ interface ExportControlsProps {
 
 const DOCK_ITEMS = [
   { id: 'captions', label: 'Captions', icon: SubtitleIcon },
-  { id: 'style',    label: 'Style',    icon: PaintBoardIcon },
+  { id: 'style',    label: 'Edit Style', icon: PaintBoardIcon },
   { id: 'trim',     label: 'Trim',     icon: ScissorIcon },
-  { id: 'format',   label: 'Format',   icon: ResizeIcon },
+  { id: 'format',   label: 'Reframe',   icon: CropIcon },
 ]
 
 export function ExportControls({

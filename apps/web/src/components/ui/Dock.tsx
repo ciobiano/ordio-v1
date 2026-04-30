@@ -2,7 +2,8 @@
 
 import { cn } from '@/lib/utils'
 import { HugeiconsIcon } from '@hugeicons/react'
-import type { IconSvgElement } from '@hugeicons/core-free-icons'
+
+
 
 export type DockItem = {
   id: string
@@ -19,10 +20,10 @@ interface DockProps {
 export function Dock({ items, activeItem, onItemClick }: DockProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--glass-bg)] backdrop-blur-xl pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--glass-bg)] backdrop-blur-xl pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden"
       role="toolbar"
       aria-label="Export tools"
-      style={{ height: 'calc(49px + env(safe-area-inset-bottom))' }}
+      style={{ height: 'calc(49px + env(safe-area-inset-bottom) + 8px)' }}
     >
       <div className="flex h-full items-center justify-around px-4">
         {items.map((item) => {

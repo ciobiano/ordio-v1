@@ -181,7 +181,6 @@ export default function CanvasPreview({
 
   return (
     <div
-      key={format}
       className={cn(
         'relative rounded-xl overflow-hidden w-full',
         className
@@ -192,13 +191,14 @@ export default function CanvasPreview({
         boxShadow: '0 18px 48px rgba(0,0,0,0.42)',
         animation: 'fadeIn 0.2s ease-out',
         aspectRatio: aspectRatio,
+        transition: 'aspect-ratio 0.3s ease-out',
       }}
     >
       <canvas
         ref={canvasRef}
         width={canvasWidth}
         height={canvasHeight}
-        className="w-full h-full object-contain"
+        className="w-full h-full"
         role="img"
         tabIndex={-1}
         aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}

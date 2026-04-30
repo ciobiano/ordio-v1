@@ -25,9 +25,9 @@ const captionRow = cva(
   {
     variants: {
       state: {
-        idle:     'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30',
+        idle:     'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/[0.04]',
         active:   'border-accent text-foreground bg-accent/5',
-        selected: 'border-white/20 text-foreground bg-white/[0.04]',
+        selected: 'border-white/20 text-foreground bg-white/',
       },
     },
     defaultVariants: { state: 'idle' },
@@ -223,6 +223,58 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
 
       <Separator />
 
+      {/* Contextual action bar (visible when caption selected) — Apple HIG: actions near selection */}
+      {selectedGroupIdx !== null && (
+        <>
+          <div
+            className="flex items-center justify-around px-2 py-2 shrink-0 gap-1 bg-white/[0.02] border-b border-white/[0.04]"
+            role="toolbar"
+            aria-label="Caption actions"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSplit}
+              disabled={!canSplit}
+              aria-label={
+                cursorPosition !== null
+                  ? 'Split at cursor position'
+                  : 'Split at playhead'
+              }
+              className="flex-1 gap-1.5 text-xs"
+            >
+              <HugeiconsIcon icon={ScissorIcon} size={14} aria-hidden="true" />
+              {cursorPosition !== null ? 'Split here' : 'Split'}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMergeUp}
+              disabled={!canMergeUp}
+              aria-label="Merge with previous caption"
+              className="flex-1 gap-1.5 text-xs"
+            >
+              <HugeiconsIcon icon={ArrowUp01Icon} size={14} aria-hidden="true" />
+              Merge ↑
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMergeDown}
+              disabled={!canMergeDown}
+              aria-label="Merge with next caption"
+              className="flex-1 gap-1.5 text-xs"
+            >
+              <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
+              Merge ↓
+            </Button>
+          </div>
+          <Separator />
+        </>
+      )}
+
       {/* Caption list */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col py-1" role="list">
@@ -333,58 +385,6 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
           })}
         </div>
       </ScrollArea>
-
-      <Separator />
-
-      {/* Bottom action bar: max 3 visible + overflow dropdown */}
-      <div
-        className="flex items-center justify-around px-2 py-2 shrink-0 gap-1"
-        role="toolbar"
-        aria-label="Caption actions"
-      >
-        {/* Split */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSplit}
-          disabled={!canSplit}
-          aria-label={
-            cursorPosition !== null
-              ? 'Split at cursor position'
-              : 'Split at playhead'
-          }
-          className="flex-1 gap-1.5 text-xs"
-        >
-          <HugeiconsIcon icon={ScissorIcon} size={14} aria-hidden="true" />
-          {cursorPosition !== null ? 'Split here' : 'Split'}
-        </Button>
-
-        {/* Merge Up */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleMergeUp}
-          disabled={!canMergeUp}
-          aria-label="Merge with previous caption"
-          className="flex-1 gap-1.5 text-xs"
-        >
-          <HugeiconsIcon icon={ArrowUp01Icon} size={14} aria-hidden="true" />
-          Merge ↑
-        </Button>
-
-        {/* Merge Down */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleMergeDown}
-          disabled={!canMergeDown}
-          aria-label="Merge with next caption"
-          className="flex-1 gap-1.5 text-xs"
-        >
-          <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
-          Merge ↓
-        </Button>
-      </div>
     </div>
   );
 }

@@ -39,8 +39,8 @@ export function ExportCanvas({
 
   return (
     <div className="flex flex-col flex-1 min-w-0 pt-[env(safe-area-inset-top)] mt-16">
-      <div className="flex justify-center shrink-0">
-        <div className="relative flex w-full max-w-[calc(100vw-2rem)] sm:max-w-[28rem] flex-col gap-4">
+      <div className="flex justify-center shrink-0 px-4 sm:px-6">
+        <div className="relative flex w-full max-w-[calc(100vw-2rem)] sm:max-w-[28rem] flex-col">
           <CanvasPreview
             playback={playback}
             format={format}
@@ -50,6 +50,8 @@ export function ExportCanvas({
             graphicStyle={graphicStyle}
             showWatermark={showWatermark}
           />
+
+          <div className="h-4" />
 
           <StageControlBar onLocked={onLocked} />
         </div>
