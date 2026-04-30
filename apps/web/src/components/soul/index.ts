@@ -4,7 +4,7 @@ export { default as AudioSettings } from './recording/AudioSettings';
 export { default as CaptionEditor } from './captions/CaptionEditor';
 export { default as CaptionStyleSelector } from './captions/CaptionStyleSelector';
 export { default as ExportState } from './states/ExportState';
-export { default as FormatToggle } from './recording/FormatToggle';
+export { default as FormatToggle } from './shared/FormatToggle';
 export { default as IdleState } from './states/IdleState';
 export { default as ProcessingState } from './states/ProcessingState';
 export { RecordingState } from './recording/RecordingState';
