@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
@@ -10,6 +10,7 @@ import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@/lib/loaders';
 import { cn } from '@/lib/utils';
+import { CanvasCaptionTransformOverlay } from './canvas-preview/CanvasCaptionTransformOverlay';
 
 interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
@@ -61,11 +62,15 @@ export default function CanvasPreview({
   const currentTimeRef = useRef(0);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [displayTime, setDisplayTime] = useState(0);
+  const [isTransformActive, setIsTransformActive] = useState(false);
+  const [showTransformHint, setShowTransformHint] = useState(true);
 
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
   const captionAnimation = useUIStore((s) => s.captionAnimation);
+  const captionTransform = useUIStore((s) => s.captionTransform);
+  const setCaptionTransform = useUIStore((s) => s.setCaptionTransform);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
 
   // Load the selected font so canvas can render it, then trigger re-draw
@@ -142,10 +147,113 @@ export default function CanvasPreview({
       graphicStyle,
       captionGroups,
       captionAnimation,
+      captionTransform,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
+
+  const activeText = (captionGroups.find((group) => displayTime >= group.start && displayTime < group.end)?.text ?? '').trim();
+  const showCaptionBox = captionMode !== 'karaoke' && captionTransform.visible && activeText.length > 0;
+  const boxWidth = Math.min(canvasWidth * 0.9, Math.max(canvasWidth * 0.22, activeText.length * style.fontSize * 0.58));
+  const boxHeight = style.fontSize * style.lineHeight;
+  const centerX = canvasWidth / 2 + captionTransform.offsetXRatio * canvasWidth;
+  const centerY = canvasHeight * 0.24 + captionTransform.offsetYRatio * canvasHeight;
+  const boxPxWidth = boxWidth * captionTransform.scale;
+  const boxPxHeight = boxHeight * captionTransform.scale;
+
+  const gestureRef = useRef<{
+    mode: 'move' | 'resize' | 'rotate';
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startOffsetXRatio: number;
+    startOffsetYRatio: number;
+    startScale: number;
+    startRotationDeg: number;
+  } | null>(null);
+  const lastTapRef = useRef(0);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const beginGesture = useCallback((mode: 'move' | 'resize' | 'rotate', e: ReactPointerEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    gestureRef.current = {
+      mode,
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startOffsetXRatio: captionTransform.offsetXRatio,
+      startOffsetYRatio: captionTransform.offsetYRatio,
+      startScale: captionTransform.scale,
+      startRotationDeg: captionTransform.rotationDeg,
+    };
+  }, [captionTransform]);
+
+  const handleGestureMove = useCallback((e: ReactPointerEvent<HTMLElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== e.pointerId) return;
+    const dx = e.clientX - gesture.startClientX;
+    const dy = e.clientY - gesture.startClientY;
+
+    if (gesture.mode === 'move') {
+      setCaptionTransform({
+        offsetXRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetXRatio + dx / canvasWidth)),
+        offsetYRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetYRatio + dy / canvasHeight)),
+      });
+      return;
+    }
+
+    if (gesture.mode === 'resize') {
+      const nextScale = gesture.startScale + (dx + dy) / 900;
+      setCaptionTransform({ scale: Math.max(0.45, Math.min(2.8, nextScale)) });
+      return;
+    }
+
+    const nextRotation = gesture.startRotationDeg + dx * 0.35;
+    setCaptionTransform({ rotationDeg: nextRotation });
+  }, [canvasHeight, canvasWidth, setCaptionTransform]);
+
+  const endGesture = useCallback((e: ReactPointerEvent<HTMLElement>) => {
+    if (gestureRef.current?.pointerId !== e.pointerId) return;
+    gestureRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showCaptionBox) {
+      setIsTransformActive(false);
+    }
+  }, [showCaptionBox]);
+
+  useEffect(() => {
+    if (!showCaptionBox || isTransformActive) {
+      setShowTransformHint(false);
+      return;
+    }
+    setShowTransformHint(true);
+    const timer = window.setTimeout(() => setShowTransformHint(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [showCaptionBox, isTransformActive]);
+
+  const activateTransform = useCallback(() => {
+    if (!showCaptionBox) return;
+    setIsTransformActive(true);
+  }, [showCaptionBox]);
+
+  const handleHotspotPointerUp = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (e.pointerType === 'mouse') return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 280) {
+      activateTransform();
+      lastTapRef.current = 0;
+      return;
+    }
+    lastTapRef.current = now;
+  }, [activateTransform]);
 
   // Render loop: animate during playback, single frame when paused
   useEffect(() => {
@@ -185,6 +293,15 @@ export default function CanvasPreview({
         'relative rounded-xl overflow-hidden w-full',
         className
       )}
+      onPointerDownCapture={(e) => {
+        if (
+          isTransformActive &&
+          overlayRef.current &&
+          !overlayRef.current.contains(e.target as Node)
+        ) {
+          setIsTransformActive(false);
+        }
+      }}
       style={{
         background: '#0a0a0a',
         border: '1px solid rgba(255,255,255,0.12)',
@@ -203,6 +320,48 @@ export default function CanvasPreview({
         tabIndex={-1}
         aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
+      <CanvasCaptionTransformOverlay
+        showCaptionBox={showCaptionBox}
+        isTransformActive={isTransformActive}
+        showTransformHint={showTransformHint}
+        centerX={centerX}
+        centerY={centerY}
+        canvasWidth={canvasWidth}
+        canvasHeight={canvasHeight}
+        boxPxWidth={boxPxWidth}
+        boxPxHeight={boxPxHeight}
+        rotationDeg={captionTransform.rotationDeg}
+        overlayRef={overlayRef}
+        onActivateTransform={activateTransform}
+        onHotspotPointerUp={handleHotspotPointerUp}
+        onBeginMove={(event) => beginGesture('move', event)}
+        onBeginRotate={(event) => beginGesture('rotate', event)}
+        onBeginResize={(event) => beginGesture('resize', event)}
+        onGestureMove={handleGestureMove}
+        onGestureEnd={endGesture}
+        onHideCaptions={() => {
+          setIsTransformActive(false);
+          setCaptionTransform({ visible: false });
+        }}
+      />
+      {!captionTransform.visible && captionMode !== 'karaoke' && (
+        <button
+          type="button"
+          className="absolute bottom-3 right-3 z-40 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-xs text-white"
+          onClick={() => {
+            setCaptionTransform({
+              visible: true,
+              scale: 1,
+              rotationDeg: 0,
+              offsetXRatio: 0,
+              offsetYRatio: 0,
+            })
+            setIsTransformActive(false);
+          }}
+        >
+          Show captions
+        </button>
+      )}
       {/* Optional grid overlay for composition studies */}
       {showGrid && <div aria-hidden="true" style={gridOverlayStyle} />}
       {/* Format badge */}

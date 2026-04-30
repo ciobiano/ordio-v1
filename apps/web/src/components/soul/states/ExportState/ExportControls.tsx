@@ -70,26 +70,29 @@ export function ExportControls({
         <div className="border-b border-white/[0.08]">
           <IconToolbar activePanel={desktopPanel} onPanelChange={setDesktopPanel} />
         </div>
-        <ScrollArea className="flex-1 pb-4">
-          <div className="px-3 pt-3">
-            {desktopPanel === 'captions' && (
-              <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
-            )}
-            {desktopPanel === 'style' && <StyleControls onLocked={onLocked} />}
-            {desktopPanel === 'trim' && (
-              <TrimPanel
-                audioBuffer={audioBuffer}
-                trimmer={trimmer}
-                onCommit={onCommit}
-                onUndo={onUndo}
-                onRedo={onRedo}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onPreviewAt={playback.previewAt}
-              />
-            )}
+        {desktopPanel === 'captions' ? (
+          <div className="flex-1 min-h-0 px-3 pt-3 pb-4">
+            <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
           </div>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="flex-1 pb-4">
+            <div className="px-3 pt-3">
+              {desktopPanel === 'style' && <StyleControls onLocked={onLocked} />}
+              {desktopPanel === 'trim' && (
+                <TrimPanel
+                  audioBuffer={audioBuffer}
+                  trimmer={trimmer}
+                  onCommit={onCommit}
+                  onUndo={onUndo}
+                  onRedo={onRedo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onPreviewAt={playback.previewAt}
+                />
+              )}
+            </div>
+          </ScrollArea>
+        )}
       </div>
 
       {/* Mobile: Dock (bottom bar) + Drawer (sheet) */}
@@ -108,27 +111,30 @@ export function ExportControls({
           </div>
 
           {/* Panel Content (no TabBar - Dock is the tab bar) */}
-          <ScrollArea className="h-[50vh] pb-4">
-            <div className="px-4 pt-4">
-              {mobilePanel === 'captions' && (
-                <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
-              )}
-              {mobilePanel === 'style' && <StyleControls onLocked={onLocked} />}
-              {mobilePanel === 'trim' && (
-                <TrimPanel
-                  audioBuffer={audioBuffer}
-                  trimmer={trimmer}
-                  onCommit={onCommit}
-                  onUndo={onUndo}
-                  onRedo={onRedo}
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  onPreviewAt={playback.previewAt}
-                />
-              )}
-              {mobilePanel === 'format' && <FormatToggle onLocked={onLocked} />}
+          {mobilePanel === 'captions' ? (
+            <div className="h-[50vh] min-h-0 px-4 pt-4 pb-4">
+              <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
             </div>
-          </ScrollArea>
+          ) : (
+            <ScrollArea className="h-[50vh] pb-4">
+              <div className="px-4 pt-4">
+                {mobilePanel === 'style' && <StyleControls onLocked={onLocked} />}
+                {mobilePanel === 'trim' && (
+                  <TrimPanel
+                    audioBuffer={audioBuffer}
+                    trimmer={trimmer}
+                    onCommit={onCommit}
+                    onUndo={onUndo}
+                    onRedo={onRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    onPreviewAt={playback.previewAt}
+                  />
+                )}
+                {mobilePanel === 'format' && <FormatToggle onLocked={onLocked} />}
+              </div>
+            </ScrollArea>
+          )}
         </DrawerContent>
       </Drawer>
     </>

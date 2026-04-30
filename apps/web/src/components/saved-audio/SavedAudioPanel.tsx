@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { toast } from 'sonner';
-import type { GenericId } from 'convex/values';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Cancel01Icon,
@@ -13,7 +13,6 @@ import {
   FileAudioIcon,
   MoreHorizontalIcon,
   Search01Icon,
-  Sorting05Icon,
   LibraryIcon,
   PlayIcon,
 } from '@hugeicons/core-free-icons';
@@ -22,31 +21,12 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,55 +34,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-
-type SessionSummary = {
-  id: GenericId<'sessions'>;
-  name: string;
-  durationMs: number;
-  createdAt: number;
-  updatedAt: number;
-  expiresAt: number;
-};
-
-const SORT_OPTIONS = ['Newest', 'Name', 'Duration'] as const;
-type SortOption = (typeof SORT_OPTIONS)[number];
+import { SavedAudioDialogs } from './SavedAudioDialogs';
+import { formatDuration, formatExpiry } from './formatters';
+import { SORT_OPTIONS, type SessionSummary, type SortOption } from './types';
 const PAGE_SIZE = 4;
 
-function formatDuration(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
-function formatExpiry(expiresAt: number): string {
-  const diff = expiresAt - Date.now();
-  if (diff <= 0) return 'Expired';
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days > 0) return `${days}d left`;
-
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours > 0) return `${hours}h left`;
-
-  const minutes = Math.floor(diff / (1000 * 60));
-  if (minutes > 0) return `${minutes}m left`;
-
-  return 'Soon';
-}
-
-function formatCreatedAt(createdAt: number): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(createdAt);
-}
-
 export default function SavedAudioPanel() {
-  const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { user } = useUser();
+  if (authLoading || !isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <SavedAudioPanelBody
+      key={`${user?.id ?? 'saved-audio-anonymous'}:${isAuthenticated ? 'auth' : 'anon'}`}
+    />
+  );
+}
+
+function SavedAudioPanelBody() {
+  const router = useRouter();
   const renameSession = useMutation(api.sessions.renameSession);
   const deleteSession = useMutation(api.sessions.deleteSession);
 
@@ -112,47 +64,41 @@ export default function SavedAudioPanel() {
     loadMore,
   } = usePaginatedQuery(
     api.sessions.listMySessionsPaginated,
-    isAuthenticated ? {} : 'skip',
+    {},
     { initialNumItems: PAGE_SIZE }
   );
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('Newest');
-  const [isMobile, setIsMobile] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionSummary | null>(null);
   const [draftName, setDraftName] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const loadInFlightRef = useRef(false);
+  const previousStatusRef = useRef(status);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const requestMoreIfNeeded = useCallback(() => {
+    const container = scrollRootRef.current;
+    if (!container || !open || status !== 'CanLoadMore' || loadInFlightRef.current) return;
+
+    const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const shouldPrefetch = container.scrollHeight <= container.clientHeight + 24;
+    if (remaining > 180 && !shouldPrefetch) return;
+
+    loadInFlightRef.current = true;
+    loadMore(PAGE_SIZE);
+  }, [loadMore, open, sessions.length, status]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(max-width: 640px)');
-    const sync = () => setIsMobile(mediaQuery.matches);
-    sync();
-    mediaQuery.addEventListener?.('change', sync);
-    return () => mediaQuery.removeEventListener?.('change', sync);
-  }, []);
-
-  useEffect(() => {
-    if (!open || status !== 'CanLoadMore') return;
-    const node = loadMoreRef.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          loadMore(PAGE_SIZE);
-        }
-      },
-      { rootMargin: '160px 0px' }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore, open, status, sessions.length, query, sort]);
+    if (previousStatusRef.current === 'LoadingMore' && status !== 'LoadingMore') {
+      loadInFlightRef.current = false;
+    }
+    previousStatusRef.current = status;
+  }, [sessions.length, status]);
 
   const filteredSessions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -167,13 +113,19 @@ export default function SavedAudioPanel() {
     });
   }, [query, sessions, sort]);
 
-  const loading = authLoading || (isAuthenticated && status === 'LoadingFirstPage');
+  const loading = status === 'LoadingFirstPage';
   const isFetchingMore = status === 'LoadingMore';
   const canLoadMore = status === 'CanLoadMore';
-  const sheetSide = isMobile ? 'bottom' : 'right';
+
+  useEffect(() => {
+    if (!open) return;
+    triggerRef.current?.blur();
+    const rafId = requestAnimationFrame(requestMoreIfNeeded);
+    return () => cancelAnimationFrame(rafId);
+  }, [open, sessions.length, filteredSessions.length, requestMoreIfNeeded]);
 
   const handleSelect = useCallback(
-    (sessionId: GenericId<'sessions'>) => {
+    (sessionId: SessionSummary['id']) => {
       router.push(`/create/export/${sessionId}`);
       setOpen(false);
     },
@@ -221,45 +173,42 @@ export default function SavedAudioPanel() {
     }
   }, [deleteSession, deleteTarget]);
 
-  if (!authLoading && !isAuthenticated) {
-    return null;
-  }
-
   return (
     <>
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
-              aria-label="Open saved audio"
-            />
-          }
-        >
-          <HugeiconsIcon icon={LibraryIcon} size={22} />
-        </SheetTrigger>
+      <Drawer open={open} onOpenChange={setOpen} preventScrollRestoration={false}>
+        <DrawerTrigger asChild>
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            size="icon-lg"
+            className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
+            aria-label="Open saved audio"
+          >
+            <HugeiconsIcon icon={LibraryIcon} size={22} />
+          </Button>
+        </DrawerTrigger>
 
         <DrawerContent
-          className="flex flex-col bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"
+          className="flex min-h-0 flex-col bg-[color:var(--glass-bg)] border-t border-white/[0.08] p-0 backdrop-blur-xl max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"
         >
           <DrawerTitle className="sr-only">Saved Audio</DrawerTitle>
-          {/* Drag handle - centered, per HIG */}
-          <div className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
+          <DrawerDescription className="sr-only">
+            Browse, search, rename, and reopen your saved audio recordings.
+          </DrawerDescription>
+          
+          <div className="sticky top-0 z-10 shrink-0 bg-[color:var(--glass-bg)]/95 backdrop-blur-xl">
+            <div className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
 
-          {/* Header section - clear hierarchy */}
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/85">
-                <HugeiconsIcon icon={FileAudioIcon} size={18} />
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/85">
+                  <HugeiconsIcon icon={FileAudioIcon} size={18} />
+                </div>
+                <h2 className="text-lg font-semibold text-white">
+                  Saved audio
+                </h2>
               </div>
-              <h2 className="text-lg font-semibold text-white">
-                Saved audio
-              </h2>
-            </div>
-            <DrawerClose
-              render={
+              <DrawerClose asChild>
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -268,11 +217,9 @@ export default function SavedAudioPanel() {
                   <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
                   <span className="sr-only">Close</span>
                 </Button>
-              }
-            />
-          </div>
+              </DrawerClose>
+            </div>
 
-            {/* Search section - proper 44pt touch target */}
             <div className="border-b border-white/10 px-4 py-3 sm:px-5">
               <div className="relative">
                 <HugeiconsIcon
@@ -289,8 +236,7 @@ export default function SavedAudioPanel() {
               </div>
             </div>
 
-            {/* Sort section - horizontal scroll, proper spacing */}
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2 sm:px-5">
+            <div className="border-b border-white/10 px-4 py-2 sm:px-5">
               <span className="shrink-0 text-xs text-white/40">Sort:</span>
               <div className="flex gap-2 overflow-x-auto pb-0.5">
                 {SORT_OPTIONS.map((option) => (
@@ -311,9 +257,10 @@ export default function SavedAudioPanel() {
                 ))}
               </div>
             </div>
+          </div>
 
-            <ScrollArea className="flex-1">
-              <div className="p-4 sm:p-5">
+          <div ref={scrollRootRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" onScroll={requestMoreIfNeeded}>
+            <div className="p-4 sm:p-5">
                 {loading ? (
                   <div className="space-y-3">
                     {[1, 2, 3, 4].map((item) => (
@@ -321,10 +268,10 @@ export default function SavedAudioPanel() {
                         key={item}
                         className="mobile-glass flex items-center gap-3 rounded-[1.35rem] p-3"
                       >
-                        <Skeleton variant="circle" size="lg" className="shrink-0" />
+                        <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-white/10" />
                         <div className="flex-1 space-y-2">
-                          <Skeleton variant="text" size="sm" className="w-3/4" />
-                          <Skeleton variant="text" size="xs" className="w-1/2" />
+                          <div className="h-4 w-3/4 animate-pulse rounded bg-white/10" />
+                          <div className="h-3 w-1/2 animate-pulse rounded bg-white/8" />
                         </div>
                       </div>
                     ))}
@@ -414,92 +361,34 @@ export default function SavedAudioPanel() {
                     })}
                   </ul>
                 )}
-
-                <div ref={loadMoreRef} className="h-6" aria-hidden="true" />
-
                 {isFetchingMore && filteredSessions.length > 0 && (
-                  <div className="py-3 text-center text-xs text-white/40">
-                    Loading more…
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                    <span className="text-xs text-white/50">Loading more…</span>
+                  </div>
+                )}
+
+                {!isFetchingMore && !canLoadMore && filteredSessions.length > 0 && (
+                  <div className="pt-3 pb-1 text-center text-[11px] text-white/35">
+                    You&apos;ve reached the end of saved audio.
                   </div>
                 )}
               </div>
-            </ScrollArea>
           </div>
         </DrawerContent>
       </Drawer>
-
-      <Dialog
-        open={editingSession !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setEditingSession(null);
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 p-5 text-white"
-        >
-          <DialogHeader>
-            <DialogTitle className="text-lg text-white">Rename saved audio</DialogTitle>
-            <DialogDescription className="text-white/55">
-              Give this recording a clearer label for faster reuse.
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
-            placeholder="Recording name"
-            className="h-12 rounded-2xl border-white/10 bg-white/6 text-white placeholder:text-white/30"
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setEditingSession(null)}
-              className="rounded-2xl text-white/70 hover:bg-white/8 hover:text-white"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleRename}
-              disabled={isRenaming || draftName.trim().length === 0}
-              className="rounded-2xl bg-white text-slate-950 hover:bg-white/90"
-            >
-              {isRenaming ? 'Saving…' : 'Save name'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialogContent
-          className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white"
-        >
-          <AlertDialogHeader className="place-items-start text-left">
-            <AlertDialogTitle className="text-white">Delete saved audio?</AlertDialogTitle>
-            <AlertDialogDescription className="text-white/55">
-              {deleteTarget ? `"${deleteTarget.name}" will be removed from your library.` : 'This audio will be removed from your library.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="rounded-2xl bg-red-500/90 text-white hover:bg-red-500"
-            >
-              {isDeleting ? 'Deleting…' : 'Delete audio'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SavedAudioDialogs
+        editingSession={editingSession}
+        draftName={draftName}
+        setDraftName={setDraftName}
+        isRenaming={isRenaming}
+        onRename={handleRename}
+        onCloseRename={() => setEditingSession(null)}
+        deleteTarget={deleteTarget}
+        isDeleting={isDeleting}
+        onDelete={handleDelete}
+        onCloseDelete={() => setDeleteTarget(null)}
+      />
     </>
   );
 }
