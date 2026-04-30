@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 interface LockBadgeProps {
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent) => void;
   label?: string;
 }
 
@@ -19,10 +19,10 @@ export default function LockBadge({ onClick, label = 'Locked feature' }: LockBad
       variant="ghost"
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        onClick(e);
       }}
       aria-label={label}
-      className="absolute inset-0 z-10 h-auto w-auto rounded-inherit
+      className="absolute inset-0 h-auto w-auto rounded-inherit
                  flex items-center justify-center hover:bg-transparent group"
     >
       <span

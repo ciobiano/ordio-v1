@@ -1,7 +1,6 @@
 import { Composition } from 'remotion';
 import { Audiogram } from './Composition';
 import { JobConfigSchema } from '@Ordio/shared/schemas';
-import { z } from 'zod';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -27,7 +26,7 @@ export const RemotionRoot: React.FC = () => {
             fontFamily: 'Inter',
             fontSize: 48,
             waveColor: '#ff0000',
-            lineSpacing: 0,
+            characterSpacing: 0,
             lineHeight: 1.4,
           },
           audioStorageId: 'default',

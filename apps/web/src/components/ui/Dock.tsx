@@ -2,8 +2,10 @@
 
 import { cn } from '@/lib/utils'
 import { HugeiconsIcon } from '@hugeicons/react'
-
-
+import type { IconSvgElement } from '@hugeicons/react'
+  
+  
+  
 
 export type DockItem = {
   id: string

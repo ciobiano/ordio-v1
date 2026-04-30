@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FeatureKey } from '@/lib/featureGates'
 import type { CanvasLayout, CaptionMode, WaveformVariant, GraphicStyleId } from '@/stores'
 
-const WAVEFORM_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
+// Display options (waveform styles + Graphics pseudo-option)
+const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
   { value: 'circle', label: 'Circle', gate: 'waveform_circle' as FeatureKey },
   { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' as FeatureKey },
@@ -29,14 +30,12 @@ const LAYOUTS = [
   { value: 'flipped' as CanvasLayout, label: 'Flipped', gate: 'layout_flipped' as FeatureKey },
 ]
 
-// Graphics options shown when waveform style supports them
 const GRAPHICS_OPTIONS: { value: GraphicStyleId; label: string }[] = [
   { value: null, label: 'None' },
   { value: 'graphic-frame1', label: 'Frame 1' },
   { value: 'graphic-frame2', label: 'Frame 2' },
 ]
 
-// Waveform styles that support graphics
 const GRAPHIC_WAVEFORMS: WaveformVariant[] = ['bars', 'circle']
 
 interface StageControlBarProps {
@@ -61,15 +60,16 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
     if (!waveformOpen) setGraphicsExpanded(false)
   }, [waveformOpen])
 
-  // Combined waveform + graphics label (no redundant "Graphics:" prefix)
-  const getWaveformLabel = useCallback(() => {
-    const wf = WAVEFORM_OPTIONS.find(o => o.value === waveformStyle)
-    if (!wf) return 'Waveform'
-    if (waveformStyle === 'graphics' && graphicStyle) {
+  // Combined display label (covers waveform, graphics, visual artifacts)
+  const getDisplayLabel = useCallback(() => {
+    // If a graphic style is selected, show it in the label
+    if (graphicStyle) {
       const gfx = GRAPHICS_OPTIONS.find(o => o.value === graphicStyle)
-      return gfx ? `Waveform: ${gfx.label}` : 'Waveform'
+      return gfx ? `Display: ${gfx.label}` : 'Display'
     }
-    return wf.label
+    // Otherwise show the waveform style
+    const wf = DISPLAY_OPTIONS.find(o => o.value === waveformStyle)
+    return wf ? wf.label : 'Display'
   }, [waveformStyle, graphicStyle])
 
   return (
@@ -80,14 +80,23 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
         <PopoverTrigger
           className="flex h-11 items-center gap-2 rounded-xl bg-white/5 px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
         >
-          <span className="text-white/40">Waveform</span>
-          <span className="text-white/70">{getWaveformLabel()}</span>
+          <span className="text-white/40">Display</span>
+          <span className="text-white/70">{getDisplayLabel()}</span>
         </PopoverTrigger>
-        <PopoverContent side="top" className="w-auto p-2 bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
-          {WAVEFORM_OPTIONS.map((opt) => {
+        <PopoverContent
+          side="top"
+          align="start"
+          sideOffset={10}
+          className="w-[14rem] p-2 bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8"
+        >
+          {DISPLAY_OPTIONS.map((opt) => {
             const locked = opt.gate ? isLocked(opt.gate) : false
-            const isSelected = waveformStyle === opt.value
+            const isSelected =
+              opt.value === 'graphics'
+                ? graphicStyle !== null
+                : waveformStyle === opt.value
             const isGraphics = opt.value === 'graphics'
+            const lockFeature = opt.gate
 
             return (
               <div key={opt.value}>
@@ -98,11 +107,11 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
                     if (isGraphics) {
                       // Toggle submenu expansion (don't close popover)
                       setGraphicsExpanded(!graphicsExpanded)
-                      setWaveformStyle('graphics')
+                      // Don't set waveformStyle to 'graphics' — it's not a valid WaveformVariant
                     } else {
                       // Close popover on selection
-                      setWaveformStyle(opt.value)
-                      if (opt.value !== 'bars' && opt.value !== 'circle') {
+                      setWaveformStyle(opt.value as WaveformVariant)
+                      if (!GRAPHIC_WAVEFORMS.includes(opt.value as WaveformVariant)) {
                         setGraphicStyle(null)
                       }
                       setGraphicsExpanded(false)
@@ -110,22 +119,37 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
                     }
                   }}
                   className={cn(
-                    'flex items-center w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                    'group flex h-9 w-full items-center rounded-lg px-3 text-sm transition-colors duration-200 ease-out motion-reduce:transition-none',
                     isSelected ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/8',
                     locked && 'opacity-50'
                   )}
                 >
-                  <span className="flex-1 text-left">{opt.label}</span>
+                  <span className="flex-1 truncate text-left">{opt.label}</span>
                   {isGraphics && (
-                    <span className="text-white/40 mr-2">{graphicsExpanded ? '↑' : '→'}</span>
+                    <span
+                      className={cn(
+                        'mr-1 inline-flex h-4 w-4 items-center justify-center text-white/45 transition-transform duration-200 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                        graphicsExpanded && 'rotate-90'
+                      )}
+                      aria-hidden="true"
+                    >
+                      ›
+                    </span>
                   )}
-                  {locked && opt.gate && (
-                    <LockBadge onClick={(e) => { e.stopPropagation(); onLocked?.(opt.gate!)}} label={`${opt.label} requires Creator`} />
+                  {locked && lockFeature && (
+                    <LockBadge onClick={() => onLocked?.(lockFeature)} label={`${opt.label} requires Creator`} />
                   )}
                 </button>
                 {/* Graphics sub-options (inline expansion, popover stays open) */}
-                {isGraphics && graphicsExpanded && (
-                  <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
+                {isGraphics && (
+                  <div
+                    className={cn(
+                      'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                      graphicsExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    )}
+                  >
+                    <div className="min-h-0">
+                      <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
                     {GRAPHICS_OPTIONS.filter(g => g.value !== null).map((gfx) => (
                       <button
                         key={String(gfx.value)}
@@ -136,7 +160,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
                           setWaveformOpen(false) // Close popover on final selection
                         }}
                         className={cn(
-                          'flex items-center w-full px-3 py-1.5 rounded-md text-sm transition-colors',
+                          'flex h-8 w-full items-center rounded-md px-3 text-sm transition-colors duration-200 ease-out motion-reduce:transition-none',
                           graphicStyle === gfx.value
                             ? 'bg-white/10 text-white'
                             : 'text-white/60 hover:bg-white/5'
@@ -145,6 +169,8 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
                         {gfx.label}
                       </button>
                     ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

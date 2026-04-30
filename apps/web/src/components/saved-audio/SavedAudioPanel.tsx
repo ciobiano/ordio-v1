@@ -13,7 +13,6 @@ import {
   FileAudioIcon,
   MoreHorizontalIcon,
   Search01Icon,
-  Sorting05Icon,
   LibraryIcon,
   PlayIcon,
 } from '@hugeicons/core-free-icons';
@@ -91,15 +90,6 @@ function formatExpiry(expiresAt: number): string {
   return 'Soon';
 }
 
-function formatCreatedAt(createdAt: number): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(createdAt);
-}
-
 export default function SavedAudioPanel() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
@@ -119,22 +109,12 @@ export default function SavedAudioPanel() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('Newest');
-  const [isMobile, setIsMobile] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionSummary | null>(null);
   const [draftName, setDraftName] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(max-width: 640px)');
-    const sync = () => setIsMobile(mediaQuery.matches);
-    sync();
-    mediaQuery.addEventListener?.('change', sync);
-    return () => mediaQuery.removeEventListener?.('change', sync);
-  }, []);
 
   useEffect(() => {
     if (!open || status !== 'CanLoadMore') return;
@@ -152,7 +132,7 @@ export default function SavedAudioPanel() {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [loadMore, open, status, sessions.length, query, sort]);
+  }, [loadMore, open, status, sessions.length]);
 
   const filteredSessions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -170,7 +150,6 @@ export default function SavedAudioPanel() {
   const loading = authLoading || (isAuthenticated && status === 'LoadingFirstPage');
   const isFetchingMore = status === 'LoadingMore';
   const canLoadMore = status === 'CanLoadMore';
-  const sheetSide = isMobile ? 'bottom' : 'right';
 
   const handleSelect = useCallback(
     (sessionId: GenericId<'sessions'>) => {
@@ -228,18 +207,16 @@ export default function SavedAudioPanel() {
   return (
     <>
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
-              aria-label="Open saved audio"
-            />
-          }
-        >
-          <HugeiconsIcon icon={LibraryIcon} size={22} />
-        </SheetTrigger>
+        <DrawerTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
+            aria-label="Open saved audio"
+          >
+            <HugeiconsIcon icon={LibraryIcon} size={22} />
+          </Button>
+        </DrawerTrigger>
 
         <DrawerContent
           className="flex flex-col bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"
@@ -258,18 +235,16 @@ export default function SavedAudioPanel() {
                 Saved audio
               </h2>
             </div>
-            <DrawerClose
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10"
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
-                  <span className="sr-only">Close</span>
-                </Button>
-              }
-            />
+            <DrawerClose asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DrawerClose>
           </div>
 
             {/* Search section - proper 44pt touch target */}
@@ -422,9 +397,13 @@ export default function SavedAudioPanel() {
                     Loading more…
                   </div>
                 )}
+                {!isFetchingMore && canLoadMore && query.trim().length > 0 && (
+                  <div className="pt-2 text-center text-[11px] text-white/35">
+                    Clear search to load older audio.
+                  </div>
+                )}
               </div>
             </ScrollArea>
-          </div>
         </DrawerContent>
       </Drawer>
 
