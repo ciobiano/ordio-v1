@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
-export type ToolbarPanel = 'captions' | 'style' | 'trim'
+export type ToolbarPanel = 'captions' | 'style' | 'trim' | 'format'
 
 interface ToolbarItem {
   id: ToolbarPanel

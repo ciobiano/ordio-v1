@@ -54,6 +54,24 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
         className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh]"
       >
         <DrawerTitle className="sr-only">Upgrade to Creator</DrawerTitle>
+        <div className="w-full max-w-sm mx-auto px-6 py-6">
+          <div className="w-9 h-[5px] rounded-full bg-white/[0.25] mx-auto mb-5" aria-hidden="true" />
+
+          <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center mb-4 mx-auto">
+            <Image src="/icons/lock.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-50" />
+          </div>
+
+          <h2
+            id="upgrade-sheet-title"
+            className="text-sm font-semibold text-foreground text-center mb-2 leading-snug"
+          >
+            {title}
+          </h2>
+
+          <p className="text-xs text-muted-foreground text-center leading-relaxed mb-6">
+            {body}
+          </p>
+
           <div className="flex flex-col gap-2.5">
             {onUpgrade && (
               <Button

@@ -102,7 +102,7 @@ export function SplashScreen() {
     </div>
   );
 
-  // Mascot - larger and more central
+  // Mascot - keep original scale
   const mascot = (
     <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <Mascot state="idle" greetingType={mascotGreetingType} className="scale-150" />
@@ -121,7 +121,8 @@ export function SplashScreen() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute bottom-36 left-6 right-6"
+          className="absolute left-6 right-6"
+          style={{ bottom: 'var(--splash-bottom)' }}
         >
           <AnimatePresence mode="wait">
             <motion.p
@@ -135,7 +136,7 @@ export function SplashScreen() {
               {currentGreeting.text}
             </motion.p>
           </AnimatePresence>
-          <h1 className="text-[2.125rem] md:text-[2.5rem] leading-[1.12] tracking-[-0.02em] text-white font-heading">
+          <h1 className="text-[length:var(--text-h1)] leading-[var(--leading-heading)] tracking-[-0.02em] text-white font-heading">
             <span className="font-light">Ready to</span> <span className="font-semibold">create?</span>
           </h1>
         </motion.div>

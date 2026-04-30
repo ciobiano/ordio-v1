@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores'
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates'
@@ -8,36 +8,31 @@ import LockBadge from '@/components/ui/LockBadge'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { FeatureKey } from '@/lib/featureGates'
-import type { CanvasLayout, CaptionMode, WaveformVariant, GraphicStyleId } from '@/stores'
+import type { CanvasLayout, CaptionMode, GraphicStyleId, WaveformVariant } from '@/stores'
 
-const WAVEFORM_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
+const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
-  { value: 'circle', label: 'Circle', gate: 'waveform_circle' as FeatureKey },
-  { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' as FeatureKey },
+  { value: 'circle', label: 'Circle', gate: 'waveform_circle' },
+  { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' },
   { value: 'none', label: 'None' },
   { value: 'graphics', label: 'Graphics' },
 ]
 
-const MODES = [
-  { value: 'phrase' as CaptionMode, label: 'Phrase' },
-  { value: 'karaoke' as CaptionMode, label: 'Karaoke', gate: 'caption_karaoke' as FeatureKey },
-]
-
-const LAYOUTS = [
-  { value: 'top' as CanvasLayout, label: 'Top' },
-  { value: 'compact' as CanvasLayout, label: 'Compact' },
-  { value: 'flipped' as CanvasLayout, label: 'Flipped', gate: 'layout_flipped' as FeatureKey },
-]
-
-// Graphics options shown when waveform style supports them
-const GRAPHICS_OPTIONS: { value: GraphicStyleId; label: string }[] = [
-  { value: null, label: 'None' },
+const GRAPHICS_OPTIONS: { value: Exclude<GraphicStyleId, null>; label: string }[] = [
   { value: 'graphic-frame1', label: 'Frame 1' },
   { value: 'graphic-frame2', label: 'Frame 2' },
 ]
 
-// Waveform styles that support graphics
-const GRAPHIC_WAVEFORMS: WaveformVariant[] = ['bars', 'circle']
+const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
+  { value: 'phrase', label: 'Phrase' },
+  { value: 'karaoke', label: 'Karaoke', gate: 'caption_karaoke' },
+]
+
+const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
+  { value: 'top', label: 'Top' },
+  { value: 'compact', label: 'Compact' },
+  { value: 'flipped', label: 'Flipped', gate: 'layout_flipped' },
+]
 
 interface StageControlBarProps {
   onLocked?: (feature: FeatureKey) => void
@@ -46,131 +41,143 @@ interface StageControlBarProps {
 export function StageControlBar({ onLocked }: StageControlBarProps) {
   const waveformStyle = useUIStore((s) => s.waveformStyle)
   const setWaveformStyle = useUIStore((s) => s.setWaveformStyle)
+  const graphicStyle = useUIStore((s) => s.graphicStyle)
+  const setGraphicStyle = useUIStore((s) => s.setGraphicStyle)
   const captionMode = useUIStore((s) => s.captionMode)
   const setCaptionMode = useUIStore((s) => s.setCaptionMode)
   const canvasLayout = useUIStore((s) => s.canvasLayout)
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout)
-  const graphicStyle = useUIStore((s) => s.graphicStyle)
-  const setGraphicStyle = useUIStore((s) => s.setGraphicStyle)
   const { isLocked } = useFeatureGates()
-  const [waveformOpen, setWaveformOpen] = useState(false)
+  const [displayOpen, setDisplayOpen] = useState(false)
   const [graphicsExpanded, setGraphicsExpanded] = useState(false)
 
-  // Reset submenu when popover closes
   useEffect(() => {
-    if (!waveformOpen) setGraphicsExpanded(false)
-  }, [waveformOpen])
-
-  // Combined waveform + graphics label (no redundant "Graphics:" prefix)
-  const getWaveformLabel = useCallback(() => {
-    const wf = WAVEFORM_OPTIONS.find(o => o.value === waveformStyle)
-    if (!wf) return 'Waveform'
-    if (waveformStyle === 'graphics' && graphicStyle) {
-      const gfx = GRAPHICS_OPTIONS.find(o => o.value === graphicStyle)
-      return gfx ? `Waveform: ${gfx.label}` : 'Waveform'
+    if (!displayOpen) {
+      setGraphicsExpanded(false)
     }
-    return wf.label
-  }, [waveformStyle, graphicStyle])
+  }, [displayOpen])
+
+  const displayLabel = graphicStyle
+    ? GRAPHICS_OPTIONS.find((option) => option.value === graphicStyle)?.label ?? 'Graphics'
+    : DISPLAY_OPTIONS.find((option) => option.value === waveformStyle)?.label ?? 'Bars'
 
   return (
     <div className="relative flex gap-3 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-
-      {/* Waveform + Graphics combined selector */}
-      <Popover open={waveformOpen} onOpenChange={setWaveformOpen}>
-        <PopoverTrigger
-          className="flex h-11 items-center gap-2 rounded-xl bg-white/5 px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
-        >
-          <span className="text-white/40">Waveform</span>
-          <span className="text-white/70">{getWaveformLabel()}</span>
+      <Popover open={displayOpen} onOpenChange={setDisplayOpen}>
+        <PopoverTrigger className="flex h-11 items-center gap-2 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8">
+          <span className="text-white/40">Display</span>
+          <span className="text-white/70">{displayLabel}</span>
         </PopoverTrigger>
-        <PopoverContent side="top" className="w-auto p-2 bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
-          {WAVEFORM_OPTIONS.map((opt) => {
-            const locked = opt.gate ? isLocked(opt.gate) : false
-            const isSelected = waveformStyle === opt.value
-            const isGraphics = opt.value === 'graphics'
+        <PopoverContent
+          side="top"
+          align="start"
+          sideOffset={10}
+          className="w-[14rem] border-white/8 bg-[color:var(--glass-bg)] p-2 backdrop-blur-xl"
+        >
+          {DISPLAY_OPTIONS.map((option) => {
+            const locked = option.gate ? isLocked(option.gate) : false
+            const isSelected =
+              option.value === 'graphics'
+                ? graphicStyle !== null
+                : graphicStyle === null && waveformStyle === option.value
 
             return (
-              <div key={opt.value}>
+              <div key={option.value}>
                 <button
                   type="button"
                   disabled={locked}
                   onClick={() => {
-                    if (isGraphics) {
-                      // Toggle submenu expansion (don't close popover)
-                      setGraphicsExpanded(!graphicsExpanded)
-                      setWaveformStyle('graphics')
-                    } else {
-                      // Close popover on selection
-                      setWaveformStyle(opt.value)
-                      if (opt.value !== 'bars' && opt.value !== 'circle') {
-                        setGraphicStyle(null)
-                      }
-                      setGraphicsExpanded(false)
-                      setWaveformOpen(false)
+                    if (option.value === 'graphics') {
+                      setGraphicsExpanded((current) => !current)
+                      return
                     }
+
+                    setGraphicStyle(null)
+                    setWaveformStyle(option.value)
+                    setGraphicsExpanded(false)
+                    setDisplayOpen(false)
                   }}
                   className={cn(
-                    'flex items-center w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                    'group flex h-9 w-full items-center rounded-lg px-3 text-sm transition-colors duration-200',
                     isSelected ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/8',
                     locked && 'opacity-50'
                   )}
                 >
-                  <span className="flex-1 text-left">{opt.label}</span>
-                  {isGraphics && (
-                    <span className="text-white/40 mr-2">{graphicsExpanded ? '↑' : '→'}</span>
+                  <span className="flex-1 text-left">{option.label}</span>
+                  {option.value === 'graphics' && (
+                    <span
+                      className={cn(
+                        'mr-1 inline-flex h-4 w-4 items-center justify-center text-white/45 transition-transform duration-200',
+                        graphicsExpanded && 'rotate-90'
+                      )}
+                    >
+                      ›
+                    </span>
                   )}
-                  {locked && opt.gate && (
-                    <LockBadge onClick={(e) => { e.stopPropagation(); onLocked?.(opt.gate!)}} label={`${opt.label} requires Creator`} />
+                  {locked && option.gate && (
+                    <LockBadge onClick={() => onLocked?.(option.gate!)} label={`${option.label} requires Creator`} />
                   )}
                 </button>
-                {/* Graphics sub-options (inline expansion, popover stays open) */}
-                {isGraphics && graphicsExpanded && (
-                  <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
-                    {GRAPHICS_OPTIONS.filter(g => g.value !== null).map((gfx) => (
-                      <button
-                        key={String(gfx.value)}
-                        type="button"
-                        onClick={() => {
-                          setGraphicStyle(gfx.value)
-                          setGraphicsExpanded(false)
-                          setWaveformOpen(false) // Close popover on final selection
-                        }}
-                        className={cn(
-                          'flex items-center w-full px-3 py-1.5 rounded-md text-sm transition-colors',
-                          graphicStyle === gfx.value
-                            ? 'bg-white/10 text-white'
-                            : 'text-white/60 hover:bg-white/5'
-                        )}
-                      >
-                        {gfx.label}
-                      </button>
-                    ))}
+
+                {option.value === 'graphics' && (
+                  <div
+                    className={cn(
+                      'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200',
+                      graphicsExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    )}
+                  >
+                    <div className="min-h-0">
+                      <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
+                        {GRAPHICS_OPTIONS.map((graphic) => (
+                          <button
+                            key={graphic.value}
+                            type="button"
+                            onClick={() => {
+                              setGraphicStyle(graphic.value)
+                              setDisplayOpen(false)
+                              setGraphicsExpanded(false)
+                            }}
+                            className={cn(
+                              'flex h-8 w-full items-center rounded-md px-3 text-sm transition-colors duration-200',
+                              graphicStyle === graphic.value
+                                ? 'bg-white/10 text-white'
+                                : 'text-white/60 hover:bg-white/5'
+                            )}
+                          >
+                            {graphic.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             )
           })}
-         </PopoverContent>
+        </PopoverContent>
       </Popover>
 
-      <Select value={captionMode} onValueChange={(v) => setCaptionMode(v as CaptionMode)}>
-        <SelectTrigger size="sm" className="h-11 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 border-0">
+      <Select value={captionMode} onValueChange={(value) => setCaptionMode(value as CaptionMode)}>
+        <SelectTrigger
+          size="sm"
+          className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
+        >
           <span className="text-white/40">Mode</span>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent side="top" className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
-          {MODES.map((opt) => {
-            const locked = opt.gate ? isLocked(opt.gate) : false
+        <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">
+          {MODE_OPTIONS.map((option) => {
+            const locked = option.gate ? isLocked(option.gate) : false
             return (
               <SelectItem
-                key={opt.value}
-                value={opt.value}
+                key={option.value}
+                value={option.value}
                 disabled={locked}
                 className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
               >
-                {opt.label}
-                {locked && opt.gate && (
-                  <LockBadge onClick={() => onLocked?.(opt.gate!)} label={`${opt.label} requires Creator`} />
+                {option.label}
+                {locked && option.gate && (
+                  <LockBadge onClick={() => onLocked?.(option.gate!)} label={`${option.label} requires Creator`} />
                 )}
               </SelectItem>
             )
@@ -178,24 +185,27 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
         </SelectContent>
       </Select>
 
-      <Select value={canvasLayout} onValueChange={(v) => setCanvasLayout(v as CanvasLayout)}>
-        <SelectTrigger size="sm" className="h-11 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 border-0">
+      <Select value={canvasLayout} onValueChange={(value) => setCanvasLayout(value as CanvasLayout)}>
+        <SelectTrigger
+          size="sm"
+          className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
+        >
           <span className="text-white/40">Layout</span>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent side="top" className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-white/8">
-          {LAYOUTS.map((opt) => {
-            const locked = opt.gate ? isLocked(opt.gate) : false
+        <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">
+          {LAYOUT_OPTIONS.map((option) => {
+            const locked = option.gate ? isLocked(option.gate) : false
             return (
               <SelectItem
-                key={opt.value}
-                value={opt.value}
+                key={option.value}
+                value={option.value}
                 disabled={locked}
                 className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
               >
-                {opt.label}
-                {locked && opt.gate && (
-                  <LockBadge onClick={() => onLocked?.(opt.gate!)} label={`${opt.label} requires Creator`} />
+                {option.label}
+                {locked && option.gate && (
+                  <LockBadge onClick={() => onLocked?.(option.gate!)} label={`${option.label} requires Creator`} />
                 )}
               </SelectItem>
             )

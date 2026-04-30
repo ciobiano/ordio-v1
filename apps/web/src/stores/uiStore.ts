@@ -13,6 +13,7 @@ import type {
   CaptionMode,
   CaptionAnimation,
   FormatVariant,
+  CaptionTransform,
 } from './types';
 
 interface UIState {
@@ -25,6 +26,7 @@ interface UIState {
   captionMode: CaptionMode;
   captionAnimation: CaptionAnimation;
   format: FormatVariant;
+  captionTransform: CaptionTransform;
 
   // Transient Session GUI states
   currentState: AppPhase;
@@ -39,6 +41,8 @@ interface UIState {
   setCaptionMode: (mode: CaptionMode) => void;
   setCaptionAnimation: (animation: CaptionAnimation) => void;
   setFormat: (format: FormatVariant) => void;
+  setCaptionTransform: (transform: Partial<CaptionTransform>) => void;
+  resetCaptionTransform: () => void;
   setCurrentState: (state: AppPhase) => void;
   setUpgradeTarget: (target: FeatureKey | 'export_limit' | null) => void;
   resetUI: () => void;
@@ -63,6 +67,13 @@ const initialPersisted = {
   captionMode: 'phrase' as CaptionMode,
   captionAnimation: 'sweep-pulse' as CaptionAnimation,
   format: 'square' as FormatVariant,
+  captionTransform: {
+    offsetXRatio: 0,
+    offsetYRatio: 0,
+    scale: 1,
+    rotationDeg: 0,
+    visible: true,
+  } as CaptionTransform,
 };
 
 const initialSession = {
@@ -83,6 +94,23 @@ export const useUIStore = create<UIState>()(
       setCanvasLayout: (canvasLayout) => set({ canvasLayout }),
       setCaptionMode: (captionMode) => set({ captionMode }),
       setCaptionAnimation: (captionAnimation) => set({ captionAnimation }),
+      setCaptionTransform: (transform) =>
+        set((state) => ({
+          captionTransform: {
+            ...state.captionTransform,
+            ...transform,
+          },
+        })),
+      resetCaptionTransform: () =>
+        set({
+          captionTransform: {
+            offsetXRatio: 0,
+            offsetYRatio: 0,
+            scale: 1,
+            rotationDeg: 0,
+            visible: true,
+          },
+        }),
       setFormat: (format) =>
         set((state) => {
           const dims =
@@ -110,6 +138,7 @@ export const useUIStore = create<UIState>()(
         captionMode: state.captionMode,
         captionAnimation: state.captionAnimation,
         format: state.format,
+        captionTransform: state.captionTransform,
       }),
     }
   )

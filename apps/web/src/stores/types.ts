@@ -12,6 +12,13 @@ export type CanvasLayout = 'top' | 'compact' | 'flipped';
 export type CaptionMode = 'phrase' | 'karaoke';
 export type CaptionAnimation = 'none' | 'sweep' | 'pulse' | 'sweep-pulse';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
+export interface CaptionTransform {
+  offsetXRatio: number;
+  offsetYRatio: number;
+  scale: number;
+  rotationDeg: number;
+  visible: boolean;
+}
 
 export function getCanvasDimensions(format: FormatVariant): { width: number; height: number } {
   switch (format) {

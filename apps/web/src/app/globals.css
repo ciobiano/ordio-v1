@@ -96,6 +96,8 @@
   --text-h4: clamp(1.125rem, 2vw, 1.5rem); /* 18px → 24px */
   --text-h5: clamp(1rem, 1.5vw, 1.25rem); /* 16px → 20px */
   --text-h6: clamp(0.875rem, 1.2vw, 1rem); /* 14px → 16px */
+  --text-splash: clamp(1.25rem, 4vw, 2.5rem); /* 20px → 40px splash headlines */
+  --splash-bottom: clamp(8.5rem, 8vh, 7rem); /* responsive bottom spacing */
   --text-body-xl: 1.25rem; /* 20px */
   --text-body-lg: 1.0625rem; /* 17px */
   --text-body: 0.9375rem; /* 15px */

@@ -47,7 +47,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
         // Read current style/variant state from store
         const { transcript, captionGroups } = useProcessingStore.getState();
-        const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle } = useUIStore.getState();
+        const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
 
         const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
         const result = await encode({
@@ -62,6 +62,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
           canvasLayout,
           showWatermark,
           graphicStyle,
+          captionTransform,
           onProgress: (progress) => setExportProgress(progress * 100),
           signal: abortController.signal,
         });
