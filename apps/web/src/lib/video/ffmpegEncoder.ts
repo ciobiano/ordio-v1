@@ -25,6 +25,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     canvasLayout,
     showWatermark,
     graphicStyle,
+    captionTransform,
     onProgress,
     signal,
   } = options;
@@ -69,6 +70,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     canvasLayout,
     showWatermark,
     graphicStyle,
+    captionTransform,
   };
 
   // Render frames to JPEG and write to ffmpeg virtual FS

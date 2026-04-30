@@ -1,5 +1,5 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CanvasLayout, CaptionAnimation, CaptionGroup } from '@/stores';
+import type { CanvasLayout, CaptionAnimation, CaptionGroup, CaptionTransform } from '@/stores';
 import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
 import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
 import {
@@ -102,9 +102,11 @@ export function drawCaptions(
   hasVisualZone: boolean,
   flipped = false,
   groups?: CaptionGroup[] | undefined,
-  animation: CaptionAnimation = 'sweep-pulse'
+  animation: CaptionAnimation = 'sweep-pulse',
+  captionTransform?: CaptionTransform
 ): void {
   if (transcript.length === 0) return;
+  if (captionTransform && !captionTransform.visible) return;
 
   const { width, height, textColor, fontFamily, fontSize, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
   const padding = width * CAPTION_PADDING;
@@ -165,8 +167,15 @@ export function drawCaptions(
     ctx.save();
     ctx.globalAlpha = alpha;
     const blockCenterY = textY + totalHeight / 2;
-    ctx.translate(centerX, blockCenterY);
-    ctx.scale(fitScale * pulseScale, fitScale * pulseScale);
+    const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
+    const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
+    const centerTX = centerX + offsetX;
+    const centerTY = blockCenterY + offsetY;
+    const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
+    const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
+    ctx.translate(centerTX, centerTY);
+    ctx.rotate(rotationRad);
+    ctx.scale(fitScale * pulseScale * manualScale, fitScale * pulseScale * manualScale);
     ctx.translate(-centerX, -blockCenterY);
     ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
     ctx.shadowBlur = Math.max(8, fontSize * 0.12);

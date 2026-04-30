@@ -58,25 +58,26 @@ export function OnboardingCarousel({ onCTA }: Props) {
       onTouchEnd={handleTouchEnd}
       className="absolute inset-0 flex flex-col gap-2"
     >
-      {/* Hero text — left-aligned, lower-middle, cross-fade on slide change */}
-      <AnimatePresence mode="sync">
-        <motion.div
-          key={slide}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute bottom-32 left-6 right-6"
-          aria-live="polite"
-        >
-          <p className="text-footnote uppercase tracking-[0.1em] text-white/45 font-medium mb-2">
-            {current.eyebrow}
-          </p>
-          <h2 className="text-[2.125rem] md:text-[2.5rem] leading-[1.12] tracking-[-0.02em] text-white font-heading font-bold">
-            {current.headline}
-          </h2>
-        </motion.div>
-      </AnimatePresence>
+       {/* Hero text — left-aligned, lower-middle, cross-fade on slide change */}
+       <AnimatePresence mode="sync">
+         <motion.div
+           key={slide}
+           initial={{ opacity: 0, y: 12 }}
+           animate={{ opacity: 1, y: 0 }}
+           exit={{ opacity: 0, y: -8 }}
+           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+           className="absolute left-6 right-6"
+           style={{ bottom: 'var(--splash-bottom)' }}
+           aria-live="polite"
+         >
+           <p className="text-[length:var(--text-footnote)] uppercase tracking-[0.1em] text-white/45 font-medium mb-2">
+             {current.eyebrow}
+           </p>
+           <h2 className="text-[length:var(--text-splash)] leading-[var(--leading-heading)] tracking-[-0.02em] text-white font-heading font-bold">
+             {current.headline}
+           </h2>
+         </motion.div>
+       </AnimatePresence>
 
       {/* Dash progress indicators — 44px touch targets wrapping visual dash */}
       <div className="absolute bottom-24 left-6 flex gap-1.5">
