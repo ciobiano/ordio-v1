@@ -124,12 +124,10 @@ export const listMySessionsPaginated = query({
       };
     }
 
-    const now = Date.now();
     const results = await ctx.db
       .query("sessions")
       .withIndex("by_user_created", (q) => q.eq("userId", identity.tokenIdentifier))
       .order("desc")
-      .filter((q) => q.gt(q.field("expiresAt"), now))
       .paginate(paginationOpts);
 
     return {

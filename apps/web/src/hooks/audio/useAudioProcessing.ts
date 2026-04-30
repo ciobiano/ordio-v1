@@ -8,8 +8,14 @@ import type { AppPhase } from '@/stores';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
-
-const WHISPER_SIZE_LIMIT = 4 * 1024 * 1024; // 4MB - under Vercel 4.5MB limit
+import {
+  audioBufferToWavBlob,
+  normalizeAudioForWhisper,
+  reduceAudioForWhisper,
+  shouldTranscodeForWhisper,
+  WHISPER_SIZE_LIMIT,
+} from './processing/whisperAudio';
+import { sendProcessingDebugIngest } from './processing/debugIngest';
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
@@ -25,168 +31,6 @@ export class AudioProcessingError extends Error {
     super(message, { cause });
     this.name = 'AudioProcessingError';
     this.stage = stage;
-  }
-}
-const WHISPER_SUPPORTED_AUDIO_MIME_TYPES = new Set([
-  'audio/flac',
-  'audio/m4a',
-  'audio/mp3',
-  'audio/mp4',
-  'audio/mpeg',
-  'audio/mpga',
-  'audio/ogg',
-  'audio/oga',
-  'audio/wav',
-  'audio/webm',
-  'audio/x-flac',
-  'audio/x-m4a',
-  'audio/x-wav',
-]);
-
-function normalizeMimeType(mimeType: string): string {
-  return mimeType.toLowerCase().split(';')[0]?.trim() ?? '';
-}
-
-function shouldTranscodeForWhisper(mimeType: string): boolean {
-  const normalized = normalizeMimeType(mimeType);
-  if (!normalized) return true;
-  if (normalized.startsWith('video/')) return true;
-  return !WHISPER_SUPPORTED_AUDIO_MIME_TYPES.has(normalized);
-}
-
-function pickWhisperWavSampleRate(durationSec: number): number {
-  if (!Number.isFinite(durationSec) || durationSec <= 0) return 16_000;
-  const maxMonoSampleRate = Math.floor((WHISPER_SIZE_LIMIT - 44) / (durationSec * 2));
-  if (maxMonoSampleRate >= 16_000) return 16_000;
-  if (maxMonoSampleRate >= 12_000) return 12_000;
-  if (maxMonoSampleRate >= 8_000) return 8_000;
-  return 8_000;
-}
-
-async function normalizeAudioForWhisper(audioBuffer: AudioBuffer): Promise<AudioBuffer> {
-  if (typeof window === 'undefined' || typeof window.OfflineAudioContext === 'undefined') {
-    return audioBuffer;
-  }
-
-  const targetSampleRate = pickWhisperWavSampleRate(audioBuffer.duration);
-  const alreadyOptimized =
-    audioBuffer.numberOfChannels === 1 && audioBuffer.sampleRate === targetSampleRate;
-  if (alreadyOptimized) return audioBuffer;
-
-  const frameCount = Math.max(1, Math.ceil(audioBuffer.duration * targetSampleRate));
-  const offlineCtx = new window.OfflineAudioContext(1, frameCount, targetSampleRate);
-  const source = offlineCtx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.connect(offlineCtx.destination);
-  source.start(0);
-  return offlineCtx.startRendering();
-}
-
-function targetMp3BitrateKbps(durationSec: number): number {
-  const safePayloadBits = Math.max(0, (WHISPER_SIZE_LIMIT - 32 * 1024) * 8); // keep headroom for multipart
-  const seconds = Math.max(durationSec, 1);
-  const calculatedKbps = Math.floor(safePayloadBits / seconds / 1000);
-  return Math.max(24, Math.min(96, calculatedKbps));
-}
-
-function audioBufferToWavBytes(audioBuffer: AudioBuffer): ArrayBuffer {
-  const numChannels = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const numSamples = audioBuffer.length;
-  const bytesPerSample = 2; // int16 PCM
-  const dataSize = numSamples * numChannels * bytesPerSample;
-  const buffer = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(buffer);
-
-  const writeString = (offset: number, str: string) => {
-    for (let i = 0; i < str.length; i++) {
-      view.setUint8(offset + i, str.charCodeAt(i));
-    }
-  };
-
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + dataSize, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
-  view.setUint16(32, numChannels * bytesPerSample, true);
-  view.setUint16(34, 16, true);
-  writeString(36, 'data');
-  view.setUint32(40, dataSize, true);
-
-  const channels: Float32Array[] = [];
-  for (let c = 0; c < numChannels; c++) {
-    channels.push(audioBuffer.getChannelData(c));
-  }
-
-  let offset = 44;
-  for (let i = 0; i < numSamples; i++) {
-    for (let c = 0; c < numChannels; c++) {
-      const sample = Math.max(-1, Math.min(1, channels[c][i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-      offset += 2;
-    }
-  }
-
-  return buffer;
-}
-
-function audioBufferToWavBlob(audioBuffer: AudioBuffer): Blob {
-  return new Blob([audioBufferToWavBytes(audioBuffer)], { type: 'audio/wav' });
-}
-
-async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSignal): Promise<Blob> {
-  try {
-    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-    const ffmpeg = new FFmpeg();
-
-    const baseUrl = `${window.location.origin}/ffmpeg`;
-    await ffmpeg.load({
-      coreURL: `${baseUrl}/ffmpeg-core.js`,
-      wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
-    });
-
-    const wavBytes = audioBufferToWavBytes(audioBuffer);
-    const wavUint8 = new Uint8Array(wavBytes);
-    await ffmpeg.writeFile('input.wav', wavUint8);
-
-    const bitrateKbps = targetMp3BitrateKbps(audioBuffer.duration);
-    await ffmpeg.exec([
-      '-i',
-      'input.wav',
-      '-ac',
-      '1',
-      '-ar',
-      '16000',
-      '-acodec',
-      'libmp3lame',
-      '-b:a',
-      `${bitrateKbps}k`,
-      'output.mp3',
-    ]);
-
-    if (abort.aborted) {
-      await ffmpeg.deleteFile('input.wav');
-      await ffmpeg.deleteFile('output.mp3');
-      throw new DOMException('Aborted', 'AbortError');
-    }
-
-    const outputData = (await ffmpeg.readFile('output.mp3')) as Uint8Array;
-    await ffmpeg.deleteFile('input.wav');
-    await ffmpeg.deleteFile('output.mp3');
-
-    const compressed = new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
-    if (compressed.size > WHISPER_SIZE_LIMIT) {
-      throw new Error('Compressed audio still exceeds production upload limit');
-    }
-    return compressed;
-  } catch (err) {
-    console.error('reduceAudioForWhisper failed:', err);
-    throw err;
   }
 }
 
@@ -237,25 +81,16 @@ export function useAudioProcessing(
       setProcessingProgress(0);
 
       try {
-        // #region agent log
-        fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
-          body: JSON.stringify({
-            sessionId: '381f43',
-            runId: 'post-fix',
-            location: 'useAudioProcessing.ts:processAudio:entry',
-            message: 'processAudio entry',
-            data: {
-              mime: blob.type,
-              size: blob.size,
-              name: blob instanceof File ? blob.name : '(blob)',
-            },
-            timestamp: Date.now(),
-            hypothesisId: 'A,B',
-          }),
-        }).catch(() => {});
-        // #endregion
+        sendProcessingDebugIngest({
+          location: 'useAudioProcessing.ts:processAudio:entry',
+          message: 'processAudio entry',
+          data: {
+            mime: blob.type,
+            size: blob.size,
+            name: blob instanceof File ? blob.name : '(blob)',
+          },
+          hypothesisId: 'A,B',
+        });
         // Step 1: Decode audio (0–15% when enhancing, 0–25% otherwise)
         const enhanceTier = useProcessingStore.getState().enhanceTier;
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
@@ -266,44 +101,26 @@ export function useAudioProcessing(
           const { audioBuffer, decodePath } = await decodeBlobToAudioBuffer(blob);
           decoded = audioBuffer;
           transcriptionBuffer = audioBuffer;
-          // #region agent log
-          fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
-            body: JSON.stringify({
-              sessionId: '381f43',
-              runId: 'post-fix',
-              location: 'useAudioProcessing.ts:processAudio:decodeOk',
-              message: 'decode to AudioBuffer succeeded',
-              data: {
-                decodePath,
-                durationSec: decoded.duration,
-                sampleRate: decoded.sampleRate,
-              },
-              timestamp: Date.now(),
-              hypothesisId: 'A',
-            }),
-          }).catch(() => {});
-          // #endregion
+          sendProcessingDebugIngest({
+            location: 'useAudioProcessing.ts:processAudio:decodeOk',
+            message: 'decode to AudioBuffer succeeded',
+            data: {
+              decodePath,
+              durationSec: decoded.duration,
+              sampleRate: decoded.sampleRate,
+            },
+            hypothesisId: 'A',
+          });
         } catch (decodeErr) {
-          // #region agent log
-          fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
-            body: JSON.stringify({
-              sessionId: '381f43',
-              runId: 'post-fix',
-              location: 'useAudioProcessing.ts:processAudio:decodeFail',
-              message: 'decode to AudioBuffer failed',
-              data: {
-                errName: decodeErr instanceof Error ? decodeErr.name : 'unknown',
-                errMessage: decodeErr instanceof Error ? decodeErr.message : String(decodeErr),
-              },
-              timestamp: Date.now(),
-              hypothesisId: 'A',
-            }),
-          }).catch(() => {});
-          // #endregion
+          sendProcessingDebugIngest({
+            location: 'useAudioProcessing.ts:processAudio:decodeFail',
+            message: 'decode to AudioBuffer failed',
+            data: {
+              errName: decodeErr instanceof Error ? decodeErr.name : 'unknown',
+              errMessage: decodeErr instanceof Error ? decodeErr.message : String(decodeErr),
+            },
+            hypothesisId: 'A',
+          });
           throw decodeErr;
         }
         setAudioBuffer(decoded);
@@ -403,21 +220,12 @@ export function useAudioProcessing(
         })();
 
         const [words, storageId] = await Promise.all([transcriptionTask, uploadTask]);
-        // #region agent log
-        fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
-          body: JSON.stringify({
-            sessionId: '381f43',
-            runId: 'post-fix',
-            location: 'useAudioProcessing.ts:processAudio:afterTranscribe',
-            message: 'transcribe + upload parallel done',
-            data: { wordCount: words.length },
-            timestamp: Date.now(),
-            hypothesisId: 'C',
-          }),
-        }).catch(() => {});
-        // #endregion
+        sendProcessingDebugIngest({
+          location: 'useAudioProcessing.ts:processAudio:afterTranscribe',
+          message: 'transcribe + upload parallel done',
+          data: { wordCount: words.length },
+          hypothesisId: 'C',
+        });
 
         if (words.length > 0) {
           setTranscript(words);
