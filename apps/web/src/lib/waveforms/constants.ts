@@ -6,7 +6,7 @@ export const WAVEFORM_CENTER_Y = 0.72;
 export const WAVEFORM_CENTER_Y_FLIPPED = 1 - WAVEFORM_CENTER_Y; // 0.28
 export const WAVEFORM_MAX_AMP = 0.07;
 export const GAP_ABOVE_WAVEFORM = 0.05;
-export const WAVEFORM_WIDTH_RATIO = 0.82;
+export const WAVEFORM_SIDE_MARGIN_PX = 2;
 export const BAR_COUNT = 48;
 export const BAR_GAP = 5;
 export const BAR_MIN_WIDTH = 6;
@@ -57,11 +57,13 @@ export interface BarLayout {
 
 export function computeBarLayout(canvasWidth: number): BarLayout {
   const totalGaps = (BAR_COUNT - 1) * BAR_GAP;
+  const availableWidth = Math.max(0, canvasWidth - WAVEFORM_SIDE_MARGIN_PX * 2 - totalGaps);
   const barWidth = Math.max(
     BAR_MIN_WIDTH,
-    (canvasWidth * WAVEFORM_WIDTH_RATIO - totalGaps) / BAR_COUNT
+    availableWidth / BAR_COUNT
   );
-  const startX = (canvasWidth - (BAR_COUNT * barWidth + totalGaps)) / 2;
+  const totalWidth = BAR_COUNT * barWidth + totalGaps;
+  const startX = Math.max(WAVEFORM_SIDE_MARGIN_PX, (canvasWidth - totalWidth) / 2);
   return { barWidth, startX };
 }
 

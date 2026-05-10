@@ -1,26 +1,5 @@
 @import 'tailwindcss';
-/* Premium fonts now wired for mobile Apple feel: Poppins (headings) + HelveticaNeueCyr (body) */
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+/* Local premium fonts for the app shell. Export fonts are loaded by fontLoader. */
 @font-face {
   font-family: 'HelveticaNeueCyr';
   src: url('/fonts/HelveticaNeueCyr-Light.otf') format('opentype');

@@ -1,18 +1,24 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionAnimation, CaptionGroup } from '@/stores/types';
-import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
+import {
+  buildSentenceSegments,
+  findActiveDisplaySegment,
+} from '@/lib/captions/display';
 import { drawSpacedText, measureTextWidth } from './textLayout';
 
-const CAPTION_PADDING = 0.08;
+const CAPTION_SIDE_MARGIN_PX = 2;
+const CAPTION_VERTICAL_SAFE_RATIO = 0.08;
 const FONT_WEIGHT = '600';
-const KARAOKE_MAX_LINES = 3;
+const KARAOKE_MAX_LINES = 4;
+const KARAOKE_MIN_SCALE = 0.7;
 const KARAOKE_MIN_WORDS_PER_LINE = 3;
-const KARAOKE_MAX_SCENE_WORDS = 18;
 const KARAOKE_PAGE_FADE_DURATION = 0.12;
-const KARAOKE_INACTIVE_ALPHA = 0.92;
+const KARAOKE_INACTIVE_ALPHA = 0.62;
+const KARAOKE_COMPLETE_ALPHA = 0.92;
 const KARAOKE_LINE_PAUSE_BREAK = 0.24;
-const KARAOKE_TEXT_WIDTH_RATIO = 0.76;
+const KARAOKE_TEXT_WIDTH_RATIO = 0.84;
 const KARAOKE_TOP_RATIO = 0.15;
+const SCALE_CANDIDATES = [1, 0.94, 0.88, 0.82, 0.76, KARAOKE_MIN_SCALE];
 
 /** Damped spring ease — fast entry with a small overshoot, settles quickly. */
 function springEase(t: number): number {
@@ -20,6 +26,7 @@ function springEase(t: number): number {
 }
 
 type KaraokeWord = { text: string; start: number; end: number; wordWidth: number; pauseToNext: number };
+type KaraokeLineLayout = { lines: KaraokeWord[][]; scale: number; logicalMaxWidth: number };
 
 function buildKaraokeLines(
   words: KaraokeWord[],
@@ -50,6 +57,46 @@ function buildKaraokeLines(
   return lines;
 }
 
+function lineWidth(words: KaraokeWord[], spaceWidth: number): number {
+  if (words.length === 0) return 0;
+  return words.reduce((sum, word) => sum + word.wordWidth, 0) + spaceWidth * (words.length - 1);
+}
+
+function packWordsIntoLineCount(words: KaraokeWord[], maxLines: number): KaraokeWord[][] {
+  const lines: KaraokeWord[][] = [];
+  const wordsPerLine = Math.ceil(words.length / maxLines);
+
+  for (let index = 0; index < words.length; index += wordsPerLine) {
+    lines.push(words.slice(index, index + wordsPerLine));
+  }
+
+  return lines.slice(0, maxLines);
+}
+
+function layoutSentenceLines(
+  words: KaraokeWord[],
+  spaceWidth: number,
+  maxWidth: number
+): KaraokeLineLayout {
+  for (const scale of SCALE_CANDIDATES) {
+    const logicalMaxWidth = maxWidth / scale;
+    const lines = buildKaraokeLines(words, spaceWidth, logicalMaxWidth);
+    if (lines.length <= KARAOKE_MAX_LINES) {
+      return { lines, scale, logicalMaxWidth };
+    }
+  }
+
+  const lines = packWordsIntoLineCount(words, KARAOKE_MAX_LINES);
+  const widestLine = Math.max(1, ...lines.map((line) => lineWidth(line, spaceWidth)));
+  const scale = Math.max(KARAOKE_MIN_SCALE, Math.min(1, maxWidth / widestLine));
+
+  return {
+    lines,
+    scale,
+    logicalMaxWidth: maxWidth / scale,
+  };
+}
+
 function hasSweep(animation: CaptionAnimation): boolean {
   return animation === 'sweep' || animation === 'sweep-pulse';
 }
@@ -63,42 +110,16 @@ export function drawKaraokeCaptions(
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  groups?: CaptionGroup[],
+  _groups?: CaptionGroup[],
   animation: CaptionAnimation = 'sweep-pulse'
 ): void {
   if (transcript.length === 0) return;
 
   const { width, height, textColor, fontFamily, fontSize, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
-  const padding = width * CAPTION_PADDING;
+  const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
   const blockWidth = Math.min(width - padding * 2, width * KARAOKE_TEXT_WIDTH_RATIO);
-  const blockLeft = Math.max(padding, (width - blockWidth) / 2);
   const maxWidth = blockWidth;
-
-  // Use groups to determine active scene if provided
-  let scene: Word[];
-  if (groups && groups.length > 0) {
-    const activeGroup = groups.find(g => currentTime >= g.start && currentTime < g.end);
-    if (activeGroup) {
-      scene = activeGroup.wordIndices.map(i => transcript[i]).filter(Boolean);
-    } else {
-      // Find the next upcoming group
-      const nextGroup = groups.find(g => g.start > currentTime);
-      if (nextGroup) {
-        scene = nextGroup.wordIndices.slice(0, KARAOKE_MAX_SCENE_WORDS).map(i => transcript[i]).filter(Boolean);
-      } else {
-        scene = transcript.slice(0, KARAOKE_MAX_SCENE_WORDS);
-      }
-    }
-  } else {
-    const segments = buildSmartSegments(transcript);
-    const segIdx = findActiveSegmentIndex(segments, currentTime);
-    if (segIdx >= 0) {
-      const seg = segments[segIdx];
-      scene = transcript.slice(seg.startIndex, Math.min(seg.endIndex, seg.startIndex + KARAOKE_MAX_SCENE_WORDS));
-    } else {
-      scene = transcript.slice(0, KARAOKE_MAX_SCENE_WORDS);
-    }
-  }
+  const scene = findActiveDisplaySegment(buildSentenceSegments(transcript), currentTime)?.words ?? [];
   if (scene.length === 0) return;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
@@ -119,40 +140,34 @@ export function drawKaraokeCaptions(
     measured[i].pauseToNext = Math.max(0, measured[i + 1].start - measured[i].end);
   }
 
-  const allLines = buildKaraokeLines(measured, spaceWidth, maxWidth);
-
-  let lastRevealedLine = 0;
-  for (let li = 0; li < allLines.length; li++) {
-    if (allLines[li].some((w) => w.start <= currentTime)) {
-      lastRevealedLine = li;
-    }
-  }
-
-  const activePage = Math.floor(lastRevealedLine / KARAOKE_MAX_LINES);
-  const pageStart = activePage * KARAOKE_MAX_LINES;
-  const pageLines = allLines.slice(pageStart, pageStart + KARAOKE_MAX_LINES);
+  const pageLayout = layoutSentenceLines(measured, spaceWidth, maxWidth);
+  const pageLines = pageLayout.lines;
+  const blockLeft = Math.max(padding, (width - pageLayout.logicalMaxWidth) / 2);
 
   const pageFirstWordStart = pageLines[0]?.[0]?.start ?? currentTime;
   const timeSincePageStart = Math.max(0, currentTime - pageFirstWordStart);
   const pageFade = Math.min(1, timeSincePageStart / KARAOKE_PAGE_FADE_DURATION);
 
-  const topPad = Math.max(height * CAPTION_PADDING, height * KARAOKE_TOP_RATIO);
+  const topPad = Math.max(height * CAPTION_VERTICAL_SAFE_RATIO, height * KARAOKE_TOP_RATIO);
+  const blockHeight = pageLines.length * lineHeight;
+  const blockCenterY = topPad + blockHeight / 2;
+
+  ctx.save();
+  ctx.translate(width / 2, blockCenterY);
+  ctx.scale(pageLayout.scale, pageLayout.scale);
+  ctx.translate(-width / 2, -blockCenterY);
 
   for (let li = 0; li < pageLines.length; li++) {
     const lineY = topPad + li * lineHeight + lineHeight / 2;
     let x = blockLeft;
-    const visibleWords = pageLines[li].filter((word) => word.start <= currentTime);
 
-    if (visibleWords.length === 0) {
-      break;
-    }
-
-    for (const word of visibleWords) {
-      const isActive = currentTime < word.end;
+    for (const word of pageLines[li]) {
+      const hasStarted = currentTime >= word.start;
+      const isActive = hasStarted && currentTime < word.end;
 
       const wordX = x;
       x += word.wordWidth + spaceWidth;
-      const wordAlpha = isActive ? 1 : KARAOKE_INACTIVE_ALPHA;
+      const wordAlpha = isActive ? 1 : hasStarted ? KARAOKE_COMPLETE_ALPHA : KARAOKE_INACTIVE_ALPHA;
 
       let scale = 1.0;
       if (isActive && hasPulse(animation)) {
@@ -202,5 +217,6 @@ export function drawKaraokeCaptions(
     }
   }
 
+  ctx.restore();
   ctx.globalAlpha = 1.0;
 }

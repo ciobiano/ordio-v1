@@ -37,9 +37,9 @@ export const StyleConfigSchema = z.object({
   fontSize: z.number().positive(),
   waveColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   /** Additional spacing between characters (pixels) */
-  characterSpacing: z.number().min(0).default(0),
-  /** Line height multiplier (e.g., 1.4 = 140% of fontSize) */
-  lineHeight: z.number().min(0.5).max(3).default(1.4),
+  characterSpacing: z.number().min(-12).max(12).default(0),
+  /** Line height multiplier. Values below 1 tighten the spacing between lines. */
+  lineHeight: z.number().min(0.4).max(3).default(1.4),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;

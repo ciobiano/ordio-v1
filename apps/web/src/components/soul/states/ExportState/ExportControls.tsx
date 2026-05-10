@@ -103,7 +103,10 @@ export function ExportControls({
       />
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent className="md:hidden p-0 bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08]">
+        <DrawerContent
+          overlayClassName="bg-transparent supports-backdrop-filter:backdrop-blur-none backdrop-blur-none"
+          className="md:hidden p-0 bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08]"
+        >
           <DrawerTitle className="sr-only">Export Tools</DrawerTitle>
           {/* Drag handle */}
           <div className="flex justify-center pt-2 pb-1">
@@ -115,10 +118,13 @@ export function ExportControls({
             <div className="h-[50vh] min-h-0 px-4 pt-4 pb-4">
               <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
             </div>
+          ) : mobilePanel === 'style' ? (
+            <div className="h-[50vh] min-h-0 overflow-hidden px-4 pt-4 pb-4">
+              <StyleControls onLocked={onLocked} />
+            </div>
           ) : (
             <ScrollArea className="h-[50vh] pb-4">
               <div className="px-4 pt-4">
-                {mobilePanel === 'style' && <StyleControls onLocked={onLocked} />}
                 {mobilePanel === 'trim' && (
                   <TrimPanel
                     audioBuffer={audioBuffer}

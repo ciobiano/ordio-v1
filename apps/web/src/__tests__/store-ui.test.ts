@@ -73,6 +73,12 @@ describe('store: uiStore', () => {
       expect(useUIStore.getState().style.fontSize).toBe(48);
       expect(useUIStore.getState().style.textColor).toBe('#ff0000');
     });
+
+    it('should allow tighter line spacing and negative character spacing', () => {
+      useUIStore.getState().setStyle({ lineHeight: 0.4, characterSpacing: -6 });
+      expect(useUIStore.getState().style.lineHeight).toBe(0.4);
+      expect(useUIStore.getState().style.characterSpacing).toBe(-6);
+    });
   });
 
   describe('setWaveformStyle', () => {

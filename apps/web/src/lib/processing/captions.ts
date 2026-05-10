@@ -1,7 +1,10 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CanvasLayout, CaptionAnimation, CaptionGroup, CaptionTransform } from '@/stores';
-import { buildSmartSegments, findActiveSegmentIndex } from '@/lib/captions/segmentation';
 import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+import {
+  buildOneLinePhraseSegments,
+  findActiveDisplaySegment,
+} from '@/lib/captions/display';
 import {
   WAVEFORM_CENTER_Y,
   WAVEFORM_CENTER_Y_FLIPPED,
@@ -9,19 +12,35 @@ import {
   GAP_ABOVE_WAVEFORM,
 } from '@/lib/waveforms/constants';
 
-const CAPTION_PADDING = 0.08;
+const CAPTION_SIDE_MARGIN_PX = 2;
+const CAPTION_VERTICAL_SAFE_RATIO = 0.08;
 const FONT_WEIGHT = '600';
 const MIN_CAPTION_SAFE_ZONE = 0.02;
 const PHRASE_FADE_DURATION = 0.15;
 const PHRASE_TOP_RATIO = 0.18;
 const PHRASE_TOP_WITH_VISUAL_RATIO = 0.14;
 
+export interface PhraseCaptionMetrics {
+  text: string;
+  lines: string[];
+  centerX: number;
+  textY: number;
+  lineHeight: number;
+  blockWidth: number;
+  blockHeight: number;
+  blockCenterY: number;
+  fitScale: number;
+}
+
 function hasPulse(animation: CaptionAnimation): boolean {
   return animation === 'pulse' || animation === 'sweep-pulse';
 }
 function getPhraseTransition(
+  ctx: CanvasRenderingContext2D,
   transcript: Word[],
   currentTime: number,
+  maxWidth: number,
+  characterSpacing: number,
   groups?: CaptionGroup[] | undefined
 ): { currentText: string; prevText: string; progress: number; groupIndex: number } {
   // If we have custom groups, use them (no fading, instant cut)
@@ -63,16 +82,19 @@ function getPhraseTransition(
     return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
   }
   
-  // Fallback: smart segmentation (pause + punctuation + readability limits)
-  const segments = buildSmartSegments(transcript);
-  const currentIdx = findActiveSegmentIndex(segments, currentTime);
+  const segments = buildOneLinePhraseSegments(
+    transcript,
+    (text) => measureTextWidth(ctx, text, characterSpacing),
+    maxWidth
+  );
+  const activeSegment = findActiveDisplaySegment(segments, currentTime);
+  const currentIdx = activeSegment ? segments.indexOf(activeSegment) : -1;
   
-  if (currentIdx >= 0) {
-    const segment = segments[currentIdx];
-    const text = segment.text;
+  if (activeSegment && currentIdx >= 0) {
+    const text = activeSegment.text;
     
     // Calculate pure time-based fade
-    const firstWordStart = segment.start;
+    const firstWordStart = activeSegment.start;
     const timeSinceStart = currentTime - firstWordStart;
     const progress = Math.min(1, Math.max(0, timeSinceStart / PHRASE_FADE_DURATION));
     
@@ -109,48 +131,20 @@ export function drawCaptions(
   if (captionTransform && !captionTransform.visible) return;
 
   const { width, height, textColor, fontFamily, fontSize, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
-  const padding = width * CAPTION_PADDING;
-
-  const transition = getPhraseTransition(transcript, currentTime, groups);
-  if (!transition.currentText && !transition.prevText) return;
-
-  const text = transition.currentText || transition.prevText;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
 
-  const maxTextWidth = width - padding * 2;
-  const lineHeight = fontSize * lineHeightMultiplier;
-  const totalHeight = lineHeight;
-  const safePad = height * CAPTION_PADDING;
+  const maxTextWidth = getMaxCaptionTextWidth(width);
+  const transition = getPhraseTransition(ctx, transcript, currentTime, maxTextWidth, characterSpacing, groups);
+  if (!transition.currentText && !transition.prevText) return;
 
-  let textY: number;
-  if (!hasVisualZone) {
-    textY = Math.max(safePad, height * PHRASE_TOP_RATIO);
-  } else if (!flipped) {
-    const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
-    const minSafeZone = height * MIN_CAPTION_SAFE_ZONE;
-    const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
-    const maxTextY = captionBottom - minSafeZone - totalHeight;
-    if (layout === 'top') {
-      textY = Math.min(height * PHRASE_TOP_WITH_VISUAL_RATIO, maxTextY);
-    } else if (layout === 'compact') {
-      textY = Math.min(height * (PHRASE_TOP_WITH_VISUAL_RATIO + 0.04), maxTextY);
-    } else {
-      textY = Math.min(height * 0.2, maxTextY);
-    }
-    textY = Math.max(textY, safePad);
-  } else {
-    const waveformBottom = WAVEFORM_CENTER_Y_FLIPPED * height + height * WAVEFORM_MAX_AMP;
-    const captionTop = waveformBottom + height * GAP_ABOVE_WAVEFORM;
-    const captionBottom = height - safePad;
-    const minTextY = captionTop;
-    textY =
-      layout === 'compact'
-        ? minTextY
-        : Math.max(minTextY, captionTop + (captionBottom - captionTop - totalHeight) / 2);
-    textY = Math.min(textY, captionBottom - totalHeight);
-  }
+  const text = transition.currentText || transition.prevText;
+
+  const lineHeight = fontSize * lineHeightMultiplier;
+  const textLines = [text];
+  const totalHeight = Math.max(lineHeight, textLines.length * lineHeight);
+  const textY = calculatePhraseTextY(height, layout, hasVisualZone, flipped, totalHeight);
 
   ctx.textAlign = 'center';
   const centerX = width / 2;
@@ -161,12 +155,17 @@ export function drawCaptions(
     : 1;
 
   const renderText = (lineToRender: string, alpha: number) => {
-    const measuredWidth = measureTextWidth(ctx, lineToRender, characterSpacing);
+    const lines = [lineToRender];
+    const measuredWidth = Math.max(
+      0,
+      ...lines.map((line) => measureTextWidth(ctx, line, characterSpacing))
+    );
     const fitScale = measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1;
+    const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    const blockCenterY = textY + totalHeight / 2;
+    const blockCenterY = textY + blockHeight / 2;
     const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
     const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
     const centerTX = centerX + offsetX;
@@ -182,16 +181,19 @@ export function drawCaptions(
     ctx.lineJoin = 'round';
     ctx.lineWidth = Math.max(1.25, fontSize * 0.022);
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
-    drawSpacedText(ctx, lineToRender, centerX, textY + lineHeight / 2, {
-      textAlign: 'center',
-      mode: 'stroke',
-      characterSpacing,
-    });
-    ctx.fillStyle = textColor;
-    drawSpacedText(ctx, lineToRender, centerX, textY + lineHeight / 2, {
-      textAlign: 'center',
-      mode: 'fill',
-      characterSpacing,
+    lines.forEach((line, lineIndex) => {
+      const lineY = textY + lineHeight / 2 + lineIndex * lineHeight;
+      drawSpacedText(ctx, line, centerX, lineY, {
+        textAlign: 'center',
+        mode: 'stroke',
+        characterSpacing,
+      });
+      ctx.fillStyle = textColor;
+      drawSpacedText(ctx, line, centerX, lineY, {
+        textAlign: 'center',
+        mode: 'fill',
+        characterSpacing,
+      });
     });
     ctx.restore();
   };
@@ -203,7 +205,108 @@ export function drawCaptions(
   renderText(text, transition.progress);
 }
 
-export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+export function measureActivePhraseCaption(
+  ctx: CanvasRenderingContext2D,
+  currentTime: number,
+  transcript: Word[],
+  style: StyleConfig,
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped = false,
+  groups?: CaptionGroup[] | undefined
+): PhraseCaptionMetrics | null {
+  if (transcript.length === 0) return null;
+
+  ctx.font = `${FONT_WEIGHT} ${style.fontSize}px "${style.fontFamily}", sans-serif`;
+  ctx.textBaseline = 'middle';
+
+  const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const characterSpacing = style.characterSpacing ?? 0;
+  const transition = getPhraseTransition(ctx, transcript, currentTime, maxTextWidth, characterSpacing, groups);
+  const text = transition.currentText || transition.prevText;
+  if (!text) return null;
+
+  const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
+  const lines = [text];
+  const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
+  const textY = calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, blockHeight);
+
+  return measurePhraseCaptionText(ctx, text, style, textY);
+}
+
+function getMaxCaptionTextWidth(width: number): number {
+  const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
+  return width - padding * 2;
+}
+
+function calculatePhraseTextY(
+  height: number,
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped: boolean,
+  blockHeight: number
+): number {
+  const safePad = height * CAPTION_VERTICAL_SAFE_RATIO;
+
+  if (!hasVisualZone) {
+    return Math.max(safePad, height * PHRASE_TOP_RATIO);
+  }
+
+  if (!flipped) {
+    const waveformTop = height * WAVEFORM_CENTER_Y - height * WAVEFORM_MAX_AMP;
+    const captionBottom = waveformTop - height * GAP_ABOVE_WAVEFORM;
+    const maxTextY = captionBottom - height * MIN_CAPTION_SAFE_ZONE - blockHeight;
+    const preferredY =
+      layout === 'top'
+        ? height * PHRASE_TOP_WITH_VISUAL_RATIO
+        : layout === 'compact'
+          ? height * (PHRASE_TOP_WITH_VISUAL_RATIO + 0.04)
+          : height * 0.2;
+    return Math.max(Math.min(preferredY, maxTextY), safePad);
+  }
+
+  const waveformBottom = WAVEFORM_CENTER_Y_FLIPPED * height + height * WAVEFORM_MAX_AMP;
+  const captionTop = waveformBottom + height * GAP_ABOVE_WAVEFORM;
+  const captionBottom = height - safePad;
+  const textY =
+    layout === 'compact'
+      ? captionTop
+      : Math.max(captionTop, captionTop + (captionBottom - captionTop - blockHeight) / 2);
+  return Math.min(textY, captionBottom - blockHeight);
+}
+
+function measurePhraseCaptionText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  style: StyleConfig,
+  textY: number
+): PhraseCaptionMetrics {
+  const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const characterSpacing = style.characterSpacing ?? 0;
+  const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
+  const lines = [text];
+  const blockWidth = Math.max(0, ...lines.map((line) => measureTextWidth(ctx, line, characterSpacing)));
+  const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
+
+  return {
+    text,
+    lines,
+    centerX: style.width / 2,
+    textY,
+    lineHeight,
+    blockWidth,
+    blockHeight,
+    blockCenterY: textY + blockHeight / 2,
+    fitScale: blockWidth > 0 ? Math.min(1, maxTextWidth / blockWidth) : 1,
+  };
+}
+
+export function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  characterSpacing = 0
+): string[] {
   const words = text.split(' ');
   if (words.length <= 1) return words;
 
@@ -215,7 +318,7 @@ export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: 
     const key = `${i}:${j}`;
     const hit = cache.get(key);
     if (hit !== undefined) return hit;
-    const width = measureTextWidth(ctx, lineText(i, j), 0);
+    const width = measureTextWidth(ctx, lineText(i, j), characterSpacing);
     cache.set(key, width);
     return width;
   };

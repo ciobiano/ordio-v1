@@ -22,6 +22,7 @@ const FONT_CONFIG: Record<string, string> = {
 
 const loaded = new Set<string>();
 const loading = new Map<string, Promise<void>>();
+const stylesheetLoading = new Map<string, Promise<void>>();
 
 export async function loadFont(fontFamily: string): Promise<void> {
   if (loaded.has(fontFamily)) return;
@@ -48,18 +49,14 @@ async function doLoad(fontFamily: string): Promise<void> {
     const spec = FONT_CONFIG[fontFamily];
     if (!spec) return;
 
-    // Inject a <link> for Google Fonts CSS
-    const linkId = `gfont-${fontFamily}`;
-    if (!document.getElementById(linkId)) {
-      const link = document.createElement('link');
-      link.id = linkId;
-      link.rel = 'stylesheet';
-      link.href = `${GOOGLE_FONTS_CSS}?family=${encodeURIComponent(spec)}&display=swap`;
-      document.head.appendChild(link);
-    }
+    await ensureGoogleFontStylesheet(fontFamily, spec);
 
-    // Wait for the font to be ready via the FontFace API
-    await document.fonts.load(`600 72px "${fontFamily}"`);
+    // Wait for the actual faces we use in canvas rendering.
+    await Promise.all([
+      document.fonts.load(`400 72px "${fontFamily}"`),
+      document.fonts.load(`600 72px "${fontFamily}"`),
+    ]);
+    await document.fonts.ready;
     loaded.add(fontFamily);
   } catch {
     // Silently fall back — canvas will use sans-serif
@@ -67,4 +64,40 @@ async function doLoad(fontFamily: string): Promise<void> {
   } finally {
     loading.delete(fontFamily);
   }
+}
+
+function ensureGoogleFontStylesheet(fontFamily: string, spec: string): Promise<void> {
+  const existing = stylesheetLoading.get(fontFamily);
+  if (existing) return existing;
+
+  const promise = new Promise<void>((resolve) => {
+    const linkId = `gfont-${fontFamily}`;
+    const existingLink = document.getElementById(linkId) as HTMLLinkElement | null;
+
+    if (existingLink) {
+      resolve();
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = `${GOOGLE_FONTS_CSS}?family=${encodeURIComponent(spec)}&display=swap`;
+
+    const handleLoad = () => {
+      link.dataset.loaded = 'true';
+      resolve();
+    };
+    const handleError = () => resolve();
+
+    link.onload = handleLoad;
+    link.onerror = handleError;
+
+    document.head.appendChild(link);
+  }).finally(() => {
+    stylesheetLoading.delete(fontFamily);
+  });
+
+  stylesheetLoading.set(fontFamily, promise);
+  return promise;
 }

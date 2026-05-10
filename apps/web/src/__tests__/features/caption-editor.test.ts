@@ -52,7 +52,7 @@ describe('Feature: Caption Group Management', () => {
     it('should reduce group count by 1', () => {
       resetStore(createMockWords(24));
       const before = useProcessingStore.getState().captionGroups.length;
-      expect(before).toBe(4); // 24 words ÷ 6 = 4 groups
+      expect(before).toBeGreaterThan(1);
       useProcessingStore.getState().mergeDown(0);
       expect(useProcessingStore.getState().captionGroups.length).toBe(before - 1);
     });
@@ -113,21 +113,21 @@ describe('Feature: Caption Group Management', () => {
       resetStore(createMockWords(12));
       const before = useProcessingStore.getState().captionGroups.length;
       const group0 = useProcessingStore.getState().captionGroups[0];
-      expect(group0.wordIndices.length).toBe(6);
+      const splitPosition = Math.floor(group0.wordIndices.length / 2);
+      expect(splitPosition).toBeGreaterThan(0);
 
-      // Split at position 4: words [0,1,2,3] stay in A, words [4,5] start B
-      useProcessingStore.getState().splitAtWord(0, 4);
+      useProcessingStore.getState().splitAtWord(0, splitPosition);
 
       const { captionGroups, transcript } = useProcessingStore.getState();
       expect(captionGroups.length).toBe(before + 1);
 
       const segA = captionGroups[0];
       const segB = captionGroups[1];
-      expect(segA.wordIndices.length).toBe(4);
-      expect(segB.wordIndices.length).toBe(2);
+      expect(segA.wordIndices).toEqual(group0.wordIndices.slice(0, splitPosition));
+      expect(segB.wordIndices).toEqual(group0.wordIndices.slice(splitPosition));
 
-      // The split word (position 4) is the first word of segment B
-      const splitWordIdx = group0.wordIndices[4];
+      // The split word is the first word of segment B.
+      const splitWordIdx = group0.wordIndices[splitPosition];
       const splitWordStart = transcript[splitWordIdx].start;
       expect(segA.end).toBe(splitWordStart);
       expect(segB.start).toBe(splitWordStart);

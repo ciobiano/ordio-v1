@@ -3,10 +3,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Word } from '@Ordio/shared/schemas';
+import { buildSmartSegments } from '@/lib/captions/segmentation';
 import type { TranscriptionSource, EnhanceTier, CaptionGroup } from './types';
 
-const WORDS_PER_PHRASE = 6;
 const MAX_UNDO_STEPS = 50;
+const INITIAL_PHRASE_SEGMENT_OPTIONS = {
+  maxWords: 7,
+  maxChars: 38,
+  maxDuration: 1.9,
+  minWords: 2,
+};
 
 // ─── Immutable merge helper ────────────────────────────────────────────────
 
@@ -52,18 +58,16 @@ function mergeTwoGroupsImmutable(
 // ─── Initial group builder ─────────────────────────────────────────────────
 
 function buildInitialGroups(words: Word[]): CaptionGroup[] {
-  const groups: CaptionGroup[] = [];
-  for (let i = 0; i < words.length; i += WORDS_PER_PHRASE) {
-    const chunk = words.slice(i, i + WORDS_PER_PHRASE);
-    groups.push({
-      wordIndices: chunk.map((_, idx) => i + idx),
-      text: chunk.map(w => w.text).join(' '),
-      // start/end are timeline block boundaries, not derived per-word
-      start: chunk[0].start,
-      end: chunk[chunk.length - 1].end,
-    });
-  }
-  return groups;
+  return buildSmartSegments(words, INITIAL_PHRASE_SEGMENT_OPTIONS).map((segment) => ({
+    wordIndices: Array.from(
+      { length: segment.endIndex - segment.startIndex },
+      (_, index) => segment.startIndex + index
+    ),
+    text: segment.text,
+    // start/end are timeline block boundaries, not derived per-word
+    start: segment.start,
+    end: segment.end,
+  }));
 }
 
 // ─── Undo snapshot type ────────────────────────────────────────────────────

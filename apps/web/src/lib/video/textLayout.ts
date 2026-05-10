@@ -1,17 +1,53 @@
+type CanvasTextContext = CanvasRenderingContext2D & {
+  letterSpacing?: string;
+};
+
+function supportsCanvasLetterSpacing(ctx: CanvasRenderingContext2D): boolean {
+  return 'letterSpacing' in ctx;
+}
+
+function isWhitespace(char: string): boolean {
+  return /\s/u.test(char);
+}
+
+function pairSpacing(
+  ctx: CanvasRenderingContext2D,
+  currentChar: string,
+  nextChar: string | undefined,
+  characterSpacing: number
+): number {
+  if (!nextChar || isWhitespace(currentChar) || isWhitespace(nextChar)) return 0;
+  if (characterSpacing >= 0) return characterSpacing;
+
+  const currentWidth = ctx.measureText(currentChar).width;
+  const nextWidth = ctx.measureText(nextChar).width;
+  const maxTightening = Math.min(currentWidth, nextWidth) * 0.45;
+  return Math.max(characterSpacing, -maxTightening);
+}
+
 export function measureTextWidth(
   ctx: CanvasRenderingContext2D,
   text: string,
   characterSpacing = 0
 ): number {
   if (text.length === 0) return 0;
-  if (characterSpacing <= 0) return ctx.measureText(text).width;
+  if (characterSpacing === 0) return ctx.measureText(text).width;
+
+  if (supportsCanvasLetterSpacing(ctx)) {
+    ctx.save();
+    (ctx as CanvasTextContext).letterSpacing = `${characterSpacing}px`;
+    const width = ctx.measureText(text).width;
+    ctx.restore();
+    return width;
+  }
 
   const chars = [...text];
   let width = 0;
-  for (const char of chars) {
-    width += ctx.measureText(char).width;
+  for (let i = 0; i < chars.length; i++) {
+    width += ctx.measureText(chars[i]).width;
+    width += pairSpacing(ctx, chars[i], chars[i + 1], characterSpacing);
   }
-  return width + characterSpacing * Math.max(0, chars.length - 1);
+  return Math.max(0, width);
 }
 
 interface DrawSpacedTextOptions {
@@ -35,12 +71,25 @@ export function drawSpacedText(
 
   if (text.length === 0) return;
 
-  if (characterSpacing <= 0) {
+  if (characterSpacing === 0) {
     if (mode === 'stroke') {
       ctx.strokeText(text, x, y);
     } else {
       ctx.fillText(text, x, y);
     }
+    return;
+  }
+
+  if (supportsCanvasLetterSpacing(ctx)) {
+    ctx.save();
+    ctx.textAlign = textAlign;
+    (ctx as CanvasTextContext).letterSpacing = `${characterSpacing}px`;
+    if (mode === 'stroke') {
+      ctx.strokeText(text, x, y);
+    } else {
+      ctx.fillText(text, x, y);
+    }
+    ctx.restore();
     return;
   }
 
@@ -53,12 +102,14 @@ export function drawSpacedText(
     cursorX -= totalWidth;
   }
 
-  for (const char of [...text]) {
+  const chars = [...text];
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
     if (mode === 'stroke') {
       ctx.strokeText(char, cursorX, y);
     } else {
       ctx.fillText(char, cursorX, y);
     }
-    cursorX += ctx.measureText(char).width + characterSpacing;
+    cursorX += ctx.measureText(char).width + pairSpacing(ctx, char, chars[i + 1], characterSpacing);
   }
 }

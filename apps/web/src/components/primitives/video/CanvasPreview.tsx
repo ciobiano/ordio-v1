@@ -1,6 +1,13 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
@@ -11,6 +18,14 @@ import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, Graphic
 import { loadGraphic } from '@/lib/loaders';
 import { cn } from '@/lib/utils';
 import { CanvasCaptionTransformOverlay } from './canvas-preview/CanvasCaptionTransformOverlay';
+import {
+  measureCaptionTransformBox,
+  type CaptionTransformBox,
+} from './canvas-preview/captionTransformGeometry';
+import {
+  isCaptionActivationDoubleTap,
+  type CaptionActivationTap,
+} from './canvas-preview/captionActivationGesture';
 
 interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
@@ -44,6 +59,19 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
+function areCaptionBoxesEqual(a: CaptionTransformBox | null, b: CaptionTransformBox | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+
+  return (
+    Math.abs(a.centerX - b.centerX) < 0.5 &&
+    Math.abs(a.centerY - b.centerY) < 0.5 &&
+    Math.abs(a.width - b.width) < 0.5 &&
+    Math.abs(a.height - b.height) < 0.5 &&
+    Math.abs(a.rotationDeg - b.rotationDeg) < 0.1
+  );
+}
+
 export default function CanvasPreview({
   playback,
   format,
@@ -64,6 +92,8 @@ export default function CanvasPreview({
   const [displayTime, setDisplayTime] = useState(0);
   const [isTransformActive, setIsTransformActive] = useState(false);
   const [showTransformHint, setShowTransformHint] = useState(true);
+  const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
+  const activationTapRef = useRef<CaptionActivationTap | null>(null);
 
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
@@ -136,10 +166,11 @@ export default function CanvasPreview({
       totalFrames - 1
     );
 
+    const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
     const frameOptions: FrameOptions = {
       waveformData: waveformDataRef.current,
       transcript,
-      style: { ...style, width: canvasWidth, height: canvasHeight },
+      style: renderStyle,
       waveformStyle,
       captionMode,
       canvasLayout,
@@ -151,16 +182,25 @@ export default function CanvasPreview({
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
+    const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
+    const nextCaptionBox =
+      captionMode === 'phrase'
+        ? measureCaptionTransformBox({
+            ctx,
+            currentTime: currentTimeRef.current,
+            transcript,
+            captionGroups,
+            style: renderStyle,
+            layout: canvasLayout ?? 'top',
+            hasVisualZone,
+            flipped: canvasLayout === 'flipped',
+            transform: captionTransform,
+          })
+        : null;
+    setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
   }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
 
-  const activeText = (captionGroups.find((group) => displayTime >= group.start && displayTime < group.end)?.text ?? '').trim();
-  const showCaptionBox = captionMode !== 'karaoke' && captionTransform.visible && activeText.length > 0;
-  const boxWidth = Math.min(canvasWidth * 0.9, Math.max(canvasWidth * 0.22, activeText.length * style.fontSize * 0.58));
-  const boxHeight = style.fontSize * style.lineHeight;
-  const centerX = canvasWidth / 2 + captionTransform.offsetXRatio * canvasWidth;
-  const centerY = canvasHeight * 0.24 + captionTransform.offsetYRatio * canvasHeight;
-  const boxPxWidth = boxWidth * captionTransform.scale;
-  const boxPxHeight = boxHeight * captionTransform.scale;
+  const showCaptionBox = captionBox !== null;
 
   const gestureRef = useRef<{
     mode: 'move' | 'resize' | 'rotate';
@@ -172,8 +212,15 @@ export default function CanvasPreview({
     startScale: number;
     startRotationDeg: number;
   } | null>(null);
-  const lastTapRef = useRef(0);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const getCanvasDisplaySize = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return {
+      width: Math.max(1, rect?.width ?? canvasWidth),
+      height: Math.max(1, rect?.height ?? canvasHeight),
+    };
+  }, [canvasHeight, canvasWidth]);
 
   const beginGesture = useCallback((mode: 'move' | 'resize' | 'rotate', e: ReactPointerEvent<HTMLElement>) => {
     e.preventDefault();
@@ -196,24 +243,27 @@ export default function CanvasPreview({
     if (!gesture || gesture.pointerId !== e.pointerId) return;
     const dx = e.clientX - gesture.startClientX;
     const dy = e.clientY - gesture.startClientY;
+    const displaySize = getCanvasDisplaySize();
 
     if (gesture.mode === 'move') {
       setCaptionTransform({
-        offsetXRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetXRatio + dx / canvasWidth)),
-        offsetYRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetYRatio + dy / canvasHeight)),
+        offsetXRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetXRatio + dx / displaySize.width)),
+        offsetYRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetYRatio + dy / displaySize.height)),
       });
       return;
     }
 
     if (gesture.mode === 'resize') {
-      const nextScale = gesture.startScale + (dx + dy) / 900;
+      const nextScale =
+        gesture.startScale +
+        (dx / displaySize.width + dy / displaySize.height) * 1.2;
       setCaptionTransform({ scale: Math.max(0.45, Math.min(2.8, nextScale)) });
       return;
     }
 
     const nextRotation = gesture.startRotationDeg + dx * 0.35;
     setCaptionTransform({ rotationDeg: nextRotation });
-  }, [canvasHeight, canvasWidth, setCaptionTransform]);
+  }, [getCanvasDisplaySize, setCaptionTransform]);
 
   const endGesture = useCallback((e: ReactPointerEvent<HTMLElement>) => {
     if (gestureRef.current?.pointerId !== e.pointerId) return;
@@ -241,18 +291,36 @@ export default function CanvasPreview({
 
   const activateTransform = useCallback(() => {
     if (!showCaptionBox) return;
+    activationTapRef.current = null;
     setIsTransformActive(true);
   }, [showCaptionBox]);
 
-  const handleHotspotPointerUp = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'mouse') return;
-    const now = Date.now();
-    if (now - lastTapRef.current < 280) {
-      activateTransform();
-      lastTapRef.current = 0;
+  const handleActivationPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.pointerType === 'mouse') {
       return;
     }
-    lastTapRef.current = now;
+
+    const previousTap = activationTapRef.current;
+    const nextTap: CaptionActivationTap = {
+      timestamp: event.timeStamp,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+
+    activationTapRef.current = nextTap;
+
+    if (isCaptionActivationDoubleTap(previousTap, nextTap)) {
+      activateTransform();
+    }
+  }, [activateTransform]);
+
+  const handleActivationDoubleClick = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    activateTransform();
   }, [activateTransform]);
 
   // Render loop: animate during playback, single frame when paused
@@ -321,19 +389,12 @@ export default function CanvasPreview({
         aria-label={`Video preview — ${getFormatLabel(format)} format, ${formatTime(playback.currentTime)} of ${formatTime(playback.duration)}`}
       />
       <CanvasCaptionTransformOverlay
-        showCaptionBox={showCaptionBox}
+        captionBox={captionBox}
         isTransformActive={isTransformActive}
         showTransformHint={showTransformHint}
-        centerX={centerX}
-        centerY={centerY}
-        canvasWidth={canvasWidth}
-        canvasHeight={canvasHeight}
-        boxPxWidth={boxPxWidth}
-        boxPxHeight={boxPxHeight}
-        rotationDeg={captionTransform.rotationDeg}
         overlayRef={overlayRef}
-        onActivateTransform={activateTransform}
-        onHotspotPointerUp={handleHotspotPointerUp}
+        onActivationPointerUp={handleActivationPointerUp}
+        onActivationDoubleClick={handleActivationDoubleClick}
         onBeginMove={(event) => beginGesture('move', event)}
         onBeginRotate={(event) => beginGesture('rotate', event)}
         onBeginResize={(event) => beginGesture('resize', event)}
