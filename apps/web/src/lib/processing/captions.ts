@@ -35,6 +35,21 @@ export interface PhraseCaptionMetrics {
 function hasPulse(animation: CaptionAnimation): boolean {
   return animation === 'pulse' || animation === 'sweep-pulse';
 }
+
+function hasSweep(animation: CaptionAnimation): boolean {
+  return animation === 'sweep' || animation === 'sweep-pulse';
+}
+
+interface PhraseTransition {
+  currentText: string;
+  prevText: string;
+  progress: number;
+  groupIndex: number;
+  /** Active phrase/group time span for canvas sweep (phrase mode only). */
+  segmentStart: number | null;
+  segmentEnd: number | null;
+}
+
 function getPhraseTransition(
   ctx: CanvasRenderingContext2D,
   transcript: Word[],
@@ -42,46 +57,62 @@ function getPhraseTransition(
   maxWidth: number,
   characterSpacing: number,
   groups?: CaptionGroup[] | undefined
-): { currentText: string; prevText: string; progress: number; groupIndex: number } {
+): PhraseTransition {
+  const empty = (): PhraseTransition => ({
+    currentText: '',
+    prevText: '',
+    progress: 1,
+    groupIndex: -1,
+    segmentStart: null,
+    segmentEnd: null,
+  });
+
   // If we have custom groups, use them (no fading, instant cut)
   if (groups && groups.length > 0) {
     const currentGroupIdx = groups.findIndex(
-      g => currentTime >= g.start && currentTime < g.end
+      (g) => currentTime >= g.start && currentTime < g.end
     );
-    
+
     if (currentGroupIdx >= 0) {
-      return { 
-        currentText: groups[currentGroupIdx].text, 
-        prevText: '', 
-        progress: 1, 
-        groupIndex: currentGroupIdx 
+      const g = groups[currentGroupIdx];
+      return {
+        currentText: g.text,
+        prevText: '',
+        progress: 1,
+        groupIndex: currentGroupIdx,
+        segmentStart: g.start,
+        segmentEnd: g.end,
       };
     }
-    
+
     // Find next upcoming group if we are in a gap
-    const nextGroupIdx = groups.findIndex(g => g.start > currentTime);
+    const nextGroupIdx = groups.findIndex((gr) => gr.start > currentTime);
     if (nextGroupIdx > 0) {
-      return { 
-        currentText: '', 
-        prevText: groups[nextGroupIdx - 1].text, 
-        progress: 1, 
-        groupIndex: -1 
+      return {
+        currentText: '',
+        prevText: groups[nextGroupIdx - 1].text,
+        progress: 1,
+        groupIndex: -1,
+        segmentStart: null,
+        segmentEnd: null,
       };
     }
-    
+
     // Past all groups
     if (groups.length > 0 && currentTime >= groups[groups.length - 1].end) {
       return {
         currentText: '',
         prevText: groups[groups.length - 1].text,
         progress: 1,
-        groupIndex: -1
+        groupIndex: -1,
+        segmentStart: null,
+        segmentEnd: null,
       };
     }
 
-    return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
+    return empty();
   }
-  
+
   const segments = buildOneLinePhraseSegments(
     transcript,
     (text) => measureTextWidth(ctx, text, characterSpacing),
@@ -89,30 +120,50 @@ function getPhraseTransition(
   );
   const activeSegment = findActiveDisplaySegment(segments, currentTime);
   const currentIdx = activeSegment ? segments.indexOf(activeSegment) : -1;
-  
+
   if (activeSegment && currentIdx >= 0) {
     const text = activeSegment.text;
-    
+
     // Calculate pure time-based fade
     const firstWordStart = activeSegment.start;
     const timeSinceStart = currentTime - firstWordStart;
     const progress = Math.min(1, Math.max(0, timeSinceStart / PHRASE_FADE_DURATION));
-    
+
     let prevText = '';
     if (progress < 1 && currentIdx > 0) {
       prevText = segments[currentIdx - 1].text;
     }
-    
-    return { currentText: text, prevText, progress, groupIndex: currentIdx };
+
+    return {
+      currentText: text,
+      prevText,
+      progress,
+      groupIndex: currentIdx,
+      segmentStart: activeSegment.start,
+      segmentEnd: activeSegment.end,
+    };
   }
 
   // Find the last active segment if we are past the end
   if (transcript.length > 0 && currentTime >= transcript[transcript.length - 1].end) {
     const last = segments[segments.length - 1];
-    return { currentText: '', prevText: last?.text ?? '', progress: 1, groupIndex: -1 };
+    return {
+      currentText: '',
+      prevText: last?.text ?? '',
+      progress: 1,
+      groupIndex: -1,
+      segmentStart: null,
+      segmentEnd: null,
+    };
   }
 
-  return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
+  return empty();
+}
+
+function phraseSweepProgress01(transition: PhraseTransition, currentTime: number): number {
+  if (transition.segmentStart === null || transition.segmentEnd === null) return 1;
+  const span = Math.max(0.06, transition.segmentEnd - transition.segmentStart);
+  return Math.min(1, Math.max(0, (currentTime - transition.segmentStart) / span));
 }
 
 export function drawCaptions(
@@ -149,12 +200,11 @@ export function drawCaptions(
   ctx.textAlign = 'center';
   const centerX = width / 2;
 
-  const pulseEnabled = hasPulse(animation);
-  const pulseScale = pulseEnabled
-    ? 1 + 0.035 * Math.sin(Math.min(1, transition.progress) * Math.PI)
+  const pulseScale = hasPulse(animation)
+    ? 1 + 0.03 * Math.sin(currentTime * Math.PI * 2 * 0.9)
     : 1;
 
-  const renderText = (lineToRender: string, alpha: number) => {
+  const renderText = (lineToRender: string, alpha: number, applyPhraseMotion: boolean) => {
     const lines = [lineToRender];
     const measuredWidth = Math.max(
       0,
@@ -162,6 +212,13 @@ export function drawCaptions(
     );
     const fitScale = measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1;
     const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
+
+    const shouldSweep =
+      applyPhraseMotion &&
+      hasSweep(animation) &&
+      transition.segmentStart !== null &&
+      transition.segmentEnd !== null;
+    const sweepT = shouldSweep ? phraseSweepProgress01(transition, currentTime) : 1;
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -189,20 +246,39 @@ export function drawCaptions(
         characterSpacing,
       });
       ctx.fillStyle = textColor;
-      drawSpacedText(ctx, line, centerX, lineY, {
-        textAlign: 'center',
-        mode: 'fill',
-        characterSpacing,
-      });
+      if (shouldSweep) {
+        const half = measuredWidth / 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(
+          centerX - half,
+          lineY - lineHeight * 0.55,
+          measuredWidth * sweepT,
+          lineHeight * 1.1
+        );
+        ctx.clip();
+        drawSpacedText(ctx, line, centerX, lineY, {
+          textAlign: 'center',
+          mode: 'fill',
+          characterSpacing,
+        });
+        ctx.restore();
+      } else {
+        drawSpacedText(ctx, line, centerX, lineY, {
+          textAlign: 'center',
+          mode: 'fill',
+          characterSpacing,
+        });
+      }
     });
     ctx.restore();
   };
 
   if (transition.prevText && transition.progress < 1) {
-    renderText(transition.prevText, 1 - transition.progress);
+    renderText(transition.prevText, 1 - transition.progress, false);
   }
 
-  renderText(text, transition.progress);
+  renderText(text, transition.progress, true);
 }
 
 export function measureActivePhraseCaption(

@@ -73,7 +73,16 @@ export function renderFrame(
   // 3. Captions
   const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
   if (captionMode === 'karaoke') {
-    drawKaraokeCaptions(ctx, currentTime, transcript, style, captionGroups, captionAnimation);
+    // Karaoke canvas timing is word-scoped; ignore style-panel motion preset here.
+    drawKaraokeCaptions(
+      ctx,
+      currentTime,
+      transcript,
+      style,
+      captionGroups,
+      'sweep-pulse',
+      captionTransform
+    );
   } else {
     drawCaptions(
       ctx,

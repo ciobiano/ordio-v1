@@ -1,5 +1,5 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionAnimation, CaptionGroup } from '@/stores/types';
+import type { CaptionAnimation, CaptionGroup, CaptionTransform } from '@/stores';
 import {
   buildSentenceSegments,
   findActiveDisplaySegment,
@@ -14,11 +14,54 @@ const KARAOKE_MIN_SCALE = 0.7;
 const KARAOKE_MIN_WORDS_PER_LINE = 3;
 const KARAOKE_PAGE_FADE_DURATION = 0.12;
 const KARAOKE_INACTIVE_ALPHA = 0.62;
-const KARAOKE_COMPLETE_ALPHA = 0.92;
+const KARAOKE_COMPLETE_ALPHA = 1;
 const KARAOKE_LINE_PAUSE_BREAK = 0.24;
 const KARAOKE_TEXT_WIDTH_RATIO = 0.84;
 const KARAOKE_TOP_RATIO = 0.15;
 const SCALE_CANDIDATES = [1, 0.94, 0.88, 0.82, 0.76, KARAOKE_MIN_SCALE];
+
+/** Blend caption color toward background — higher = closer to surface (more “disabled”). */
+const KARAOKE_DIM_UPCOMING_T = 0.74;
+/** Completed-but-not-current: keep closer to caption color than upcoming (less blend toward bg). */
+const KARAOKE_DIM_COMPLETE_T = 0.32;
+
+const FALLBACK_UPCOMING = 'rgb(58, 58, 62)';
+const FALLBACK_COMPLETE = 'rgb(88, 88, 94)';
+
+function parseHex6Rgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixRgb(
+  from: [number, number, number],
+  toward: [number, number, number],
+  t: number
+): string {
+  const u = Math.min(1, Math.max(0, t));
+  const r = Math.round(from[0] + (toward[0] - from[0]) * u);
+  const g = Math.round(from[1] + (toward[1] - from[1]) * u);
+  const b = Math.round(from[2] + (toward[2] - from[2]) * u);
+  return `rgb(${r},${g},${b})`;
+}
+
+/** Non-active karaoke fills: blend caption textColor toward backgroundColor for contrast on any canvas. */
+export function karaokeNonActiveFills(style: Pick<StyleConfig, 'textColor' | 'backgroundColor'>): {
+  upcoming: string;
+  complete: string;
+} {
+  const text = parseHex6Rgb(style.textColor);
+  const bg = parseHex6Rgb(style.backgroundColor);
+  if (!text || !bg) {
+    return { upcoming: FALLBACK_UPCOMING, complete: FALLBACK_COMPLETE };
+  }
+  return {
+    upcoming: mixRgb(text, bg, KARAOKE_DIM_UPCOMING_T),
+    complete: mixRgb(text, bg, KARAOKE_DIM_COMPLETE_T),
+  };
+}
 
 /** Damped spring ease — fast entry with a small overshoot, settles quickly. */
 function springEase(t: number): number {
@@ -105,22 +148,47 @@ function hasPulse(animation: CaptionAnimation): boolean {
   return animation === 'pulse' || animation === 'sweep-pulse';
 }
 
-export function drawKaraokeCaptions(
+export interface KaraokeCaptionBlockMetrics {
+  centerX: number;
+  blockCenterY: number;
+  blockWidth: number;
+  blockHeight: number;
+  layoutScale: number;
+}
+
+interface PreparedKaraokeScene {
+  width: number;
+  height: number;
+  textColor: string;
+  fontFamily: string;
+  fontSize: number;
+  characterSpacing: number;
+  lineHeight: number;
+  pageLines: KaraokeWord[][];
+  pageLayout: KaraokeLineLayout;
+  blockLeft: number;
+  blockCenterY: number;
+  topPad: number;
+  pageFade: number;
+  animation: CaptionAnimation;
+}
+
+function prepareKaraokeScene(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
   _groups?: CaptionGroup[],
   animation: CaptionAnimation = 'sweep-pulse'
-): void {
-  if (transcript.length === 0) return;
+): PreparedKaraokeScene | null {
+  if (transcript.length === 0) return null;
 
   const { width, height, textColor, fontFamily, fontSize, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4 } = style;
   const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
   const blockWidth = Math.min(width - padding * 2, width * KARAOKE_TEXT_WIDTH_RATIO);
   const maxWidth = blockWidth;
   const scene = findActiveDisplaySegment(buildSentenceSegments(transcript), currentTime)?.words ?? [];
-  if (scene.length === 0) return;
+  if (scene.length === 0) return null;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
@@ -152,10 +220,103 @@ export function drawKaraokeCaptions(
   const blockHeight = pageLines.length * lineHeight;
   const blockCenterY = topPad + blockHeight / 2;
 
+  return {
+    width,
+    height,
+    textColor,
+    fontFamily,
+    fontSize,
+    characterSpacing,
+    lineHeight,
+    pageLines,
+    pageLayout,
+    blockLeft,
+    blockCenterY,
+    topPad,
+    pageFade,
+    animation,
+  };
+}
+
+/**
+ * Bounding metrics for the karaoke block (same layout as {@link drawKaraokeCaptions}).
+ * Used by the canvas transform overlay in karaoke mode.
+ */
+export function measureKaraokeCaptionBlock(
+  ctx: CanvasRenderingContext2D,
+  currentTime: number,
+  transcript: Word[],
+  style: StyleConfig,
+  groups?: CaptionGroup[] | undefined
+): KaraokeCaptionBlockMetrics | null {
+  const prep = prepareKaraokeScene(ctx, currentTime, transcript, style, groups, 'sweep-pulse');
+  if (!prep) return null;
+
+  const { width, pageLines, pageLayout, blockCenterY, lineHeight } = prep;
+  const layoutScale = pageLayout.scale;
+  const blockWidth = pageLayout.logicalMaxWidth * layoutScale;
+  const blockHeight = pageLines.length * lineHeight * layoutScale;
+
+  return {
+    centerX: width / 2,
+    blockCenterY,
+    blockWidth,
+    blockHeight,
+    layoutScale,
+  };
+}
+
+export function drawKaraokeCaptions(
+  ctx: CanvasRenderingContext2D,
+  currentTime: number,
+  transcript: Word[],
+  style: StyleConfig,
+  groups?: CaptionGroup[],
+  animation: CaptionAnimation = 'sweep-pulse',
+  captionTransform?: CaptionTransform
+): void {
+  if (captionTransform && !captionTransform.visible) return;
+
+  const prep = prepareKaraokeScene(ctx, currentTime, transcript, style, groups, animation);
+  if (!prep) return;
+
+  const {
+    width,
+    height,
+    textColor,
+    fontFamily,
+    fontSize,
+    characterSpacing,
+    lineHeight,
+    pageLines,
+    pageLayout,
+    blockLeft,
+    blockCenterY,
+    topPad,
+    pageFade,
+    animation: anim,
+  } = prep;
+
+  ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+
+  const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
+  const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
+  const centerTX = width / 2 + offsetX;
+  const centerTY = blockCenterY + offsetY;
+  const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
+  const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
+  const combinedScale = manualScale * pageLayout.scale;
+
   ctx.save();
-  ctx.translate(width / 2, blockCenterY);
-  ctx.scale(pageLayout.scale, pageLayout.scale);
+  ctx.translate(centerTX, centerTY);
+  ctx.rotate(rotationRad);
+  ctx.scale(combinedScale, combinedScale);
   ctx.translate(-width / 2, -blockCenterY);
+
+  const spaceW = measureTextWidth(ctx, ' ', characterSpacing);
+  const dim = karaokeNonActiveFills(style);
 
   for (let li = 0; li < pageLines.length; li++) {
     const lineY = topPad + li * lineHeight + lineHeight / 2;
@@ -166,11 +327,11 @@ export function drawKaraokeCaptions(
       const isActive = hasStarted && currentTime < word.end;
 
       const wordX = x;
-      x += word.wordWidth + spaceWidth;
+      x += word.wordWidth + spaceW;
       const wordAlpha = isActive ? 1 : hasStarted ? KARAOKE_COMPLETE_ALPHA : KARAOKE_INACTIVE_ALPHA;
 
       let scale = 1.0;
-      if (isActive && hasPulse(animation)) {
+      if (isActive && hasPulse(anim)) {
         const wordDuration = Math.max(0.05, word.end - word.start);
         const progress = Math.min(1, ((currentTime - word.start) / wordDuration) * 4);
         scale = 1 + 0.035 * springEase(progress);
@@ -191,15 +352,13 @@ export function drawKaraokeCaptions(
       const wordDuration = Math.max(0.05, word.end - word.start);
       const rawProgress = (currentTime - word.start) / wordDuration;
       const progress = Math.min(1, Math.max(0, rawProgress));
-      const useSweep = isActive && hasSweep(animation);
+      const useSweep = isActive && hasSweep(anim);
 
-      // Base text layer
-      ctx.fillStyle = textColor;
+      const dimFill = hasStarted && !isActive ? dim.complete : dim.upcoming;
+      ctx.fillStyle = isActive ? textColor : dimFill;
       drawSpacedText(ctx, word.text, wordX, lineY, { characterSpacing });
 
       if (useSweep) {
-        // Active layer reveals left->right with the same text color, keeping
-        // karaoke closer to an editorial type-on treatment than a neon sweep.
         const revealWidth = Math.max(0, word.wordWidth * progress);
         ctx.save();
         ctx.beginPath();

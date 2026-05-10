@@ -183,20 +183,18 @@ export default function CanvasPreview({
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
     const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-    const nextCaptionBox =
-      captionMode === 'phrase'
-        ? measureCaptionTransformBox({
-            ctx,
-            currentTime: currentTimeRef.current,
-            transcript,
-            captionGroups,
-            style: renderStyle,
-            layout: canvasLayout ?? 'top',
-            hasVisualZone,
-            flipped: canvasLayout === 'flipped',
-            transform: captionTransform,
-          })
-        : null;
+    const nextCaptionBox = measureCaptionTransformBox({
+      ctx,
+      currentTime: currentTimeRef.current,
+      transcript,
+      captionGroups,
+      style: renderStyle,
+      layout: canvasLayout ?? 'top',
+      hasVisualZone,
+      flipped: canvasLayout === 'flipped',
+      transform: captionTransform,
+      captionMode,
+    });
     setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
   }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
 
@@ -405,7 +403,7 @@ export default function CanvasPreview({
           setCaptionTransform({ visible: false });
         }}
       />
-      {!captionTransform.visible && captionMode !== 'karaoke' && (
+      {!captionTransform.visible && (
         <button
           type="button"
           className="absolute bottom-3 right-3 z-40 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-xs text-white"

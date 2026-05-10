@@ -18,6 +18,14 @@ describe('lib/video: exports', () => {
     expect(typeof video.drawKaraokeCaptions).toBe('function');
   });
 
+  it('should export measureKaraokeCaptionBlock function', () => {
+    expect(typeof video.measureKaraokeCaptionBlock).toBe('function');
+  });
+
+  it('should export karaokeNonActiveFills function', () => {
+    expect(typeof video.karaokeNonActiveFills).toBe('function');
+  });
+
   it('should export hasWebCodecsSupport function', () => {
     expect(typeof video.hasWebCodecsSupport).toBe('function');
   });

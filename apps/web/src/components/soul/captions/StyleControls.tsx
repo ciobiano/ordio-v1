@@ -5,7 +5,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { optionBtn } from '@/lib/variants';
 import { loadFont } from '@/lib/loaders';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,11 +39,11 @@ const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
   'Playfair Display': 'font_playfair',
 };
 
-const ANIMATION_OPTIONS: { value: CaptionAnimation; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'sweep', label: 'Sweep' },
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'sweep-pulse', label: 'Sweep + Pulse' },
+const MOTION_ROWS: { value: CaptionAnimation; title: string; subtitle: string }[] = [
+  { value: 'none', title: 'Static', subtitle: 'No motion' },
+  { value: 'sweep', title: 'Reveal', subtitle: 'Phrase sweep' },
+  { value: 'pulse', title: 'Breathe', subtitle: 'Scale pulse' },
+  { value: 'sweep-pulse', title: 'Reveal + Breathe', subtitle: 'Sweep with pulse' },
 ];
 
 const LINE_SPACING_BASE = 1;
@@ -123,6 +122,45 @@ interface FontRowProps {
   featureKey?: FeatureKey;
   onSelect: () => void;
   onLocked?: (feature: FeatureKey) => void;
+}
+
+interface MotionRowProps {
+  value: CaptionAnimation;
+  title: string;
+  subtitle: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+function MotionRow({ value, title, subtitle, selected, onSelect }: MotionRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        'flex min-h-11 w-full flex-col items-stretch gap-0.5 rounded-xl border px-2.5 py-2 text-left transition-colors duration-150',
+        selected
+          ? 'border-white/16 bg-white/[0.1] text-white'
+          : 'border-white/[0.08] bg-white/[0.03] text-white/74 hover:bg-white/[0.06] hover:text-white/90'
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-2">
+        <span className="min-w-0 flex-1 truncate text-[15px] font-medium leading-tight">{title}</span>
+        <span
+          className={cn(
+            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full transition-opacity duration-150',
+            selected ? 'bg-white text-black opacity-100' : 'opacity-0'
+          )}
+          aria-hidden="true"
+        >
+          <HugeiconsIcon icon={Tick02Icon} size={13} strokeWidth={2.3} />
+        </span>
+      </div>
+      <span className="hidden truncate pl-0 text-left text-[11px] text-white/42 min-[380px]:inline">{subtitle}</span>
+      <span className="sr-only">{value}</span>
+    </button>
+  );
 }
 
 function FontRow({ font, selected, locked, featureKey, onSelect, onLocked }: FontRowProps) {
@@ -279,22 +317,22 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
     }
 
     return (
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Caption animation">
-        {ANIMATION_OPTIONS.map(({ value, label }) => {
-          const selected = captionAnimation === value;
-          return (
-            <button
-              key={value}
-              role="radio"
-              aria-checked={selected}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setCaptionAnimation(value)}
-              className={cn(optionBtn({ shape: 'bordered', tone: 'subtle', active: selected }))}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Caption motion (phrase mode)">
+          {MOTION_ROWS.map(({ value, title, subtitle }) => {
+            const selected = captionAnimation === value;
+            return (
+              <MotionRow
+                key={value}
+                value={value}
+                title={title}
+                subtitle={subtitle}
+                selected={selected}
+                onSelect={() => setCaptionAnimation(value)}
+              />
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -303,25 +341,36 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
     <Tabs
       value={activeTab}
       onValueChange={handleTabChange}
-      className="flex h-full min-h-0 flex-col gap-4 overflow-hidden"
+      className="flex h-full min-h-0 flex-col gap-3 overflow-hidden"
     >
-      {/* Apple HIG: Segmented control for in-page tabs */}
-      <TabsList variant="default" className="h-9 w-full shrink-0 overflow-hidden">
-        <TabsTrigger value="colors" className="text-xs flex-1">Colors</TabsTrigger>
-        <TabsTrigger value="font" className="text-xs flex-1">Font</TabsTrigger>
-        <TabsTrigger value="spacing" className="text-xs flex-1">Spacing</TabsTrigger>
-        <TabsTrigger value="motion" className="text-xs flex-1">Motion</TabsTrigger>
+      <TabsList variant="default" className="h-9 w-full shrink-0">
+        <TabsTrigger value="colors" className="text-xs flex-1">
+          Colors
+        </TabsTrigger>
+        <TabsTrigger value="font" className="text-xs flex-1">
+          Font
+        </TabsTrigger>
+        <TabsTrigger value="spacing" className="text-xs flex-1">
+          Spacing
+        </TabsTrigger>
+        <TabsTrigger value="motion" className="text-xs flex-1">
+          Motion
+        </TabsTrigger>
       </TabsList>
-      <div className="relative min-h-0 flex-1 overflow-hidden" role="tabpanel" aria-label={`${activeTab} style controls`}>
-        <AnimatePresence custom={slideDirection} initial={false} mode="popLayout">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-0.5 pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]"
+        role="tabpanel"
+        aria-label={`${activeTab} style controls`}
+      >
+        <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
           <motion.div
             key={activeTab}
             custom={slideDirection}
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection * 18 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection * 14 }}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection * -18 }}
-            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="absolute inset-0 overflow-hidden"
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection * -14 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            className="w-full pb-2"
           >
             {renderActiveTab()}
           </motion.div>
