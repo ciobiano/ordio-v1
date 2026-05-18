@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionGroup } from '@/stores';
 import {
+  drawCaptions,
   drawSpotlightCaptions,
   drawStackCaptions,
+  measureSpotlightCaptionBlock,
 } from '@/lib/processing/captions';
+import { getMaxCaptionTextWidth, SPOTLIGHT_WIDTH_RATIO } from '@/lib/processing/captions/shared';
+import { drawKaraokeCaptions } from '@/lib/video/karaoke';
 
 function createMockCtx(): CanvasRenderingContext2D {
   const calls: Array<{ method: string; args: unknown[] }> = [];
@@ -33,6 +37,13 @@ function getFillTextCalls(ctx: CanvasRenderingContext2D): string[] {
   return calls
     .filter((call) => call.method === 'fillText')
     .map((call) => String(call.args[0]));
+}
+
+function getScaleCalls(ctx: CanvasRenderingContext2D): number[] {
+  const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
+  return calls
+    .filter((call) => call.method === 'scale')
+    .map((call) => Number(call.args[0]));
 }
 
 const style: StyleConfig = {
@@ -90,5 +101,77 @@ describe('caption modes', () => {
     expect(getFillTextCalls(ctx)).toEqual(
       expect.arrayContaining(['First phrase', 'Second phrase', 'Third phrase'])
     );
+  });
+
+  it('phrase mode keeps pulse animation within the max caption width', () => {
+    const ctx = createMockCtx();
+    const phraseStyle: StyleConfig = {
+      ...style,
+      width: 360,
+      height: 640,
+      fontSize: 40,
+    };
+    const transcript: Word[] = [
+      { text: 'Hyperdimensionalcaption', start: 0, end: 0.6 },
+    ];
+
+    drawCaptions(ctx, 0.075, transcript, phraseStyle, 'top', false, false, undefined, 'sweep-pulse');
+
+    const measuredWidth = transcript[0].text.length * 20;
+    const maxTextWidth = getMaxCaptionTextWidth(phraseStyle.width);
+    const maxScaleForWidth = maxTextWidth / measuredWidth;
+    const [appliedScale = 0] = getScaleCalls(ctx);
+    expect(appliedScale).toBeLessThanOrEqual(maxScaleForWidth + 1e-6);
+  });
+
+  it('spotlight mode clamps long grouped rows to spotlight max width', () => {
+    const ctx = createMockCtx();
+    const transcript: Word[] = [{ text: 'stub', start: 0, end: 2 }];
+    const groups: CaptionGroup[] = [
+      { text: 'short before', start: 0, end: 0.6, wordIndices: [0] },
+      {
+        text: 'this is an intentionally oversized spotlight caption row',
+        start: 0.6,
+        end: 1.2,
+        wordIndices: [0],
+      },
+      { text: 'short after', start: 1.2, end: 2, wordIndices: [0] },
+    ];
+
+    const metrics = measureSpotlightCaptionBlock(
+      ctx,
+      0.8,
+      transcript,
+      style,
+      'top',
+      false,
+      groups
+    );
+
+    expect(metrics).not.toBeNull();
+    expect(metrics!.blockWidth).toBeLessThanOrEqual(style.width * SPOTLIGHT_WIDTH_RATIO + 1e-6);
+  });
+
+  it('karaoke mode scales down when a line would exceed frame max width', () => {
+    const ctx = createMockCtx();
+    const karaokeStyle: StyleConfig = {
+      ...style,
+      width: 300,
+      height: 500,
+      fontSize: 36,
+    };
+    const transcript: Word[] = [
+      { text: 'wide', start: 0, end: 0.4 },
+      { text: 'wide', start: 0.4, end: 0.8 },
+      { text: 'wide', start: 0.8, end: 1.2 },
+    ];
+
+    drawKaraokeCaptions(ctx, 0.1, transcript, karaokeStyle);
+
+    const maxWidth = Math.min(karaokeStyle.width - 4, karaokeStyle.width * 0.84);
+    const lineWidth = transcript.reduce((sum, word) => sum + word.text.length * 20, 0) + 2 * 20;
+    const maxAllowedScale = maxWidth / lineWidth;
+    const [layoutScale = 0] = getScaleCalls(ctx);
+    expect(layoutScale).toBeLessThanOrEqual(maxAllowedScale + 1e-6);
   });
 });

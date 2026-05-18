@@ -127,9 +127,12 @@ export function drawSpotlightCaptions(
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
 
   rows.forEach((row) => {
+    const rowMeasuredWidth = measureTextWidth(ctx, row.text, characterSpacing);
+    const rowFitScale = rowMeasuredWidth > 0 ? Math.min(1, maxWidth / rowMeasuredWidth) : 1;
+    const rowScale = row.scale * rowFitScale;
     ctx.save();
     ctx.translate(width / 2, row.offset);
-    ctx.scale(row.scale, row.scale);
+    ctx.scale(rowScale, rowScale);
     ctx.translate(-width / 2, 0);
     ctx.globalAlpha = row.alpha;
     drawSpacedText(ctx, row.text, width / 2, 0, {
@@ -189,8 +192,11 @@ export function measureSpotlightCaptionBlock(
   const centerX = width / 2;
   const centerY = getSpotlightCenterY(height, lineHeight, layout, hasVisualZone);
   const extents = rows.map((row) => {
-    const rowHeight = lineHeight * row.scale;
-    const rowWidth = measureTextWidth(ctx, row.text, characterSpacing) * row.scale;
+    const rowMeasuredWidth = measureTextWidth(ctx, row.text, characterSpacing);
+    const rowFitScale = rowMeasuredWidth > 0 ? Math.min(1, maxWidth / rowMeasuredWidth) : 1;
+    const rowScale = row.scale * rowFitScale;
+    const rowHeight = lineHeight * rowScale;
+    const rowWidth = rowMeasuredWidth * rowScale;
     return {
       top: row.offset - rowHeight / 2,
       bottom: row.offset + rowHeight / 2,

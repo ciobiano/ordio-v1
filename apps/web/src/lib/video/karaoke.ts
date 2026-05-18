@@ -124,14 +124,16 @@ function layoutSentenceLines(
   for (const scale of SCALE_CANDIDATES) {
     const logicalMaxWidth = maxWidth / scale;
     const lines = buildKaraokeLines(words, spaceWidth, logicalMaxWidth);
-    if (lines.length <= KARAOKE_MAX_LINES) {
+    const widestLine = Math.max(1, ...lines.map((line) => lineWidth(line, spaceWidth)));
+    if (lines.length <= KARAOKE_MAX_LINES && widestLine <= logicalMaxWidth) {
       return { lines, scale, logicalMaxWidth };
     }
   }
 
   const lines = packWordsIntoLineCount(words, KARAOKE_MAX_LINES);
   const widestLine = Math.max(1, ...lines.map((line) => lineWidth(line, spaceWidth)));
-  const scale = Math.max(KARAOKE_MIN_SCALE, Math.min(1, maxWidth / widestLine));
+  const nextScale = Math.min(1, maxWidth / widestLine);
+  const scale = Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1;
 
   return {
     lines,

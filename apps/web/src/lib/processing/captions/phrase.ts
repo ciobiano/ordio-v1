@@ -183,7 +183,9 @@ export function drawCaptions(
 
   const renderText = (lineToRender: string, alpha: number) => {
     const measuredWidth = measureTextWidth(ctx, lineToRender, characterSpacing);
-    const fitScale = measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1;
+    const maxScaleForWidth = measuredWidth > 0 ? maxTextWidth / measuredWidth : 1;
+    const fitScale = Math.min(1, maxScaleForWidth);
+    const constrainedScale = Math.min(fitScale * pulseScale, maxScaleForWidth);
     const blockHeight = lineHeight;
 
     ctx.save();
@@ -195,7 +197,7 @@ export function drawCaptions(
     const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
     ctx.translate(centerX + offsetX, blockCenterY + offsetY);
     ctx.rotate(rotationRad);
-    ctx.scale(fitScale * pulseScale * manualScale, fitScale * pulseScale * manualScale);
+    ctx.scale(constrainedScale * manualScale, constrainedScale * manualScale);
     ctx.translate(-centerX, -blockCenterY);
     ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
     ctx.shadowBlur = Math.max(8, fontSize * 0.12);
