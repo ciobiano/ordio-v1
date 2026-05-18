@@ -26,6 +26,14 @@ describe('lib/video: exports', () => {
     expect(typeof video.karaokeNonActiveFills).toBe('function');
   });
 
+  it('should export drawStackCaptions function', () => {
+    expect(typeof video.drawStackCaptions).toBe('function');
+  });
+
+  it('should export drawSpotlightCaptions function', () => {
+    expect(typeof video.drawSpotlightCaptions).toBe('function');
+  });
+
   it('should export hasWebCodecsSupport function', () => {
     expect(typeof video.hasWebCodecsSupport).toBe('function');
   });

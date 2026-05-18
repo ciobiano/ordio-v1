@@ -1,6 +1,3 @@
-import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { FeatureKey } from '@/lib/featureGates';
-
 export type AppPhase = 'idle' | 'recording' | 'processing';
 export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
 export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
@@ -9,7 +6,7 @@ export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 export type CanvasLayout = 'top' | 'compact' | 'flipped';
 
 /** How captions are revealed frame-by-frame */
-export type CaptionMode = 'phrase' | 'karaoke';
+export type CaptionMode = 'phrase' | 'karaoke' | 'stack' | 'spotlight';
 export type CaptionAnimation = 'none' | 'sweep' | 'pulse' | 'sweep-pulse';
 export type FormatVariant = 'square' | 'vertical' | 'horizontal' | 'instagram';
 export interface CaptionTransform {

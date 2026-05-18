@@ -33,7 +33,7 @@ export const StyleConfigSchema = z.object({
   height: z.number().int().positive(),
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display']),
+  fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora']),
   fontSize: z.number().positive(),
   waveColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   /** Additional spacing between characters (pixels) */

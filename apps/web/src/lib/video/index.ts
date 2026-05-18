@@ -7,3 +7,9 @@ export {
 export { encodeVideoFFmpeg } from './ffmpegEncoder';
 export { renderFrame, type FrameOptions } from './frameRenderer';
 export { drawKaraokeCaptions, karaokeNonActiveFills, measureKaraokeCaptionBlock } from './karaoke';
+export {
+  drawSpotlightCaptions,
+  drawStackCaptions,
+  measureSpotlightCaptionBlock,
+  measureStackCaptionBlock,
+} from '../processing/captions';

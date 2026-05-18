@@ -427,24 +427,27 @@ export default function CanvasPreview({
       <div className="absolute top-2 left-2 z-20 bg-black/50 text-[clamp(0.625rem,2vw,0.75rem)] text-white/70 px-2 py-0.5 rounded-lg backdrop-blur" aria-hidden="true">
         {getFormatLabel(format)}
       </div>
-      {/* Center Play/Pause control for quick interaction */}
+      
+      {/* Invisible full-canvas play/pause toggle (behind captions) */}
       <button
+        type="button"
         aria-label={playback.isPlaying ? 'Pause preview' : 'Play preview'}
         onClick={() => (playback.isPlaying ? playback.pause() : playback.play())}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 rounded-full bg-black/60 hover:bg-black/80 text-white w-12 h-12 flex items-center justify-center border border-white/20 shadow-xl"
-        style={{ padding: 0 }}
-      >
-        {playback.isPlaying ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Pause" role="img">
-            <rect x="6" y="5" width="4" height="14" fill="currentColor" rx="1" />
-            <rect x="14" y="5" width="4" height="14" fill="currentColor" rx="1" />
-          </svg>
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Play" role="img">
-            <path d="M8 5v14l11-7-11-7z" fill="currentColor" />
-          </svg>
+        className="absolute inset-0 z-20 w-full h-full cursor-pointer focus:outline-none"
+      />
+
+      {/* Visual center play indicator (hidden while playing, pointer-events-none to avoid conflicts) */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-xl backdrop-blur-md transition-all duration-300",
+          playback.isPlaying ? "scale-90 opacity-0" : "scale-100 opacity-100"
         )}
-      </button>
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5v14l11-7-11-7z" fill="currentColor" />
+        </svg>
+      </div>
     </div>
   );
 }

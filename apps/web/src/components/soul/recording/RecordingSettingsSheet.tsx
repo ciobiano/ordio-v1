@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
@@ -27,9 +26,9 @@ type GraphicVariant = NonNullable<GraphicStyleId>;
 
 const WAVEFORM_OPTIONS: { value: WaveformVariant; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
-  { value: 'circle', label: 'Circle', gate: 'waveform_circle' },
+  { value: 'circle', label: 'Orbit', gate: 'waveform_circle' },
   { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' },
-  { value: 'none', label: 'None' },
+  { value: 'none', label: 'Clean' },
 ];
 
 const GRAPHIC_OPTIONS: { value: GraphicVariant; label: string }[] = [
@@ -38,14 +37,16 @@ const GRAPHIC_OPTIONS: { value: GraphicVariant; label: string }[] = [
 ];
 
 const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'compact', label: 'Compact' },
-  { value: 'flipped', label: 'Flipped', gate: 'layout_flipped' },
+  { value: 'top', label: 'Upper' },
+  { value: 'compact', label: 'Tight' },
+  { value: 'flipped', label: 'Lower', gate: 'layout_flipped' },
 ];
 
 const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Phrase' },
-  { value: 'karaoke', label: 'Karaoke', gate: 'caption_karaoke' },
+  { value: 'phrase', label: 'Pop' },
+  { value: 'karaoke', label: 'Lyrics', gate: 'caption_karaoke' },
+  { value: 'stack', label: 'Stack' },
+  { value: 'spotlight', label: 'Spotlight' },
 ];
 
 const ENHANCE_OPTIONS: { value: EnhanceTier; label: string; desc: string; gate?: FeatureKey }[] = [
@@ -74,7 +75,7 @@ function SegmentedControl<T extends string>({
 }) {
   const { isLocked } = useFeatureGates();
   return (
-    <div className="flex rounded-xl border border-white/12 overflow-hidden">
+    <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
         const locked = opt.gate ? isLocked(opt.gate) : false;
         const isActive = value === opt.value;
@@ -84,10 +85,10 @@ function SegmentedControl<T extends string>({
             type="button"
             variant="ghost"
             className={cn(
-              'relative flex-1 py-[9px] text-sm transition-colors duration-150 min-h-9 rounded-none h-auto hover:bg-transparent',
+              'relative shrink-0 px-4 py-2 text-sm transition-colors duration-150 min-h-9 h-auto rounded-full border',
               isActive
-                ? 'bg-accent text-foreground font-semibold hover:bg-accent'
-                : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'bg-white/15 text-foreground font-semibold border-transparent hover:bg-white/20'
+                : 'bg-transparent text-muted-foreground border-white/10 hover:bg-white/5 hover:text-foreground',
               locked && 'opacity-40'
             )}
             onClick={() => (locked ? onLocked(opt.gate!) : onChange(opt.value))}
@@ -119,6 +120,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   const enhanceTier = useProcessingStore((s) => s.enhanceTier);
   const setEnhanceTier = useProcessingStore((s) => s.setEnhanceTier);
   const { isLocked } = useFeatureGates();
+  const lyricsOwnsStage = captionMode === 'karaoke';
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -157,27 +159,27 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
             {/* Waveform Style */}
             <section>
               <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
-                Waveform Style
+                Visual
               </h3>
-              <SegmentedControl
-                options={WAVEFORM_OPTIONS}
-                value={waveformStyle}
-                onChange={(v) => {
-                  setWaveformStyle(v);
-                  setGraphicStyle(null);
-                }}
-                onLocked={onLocked}
-              />
               <div
-                aria-disabled={captionMode === 'karaoke'}
-                className={cn(captionMode === 'karaoke' && 'opacity-40 pointer-events-none')}
+                aria-disabled={lyricsOwnsStage}
+                className={cn(lyricsOwnsStage && 'opacity-40 pointer-events-none')}
               >
-                <p className="text-xs text-muted-foreground mt-3 mb-2">
-                  Graphic overlay
-                  {captionMode === 'karaoke' && (
-                    <span className="ml-1">— unavailable in Karaoke</span>
-                  )}
-                </p>
+                <SegmentedControl
+                  options={WAVEFORM_OPTIONS}
+                  value={waveformStyle}
+                  onChange={(v) => {
+                    setWaveformStyle(v);
+                    setGraphicStyle(null);
+                  }}
+                  onLocked={onLocked}
+                />
+              </div>
+              <div
+                aria-disabled={lyricsOwnsStage}
+                className={cn(lyricsOwnsStage && 'opacity-40 pointer-events-none')}
+              >
+                <p className="text-xs text-muted-foreground mt-3 mb-2">Frames</p>
                 <SegmentedControl
                   options={GRAPHIC_OPTIONS}
                   value={graphicStyle ?? ('' as GraphicVariant)}
@@ -196,7 +198,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
             {/* Caption Layout */}
             <section>
               <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
-                Caption Layout
+                Stage
               </h3>
               <SegmentedControl
                 options={LAYOUT_OPTIONS}
@@ -204,7 +206,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                 onChange={setCanvasLayout}
                 onLocked={onLocked}
               />
-              <p className="text-xs text-muted-foreground mt-3 mb-2">Caption mode</p>
+              <p className="text-xs text-muted-foreground mt-3 mb-2">Caption</p>
               <SegmentedControl
                 options={MODE_OPTIONS}
                 value={captionMode}

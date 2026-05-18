@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderFrame, type FrameOptions } from '@/lib/video';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 
@@ -93,11 +93,21 @@ describe('renderFrame', () => {
   });
 
   it('renders without crashing for all caption modes', () => {
-    const modes = ['phrase', 'karaoke'] as const;
+    const modes = ['phrase', 'karaoke', 'stack', 'spotlight'] as const;
     for (const mode of modes) {
       const ctx = createMockCtx();
       expect(() => renderFrame(ctx, 15, 90, makeOptions({ captionMode: mode }))).not.toThrow();
     }
+  });
+
+  it('does not draw waveform geometry in karaoke mode', () => {
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
+
+    renderFrame(ctx, 15, 90, makeOptions({ captionMode: 'karaoke', waveformStyle: 'bars' }));
+
+    expect(calls.some((c) => c.method === 'arcTo')).toBe(false);
   });
 
   it('handles empty transcript gracefully', () => {

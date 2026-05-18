@@ -7,15 +7,17 @@ import { useFeatureGates } from '@/hooks/auth/useFeatureGates'
 import LockBadge from '@/components/ui/LockBadge'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
 import type { FeatureKey } from '@/lib/featureGates'
 import type { CanvasLayout, CaptionMode, GraphicStyleId, WaveformVariant } from '@/stores'
 
 const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
-  { value: 'circle', label: 'Circle', gate: 'waveform_circle' },
+  { value: 'circle', label: 'Orbit', gate: 'waveform_circle' },
   { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' },
-  { value: 'none', label: 'None' },
-  { value: 'graphics', label: 'Graphics' },
+  { value: 'none', label: 'Clean' },
+  { value: 'graphics', label: 'Frames' },
 ]
 
 const GRAPHICS_OPTIONS: { value: Exclude<GraphicStyleId, null>; label: string }[] = [
@@ -24,14 +26,16 @@ const GRAPHICS_OPTIONS: { value: Exclude<GraphicStyleId, null>; label: string }[
 ]
 
 const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Phrase' },
-  { value: 'karaoke', label: 'Karaoke', gate: 'caption_karaoke' },
+  { value: 'phrase', label: 'Pop' },
+  { value: 'karaoke', label: 'Lyrics', gate: 'caption_karaoke' },
+  { value: 'stack', label: 'Stack' },
+  { value: 'spotlight', label: 'Spotlight' },
 ]
 
 const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'compact', label: 'Compact' },
-  { value: 'flipped', label: 'Flipped', gate: 'layout_flipped' },
+  { value: 'top', label: 'Upper' },
+  { value: 'compact', label: 'Tight' },
+  { value: 'flipped', label: 'Lower', gate: 'layout_flipped' },
 ]
 
 interface StageControlBarProps {
@@ -50,6 +54,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
   const { isLocked } = useFeatureGates()
   const [displayOpen, setDisplayOpen] = useState(false)
   const [graphicsExpanded, setGraphicsExpanded] = useState(false)
+  const lyricsOwnsStage = captionMode === 'karaoke'
 
   useEffect(() => {
     if (!displayOpen) {
@@ -57,16 +62,25 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
     }
   }, [displayOpen])
 
-  const displayLabel = graphicStyle
-    ? GRAPHICS_OPTIONS.find((option) => option.value === graphicStyle)?.label ?? 'Graphics'
-    : DISPLAY_OPTIONS.find((option) => option.value === waveformStyle)?.label ?? 'Bars'
+  const displayLabel = lyricsOwnsStage
+    ? 'Full-stage'
+    : graphicStyle
+      ? GRAPHICS_OPTIONS.find((option) => option.value === graphicStyle)?.label ?? 'Frames'
+      : DISPLAY_OPTIONS.find((option) => option.value === waveformStyle)?.label ?? 'Bars'
 
   return (
     <div className="relative flex gap-3 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <Popover open={displayOpen} onOpenChange={setDisplayOpen}>
-        <PopoverTrigger className="flex h-11 items-center gap-2 rounded-xl bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8">
-          <span className="text-white/40">Display</span>
-          <span className="text-white/70">{displayLabel}</span>
+      <Popover open={displayOpen && !lyricsOwnsStage} onOpenChange={(open) => setDisplayOpen(lyricsOwnsStage ? false : open)}>
+        <PopoverTrigger
+          disabled={lyricsOwnsStage}
+          className={cn(
+            'flex w-fit items-center justify-between gap-1.5 h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 whitespace-nowrap outline-none',
+            lyricsOwnsStage && 'cursor-not-allowed opacity-45 hover:bg-white/[0.04]'
+          )}
+        >
+          <span className="text-white/40">Visual</span>
+          <span className="flex flex-1 text-left line-clamp-1">{displayLabel}</span>
+          <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} className="pointer-events-none size-4 text-muted-foreground shrink-0" />
         </PopoverTrigger>
         <PopoverContent
           side="top"
@@ -162,7 +176,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
           size="sm"
           className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
         >
-          <span className="text-white/40">Mode</span>
+          <span className="text-white/40">Caption</span>
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">
@@ -190,7 +204,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
           size="sm"
           className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
         >
-          <span className="text-white/40">Layout</span>
+          <span className="text-white/40">Stage</span>
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">

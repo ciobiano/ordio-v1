@@ -118,6 +118,16 @@ describe('store: uiStore', () => {
       useUIStore.getState().setCaptionMode('karaoke');
       expect(useUIStore.getState().captionMode).toBe('karaoke');
     });
+
+    it('should set caption mode to stack', () => {
+      useUIStore.getState().setCaptionMode('stack');
+      expect(useUIStore.getState().captionMode).toBe('stack');
+    });
+
+    it('should set caption mode to spotlight', () => {
+      useUIStore.getState().setCaptionMode('spotlight');
+      expect(useUIStore.getState().captionMode).toBe('spotlight');
+    });
   });
 
   describe('setFormat', () => {

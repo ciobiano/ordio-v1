@@ -10,14 +10,16 @@ import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
 
 const LAYOUTS: { value: CanvasLayout; label: string; featureKey?: FeatureKey }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'compact', label: 'Compact' },
-  { value: 'flipped', label: 'Flipped', featureKey: 'layout_flipped' },
+  { value: 'top', label: 'Upper' },
+  { value: 'compact', label: 'Tight' },
+  { value: 'flipped', label: 'Lower', featureKey: 'layout_flipped' },
 ];
 
 const MODES: { value: CaptionMode; label: string; featureKey?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Phrase' },
-  { value: 'karaoke', label: 'Karaoke', featureKey: 'caption_karaoke' },
+  { value: 'phrase', label: 'Pop' },
+  { value: 'karaoke', label: 'Lyrics', featureKey: 'caption_karaoke' },
+  { value: 'stack', label: 'Stack' },
+  { value: 'spotlight', label: 'Spotlight' },
 ];
 
 const LINE_HEIGHT_PRESETS = [
@@ -86,7 +88,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2" role="radiogroup" aria-label="Canvas layout">
         <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
-          Layout:
+          Stage:
         </span>
         {LAYOUTS.map(({ value, label, featureKey }, i) => {
           const locked = featureKey ? isLocked(featureKey) : false;
@@ -119,7 +121,7 @@ export default function CaptionStyleSelector({ onLocked }: CaptionStyleSelectorP
 
       <div className="flex items-center gap-2" role="radiogroup" aria-label="Caption mode">
         <span className="text-muted-foreground text-xs mr-1 w-12 shrink-0" aria-hidden="true">
-          Mode:
+          Caption:
         </span>
         {MODES.map(({ value, label, featureKey }, i) => {
           const locked = featureKey ? isLocked(featureKey) : false;

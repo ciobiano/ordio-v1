@@ -18,6 +18,7 @@ const FONT_CONFIG: Record<string, string> = {
   'Space Grotesk': 'Space+Grotesk:wght@300;400;600;700',
   'DM Sans': 'DM+Sans:wght@300;400;600;700',
   'Playfair Display': 'Playfair+Display:wght@300;400;600;700',
+  Lora: 'Lora:wght@400;500;600;700',
 };
 
 const loaded = new Set<string>();

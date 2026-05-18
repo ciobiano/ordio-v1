@@ -17,7 +17,7 @@ import type { FeatureKey } from '@/lib/featureGates';
 
 const FONTS: StyleConfig['fontFamily'][] = [
   'Inter', 'Roboto', 'Outfit',
-  'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display',
+  'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora',
 ];
 
 const FONT_LABELS: Record<StyleConfig['fontFamily'], string> = {
@@ -29,6 +29,7 @@ const FONT_LABELS: Record<StyleConfig['fontFamily'], string> = {
   'Space Grotesk': 'Technical',
   'DM Sans': 'Soft',
   'Playfair Display': 'Display',
+  Lora: 'Serif',
 };
 
 const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {

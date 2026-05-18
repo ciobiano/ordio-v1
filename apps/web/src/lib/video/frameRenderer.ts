@@ -6,7 +6,7 @@ import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '@/lib/wavefor
 import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '@/lib/waveforms/constants';
 import { getGraphic } from '../loaders/graphicLoader';
 import { drawGraphic } from '../graphic';
-import { drawCaptions } from '../processing/captions';
+import { drawCaptions, drawSpotlightCaptions, drawStackCaptions } from '../processing/captions';
 import { drawKaraokeCaptions } from './karaoke';
 import { drawWatermark } from '../processing/watermark';
 
@@ -66,36 +66,52 @@ export function renderFrame(
     } else if (waveformStyle !== 'none') {
       drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle, flipped);
     }
-  } else if (waveformStyle !== 'none') {
-    drawWaveform(ctx, currentTime, duration, waveformData, style, waveformStyle, flipped);
   }
 
   // 3. Captions
   const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-  if (captionMode === 'karaoke') {
-    // Karaoke canvas timing is word-scoped; ignore style-panel motion preset here.
-    drawKaraokeCaptions(
-      ctx,
-      currentTime,
-      transcript,
-      style,
-      captionGroups,
-      'sweep-pulse',
-      captionTransform
-    );
-  } else {
-    drawCaptions(
-      ctx,
-      currentTime,
-      transcript,
-      style,
-      layout,
-      hasVisualZone,
-      flipped,
-      captionGroups,
-      captionAnimation,
-      captionTransform
-    );
+  switch (captionMode) {
+    case 'karaoke':
+      // Karaoke canvas timing is word-scoped; ignore style-panel motion preset here.
+      drawKaraokeCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        captionGroups,
+        'sweep-pulse',
+        captionTransform
+      );
+      break;
+    case 'stack':
+      drawStackCaptions(ctx, currentTime, transcript, style, captionGroups, captionTransform);
+      break;
+    case 'spotlight':
+      drawSpotlightCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        layout,
+        hasVisualZone,
+        captionGroups,
+        captionTransform
+      );
+      break;
+    case 'phrase':
+      drawCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        layout,
+        hasVisualZone,
+        flipped,
+        captionGroups,
+        captionAnimation,
+        captionTransform
+      );
+      break;
   }
 
   // 4. Watermark — drawn last so it sits on top

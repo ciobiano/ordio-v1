@@ -85,9 +85,9 @@ const icons: Record<WaveformVariant, () => React.ReactElement> = {
 
 const labels: Record<WaveformVariant, string> = {
   bars: 'Bars',
-  circle: 'Circle',
+  circle: 'Orbit',
   spectrogram: 'Spectrum',
-  none: 'None',
+  none: 'Clean',
 };
 
 type GraphicVariant = NonNullable<GraphicStyleId>;
