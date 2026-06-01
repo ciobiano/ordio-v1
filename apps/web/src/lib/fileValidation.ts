@@ -6,24 +6,41 @@
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 const ACCEPTED_MIME_TYPES = new Set([
-  'audio/mpeg',
-  'audio/wav',
-  'audio/x-wav',
-  'audio/mp4',
-  'audio/x-m4a',
-  'audio/aac',
-  'audio/ogg',
-  'audio/webm',
   'audio/flac',
+  'audio/m4a',
+  'audio/mp3',
+  'audio/mpeg',
+  'audio/mpga',
+  'audio/oga',
+  'audio/ogg',
+  'audio/wav',
+  'audio/mp4',
+  'audio/aac',
+  'audio/webm',
+  'audio/x-flac',
+  'audio/x-m4a',
+  'audio/x-wav',
   'video/mp4',
+  'video/mpeg',
   'video/webm',
   'video/quicktime',
   'video/x-matroska',
 ]);
 
 const ACCEPTED_EXTENSIONS = new Set([
-  'mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm', 'flac',
-  'mp4', 'mov', 'mkv',
+  'flac',
+  'm4a',
+  'mp3',
+  'mp4',
+  'mpeg',
+  'mpga',
+  'oga',
+  'ogg',
+  'wav',
+  'webm',
+  'aac',
+  'mov',
+  'mkv',
 ]);
 
 function getExtension(filename: string): string | undefined {
@@ -47,5 +64,5 @@ export function validateFile(file: File): FileValidationError | null {
 
 export const FILE_ERROR_MESSAGES: Record<FileValidationError, string> = {
   too_large: 'File is too large — maximum is 50 MB',
-  unsupported_format: 'Unsupported format — try MP3, WAV, M4A, or MP4',
+  unsupported_format: 'Unsupported format — try MP3, M4A, WAV, WEBM, OGG, FLAC, or MP4',
 };

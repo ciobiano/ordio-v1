@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { Word } from '@Ordio/shared/schemas';
+import { getOpenAITranscriptionFilename } from './audioFile';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -93,25 +94,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const file = formData.get('audio');
 
     if (!file || !(file instanceof Blob)) {
-      return NextResponse.json(
-        { error: 'Missing audio file in form data' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing audio file in form data' }, { status: 400 });
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'Audio file exceeds 25MB Whisper limit' },
-        { status: 413 }
-      );
+      return NextResponse.json({ error: 'Audio file exceeds 25MB Whisper limit' }, { status: 413 });
     }
 
     const client = getClient();
 
     // Convert Blob to File for the OpenAI SDK
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.type.split('/')[1]?.replace('mpeg', 'mp3') ?? 'webm';
-    const audioFile = new File([buffer], `audio.${ext}`, { type: file.type || 'audio/webm' });
+    const audioFile = new File([buffer], getOpenAITranscriptionFilename(file), {
+      type: file.type || 'audio/webm',
+    });
 
     // Request both word + segment granularities.
     // Words give precise per-word timestamps (but stripped punctuation).
