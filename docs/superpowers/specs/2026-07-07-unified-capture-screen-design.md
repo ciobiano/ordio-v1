@@ -77,18 +77,26 @@ New directory: `apps/web/src/components/soul/capture/`
   | `phase === 'paused'` | "Paused" |
   | `phase === 'recording'` and `audioLevel < 0.08` | "Too quiet" — mic isn't picking up voice; no live transcript shown even if `isSpeaking` was true a moment ago, so stale transcript text never lingers on screen |
   | `phase === 'recording'` and `audioLevel >= 0.08` and `!isSpeaking` | "Listening" |
-  | `phase === 'recording'` and `isSpeaking` | "Voice detected" |
+  | `phase === 'recording'` and `isSpeaking` | Mocked live caption (see below) |
   | `phase === 'ready'` | "Ready to process" |
 
   `isSpeaking` here is the real VAD signal from `useVAD`/`useCreateFlow`, not the mockup's
-  amplitude-threshold approximation. **Correction from the original design:** the mockup shows
-  a live word-by-word transcript while voice is detected, but that was faked for the prototype
-  — this codebase has no live/streaming transcription source. `useTranscription.transcribeAudio`
-  only runs once, after the full recording finishes (Whisper API, batch). So the "voice
-  detected" branch shows a static "Voice detected" label, matching the granularity that already
-  exists in `getQualityBadge`, not a live transcript. The moment `audioLevel` drops below the
-  threshold or `isSpeaking` goes false, the status line switches back to "Too quiet" or
-  "Listening" immediately — there's no transcript fragment to linger since none is ever shown.
+  amplitude-threshold approximation.
+
+  **Live caption is mocked for now, real streaming transcription is future work.** This
+  codebase has no live/streaming transcription source today — `useTranscription.transcribeAudio`
+  only runs once, after the full recording finishes (Whisper API, batch). Per user direction,
+  the "voice detected" branch keeps the mockup's word-by-word caption *behavior* (cycling
+  placeholder phrases as if transcribed live) as a visual mock, not real transcription, so the
+  UI/animation is ready before the real data source exists. Implementation: reuse the mockup's
+  own phrase-cycling logic (`captionPhrases`, word-by-word reveal on a fixed interval) inside
+  `CaptureStage`, clearly isolated behind a `useMockLiveCaption(isSpeaking)` hook so swapping in
+  real streaming transcription later means replacing that one hook, not touching phase/status
+  wiring. Tracked as a follow-up in `TODOS.md`: "Real-time live captioning during recording"
+  (Web Speech API interim results, or streaming Whisper) to replace the mock. The moment
+  `audioLevel` drops below the threshold or `isSpeaking` goes false, the status line switches
+  back to "Too quiet"/"Listening" immediately and the mock caption resets — no stale fragment
+  lingers.
 - **`CaptureDock.tsx`** — bottom control row. Renders the idle layout (upload pill +
   press-and-hold record button + settings button) or the recording-family layout (left slot:
   settings/stop, center slot: waveform / "Process recording" / progress bar, mid button:
@@ -146,9 +154,11 @@ SVG. Existing hand-rolled SVGs elsewhere in the app (e.g. `ShareCard`, `StyleMod
   `paused`/`ready` branches that depend on two combined flags).
 - New: `CaptureDock` renders the correct button set for each of the five phases.
 - New: status-text derivation tests covering all four recording-phase branches (too quiet /
-  listening / voice detected / paused), including the transition back to "Too quiet"/"Listening"
-  the instant `audioLevel`/`isSpeaking` drop — the stale-status regression this correction
-  exists to prevent.
+  listening / voice detected (mock caption) / paused), including the transition back to "Too
+  quiet"/"Listening" the instant `audioLevel`/`isSpeaking` drop — no stale status or stale mock
+  caption should linger.
+- New: `useMockLiveCaption` tests — starts cycling on `isSpeaking: true`, resets/stops on
+  `isSpeaking: false`, cleans up its interval on unmount.
 - Manual QA pass (per project rule, UI changes are exercised in-browser before sign-off):
   full idle → recording → paused → ready → processing → export happy path, plus cancel/reset
   from each phase, mic-denied state, and file-upload path, on a mobile viewport.
