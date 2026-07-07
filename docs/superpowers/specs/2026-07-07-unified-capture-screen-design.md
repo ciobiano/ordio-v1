@@ -77,14 +77,18 @@ New directory: `apps/web/src/components/soul/capture/`
   | `phase === 'paused'` | "Paused" |
   | `phase === 'recording'` and `audioLevel < 0.08` | "Too quiet" — mic isn't picking up voice; no live transcript shown even if `isSpeaking` was true a moment ago, so stale transcript text never lingers on screen |
   | `phase === 'recording'` and `audioLevel >= 0.08` and `!isSpeaking` | "Listening" |
-  | `phase === 'recording'` and `isSpeaking` | Live transcript from `useTranscription`, word-by-word as it arrives |
+  | `phase === 'recording'` and `isSpeaking` | "Voice detected" |
   | `phase === 'ready'` | "Ready to process" |
 
   `isSpeaking` here is the real VAD signal from `useVAD`/`useCreateFlow`, not the mockup's
-  amplitude-threshold approximation — the mockup faked voice detection because it had no real
-  transcription backend; the app doesn't need to fake it. The moment `audioLevel` drops below
-  the threshold or `isSpeaking` goes false, the status line switches back to "Too quiet" or
-  "Listening" immediately rather than leaving the last transcript fragment visible.
+  amplitude-threshold approximation. **Correction from the original design:** the mockup shows
+  a live word-by-word transcript while voice is detected, but that was faked for the prototype
+  — this codebase has no live/streaming transcription source. `useTranscription.transcribeAudio`
+  only runs once, after the full recording finishes (Whisper API, batch). So the "voice
+  detected" branch shows a static "Voice detected" label, matching the granularity that already
+  exists in `getQualityBadge`, not a live transcript. The moment `audioLevel` drops below the
+  threshold or `isSpeaking` goes false, the status line switches back to "Too quiet" or
+  "Listening" immediately — there's no transcript fragment to linger since none is ever shown.
 - **`CaptureDock.tsx`** — bottom control row. Renders the idle layout (upload pill +
   press-and-hold record button + settings button) or the recording-family layout (left slot:
   settings/stop, center slot: waveform / "Process recording" / progress bar, mid button:
@@ -142,9 +146,9 @@ SVG. Existing hand-rolled SVGs elsewhere in the app (e.g. `ShareCard`, `StyleMod
   `paused`/`ready` branches that depend on two combined flags).
 - New: `CaptureDock` renders the correct button set for each of the five phases.
 - New: status-text derivation tests covering all four recording-phase branches (too quiet /
-  listening / voice-detected transcript / paused), including the transition back to "Too
-  quiet"/"Listening" when `audioLevel`/`isSpeaking` drop mid-sentence — the stale-transcript
-  regression this correction exists to prevent.
+  listening / voice detected / paused), including the transition back to "Too quiet"/"Listening"
+  the instant `audioLevel`/`isSpeaking` drop — the stale-status regression this correction
+  exists to prevent.
 - Manual QA pass (per project rule, UI changes are exercised in-browser before sign-off):
   full idle → recording → paused → ready → processing → export happy path, plus cancel/reset
   from each phase, mic-denied state, and file-upload path, on a mobile viewport.
