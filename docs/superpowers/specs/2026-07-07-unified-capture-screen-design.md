@@ -253,3 +253,48 @@ SVG. Existing hand-rolled SVGs elsewhere in the app (e.g. `ShareCard`, `StyleMod
 - Assumed "Photo Library" and "Take Video" in the upload sheet map to the same file input with
   different `accept`/`capture` attributes rather than distinct native pickers — matches current
   single-input upload flow. Flag if a truly separate camera-capture flow is wanted.
+
+## Second design revision — smaller buttons, floating sheets, book-swing sidebar
+
+The user updated the same Claude Design project mid-implementation with three changes, adopted
+as follows:
+
+- **Buttons are smaller and share one "glossy dark" look.** The mockup's `rowBtnBase` shrank
+  dock buttons from 54-64px to 40px, the idle record button/pill bar from 60px to ~46px, and
+  the header nav button from 40px to 36px — all now `radial-gradient(circle at 32% 26%, #4a4a4d
+  0%, #232326 42%, #0c0c0d 100%)` with a 3-layer inset/drop shadow, replacing the flat
+  `bg-white/8`/`bg-white/9` fills. Implemented as a reusable `.capture-glossy-btn` CSS class
+  (globals.css) — the gradient+shadow combo is unwieldy as a Tailwind utility string — wired
+  through a new `captureGlossyBtn` constant in `variants.ts` that `captureNavBtn` and
+  `captureRoundBtn`'s `neutral`/`dark` tones both resolve to (they're visually identical now;
+  only the destructive-tinted mid button differs).
+- **Settings and upload sheets now open as a floating rounded card**, not a bottom-anchored
+  sheet: `left:10px, right:10px, bottom:14px`, all four corners rounded (32px settings / 28px
+  upload), instead of edge-to-edge with only the top corners rounded. Implemented via
+  `data-[vaul-drawer-direction=bottom]:`/`data-[side=bottom]:` scoped Tailwind overrides on the
+  existing `Drawer`/`Sheet` primitives — matching the same variant-scope as their base classes
+  so the override actually wins over the base bottom-sheet positioning.
+- **The saved-recordings drawer is a different interaction entirely, not a redesigned drawer.**
+  The whole page now sits in front of a permanently-mounted sidebar and slides right
+  (`translateX(74%)`) to reveal it — "swings open like a book cover" — rather than a drawer
+  sliding in from off-screen. Implemented as `CaptureSidebar.tsx`: a new component, always
+  mounted at `z-1` behind the page (`z-2`), with the page itself animated via Framer Motion
+  (`x: filesOpen ? '74%' : '0%'`, left corners round to 44px, drop shadow) instead of a `Drawer`
+  wrapping a hidden/shown panel.
+
+  Content is also new: "Recordings" title + search button, three nav rows (Library, All
+  recordings, Upload audio or video), a "Recents" list, and a footer with a blue "New
+  recording" CTA + settings gear — replacing the previous drawer's search bar, sort chips, and
+  per-row rename/delete dropdown menu. The old `SavedAudioPanel` (Convex-backed: search, sort,
+  rename, delete, pagination) is no longer wired into `CaptureScreen` — `CaptureSidebar` reads
+  the same `sessions.listMySessionsPaginated` query directly for its "Recents" list (click to
+  open, via the same `/create/export/[sessionId]` route), but the new design has no per-row
+  menu affordance for rename/delete, so that capability isn't exposed here. `SavedAudioPanel.tsx`
+  and its dialogs/mutations are left in place, unused, rather than deleted, in case that
+  functionality needs to come back in a future pass — flagging this as a real, deliberate
+  functionality trade-off rather than an oversight.
+- **Auto-hide-style scrollbars.** The mockup's updated CSS adds a thin, semi-transparent
+  scrollbar (`scrollbar-width: thin`, transparent track) globally. Scoped to a
+  `.capture-scroll-thin` class applied only to this feature's scrollable areas (sidebar Recents
+  list, settings sheet body) rather than applied app-wide, to avoid changing scrollbar
+  appearance on unrelated pages.

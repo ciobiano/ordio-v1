@@ -27,7 +27,7 @@ export function CaptureHeader({ phase, onOpenFiles, onBack }: CaptureHeaderProps
         className={captureNavBtn}
         aria-label={isIdle ? 'Your recordings' : 'Cancel and return to idle'}
       >
-        {isIdle ? <Menu size={22} /> : <ArrowLeft size={20} />}
+        {isIdle ? <Menu size={16} /> : <ArrowLeft size={15} />}
       </button>
 
       <div

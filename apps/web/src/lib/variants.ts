@@ -114,16 +114,23 @@ export const proceedBtn = cva(
  * black/white iOS aesthetic directly (kept distinct from the acid system below — this
  * screen's visual language comes from the commissioned design, not the acid palette).
  */
-export const captureNavBtn =
-  'w-10 h-10 rounded-full flex items-center justify-center border-none bg-white/8 text-white ' +
-  'cursor-pointer transition-all duration-300 hover:bg-white/12';
+/**
+ * Glossy dark sphere — the shared look for every round icon button in this feature (header
+ * nav, sidebar search/gear, dock settings/stop/cancel). `.capture-glossy-btn` (globals.css)
+ * carries the radial-gradient + inset-shadow combo, since that's unwieldy as a utility string.
+ */
+export const captureGlossyBtn =
+  'capture-glossy-btn shrink-0 rounded-full flex items-center justify-center border-none ' +
+  'text-white cursor-pointer transition-transform duration-300';
+
+export const captureNavBtn = `${captureGlossyBtn} w-9 h-9`;
 
 export const capturePillBar =
-  'flex-1 min-w-0 flex items-center gap-2.5 h-15 px-5 rounded-full bg-white/94 border-none ' +
+  'flex-1 min-w-0 flex items-center gap-2.5 h-11.5 px-4.5 rounded-full bg-white/94 border-none ' +
   'cursor-pointer text-black/40 text-base';
 
 export const captureRecordBtn =
-  'shrink-0 w-15 h-15 rounded-full flex items-center justify-center bg-[#1c1c1e] border-none cursor-pointer';
+  'shrink-0 w-11.5 h-11.5 rounded-full flex items-center justify-center bg-[#1c1c1e] border-none cursor-pointer';
 
 /**
  * Center dock slot — waveform (recording/paused), "Process recording" pill (ready), or
@@ -135,32 +142,30 @@ export const captureCenterSlot = cva(
   {
     variants: {
       phase: {
-        recordPaused: 'h-15 bg-white rounded-full px-5 cursor-default',
-        ready: 'h-15 bg-white rounded-full cursor-pointer',
-        processing: 'h-3 bg-white/10 rounded-full cursor-default',
+        recordPaused: 'h-11.5 bg-white rounded-full px-4.5 cursor-default',
+        ready: 'h-11.5 bg-white rounded-full cursor-pointer',
+        processing: 'h-2.5 bg-white/10 rounded-full cursor-default',
       },
     },
   }
 );
 
 /**
- * Round dock button — settings/stop/pause/play/restart/cancel. Distinct tones per role:
- * neutral (settings, cancel), dark (stop-to-ready), danger (pause/play/restart — the
- * mockup gives the mid button a destructive-red tint regardless of which icon it shows).
+ * Round dock button — settings/stop/pause/play/restart/cancel, 40px (down from the mockup's
+ * earlier 54-64px pass). Every role shares the same glossy-dark look now except the mid
+ * pause/play/restart button, which keeps its destructive-red tint.
  */
-export const captureRoundBtn = cva(
-  'shrink-0 w-14 h-14 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors duration-200',
-  {
-    variants: {
-      tone: {
-        neutral: 'bg-white/9 text-white hover:bg-white/14',
-        dark: 'bg-[#1c1c1e] text-white',
-        danger: 'bg-[rgba(255,69,58,0.16)] border border-[rgba(255,69,58,0.5)] text-white',
-      },
+export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-center justify-center', {
+  variants: {
+    tone: {
+      neutral: `${captureGlossyBtn}`,
+      dark: `${captureGlossyBtn}`,
+      danger:
+        'border-none cursor-pointer text-white bg-[rgba(255,69,58,0.16)] border border-[rgba(255,69,58,0.5)]',
     },
-    defaultVariants: { tone: 'neutral' },
-  }
-);
+  },
+  defaultVariants: { tone: 'neutral' },
+});
 
 /**
  * Panel/card container — glass surface used for editors and settings panels.

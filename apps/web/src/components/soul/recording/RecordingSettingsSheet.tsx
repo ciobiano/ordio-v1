@@ -125,7 +125,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent
-        className="bg-[#0d0d10] border-t border-white/[0.08] p-0 flex flex-col max-h-[70vh] rounded-t-[26px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[26px]"
+        className="bg-[#0d0d10] p-0 flex flex-col max-h-[50vh] rounded-4xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)] data-[vaul-drawer-direction=bottom]:inset-x-auto data-[vaul-drawer-direction=bottom]:left-2.5 data-[vaul-drawer-direction=bottom]:right-2.5 data-[vaul-drawer-direction=bottom]:bottom-3.5 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[420px]"
       >
         <DrawerTitle className="sr-only">Recording Settings</DrawerTitle>
 
@@ -154,7 +154,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 capture-scroll-thin">
           <div className="px-5 pb-8 space-y-6">
             {/* Waveform Style */}
             <section>

@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import { useCallback, useRef, useState } from 'react';
 import type { ChangeEvent, RefObject } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -8,6 +9,7 @@ import type { FeatureKey } from '@/lib/featureGates';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
 import { CaptureDock } from './CaptureDock';
+import { CaptureSidebar } from './CaptureSidebar';
 import { UploadActionSheet } from './UploadActionSheet';
 import { deriveCapturePhase } from './phase';
 import type { RecordingSubPhase } from './types';
@@ -17,9 +19,7 @@ const RecordingSettingsSheet = dynamic(
   { ssr: false }
 );
 
-const SavedAudioPanel = dynamic(() => import('@/components/saved-audio/SavedAudioPanel'), {
-  ssr: false,
-});
+const EASE = [0.32, 0.72, 0, 1] as const;
 
 interface CaptureScreenProps {
   currentState: 'idle' | 'recording' | 'processing';
@@ -131,49 +131,81 @@ export function CaptureScreen({
     handleCancel();
   }, [handleCancel]);
 
+  const closeFiles = useCallback(() => setFilesOpen(false), []);
+
   return (
-    <div className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto bg-black text-white overflow-hidden select-none">
-      <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={handleBack} />
+    <div
+      className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto overflow-hidden select-none"
+      style={{ perspective: '1400px' }}
+    >
+      {/* Sidebar sits behind the page at all times; revealed as the page slides right. */}
+      <div className="absolute inset-0 z-1 bg-[#0d0d10]">
+        <CaptureSidebar
+          onOpenUpload={() => setUploadOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onClose={closeFiles}
+        />
+      </div>
 
-      <CaptureStage
-        phase={phase}
-        audioLevel={audioLevel}
-        isSpeaking={isSpeaking}
-        // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
-        // itself is a no-op here since pointerdown/pointerup already handle start/finish.
-        onOrbClick={() => {}}
-        onOrbPressStart={handlePrimaryDown}
-        onOrbPressEnd={finishPress}
-      />
+      <motion.div
+        className="absolute inset-0 z-2 bg-black text-white overflow-hidden"
+        animate={{ x: filesOpen ? '74%' : '0%' }}
+        transition={{ duration: 0.44, ease: EASE }}
+        style={{
+          borderTopLeftRadius: filesOpen ? 44 : 0,
+          borderBottomLeftRadius: filesOpen ? 44 : 0,
+          boxShadow: filesOpen ? '-18px 0 40px rgba(0,0,0,.55)' : 'none',
+        }}
+      >
+        {filesOpen && (
+          <button
+            type="button"
+            aria-label="Close recordings"
+            onClick={closeFiles}
+            className="absolute inset-0 z-100 border-none bg-transparent cursor-default"
+          />
+        )}
 
-      <CaptureDock
-        phase={phase}
-        progress={processingProgress}
-        onOpenUpload={() => setUploadOpen(true)}
-        onRecordPressStart={handlePrimaryDown}
-        onRecordPressEnd={finishPress}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onGoReady={handleGoReady}
-        onProcess={handleProcess}
-        onPause={handlePause}
-        onResume={handleResume}
-        onRestart={handleRestart}
-        onCancel={handleCancel}
-      />
+        <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={handleBack} />
 
-      <UploadActionSheet isOpen={uploadOpen} onClose={() => setUploadOpen(false)} fileInputRef={fileInputRef} />
+        <CaptureStage
+          phase={phase}
+          audioLevel={audioLevel}
+          isSpeaking={isSpeaking}
+          // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
+          // itself is a no-op here since pointerdown/pointerup already handle start/finish.
+          onOrbClick={() => {}}
+          onOrbPressStart={handlePrimaryDown}
+          onOrbPressEnd={finishPress}
+        />
 
-      <RecordingSettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLocked={onLocked} />
+        <CaptureDock
+          phase={phase}
+          progress={processingProgress}
+          onOpenUpload={() => setUploadOpen(true)}
+          onRecordPressStart={handlePrimaryDown}
+          onRecordPressEnd={finishPress}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onGoReady={handleGoReady}
+          onProcess={handleProcess}
+          onPause={handlePause}
+          onResume={handleResume}
+          onRestart={handleRestart}
+          onCancel={handleCancel}
+        />
 
-      <SavedAudioPanel open={filesOpen} onOpenChange={setFilesOpen} hideTrigger />
+        <UploadActionSheet isOpen={uploadOpen} onClose={() => setUploadOpen(false)} fileInputRef={fileInputRef} />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a"
-        className="hidden"
-        onChange={onFileUpload}
-      />
+        <RecordingSettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLocked={onLocked} />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a"
+          className="hidden"
+          onChange={onFileUpload}
+        />
+      </motion.div>
     </div>
   );
 }

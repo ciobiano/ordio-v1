@@ -52,7 +52,7 @@ export function CaptureDock({
             className={captureRecordBtn}
             aria-label="Press and hold to record"
           >
-            <span className="w-5.5 h-5.5 rounded-full bg-[#ff453a]" />
+            <span className="w-4.5 h-4.5 rounded-full bg-[#ff453a]" />
           </button>
           <button type="button" onClick={onOpenSettings} className={captureRoundBtn({ tone: 'neutral' })} aria-label="Settings">
             <Settings size={20} />
