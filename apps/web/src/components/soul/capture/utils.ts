@@ -1,4 +1,6 @@
-import type { RecordingPhase } from './types';
+// apps/web/src/components/soul/capture/utils.ts
+import type { RecordingSubPhase } from './types';
+import { TOO_QUIET_THRESHOLD } from './phase';
 
 export function formatRecordingTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -11,7 +13,7 @@ export function formatRecordingTime(seconds: number): string {
 }
 
 export function getQualityBadge(
-  phase: RecordingPhase,
+  phase: RecordingSubPhase,
   isPaused: boolean,
   audioLevel: number,
   isSpeaking: boolean
@@ -30,7 +32,7 @@ export function getQualityBadge(
     };
   }
 
-  if (audioLevel < 0.08) {
+  if (audioLevel < TOO_QUIET_THRESHOLD) {
     return {
       label: 'Too quiet',
       tone: 'text-amber-200 bg-amber-500/15 border-amber-300/30',
@@ -49,24 +51,3 @@ export function getQualityBadge(
     tone: 'text-sky-200 bg-sky-500/15 border-sky-300/30',
   };
 }
-
-export function getOrbState(
-  phase: RecordingPhase,
-  isPaused: boolean,
-  isSpeaking: boolean
-): 'thinking' | 'speaking' | 'listening' {
-  if (phase === 'stopped') return 'thinking';
-  if (isPaused) return 'listening';
-  return isSpeaking ? 'speaking' : 'listening';
-}
-
-export function getOrbIntensity(
-  phase: RecordingPhase,
-  isPaused: boolean,
-  audioLevel: number
-) {
-  if (phase === 'stopped') return 0;
-  if (isPaused) return 0.25;
-  return audioLevel;
-}
-
