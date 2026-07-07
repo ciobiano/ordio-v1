@@ -46,7 +46,6 @@ export default function CreatePage() {
         isStarting={flow.isStarting}
         micDenied={flow.micDenied}
         canRecord={flow.capabilities.canRecord}
-        recordingTime={flow.recorder.recordingTime}
         processingProgress={flow.processingProgress}
         fileInputRef={flow.fileInputRef}
         onFileUpload={flow.handleFileSelect}

@@ -28,7 +28,6 @@ interface CaptureScreenProps {
   isStarting: boolean;
   micDenied: boolean;
   canRecord: boolean;
-  recordingTime: number;
   processingProgress: number;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -50,7 +49,6 @@ export function CaptureScreen({
   isStarting,
   micDenied,
   canRecord,
-  recordingTime,
   processingProgress,
   fileInputRef,
   onFileUpload,
@@ -67,6 +65,7 @@ export function CaptureScreen({
   const [recordingSubPhase, setRecordingSubPhase] = useState<RecordingSubPhase>('recording');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
   const { trigger } = useHaptics();
 
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,23 +144,23 @@ export function CaptureScreen({
 
   return (
     <div className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto bg-black text-white overflow-hidden select-none">
-      <CaptureHeader phase={phase} onBack={handleBack} />
+      <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={handleBack} />
 
       <CaptureStage
         phase={phase}
         audioLevel={audioLevel}
         isSpeaking={isSpeaking}
-        recordingTime={recordingTime}
-        processingProgress={processingProgress}
         onOrbClick={handleIdleOrbClick}
         onOrbPressStart={handleIdleRecordPressStart}
         onOrbPressEnd={handleIdleRecordPressEnd}
-        onOpenUpload={() => setUploadOpen(true)}
       />
 
       <CaptureDock
         phase={phase}
-        recordingTime={recordingTime}
+        progress={processingProgress}
+        onOpenUpload={() => setUploadOpen(true)}
+        onRecordPressStart={handleIdleRecordPressStart}
+        onRecordPressEnd={handleIdleRecordPressEnd}
         onOpenSettings={() => setSettingsOpen(true)}
         onGoReady={handleGoReady}
         onProcess={handleProcess}
@@ -175,7 +174,7 @@ export function CaptureScreen({
 
       <RecordingSettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLocked={onLocked} />
 
-      <SavedAudioPanel />
+      <SavedAudioPanel open={filesOpen} onOpenChange={setFilesOpen} hideTrigger />
 
       <input
         ref={fileInputRef}

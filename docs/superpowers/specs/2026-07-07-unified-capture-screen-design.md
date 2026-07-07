@@ -48,34 +48,48 @@ The mockup's five visual phases map onto existing state without adding new top-l
 `CaptureScreen` alongside `recorder.isPaused` to compute the single `phase` value that drives
 every sub-component below.
 
-## Fidelity correction — real screenshots vs. the interactive mockup
+## Reverted "fidelity correction" — the mockup's redesign is the target, not the old app
 
-Partway through implementation, the user provided a zip of screenshots of the actual deployed
-`.dc.html` prototype (the Claude Design "renderer" preview, not just its abstract state-machine
-source). These reveal that the interactive mockup's own JS simplified several details for demo
-speed, and the *real* target content differs from a literal reading of the `.dc.html` source:
+Partway through implementation, screenshots of the deployed `.dc.html` prototype (a Claude
+Design renderer preview) led to an over-correction: several new interaction/visual patterns
+from the mockup got reverted back toward the *old* app's existing components — a two-branch
+`RecordingBottomBar` swap instead of one morphing dock row, a MIC-bar+badge instead of the
+mockup's plain typewriter/caret status text, a full-screen ring+checklist instead of the
+orb-stays-visible processing state, and no changes at all to `SavedAudioPanel` or
+`RecordingSettingsSheet`.
 
-- **Idle has no upload-pill/record/settings dock row.** The deployed reference shows only the
-  orb, idle status text, and a small "or upload audio or video" text link below it — matching
-  the *original* `IdleState.tsx`, not the mockup's redesigned three-button dock row. The
-  existing `SavedAudioPanel` FAB and `UserAvatarButton` stay exactly where they already are.
-- **Recording/paused status is a MIC level bar + colored quality badge, not plain text.** The
-  deployed reference shows a labeled "MIC" bar plus a colored pill ("Too quiet" amber, "Voice
-  detected" emerald, "Listening" sky, "Paused" amber) — this is `getQualityBadge` from
-  `soul/recording/state/utils.ts`, already built and already correct. `CaptureStage` calls it
-  directly instead of inventing new copy/colors.
-- **The recording/paused dock is a 3-icon pill row** (pause/resume, stop, settings), and the
-  **ready dock is a full-width "Process recording" button with a Resume · Restart · Cancel
-  text-link row below it** — both ported verbatim from the existing `RecordingBottomBar`, not
-  the mockup's icon-only 4-button row.
-- **Processing has no orb.** The deployed reference matches `ProcessingState` exactly: heading,
-  `ProgressRing`, step checklist, no orb, no header buttons, no dock. `CaptureStage` renders
-  this content directly for the `processing` phase instead of a thin progress bar in the dock.
+**The user corrected this directly: the mockup's redesign is authoritative for everything
+except the orb itself** ("the hub should remain the same... every other feature that was in
+that design should be implemented"). This spec now reflects that correction:
 
-The mocked live caption (`useMockLiveCaption`) is kept as an *additional* line beneath the
-quality badge when voice is detected, per the user's explicit "keep it as a placeholder for
-now" direction — it doesn't replace the badge, since the real reference doesn't show a
-transcript at all today.
+- **`CaptureDock` is one morphing row, not a branch-swap.** Idle: upload pill + press-and-hold
+  record button + settings button. Every other phase shares the same left-slot / center-slot /
+  mid-button / cancel-button structure, with slot *contents* morphing (stop↔settings,
+  waveform↔"Process recording"↔progress fill, pause↔play↔restart) — matching the mockup's
+  `leftSlotStyle`/`centerSlotStyle`/`pauseBtnStyle` continuous-transition approach, not two
+  structurally different layouts.
+- **`CaptureStage`'s status line is the mockup's typewriter/caret text** ("Listening", "Too
+  quiet", "Paused", "Ready to process"), not a MIC-level bar and colored quality badge borrowed
+  from the old `RecordingCenterStatus`.
+- **Processing keeps the orb** (shrunk to 128px, per the phase's own size table) with the thin
+  progress-fill bar living in the dock's center slot — not a separate no-orb ring+checklist
+  screen.
+- **`SavedAudioPanel` gets the mockup's visual language**: a left-anchored slide-in panel
+  (`direction="left"` on the `Drawer`, not the default bottom sheet), gradient icon tiles
+  (`linear-gradient(165deg, #c4cde2, #3aa0e8)`) per row, monospace duration/date metadata, "Your
+  recordings" title. Its underlying data logic — search, sort, rename, delete, pagination via
+  Convex — is preserved; only the presentation changes, since removing working functionality
+  wasn't part of the ask. It's reachable from `CaptureHeader`'s hamburger button again (idle →
+  hamburger opens it; any other phase → back arrow, matching the mockup), controlled via
+  `open`/`onOpenChange`/`hideTrigger` props rather than its own independent FAB trigger.
+- **`RecordingSettingsSheet`** gets a lighter touch: its content already matches the mockup
+  (Visual/Frames/Stage/Caption chips, Audio Enhancement rows), so only its shell moved from a
+  blurred glass surface to the mockup's flat dark sheet (`#0d0d10`, 26px top radius) — logic
+  untouched.
+
+The mocked live caption (`useMockLiveCaption`) still replaces the status line when voice is
+detected, per the earlier "keep it as a placeholder for now" direction — real streaming
+transcription remains tracked in `TODOS.md`.
 
 ## Component architecture
 
@@ -85,21 +99,21 @@ New directory: `apps/web/src/components/soul/capture/`
   the derived `phase` value and passes it down. Single persistent mount for the lifetime of
   the create flow (idle through processing); still unmounts on navigation to
   `/create/export/[sessionId]`.
-- **`CaptureHeader.tsx`** — **corrected from the original mockup** (see "Fidelity correction"
-  below): idle has no left button at all — `SavedAudioPanel` keeps its own independent FAB
-  trigger, unchanged. Every other phase shows a plain back arrow (`handleReset`); the avatar
-  (`UserAvatarButton`) is idle-only, fading out otherwise.
+- **`CaptureHeader.tsx`** — left nav button morphs hamburger (idle, opens the redesigned
+  `SavedAudioPanel`) ↔ back arrow (every other phase, triggers `handleReset`), matching the
+  mockup exactly. Avatar (`UserAvatarButton`) is idle-only, fading out otherwise.
 - **`CaptureStage.tsx`** — houses the existing `Orb` component and the status text region.
   Only the orb's size and vertical position are animated per phase (CSS custom properties +
   Framer Motion `animate`), matching the mockup's proportions: idle 216px → recording/paused
   200px → ready 196px → processing 128px.
 
   **Status text is audio-reactive, not just phase-reactive.** The mockup's own prototype
-  script only distinguishes "quiet" vs "not quiet" via a single boolean, but the source design
-  screenshots name a third, distinct state (`recording-too-quiet` vs `recording-voice-detected`)
-  that the interactive prototype doesn't fully encode. The real app already has the correct
-  granularity in `soul/recording/state/utils.ts`'s `getQualityBadge` — reuse those same
-  thresholds for the status line instead of inventing new ones:
+  script only distinguishes "quiet" vs "not quiet" via a single boolean, but real screenshots
+  of the deployed reference name a third, distinct state (`recording-too-quiet` vs
+  `recording-voice-detected`) that the interactive prototype doesn't fully encode. `phase.ts`'s
+  `deriveStatusText` adds that third branch using the same 0.08 audio-level threshold the old
+  app's `getQualityBadge` used for the same distinction — matching threshold, not matching
+  presentation (no MIC bar, no colored badge; plain typewriter/caret text, per the mockup):
 
   | Condition | Status text |
   |---|---|
@@ -127,27 +141,34 @@ New directory: `apps/web/src/components/soul/capture/`
   `audioLevel` drops below the threshold or `isSpeaking` goes false, the status line switches
   back to "Too quiet"/"Listening" immediately and the mock caption resets — no stale fragment
   lingers.
-- **`CaptureDock.tsx`** — **corrected from the original mockup.** Renders nothing for `idle`
-  (the record trigger is the orb's own press-and-hold, matching the deployed reference; the
-  upload entry point is a small text link in `CaptureStage`, not a dock row) and nothing for
-  `processing` (its content — ring, checklist, cancel — lives entirely in `CaptureStage`,
-  matching `ProcessingState`). For `recording`/`paused`, it's the existing three-icon
-  `mobile-glass` pill row ported from `RecordingBottomBar`: pause/resume, stop (destructive,
-  goes to `ready`), settings. For `ready`, it's the existing full-width `proceedBtn` "Process
-  recording" button plus a text-link row (Resume · Restart · Cancel) below it — also ported
-  from `RecordingBottomBar`, not reinvented.
+- **`CaptureDock.tsx`** — bottom control row, one persistent container across every phase.
+  Idle: upload pill + press-and-hold record button + settings button. Every other phase shares
+  a left-slot / center-slot / mid-button / cancel-button structure whose *contents* morph:
+  left slot is stop (dark, recording/paused → `ready`) or settings (neutral, ready/processing);
+  center slot is animated waveform bars (recording/paused), the "Process recording" label
+  (ready, tappable), or a progress-fill bar (processing); mid button is pause/play/restart
+  (destructive-tinted, hidden during processing); cancel is always present except idle. This
+  is the mockup's actual interaction model — the same buttons transform in place rather than
+  a full layout swap between phases.
 - **`UploadActionSheet.tsx`** — new Base UI `Dialog`-based action sheet (Photo Library / Take
   Video / Choose File / Cancel). Wraps the existing hidden `<input type="file">` and
   `flow.handleFileSelect` in `useCreateFlow`; "Photo Library"/"Take Video" set the input's
   `accept`/`capture` attributes before triggering it, "Choose File" triggers it directly. No
   new file-handling logic.
 
-Reused as-is, restyled at the call site only:
-- **`RecordingSettingsSheet`** — internal state/logic unchanged; its outer sheet shell is
-  rebuilt on `@base-ui/react`'s `Dialog` (already a project dependency) so spacing and corner
-  radius come from Base UI's scale rather than the mockup's hardcoded pixel values.
-- **`SavedAudioPanel`** ("Your recordings" drawer) — same, shell rebuilt on Base UI `Dialog`
-  anchored to the left edge, logic untouched.
+Reused for their data/interaction logic, restyled to match the mockup:
+- **`RecordingSettingsSheet`** — internal state/logic unchanged (its Visual/Frames/Stage/Caption
+  chips and Audio Enhancement rows already matched the mockup's content). Shell restyled from a
+  blurred glass surface to the mockup's flat dark sheet (`#0d0d10`, 26px top radius); still a
+  `vaul` `Drawer` underneath, not rebuilt on a different primitive.
+- **`SavedAudioPanel`** ("Your recordings" panel) — visual language fully redone to match the
+  mockup: left-anchored slide-in (`Drawer` `direction="left"`, not a bottom sheet), gradient
+  icon tiles per row (`linear-gradient(165deg, #c4cde2, #3aa0e8)`), monospace duration/date
+  metadata, "Your recordings" title. Search, sort, rename, delete, and pagination logic are
+  unchanged — only presentation changed, since the ask was a new design, not new/removed
+  functionality. Trigger changed from its own independent FAB to controlled `open` /
+  `onOpenChange` / `hideTrigger` props, opened via `CaptureHeader`'s hamburger button per the
+  mockup.
 
 ## Sheet chrome — ChatGPT iOS Design System
 

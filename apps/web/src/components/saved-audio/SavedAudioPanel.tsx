@@ -10,7 +10,6 @@ import {
   Cancel01Icon,
   Delete02Icon,
   Edit02Icon,
-  FileAudioIcon,
   MoreHorizontalIcon,
   Search01Icon,
   LibraryIcon,
@@ -39,7 +38,15 @@ import { formatDuration, formatExpiry } from './formatters';
 import { SORT_OPTIONS, type SessionSummary, type SortOption } from './types';
 const PAGE_SIZE = 4;
 
-export default function SavedAudioPanel() {
+interface SavedAudioPanelProps {
+  /** Controlled open state — pass when an external trigger (e.g. CaptureHeader) owns this drawer. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the built-in floating action button trigger; use when a controlled open is provided. */
+  hideTrigger?: boolean;
+}
+
+export default function SavedAudioPanel({ open, onOpenChange, hideTrigger }: SavedAudioPanelProps = {}) {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { user } = useUser();
   if (authLoading || !isAuthenticated) {
@@ -49,11 +56,14 @@ export default function SavedAudioPanel() {
   return (
     <SavedAudioPanelBody
       key={`${user?.id ?? 'saved-audio-anonymous'}:${isAuthenticated ? 'auth' : 'anon'}`}
+      open={open}
+      onOpenChange={onOpenChange}
+      hideTrigger={hideTrigger}
     />
   );
 }
 
-function SavedAudioPanelBody() {
+function SavedAudioPanelBody({ open: controlledOpen, onOpenChange, hideTrigger }: SavedAudioPanelProps) {
   const router = useRouter();
   const renameSession = useMutation(api.sessions.renameSession);
   const deleteSession = useMutation(api.sessions.deleteSession);
@@ -68,7 +78,9 @@ function SavedAudioPanelBody() {
     { initialNumItems: PAGE_SIZE }
   );
 
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('Newest');
   const [editingSession, setEditingSession] = useState<SessionSummary | null>(null);
@@ -175,46 +187,41 @@ function SavedAudioPanelBody() {
 
   return (
     <>
-      <Drawer open={open} onOpenChange={setOpen} preventScrollRestoration={false}>
-        <DrawerTrigger asChild>
-          <Button
-            ref={triggerRef}
-            variant="ghost"
-            size="icon-lg"
-            className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
-            aria-label="Open saved audio"
-          >
-            <HugeiconsIcon icon={LibraryIcon} size={22} />
-          </Button>
-        </DrawerTrigger>
+      <Drawer open={open} onOpenChange={setOpen} direction="left" preventScrollRestoration={false}>
+        {!hideTrigger && (
+          <DrawerTrigger asChild>
+            <Button
+              ref={triggerRef}
+              variant="ghost"
+              size="icon-lg"
+              className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
+              aria-label="Open saved audio"
+            >
+              <HugeiconsIcon icon={LibraryIcon} size={22} />
+            </Button>
+          </DrawerTrigger>
+        )}
 
         <DrawerContent
-          className="flex min-h-0 flex-col bg-[color:var(--glass-bg)] border-t border-white/[0.08] p-0 backdrop-blur-xl max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"
+          className="left-0 top-0 bottom-0 h-full w-4/5 max-w-80 flex min-h-0 flex-col bg-[#0d0d10] border-r border-white/[0.08] p-0"
         >
-          <DrawerTitle className="sr-only">Saved Audio</DrawerTitle>
+          <DrawerTitle className="sr-only">Your recordings</DrawerTitle>
           <DrawerDescription className="sr-only">
             Browse, search, rename, and reopen your saved audio recordings.
           </DrawerDescription>
-          
-          <div className="sticky top-0 z-10 shrink-0 bg-[color:var(--glass-bg)]/95 backdrop-blur-xl">
-            <div className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
 
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/85">
-                  <HugeiconsIcon icon={FileAudioIcon} size={18} />
-                </div>
-                <h2 className="text-lg font-semibold text-white">
-                  Saved audio
-                </h2>
-              </div>
+          <div className="sticky top-0 z-10 shrink-0 bg-[#0d0d10]">
+            <div className="flex items-center justify-between gap-4 px-5 pt-6.5 pb-4.5">
+              <h2 className="text-[22px] font-semibold text-white">
+                Your recordings
+              </h2>
               <DrawerClose asChild>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="h-9 w-9 text-white/50 hover:text-white hover:bg-white/10"
+                  className="h-8 w-8 rounded-full bg-white/8 text-white/70 hover:text-white hover:bg-white/15"
                 >
-                  <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+                  <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={2} />
                   <span className="sr-only">Close</span>
                 </Button>
               </DrawerClose>
@@ -306,20 +313,20 @@ function SavedAudioPanelBody() {
                           >
                             <button
                               type="button"
-                              className="flex min-w-0 flex-1 items-center gap-3"
+                              className="flex min-w-0 flex-1 items-center gap-3.5"
                               onClick={() => handleSelect(session.id)}
                             >
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/70">
+                              <div
+                                className="flex h-10.5 w-10.5 shrink-0 items-center justify-center rounded-xl text-[#0b0b0d]"
+                                style={{ background: 'linear-gradient(165deg, #c4cde2, #3aa0e8)' }}
+                              >
                                 <HugeiconsIcon icon={PlayIcon} size={16} />
                               </div>
 
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-medium text-white">{session.name}</div>
-                                <div className="mt-0.5 flex items-center gap-2 text-xs text-white/40">
-                                  <span>{formatDuration(session.durationMs)}</span>
-                                  <span className="rounded bg-white/8 px-1.5 py-0.5">
-                                    {formatExpiry(session.expiresAt)}
-                                  </span>
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="truncate text-base text-white">{session.name}</div>
+                                <div className="mt-0.5 font-mono text-[13px] text-white/40">
+                                  {formatDuration(session.durationMs)} &middot; {formatExpiry(session.expiresAt)}
                                 </div>
                               </div>
                             </button>

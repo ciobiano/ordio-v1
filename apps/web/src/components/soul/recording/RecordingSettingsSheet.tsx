@@ -125,12 +125,12 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent
-        className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 flex flex-col max-h-[70vh] rounded-t-[24px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[24px]"
+        className="bg-[#0d0d10] border-t border-white/[0.08] p-0 flex flex-col max-h-[70vh] rounded-t-[26px] sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[440px] sm:rounded-[26px]"
       >
         <DrawerTitle className="sr-only">Recording Settings</DrawerTitle>
 
         {/* Sticky header: drag handle + close — stays pinned while body scrolls */}
-        <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[color:var(--glass-bg)] backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[#0d0d10]">
           <div className="w-10 h-[5px] rounded-full bg-white/[0.28]" />
           <Button
             type="button"
