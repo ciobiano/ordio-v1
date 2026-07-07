@@ -150,6 +150,16 @@ New directory: `apps/web/src/components/soul/capture/`
   (destructive-tinted, hidden during processing); cancel is always present except idle. This
   is the mockup's actual interaction model — the same buttons transform in place rather than
   a full layout swap between phases.
+
+  **Idle record button interaction — fixed a real bug.** An early version required holding the
+  record button/orb for 220ms before starting, mirroring the old `IdleState.tsx`'s
+  press-and-hold gate. That gate had no plain-tap fallback in `CaptureDock` (only the orb had
+  one), so any tap shorter than 220ms did nothing — a real, reproducible "record button doesn't
+  work" bug. Fixed by matching the mockup's actual model instead: `onPrimaryDown` starts
+  recording immediately on press (`CaptureScreen`'s `handlePrimaryDown`), and `finishPress` on
+  release auto-advances to `ready` only if the press was held past 350ms — a quick-finish
+  shortcut, not a requirement to start. Both the orb (`CaptureStage`) and the dock's record
+  button share these two handlers.
 - **`UploadActionSheet.tsx`** — new Base UI `Dialog`-based action sheet (Photo Library / Take
   Video / Choose File / Cancel). Wraps the existing hidden `<input type="file">` and
   `flow.handleFileSelect` in `useCreateFlow`; "Photo Library"/"Take Video" set the input's
@@ -170,46 +180,25 @@ Reused for their data/interaction logic, restyled to match the mockup:
   `onOpenChange` / `hideTrigger` props, opened via `CaptureHeader`'s hamburger button per the
   mockup.
 
-## Sheet chrome — ChatGPT iOS Design System
+## Sheet chrome — fixed dark, not theme-reactive
 
-Net-new sheets in this feature (currently: `UploadActionSheet`) follow a second Claude Design
-reference the user provided mid-implementation — "ChatGPT iOS Design System" (project
-`5e700c08-7046-4937-b24c-72c98641a725`) — rather than improvised styling. Key tokens actually
-used: white sheet background (`#FFFFFF`), centered drag handle, sunken-surface list rows
-(`#ECECEC`) with a left icon + stacked title (18px/600, `#0D0D0D`) + subtitle (15px,
-`#8E8E93`), hairline dividers, and 28px-ish sheet-top radius (approximated with Tailwind's
-`rounded-t-3xl` to stay within the app's existing radius scale rather than a one-off value).
-This is a light sheet on the Capture screen's otherwise all-black stage — confirmed correct
-against a second reference image the user pasted showing exactly this pattern (white sheet,
-drag handle, sunken card row) used for a confirmation-style dialog.
+Earlier drafts of this spec tried making `UploadActionSheet` theme-reactive via the app's
+`chrome-*` tokens (see `globals.css`, a light/dark token set modeled on a second Claude Design
+reference, "ChatGPT iOS Design System"), while `RecordingSettingsSheet` and `SavedAudioPanel`
+stayed hardcoded dark. That produced a real bug: some capture-family sheets went light in light
+mode and others stayed dark, an inconsistent mix the user caught directly. Checked against the
+original Unified Capture mockup's own source: its upload sheet is `rgba(44,44,46,.92)` — dark
+vibrancy, not light. The mockup's own sheets are uniformly dark.
 
-`RecordingSettingsSheet` and `SavedAudioPanel` are pre-existing shared components used
-elsewhere in the app beyond this screen. Per the "reuse existing logic, restyle only" decision
-above, their internals are intentionally left on their existing glass-blur visual language
-rather than re-themed to this new reference — re-theming shared components based on a
-screen-specific reference risks an unintended visual regression everywhere else they're used.
-If the user wants those two fully reskinned to the ChatGPT iOS system as well, that's a
-follow-up, scoped explicitly rather than inferred.
-
-**Light/dark mode.** `globals.css` already implements this exact design system as a themeable
-token set — `--chrome-bg`, `--chrome-bg-sunken`, `--chrome-text-primary`,
-`--chrome-text-secondary`, `--chrome-border`, radii (`--chrome-radius-sheet` = 28px, etc.) —
-with `:root` (light) and `.dark` variants, mapped to Tailwind utilities (`bg-chrome-bg-sunken`,
-`text-chrome-text-secondary`, `rounded-chrome-sheet`, …) via `@theme inline`, plus a working
-`ThemeToggle` component using `next-themes`. `UploadActionSheet` is built entirely on these
-`chrome-*` utilities instead of hardcoded hex values, so it automatically flips with the app's
-light/dark toggle.
-
-**Judgment call — the capture stage itself stays fixed-dark.** The Unified Capture mockup's
-own background (`#050506`) is not theme-conditional in the source design — this matches how
-camera/recording UIs conventionally behave (Instagram Stories, TikTok, Snapchat capture screens
-stay dark regardless of the OS theme, for contrast with live video/waveform content). So
-`CaptureHeader`/`CaptureStage`/`CaptureDock` keep their fixed-dark styling from the original
-mockup; only the sheets that pop up over that stage (`UploadActionSheet`, and by extension
-`RecordingSettingsSheet`/`SavedAudioPanel` if they're ever reskinned) are theme-aware via
-`chrome-*` tokens. Flagging this explicitly since it's a real design decision, not something
-dictated by either reference — redirect if the capture stage itself should also flip light in
-light mode.
+**Resolution: every sheet in the capture family is fixed dark (`#0d0d10`), matching the
+mockup and matching `CaptureHeader`/`CaptureStage`/`CaptureDock`'s own fixed-dark styling** —
+consistent with treating the capture flow like a camera viewfinder (Instagram Stories, TikTok,
+Snapchat capture screens stay dark regardless of OS theme). `UploadActionSheet`,
+`RecordingSettingsSheet`, and `SavedAudioPanel` all share this background now. The `chrome-*`
+token set and `ThemeToggle` remain valid for the rest of the app's light/dark support; they're
+just not used inside this feature. `UploadActionSheet`'s row layout (left icon, stacked
+title/subtitle, 12px vertical padding, hairline dividers) still follows the ChatGPT iOS
+reference's spacing conventions — only the color/theme-reactivity part was reverted.
 
 ## Icons
 

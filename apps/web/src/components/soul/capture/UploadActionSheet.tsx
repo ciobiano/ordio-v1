@@ -39,27 +39,27 @@ export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActio
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="rounded-t-chrome-sheet border-chrome-border bg-chrome-bg font-chrome gap-0"
+        className="rounded-t-3xl border-white/10 bg-[#0d0d10] gap-0"
       >
         <div className="flex justify-center pt-3 pb-1">
-          <span className="w-9 h-1.5 rounded-chrome-full bg-chrome-text-placeholder/40" />
+          <span className="w-9 h-1.5 rounded-full bg-white/20" />
         </div>
         <div className="p-4 pt-2 space-y-2.5">
-          <div className="rounded-chrome-input overflow-hidden bg-chrome-bg-sunken">
+          <div className="rounded-2xl overflow-hidden bg-white/8">
             {ROWS.map(({ label, sub, Icon, accept, capture }, i) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => openPicker(accept, capture)}
                 className={cn(
-                  'w-full flex items-center gap-4.5 px-5 py-3 text-left text-chrome-text-primary',
-                  i < ROWS.length - 1 && 'border-b border-chrome-border'
+                  'w-full flex items-center gap-4.5 px-5 py-3 text-left text-white',
+                  i < ROWS.length - 1 && 'border-b border-white/10'
                 )}
               >
                 <Icon size={26} className="shrink-0" />
                 <span className="flex flex-col">
                   <span className="text-lg font-semibold">{label}</span>
-                  <span className="text-[15px] text-chrome-text-secondary">{sub}</span>
+                  <span className="text-[15px] text-white/45">{sub}</span>
                 </span>
               </button>
             ))}
@@ -67,7 +67,7 @@ export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActio
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-4 rounded-chrome-input bg-chrome-bg-sunken text-chrome-text-primary text-lg font-semibold"
+            className="w-full py-4 rounded-2xl bg-white/8 text-white text-lg font-semibold"
           >
             Cancel
           </button>

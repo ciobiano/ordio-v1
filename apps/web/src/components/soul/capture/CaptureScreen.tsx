@@ -68,48 +68,37 @@ export function CaptureScreen({
   const [filesOpen, setFilesOpen] = useState(false);
   const { trigger } = useHaptics();
 
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startedFromHoldRef = useRef(false);
+  const pressActiveRef = useRef(false);
+  const pressStartRef = useRef(0);
 
   const phase = deriveCapturePhase({ currentState, recordingSubPhase, isPaused });
 
-  const clearHoldTimer = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-  }, []);
-
-  const handleIdleRecordPressStart = useCallback(() => {
-    if (!canRecord || isStarting || micDenied) return;
-    startedFromHoldRef.current = false;
-    clearHoldTimer();
-    holdTimerRef.current = setTimeout(() => {
-      startedFromHoldRef.current = true;
-      setRecordingSubPhase('recording');
-      onStartRecording();
-    }, 220);
-  }, [canRecord, clearHoldTimer, isStarting, micDenied, onStartRecording]);
-
-  const handleIdleRecordPressEnd = useCallback(() => {
-    clearHoldTimer();
-  }, [clearHoldTimer]);
-
-  const handleIdleOrbClick = useCallback(() => {
-    if (!canRecord || isStarting || micDenied) return;
-    if (startedFromHoldRef.current) {
-      startedFromHoldRef.current = false;
-      return;
-    }
+  // Matches the mockup's onPrimaryDown/finishPress model: pressing down starts recording
+  // immediately (no artificial hold delay — a plain tap must work), and a long hold that's
+  // still active on release auto-advances straight to 'ready', as a quick-finish shortcut.
+  const handlePrimaryDown = useCallback(() => {
+    if (!canRecord || isStarting || micDenied || phase !== 'idle') return;
+    pressActiveRef.current = true;
+    pressStartRef.current = Date.now();
     setRecordingSubPhase('recording');
     onStartRecording();
-  }, [canRecord, isStarting, micDenied, onStartRecording]);
+  }, [canRecord, isStarting, micDenied, phase, onStartRecording]);
 
   const handleGoReady = useCallback(() => {
     trigger('heavy');
     setRecordingSubPhase('stopped');
     onStopRecording();
   }, [onStopRecording, trigger]);
+
+  // A press started from idle that's still held past this threshold on release auto-advances
+  // to 'ready' — a quick-finish shortcut. A plain tap just leaves the recording running.
+  const PRESS_AUTO_FINISH_MS = 350;
+  const finishPress = useCallback(() => {
+    if (!pressActiveRef.current) return;
+    pressActiveRef.current = false;
+    const held = Date.now() - pressStartRef.current;
+    if (held > PRESS_AUTO_FINISH_MS) handleGoReady();
+  }, [handleGoReady]);
 
   const handlePause = useCallback(() => {
     trigger('light');
@@ -150,17 +139,19 @@ export function CaptureScreen({
         phase={phase}
         audioLevel={audioLevel}
         isSpeaking={isSpeaking}
-        onOrbClick={handleIdleOrbClick}
-        onOrbPressStart={handleIdleRecordPressStart}
-        onOrbPressEnd={handleIdleRecordPressEnd}
+        // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
+        // itself is a no-op here since pointerdown/pointerup already handle start/finish.
+        onOrbClick={() => {}}
+        onOrbPressStart={handlePrimaryDown}
+        onOrbPressEnd={finishPress}
       />
 
       <CaptureDock
         phase={phase}
         progress={processingProgress}
         onOpenUpload={() => setUploadOpen(true)}
-        onRecordPressStart={handleIdleRecordPressStart}
-        onRecordPressEnd={handleIdleRecordPressEnd}
+        onRecordPressStart={handlePrimaryDown}
+        onRecordPressEnd={finishPress}
         onOpenSettings={() => setSettingsOpen(true)}
         onGoReady={handleGoReady}
         onProcess={handleProcess}
