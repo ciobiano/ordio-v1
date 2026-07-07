@@ -48,6 +48,35 @@ The mockup's five visual phases map onto existing state without adding new top-l
 `CaptureScreen` alongside `recorder.isPaused` to compute the single `phase` value that drives
 every sub-component below.
 
+## Fidelity correction — real screenshots vs. the interactive mockup
+
+Partway through implementation, the user provided a zip of screenshots of the actual deployed
+`.dc.html` prototype (the Claude Design "renderer" preview, not just its abstract state-machine
+source). These reveal that the interactive mockup's own JS simplified several details for demo
+speed, and the *real* target content differs from a literal reading of the `.dc.html` source:
+
+- **Idle has no upload-pill/record/settings dock row.** The deployed reference shows only the
+  orb, idle status text, and a small "or upload audio or video" text link below it — matching
+  the *original* `IdleState.tsx`, not the mockup's redesigned three-button dock row. The
+  existing `SavedAudioPanel` FAB and `UserAvatarButton` stay exactly where they already are.
+- **Recording/paused status is a MIC level bar + colored quality badge, not plain text.** The
+  deployed reference shows a labeled "MIC" bar plus a colored pill ("Too quiet" amber, "Voice
+  detected" emerald, "Listening" sky, "Paused" amber) — this is `getQualityBadge` from
+  `soul/recording/state/utils.ts`, already built and already correct. `CaptureStage` calls it
+  directly instead of inventing new copy/colors.
+- **The recording/paused dock is a 3-icon pill row** (pause/resume, stop, settings), and the
+  **ready dock is a full-width "Process recording" button with a Resume · Restart · Cancel
+  text-link row below it** — both ported verbatim from the existing `RecordingBottomBar`, not
+  the mockup's icon-only 4-button row.
+- **Processing has no orb.** The deployed reference matches `ProcessingState` exactly: heading,
+  `ProgressRing`, step checklist, no orb, no header buttons, no dock. `CaptureStage` renders
+  this content directly for the `processing` phase instead of a thin progress bar in the dock.
+
+The mocked live caption (`useMockLiveCaption`) is kept as an *additional* line beneath the
+quality badge when voice is detected, per the user's explicit "keep it as a placeholder for
+now" direction — it doesn't replace the badge, since the real reference doesn't show a
+transcript at all today.
+
 ## Component architecture
 
 New directory: `apps/web/src/components/soul/capture/`
@@ -56,9 +85,10 @@ New directory: `apps/web/src/components/soul/capture/`
   the derived `phase` value and passes it down. Single persistent mount for the lifetime of
   the create flow (idle through processing); still unmounts on navigation to
   `/create/export/[sessionId]`.
-- **`CaptureHeader.tsx`** — left nav button (hamburger when idle, opens `SavedAudioPanel`
-  drawer; back/cancel arrow otherwise, triggers `handleReset`) + avatar (visible/idle only,
-  existing `UserAvatarButton`). Fades via CVA variants keyed on `phase`.
+- **`CaptureHeader.tsx`** — **corrected from the original mockup** (see "Fidelity correction"
+  below): idle has no left button at all — `SavedAudioPanel` keeps its own independent FAB
+  trigger, unchanged. Every other phase shows a plain back arrow (`handleReset`); the avatar
+  (`UserAvatarButton`) is idle-only, fading out otherwise.
 - **`CaptureStage.tsx`** — houses the existing `Orb` component and the status text region.
   Only the orb's size and vertical position are animated per phase (CSS custom properties +
   Framer Motion `animate`), matching the mockup's proportions: idle 216px → recording/paused
@@ -97,11 +127,15 @@ New directory: `apps/web/src/components/soul/capture/`
   `audioLevel` drops below the threshold or `isSpeaking` goes false, the status line switches
   back to "Too quiet"/"Listening" immediately and the mock caption resets — no stale fragment
   lingers.
-- **`CaptureDock.tsx`** — bottom control row. Renders the idle layout (upload pill +
-  press-and-hold record button + settings button) or the recording-family layout (left slot:
-  settings/stop, center slot: waveform / "Process recording" / progress bar, mid button:
-  pause/resume/restart, cancel button), switching content by `phase` while keeping the same
-  flex container mounted (so button entrances/exits animate rather than jump-cut).
+- **`CaptureDock.tsx`** — **corrected from the original mockup.** Renders nothing for `idle`
+  (the record trigger is the orb's own press-and-hold, matching the deployed reference; the
+  upload entry point is a small text link in `CaptureStage`, not a dock row) and nothing for
+  `processing` (its content — ring, checklist, cancel — lives entirely in `CaptureStage`,
+  matching `ProcessingState`). For `recording`/`paused`, it's the existing three-icon
+  `mobile-glass` pill row ported from `RecordingBottomBar`: pause/resume, stop (destructive,
+  goes to `ready`), settings. For `ready`, it's the existing full-width `proceedBtn` "Process
+  recording" button plus a text-link row (Resume · Restart · Cancel) below it — also ported
+  from `RecordingBottomBar`, not reinvented.
 - **`UploadActionSheet.tsx`** — new Base UI `Dialog`-based action sheet (Photo Library / Take
   Video / Choose File / Cancel). Wraps the existing hidden `<input type="file">` and
   `flow.handleFileSelect` in `useCreateFlow`; "Photo Library"/"Take Video" set the input's
