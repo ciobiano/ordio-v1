@@ -39,7 +39,15 @@ import { formatDuration, formatExpiry } from './formatters';
 import { SORT_OPTIONS, type SessionSummary, type SortOption } from './types';
 const PAGE_SIZE = 4;
 
-export default function SavedAudioPanel() {
+interface SavedAudioPanelProps {
+  /** Controlled open state — pass when an external trigger (e.g. CaptureHeader) owns this drawer. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the built-in floating action button trigger; use when a controlled open is provided. */
+  hideTrigger?: boolean;
+}
+
+export default function SavedAudioPanel({ open, onOpenChange, hideTrigger }: SavedAudioPanelProps = {}) {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { user } = useUser();
   if (authLoading || !isAuthenticated) {
@@ -49,11 +57,14 @@ export default function SavedAudioPanel() {
   return (
     <SavedAudioPanelBody
       key={`${user?.id ?? 'saved-audio-anonymous'}:${isAuthenticated ? 'auth' : 'anon'}`}
+      open={open}
+      onOpenChange={onOpenChange}
+      hideTrigger={hideTrigger}
     />
   );
 }
 
-function SavedAudioPanelBody() {
+function SavedAudioPanelBody({ open: controlledOpen, onOpenChange, hideTrigger }: SavedAudioPanelProps) {
   const router = useRouter();
   const renameSession = useMutation(api.sessions.renameSession);
   const deleteSession = useMutation(api.sessions.deleteSession);
@@ -68,7 +79,9 @@ function SavedAudioPanelBody() {
     { initialNumItems: PAGE_SIZE }
   );
 
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('Newest');
   const [editingSession, setEditingSession] = useState<SessionSummary | null>(null);
@@ -176,17 +189,19 @@ function SavedAudioPanelBody() {
   return (
     <>
       <Drawer open={open} onOpenChange={setOpen} preventScrollRestoration={false}>
-        <DrawerTrigger asChild>
-          <Button
-            ref={triggerRef}
-            variant="ghost"
-            size="icon-lg"
-            className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
-            aria-label="Open saved audio"
-          >
-            <HugeiconsIcon icon={LibraryIcon} size={22} />
-          </Button>
-        </DrawerTrigger>
+        {!hideTrigger && (
+          <DrawerTrigger asChild>
+            <Button
+              ref={triggerRef}
+              variant="ghost"
+              size="icon-lg"
+              className="mobile-glass-button fixed bottom-5 right-4 z-20 h-14 w-14 rounded-[1.35rem] text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)] hover:bg-white/12 active:scale-[0.97] sm:bottom-6 sm:right-6"
+              aria-label="Open saved audio"
+            >
+              <HugeiconsIcon icon={LibraryIcon} size={22} />
+            </Button>
+          </DrawerTrigger>
+        )}
 
         <DrawerContent
           className="flex min-h-0 flex-col bg-[color:var(--glass-bg)] border-t border-white/[0.08] p-0 backdrop-blur-xl max-h-[85vh] sm:h-full sm:max-w-[25rem] sm:rounded-[2rem]"

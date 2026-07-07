@@ -115,6 +115,47 @@ Reused as-is, restyled at the call site only:
 - **`SavedAudioPanel`** ("Your recordings" drawer) — same, shell rebuilt on Base UI `Dialog`
   anchored to the left edge, logic untouched.
 
+## Sheet chrome — ChatGPT iOS Design System
+
+Net-new sheets in this feature (currently: `UploadActionSheet`) follow a second Claude Design
+reference the user provided mid-implementation — "ChatGPT iOS Design System" (project
+`5e700c08-7046-4937-b24c-72c98641a725`) — rather than improvised styling. Key tokens actually
+used: white sheet background (`#FFFFFF`), centered drag handle, sunken-surface list rows
+(`#ECECEC`) with a left icon + stacked title (18px/600, `#0D0D0D`) + subtitle (15px,
+`#8E8E93`), hairline dividers, and 28px-ish sheet-top radius (approximated with Tailwind's
+`rounded-t-3xl` to stay within the app's existing radius scale rather than a one-off value).
+This is a light sheet on the Capture screen's otherwise all-black stage — confirmed correct
+against a second reference image the user pasted showing exactly this pattern (white sheet,
+drag handle, sunken card row) used for a confirmation-style dialog.
+
+`RecordingSettingsSheet` and `SavedAudioPanel` are pre-existing shared components used
+elsewhere in the app beyond this screen. Per the "reuse existing logic, restyle only" decision
+above, their internals are intentionally left on their existing glass-blur visual language
+rather than re-themed to this new reference — re-theming shared components based on a
+screen-specific reference risks an unintended visual regression everywhere else they're used.
+If the user wants those two fully reskinned to the ChatGPT iOS system as well, that's a
+follow-up, scoped explicitly rather than inferred.
+
+**Light/dark mode.** `globals.css` already implements this exact design system as a themeable
+token set — `--chrome-bg`, `--chrome-bg-sunken`, `--chrome-text-primary`,
+`--chrome-text-secondary`, `--chrome-border`, radii (`--chrome-radius-sheet` = 28px, etc.) —
+with `:root` (light) and `.dark` variants, mapped to Tailwind utilities (`bg-chrome-bg-sunken`,
+`text-chrome-text-secondary`, `rounded-chrome-sheet`, …) via `@theme inline`, plus a working
+`ThemeToggle` component using `next-themes`. `UploadActionSheet` is built entirely on these
+`chrome-*` utilities instead of hardcoded hex values, so it automatically flips with the app's
+light/dark toggle.
+
+**Judgment call — the capture stage itself stays fixed-dark.** The Unified Capture mockup's
+own background (`#050506`) is not theme-conditional in the source design — this matches how
+camera/recording UIs conventionally behave (Instagram Stories, TikTok, Snapchat capture screens
+stay dark regardless of the OS theme, for contrast with live video/waveform content). So
+`CaptureHeader`/`CaptureStage`/`CaptureDock` keep their fixed-dark styling from the original
+mockup; only the sheets that pop up over that stage (`UploadActionSheet`, and by extension
+`RecordingSettingsSheet`/`SavedAudioPanel` if they're ever reskinned) are theme-aware via
+`chrome-*` tokens. Flagging this explicitly since it's a real design decision, not something
+dictated by either reference — redirect if the capture stage itself should also flip light in
+light mode.
+
 ## Icons
 
 Add `griddy-icons` (npm, MIT, zero deps, verified real package) as a dependency. Every icon

@@ -28,10 +28,190 @@
   font-style: normal;
   font-display: swap;
 }
+/* Main app UI chrome — variable font, 400–700 in one file. Replaces named
+   "SF Pro Text"/"SF Pro Display" references (Apple-licensed, not for use
+   outside Apple platforms) — Inter is the licensed-safe visual match used
+   throughout the ChatGPT-iOS reference design system itself. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* Acid design system — display + body faces (self-hosted, see DESIGN.md) */
+@font-face {
+  font-family: 'Clash Grotesk';
+  src: url('/fonts/ClashGrotesk-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Clash Grotesk';
+  src: url('/fonts/ClashGrotesk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
+
+/* ── Main App Chrome (ChatGPT-iOS reference, DESIGN.md) ──────
+   Light values are exact from the approved reference (ink/paper,
+   near-monochrome, gray does the hierarchy work). Dark values follow
+   Apple's documented iOS dark-mode system colors — same discipline,
+   opposite polarity, not a naive invert. Independent of the Orb
+   (its own stage) and the Acid share-card system (its own palette). */
+:root {
+  --chrome-bg: #ffffff; /* Surface / Paper — app background */
+  --chrome-bg-sunken: #ececec; /* action tiles, chips */
+  --chrome-bg-subtle: #f4f4f4; /* user bubble, sheet bg */
+  --chrome-ink: #000000; /* primary buttons, dark sheet */
+  --chrome-elevated: #2f2f2f; /* secondary button on a dark sheet */
+  --chrome-text-primary: #0d0d0d;
+  --chrome-text-secondary: #8e8e93;
+  --chrome-text-placeholder: #b4b4b4;
+  --chrome-disabled: #afafaf;
+  --chrome-border: #e5e5e5; /* input & divider hairline */
+  --chrome-scrim: #d1d1d6; /* modal backdrop tint */
+
+  --chrome-radius-tile: 12px;
+  --chrome-radius-input: 14px;
+  --chrome-radius-chip: 20px;
+  --chrome-radius-sheet: 28px;
+  --chrome-radius-full: 9999px;
+
+  --chrome-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --chrome-shadow-sheet: 0 8px 30px rgba(0, 0, 0, 0.12);
+
+  /* Type scale — fixed iOS sizes, not a responsive marketing clamp */
+  --chrome-text-display: 44px; /* 700, -2% tracking */
+  --chrome-text-large-title: 40px; /* 700, -2% */
+  --chrome-text-title: 28px; /* 600, -1%, centered */
+  --chrome-text-headline: 20px; /* 600 */
+  --chrome-text-body: 17px; /* 400, line-height 1.35 */
+  --chrome-text-button: 17px; /* 600 */
+  --chrome-text-field-label: 13px; /* 400 */
+
+  --chrome-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+.dark {
+  --chrome-bg: #000000;
+  --chrome-bg-sunken: #1c1c1e;
+  --chrome-bg-subtle: #2c2c2e;
+  --chrome-ink: #ffffff;
+  --chrome-elevated: #f2f2f7; /* light sheet surface within a dark context */
+  --chrome-text-primary: #ffffff;
+  --chrome-text-secondary: rgba(235, 235, 245, 0.6);
+  --chrome-text-placeholder: rgba(235, 235, 245, 0.3);
+  --chrome-disabled: rgba(235, 235, 245, 0.3);
+  --chrome-border: rgba(84, 84, 88, 0.65);
+  --chrome-scrim: rgba(0, 0, 0, 0.4);
+}
+
+/* ── Acid Design System (DESIGN.md) ──────────────────────────
+   Bold consumer / expressive creator-social. Ink base + electric
+   lime signature. Replaces the restrained Apple/OpenAI palette
+   for Ordio UI work — see memory/feedback_ordio_bold_consumer_aesthetic. */
+:root {
+  /* ─── Ink neutral ladder ─── */
+  --acid-bg-base: #0a0b0a;
+  --acid-bg-subtle: #101110;
+  --acid-surface-1: #141517;
+  --acid-surface-2: #1c1d20;
+  --acid-surface-3: #26282b;
+
+  /* ─── Borders ─── */
+  --acid-border-subtle: rgba(255, 255, 255, 0.07);
+  --acid-border-default: rgba(255, 255, 255, 0.12);
+  --acid-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* ─── Text ─── */
+  --acid-text-1: #f4f5ef;
+  --acid-text-2: rgba(244, 245, 239, 0.64);
+  --acid-text-3: rgba(244, 245, 239, 0.42);
+  --acid-text-4: rgba(244, 245, 239, 0.24);
+
+  /* ─── Accent — electric lime, the signature ─── */
+  --acid-accent: #c6ff3d;
+  --acid-accent-soft: rgba(198, 255, 61, 0.14);
+  --acid-accent-ring: rgba(198, 255, 61, 0.4);
+  --acid-on-accent: #0a0b0a; /* always ink text on lime fills */
+
+  /* Reserved for the ONE hero headline + Orb live-audio state. Not a wash. */
+  --acid-signal: linear-gradient(90deg, #c6ff3d, #6be0ff);
+
+  /* ─── Semantic ─── */
+  --acid-success: #7ce23d;
+  --acid-warning: #ffc24b;
+  --acid-error: #ff5c5c;
+  --acid-info: #6be0ff;
+
+  /* ─── Fonts ─── */
+  --acid-font-display: 'Clash Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --acid-font-body: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+
+  /* ─── Expressive type scale (bigger than the old restrained scale) ─── */
+  --acid-text-display: clamp(2.5rem, 6vw, 4.5rem); /* 40px → 72px */
+  --acid-text-title: clamp(1.75rem, 4vw, 2.5rem); /* 28px → 40px */
+  --acid-text-headline: clamp(1.375rem, 2.5vw, 1.625rem); /* 22px → 26px */
+  --acid-text-body: clamp(0.9375rem, 1.2vw, 1.0625rem); /* 15px → 17px */
+  --acid-text-label: clamp(0.8125rem, 1vw, 0.875rem); /* 13px → 14px */
+  --acid-text-caption: clamp(0.75rem, 0.9vw, 0.8125rem); /* 12px → 13px */
+  --acid-text-footnote: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11px → 12px */
+
+  /* ─── Radius — chunky/consumer ─── */
+  --acid-radius-sm: 12px;
+  --acid-radius-md: 16px;
+  --acid-radius-lg: 22px;
+  --acid-radius-xl: 30px; /* cards, share card */
+  --acid-radius-full: 9999px;
+
+  /* ─── Spacing — 4px base ─── */
+  --acid-space-2xs: 2px;
+  --acid-space-xs: 4px;
+  --acid-space-sm: 8px;
+  --acid-space-md: 12px;
+  --acid-space-lg: 16px;
+  --acid-space-xl: 24px;
+  --acid-space-2xl: 32px;
+  --acid-space-3xl: 48px;
+  --acid-space-4xl: 64px;
+
+  /* ─── Motion ─── */
+  --acid-ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --acid-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --acid-duration-micro: 120ms;
+  --acid-duration-short: 220ms;
+  --acid-duration-medium: 340ms;
+  --acid-duration-long: 600ms;
+}
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
@@ -150,6 +330,25 @@
 
 /* ── Tailwind Theme Extension ──────────────────────────────── */
 @theme inline {
+  /* Main app chrome — bg-chrome-*, text-chrome-*, border-chrome-*, rounded-chrome-*, font-chrome */
+  --color-chrome-bg: var(--chrome-bg);
+  --color-chrome-bg-sunken: var(--chrome-bg-sunken);
+  --color-chrome-bg-subtle: var(--chrome-bg-subtle);
+  --color-chrome-ink: var(--chrome-ink);
+  --color-chrome-elevated: var(--chrome-elevated);
+  --color-chrome-text-primary: var(--chrome-text-primary);
+  --color-chrome-text-secondary: var(--chrome-text-secondary);
+  --color-chrome-text-placeholder: var(--chrome-text-placeholder);
+  --color-chrome-disabled: var(--chrome-disabled);
+  --color-chrome-border: var(--chrome-border);
+  --color-chrome-scrim: var(--chrome-scrim);
+  --font-chrome: var(--chrome-font);
+  --radius-chrome-tile: var(--chrome-radius-tile);
+  --radius-chrome-input: var(--chrome-radius-input);
+  --radius-chrome-chip: var(--chrome-radius-chip);
+  --radius-chrome-sheet: var(--chrome-radius-sheet);
+  --radius-chrome-full: var(--chrome-radius-full);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
@@ -165,10 +364,48 @@
   --color-accent-green: var(--accent-green);
   --color-surface-sheet: var(--surface-sheet);
   --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Poppins', ui-sans-serif, system-ui;
-  --font-body: 'HelveticaNeueCyr', ui-sans-serif, system-ui;
+  --font-heading: var(--acid-font-display);
+  --font-body: var(--acid-font-body);
   --animate-wave-pulse: wave-pulse 1.4s ease-in-out infinite alternate;
-  --font-heading: var(--font-heading);
+
+  /* ── Acid tokens exposed as Tailwind utilities ──
+     bg-acid-*, text-acid-*, border-acid-*, rounded-acid-* */
+  --color-acid-bg-base: var(--acid-bg-base);
+  --color-acid-bg-subtle: var(--acid-bg-subtle);
+  --color-acid-surface-1: var(--acid-surface-1);
+  --color-acid-surface-2: var(--acid-surface-2);
+  --color-acid-surface-3: var(--acid-surface-3);
+  --color-acid-border-subtle: var(--acid-border-subtle);
+  --color-acid-border-default: var(--acid-border-default);
+  --color-acid-border-strong: var(--acid-border-strong);
+  --color-acid-text-1: var(--acid-text-1);
+  --color-acid-text-2: var(--acid-text-2);
+  --color-acid-text-3: var(--acid-text-3);
+  --color-acid-text-4: var(--acid-text-4);
+  --color-acid-accent: var(--acid-accent);
+  --color-acid-accent-soft: var(--acid-accent-soft);
+  --color-acid-accent-ring: var(--acid-accent-ring);
+  --color-acid-on-accent: var(--acid-on-accent);
+  --color-acid-success: var(--acid-success);
+  --color-acid-warning: var(--acid-warning);
+  --color-acid-error: var(--acid-error);
+  --color-acid-info: var(--acid-info);
+  --font-acid-display: var(--acid-font-display);
+  --font-acid-body: var(--acid-font-body);
+  --radius-acid-sm: var(--acid-radius-sm);
+  --radius-acid-md: var(--acid-radius-md);
+  --radius-acid-lg: var(--acid-radius-lg);
+  --radius-acid-xl: var(--acid-radius-xl);
+  --radius-acid-full: var(--acid-radius-full);
+  --spacing-acid-2xs: var(--acid-space-2xs);
+  --spacing-acid-xs: var(--acid-space-xs);
+  --spacing-acid-sm: var(--acid-space-sm);
+  --spacing-acid-md: var(--acid-space-md);
+  --spacing-acid-lg: var(--acid-space-lg);
+  --spacing-acid-xl: var(--acid-space-xl);
+  --spacing-acid-2xl: var(--acid-space-2xl);
+  --spacing-acid-3xl: var(--acid-space-3xl);
+  --spacing-acid-4xl: var(--acid-space-4xl);
   --color-btn-circle-bg: var(--btn-circle-bg);
   --color-btn-circle-stroke: var(--btn-circle-stroke);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -205,6 +442,18 @@
 }
 
 /* ── Safe Area ────────────────────────────────────────────── */
+/* ── Acid signal gradient — hero headline text + Orb live-audio only ── */
+@utility text-acid-signal {
+  background: var(--acid-signal);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility bg-acid-signal {
+  background: var(--acid-signal);
+}
+
 @utility safe-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -638,6 +887,17 @@ select {
 /* ── Onboarding: dialog border ─────────────────────────────────── */
 .ob-dialog-border {
   border: 1px solid var(--onboarding-border) !important;
+}
+
+/* ── Capture screen: recording waveform bar animation ──────────── */
+@keyframes waveEq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 /* ── Onboarding: waveform bar animation ──────────────────────── */
