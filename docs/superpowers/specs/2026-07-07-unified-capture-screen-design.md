@@ -59,11 +59,32 @@ New directory: `apps/web/src/components/soul/capture/`
 - **`CaptureHeader.tsx`** — left nav button (hamburger when idle, opens `SavedAudioPanel`
   drawer; back/cancel arrow otherwise, triggers `handleReset`) + avatar (visible/idle only,
   existing `UserAvatarButton`). Fades via CVA variants keyed on `phase`.
-- **`CaptureStage.tsx`** — houses the existing `Orb` component and the status text region
-  (idle typewriter placeholder text / "Listening" / "Paused" / live caption during voice
-  activity). Only the orb's size and vertical position are animated per phase (CSS custom
-  properties + Framer Motion `animate`), matching the mockup's proportions:
-  idle 216px → recording/paused 200px → ready 196px → processing 128px.
+- **`CaptureStage.tsx`** — houses the existing `Orb` component and the status text region.
+  Only the orb's size and vertical position are animated per phase (CSS custom properties +
+  Framer Motion `animate`), matching the mockup's proportions: idle 216px → recording/paused
+  200px → ready 196px → processing 128px.
+
+  **Status text is audio-reactive, not just phase-reactive.** The mockup's own prototype
+  script only distinguishes "quiet" vs "not quiet" via a single boolean, but the source design
+  screenshots name a third, distinct state (`recording-too-quiet` vs `recording-voice-detected`)
+  that the interactive prototype doesn't fully encode. The real app already has the correct
+  granularity in `soul/recording/state/utils.ts`'s `getQualityBadge` — reuse those same
+  thresholds for the status line instead of inventing new ones:
+
+  | Condition | Status text |
+  |---|---|
+  | `phase === 'idle'` | Idle typewriter placeholder ("Press and hold to record" / "speak your truth") |
+  | `phase === 'paused'` | "Paused" |
+  | `phase === 'recording'` and `audioLevel < 0.08` | "Too quiet" — mic isn't picking up voice; no live transcript shown even if `isSpeaking` was true a moment ago, so stale transcript text never lingers on screen |
+  | `phase === 'recording'` and `audioLevel >= 0.08` and `!isSpeaking` | "Listening" |
+  | `phase === 'recording'` and `isSpeaking` | Live transcript from `useTranscription`, word-by-word as it arrives |
+  | `phase === 'ready'` | "Ready to process" |
+
+  `isSpeaking` here is the real VAD signal from `useVAD`/`useCreateFlow`, not the mockup's
+  amplitude-threshold approximation — the mockup faked voice detection because it had no real
+  transcription backend; the app doesn't need to fake it. The moment `audioLevel` drops below
+  the threshold or `isSpeaking` goes false, the status line switches back to "Too quiet" or
+  "Listening" immediately rather than leaving the last transcript fragment visible.
 - **`CaptureDock.tsx`** — bottom control row. Renders the idle layout (upload pill +
   press-and-hold record button + settings button) or the recording-family layout (left slot:
   settings/stop, center slot: waveform / "Process recording" / progress bar, mid button:
@@ -120,6 +141,10 @@ SVG. Existing hand-rolled SVGs elsewhere in the app (e.g. `ShareCard`, `StyleMod
 - New: unit tests for the phase-derivation function (all five phases, including the
   `paused`/`ready` branches that depend on two combined flags).
 - New: `CaptureDock` renders the correct button set for each of the five phases.
+- New: status-text derivation tests covering all four recording-phase branches (too quiet /
+  listening / voice-detected transcript / paused), including the transition back to "Too
+  quiet"/"Listening" when `audioLevel`/`isSpeaking` drop mid-sentence — the stale-transcript
+  regression this correction exists to prevent.
 - Manual QA pass (per project rule, UI changes are exercised in-browser before sign-off):
   full idle → recording → paused → ready → processing → export happy path, plus cancel/reset
   from each phase, mic-denied state, and file-upload path, on a mobile viewport.
