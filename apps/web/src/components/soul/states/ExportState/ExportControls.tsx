@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { panelCard } from '@/lib/variants'
+import { panelCard, captureSheetSurface } from '@/lib/variants'
 import { IconToolbar } from '@/components/ui/IconToolbar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dock } from '@/components/ui/Dock'
@@ -105,7 +105,7 @@ export function ExportControls({
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent
           overlayClassName="bg-transparent supports-backdrop-filter:backdrop-blur-none backdrop-blur-none"
-          className="md:hidden p-0 bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08]"
+          className={cn(captureSheetSurface, 'md:hidden p-0')}
         >
           <DrawerTitle className="sr-only">Export Tools</DrawerTitle>
           {/* Drag handle */}
