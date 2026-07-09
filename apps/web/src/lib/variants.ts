@@ -168,6 +168,16 @@ export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-c
 });
 
 /**
+ * Shared silhouette for all bottom sheets/drawers — solid dark bg, floating
+ * inset, large radius, drop shadow. One definition so RecordingSettingsSheet,
+ * UpgradeSheet, and the ExportControls mobile drawer share one shape.
+ */
+export const captureSheetSurface =
+  'bg-[color:var(--sheet-bg)] rounded-4xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)] ' +
+  'data-[vaul-drawer-direction=bottom]:inset-x-auto data-[vaul-drawer-direction=bottom]:left-2.5 ' +
+  'data-[vaul-drawer-direction=bottom]:right-2.5 data-[vaul-drawer-direction=bottom]:bottom-3.5';
+
+/**
  * Panel/card container — glass surface used for editors and settings panels.
  */
 export const panelCard = 'rounded-2xl bg-muted border border-border';

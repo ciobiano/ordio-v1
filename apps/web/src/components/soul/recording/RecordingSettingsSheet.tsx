@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { captureSheetSurface } from '@/lib/variants';
 import { useUIStore, useProcessingStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
@@ -125,12 +126,12 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent
-        className="bg-[#0d0d10] p-0 flex flex-col max-h-[50vh] rounded-4xl overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.5)] data-[vaul-drawer-direction=bottom]:inset-x-auto data-[vaul-drawer-direction=bottom]:left-2.5 data-[vaul-drawer-direction=bottom]:right-2.5 data-[vaul-drawer-direction=bottom]:bottom-3.5 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[420px]"
+        className={cn(captureSheetSurface, 'p-0 flex flex-col max-h-[50vh] overflow-hidden sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[420px]')}
       >
         <DrawerTitle className="sr-only">Recording Settings</DrawerTitle>
 
         {/* Sticky header: drag handle + close — stays pinned while body scrolls */}
-        <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[#0d0d10]">
+        <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[color:var(--sheet-bg)]">
           <div className="w-10 h-[5px] rounded-full bg-white/[0.28]" />
           <Button
             type="button"
@@ -250,7 +251,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                         )}
                       >
                         {isActive && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-[rgba(18,18,20)]" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-[color:var(--sheet-bg)]" />
                         )}
                       </div>
                       <div>
