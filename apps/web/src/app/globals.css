@@ -229,11 +229,7 @@
   --accent-red: #e11d48;
   --surface-sheet: rgba(255, 255, 255, 0.03);
   --accent-green: #3fb950;
-  --surface-glass: rgba(18, 18, 20, 0.72);
-  --surface-glass-card: rgba(18, 18, 20, 0.78);
-  --border-glass: rgba(255, 255, 255, 0.16);
-  --shadow-glass-top: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --surface-selected: rgba(255, 255, 255, 0.2);
+  --sheet-bg: #0d0d10; /* single source of truth for sheet/drawer/sidebar dark surfaces */
 
   /* ─── Onboarding tokens ─── */
   --onboarding-border: rgba(255, 255, 255, 0.07);
