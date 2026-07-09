@@ -103,15 +103,7 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
         ))}
       </div>
 
-      <div className="flex items-center gap-2.5 px-4 py-3.5 border-t border-white/8">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 flex items-center justify-center gap-2 h-11 rounded-full bg-[#3a7bf0] text-white text-base font-semibold border-none cursor-pointer"
-        >
-          <Plus size={16} />
-          New recording
-        </button>
+      <div className="flex items-center justify-end px-4 py-3.5 border-t border-white/8">
         <button
           type="button"
           onClick={onOpenSettings}
