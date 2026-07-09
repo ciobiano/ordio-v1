@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import { useCheckout } from '@/hooks/billing/useCheckout'
-import { primaryBtn } from '@/lib/variants'
+import { primaryBtn, captureSheetSurface } from '@/lib/variants'
 import type { FeatureKey } from '@/lib/featureGates'
 
 interface UpgradeSheetProps {
@@ -51,7 +51,7 @@ export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: Upgr
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()}>
       <DrawerContent
-        className="bg-[color:var(--glass-bg)] backdrop-blur-xl border-t border-white/[0.08] p-0 max-h-[85vh]"
+        className={cn(captureSheetSurface, 'p-0 max-h-[85vh]')}
       >
         <DrawerTitle className="sr-only">Upgrade to Creator</DrawerTitle>
         <div className="w-full max-w-sm mx-auto px-6 py-6">
