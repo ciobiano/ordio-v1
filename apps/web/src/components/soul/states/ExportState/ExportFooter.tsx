@@ -54,7 +54,7 @@ export function ExportFooter({
 
       {(exporter.isExporting || exporter.error || exporter.exportedUrl) && (
         <div className="mb-4 flex flex-col gap-2">
-          <div className="bg-[color:var(--glass-bg)] backdrop-blur-xl rounded-2xl px-4 py-3">
+          <div className="bg-[color:var(--sheet-bg)] rounded-2xl px-4 py-3">
             {exporter.isExporting && (
               <div
                 className="flex flex-col gap-2"

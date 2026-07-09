@@ -22,7 +22,7 @@ interface DockProps {
 export function Dock({ items, activeItem, onItemClick }: DockProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--glass-bg)] backdrop-blur-xl pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--sheet-bg)] pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden"
       role="toolbar"
       aria-label="Export tools"
       style={{ height: 'calc(49px + env(safe-area-inset-bottom) + 8px)' }}

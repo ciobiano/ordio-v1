@@ -86,7 +86,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
           side="top"
           align="start"
           sideOffset={10}
-          className="w-[14rem] border-white/8 bg-[color:var(--glass-bg)] p-2 backdrop-blur-xl"
+          className="w-[14rem] border-white/8 bg-[color:var(--sheet-bg)] p-2"
         >
           {DISPLAY_OPTIONS.map((option) => {
             const locked = option.gate ? isLocked(option.gate) : false
@@ -179,7 +179,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
           <span className="text-white/40">Caption</span>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">
+        <SelectContent side="top" className="border-white/8 bg-[color:var(--sheet-bg)]">
           {MODE_OPTIONS.map((option) => {
             const locked = option.gate ? isLocked(option.gate) : false
             return (
@@ -207,7 +207,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
           <span className="text-white/40">Stage</span>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent side="top" className="border-white/8 bg-[color:var(--glass-bg)] backdrop-blur-xl">
+        <SelectContent side="top" className="border-white/8 bg-[color:var(--sheet-bg)]">
           {LAYOUT_OPTIONS.map((option) => {
             const locked = option.gate ? isLocked(option.gate) : false
             return (
