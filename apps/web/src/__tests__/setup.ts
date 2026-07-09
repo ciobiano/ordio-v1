@@ -99,6 +99,15 @@ Object.defineProperty(navigator, 'mediaDevices', {
   },
 });
 
+// Mock ResizeObserver (not available in jsdom)
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  (globalThis as Record<string, unknown>).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // Mock OffscreenCanvas for drawGraphic tests (not available in jsdom)
 if (typeof globalThis.OffscreenCanvas === 'undefined') {
   (globalThis as Record<string, unknown>).OffscreenCanvas = class {

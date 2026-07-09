@@ -1,8 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
-import { useCallback, useRef, useState } from 'react';
+import { motion, useDragControls } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, RefObject } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
 import type { FeatureKey } from '@/lib/featureGates';
@@ -12,6 +13,7 @@ import { CaptureDock } from './CaptureDock';
 import { CaptureSidebar } from './CaptureSidebar';
 import { UploadActionSheet } from './UploadActionSheet';
 import { deriveCapturePhase } from './phase';
+import { computeSidebarRevealPx } from './sidebarReveal';
 import type { RecordingSubPhase } from './types';
 
 const RecordingSettingsSheet = dynamic(
@@ -20,6 +22,7 @@ const RecordingSettingsSheet = dynamic(
 );
 
 const EASE = [0.32, 0.72, 0, 1] as const;
+const FALLBACK_CONTAINER_PX = 440; // matches the outer container's max-w-[440px]
 
 interface CaptureScreenProps {
   currentState: 'idle' | 'recording' | 'processing';
@@ -70,6 +73,20 @@ export function CaptureScreen({
 
   const pressActiveRef = useRef(false);
   const pressStartRef = useRef(0);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragControls = useDragControls();
+  const [revealPx, setRevealPx] = useState(() => computeSidebarRevealPx(FALLBACK_CONTAINER_PX));
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const updateRevealPx = () => setRevealPx(computeSidebarRevealPx(node.offsetWidth));
+    updateRevealPx();
+    const observer = new ResizeObserver(updateRevealPx);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const phase = deriveCapturePhase({ currentState, recordingSubPhase, isPaused });
 
@@ -133,13 +150,22 @@ export function CaptureScreen({
 
   const closeFiles = useCallback(() => setFilesOpen(false), []);
 
+  const handleSidebarDragEnd = useCallback(
+    (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
+      const draggedTo = (filesOpen ? revealPx : 0) + info.offset.x;
+      setFilesOpen(draggedTo > revealPx / 2);
+    },
+    [filesOpen, revealPx]
+  );
+
   return (
     <div
+      ref={containerRef}
       className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto overflow-hidden select-none"
       style={{ perspective: '1400px' }}
     >
       {/* Sidebar sits behind the page at all times; revealed as the page slides right. */}
-      <div className="absolute inset-0 z-1 bg-[#0d0d10]">
+      <div className="absolute inset-0 z-1 bg-[color:var(--sheet-bg)]">
         <CaptureSidebar
           onOpenUpload={() => setUploadOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
@@ -147,9 +173,25 @@ export function CaptureScreen({
         />
       </div>
 
+      {!filesOpen && (
+        <div
+          role="button"
+          aria-label="Open recordings by swiping"
+          className="absolute left-0 top-0 bottom-0 z-3 w-6"
+          onPointerDown={(e) => dragControls.start(e)}
+        />
+      )}
+
       <motion.div
         className="absolute inset-0 z-2 bg-black text-white overflow-hidden"
-        animate={{ x: filesOpen ? '74%' : '0%' }}
+        drag="x"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ left: 0, right: revealPx }}
+        dragElastic={0}
+        dragMomentum={false}
+        onDragEnd={handleSidebarDragEnd}
+        animate={{ x: filesOpen ? revealPx : 0 }}
         transition={{ duration: 0.44, ease: EASE }}
         style={{
           borderTopLeftRadius: filesOpen ? 44 : 0,
@@ -162,6 +204,7 @@ export function CaptureScreen({
             type="button"
             aria-label="Close recordings"
             onClick={closeFiles}
+            onPointerDown={(e) => dragControls.start(e)}
             className="absolute inset-0 z-100 border-none bg-transparent cursor-default"
           />
         )}
