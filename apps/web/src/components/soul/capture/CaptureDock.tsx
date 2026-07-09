@@ -1,6 +1,6 @@
 'use client';
 
-import { Upload, Settings, Stop, Pause, Play, Refresh, Close } from 'griddy-icons';
+import { Upload, Settings, Stop, Pause, Play, Refresh, Close, Microphone } from 'griddy-icons';
 import { cn } from '@/lib/utils';
 import { captureCenterSlot, capturePillBar, captureRecordBtn, captureRoundBtn } from '@/lib/variants';
 import type { CapturePhase } from './types';
@@ -38,10 +38,10 @@ export function CaptureDock({
 }: CaptureDockProps) {
   if (phase === 'idle') {
     return (
-      <div className="absolute left-0 right-0 bottom-0 px-5 pb-6.5 z-20">
+      <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
         <div className="flex items-center gap-3 w-full min-h-15">
           <button type="button" onClick={onOpenUpload} className={capturePillBar} aria-label="Upload audio or video">
-            <Upload size={20} className="shrink-0 text-black/55" />
+            <Upload size={20} className="shrink-0 text-white/45" />
             <span className="truncate">Upload audio or video</span>
           </button>
           <button
@@ -52,7 +52,7 @@ export function CaptureDock({
             className={captureRecordBtn}
             aria-label="Press and hold to record"
           >
-            <span className="w-4.5 h-4.5 rounded-full bg-[#ff453a]" />
+            <Microphone size={20}  />
           </button>
           <button type="button" onClick={onOpenSettings} className={captureRoundBtn({ tone: 'neutral' })} aria-label="Settings">
             <Settings size={20} />
@@ -67,7 +67,7 @@ export function CaptureDock({
   const isProcessing = phase === 'processing';
 
   return (
-    <div className="absolute left-0 right-0 bottom-0 px-5 pb-6.5 z-20">
+    <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
       <div className="flex items-center gap-3 w-full min-h-15">
         <button
           type="button"
