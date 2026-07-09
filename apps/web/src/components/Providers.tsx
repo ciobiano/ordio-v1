@@ -3,6 +3,7 @@
 import { ClerkProvider, useAuth } from '@clerk/nextjs';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
+import { ThemeProvider } from 'next-themes';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NavigationTransition } from './NavigationTransition';
 import type { ReactNode } from 'react';
@@ -13,14 +14,16 @@ const convex = new ConvexReactClient(
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider signInFallbackRedirectUrl="/create" signUpFallbackRedirectUrl="/create">
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <TooltipProvider>
-          <NavigationTransition>
-            {children}
-          </NavigationTransition>
-        </TooltipProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+      <ClerkProvider signInFallbackRedirectUrl="/create" signUpFallbackRedirectUrl="/create">
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <TooltipProvider>
+            <NavigationTransition>
+              {children}
+            </NavigationTransition>
+          </TooltipProvider>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </ThemeProvider>
   );
 }

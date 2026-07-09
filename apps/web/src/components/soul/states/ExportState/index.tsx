@@ -205,7 +205,13 @@ export default function ExportState({
         />
       </div>
 
-      <ExportFooter trimIsEmpty={trimmer.isEmpty} exporter={exporter} onDownload={onDownload} />
+      <ExportFooter
+        trimIsEmpty={trimmer.isEmpty}
+        exporter={exporter}
+        onDownload={onDownload}
+        transcript={transcript ?? []}
+        durationSeconds={audioBuffer?.duration ?? 0}
+      />
 
       <DiscardDialog
         open={showDiscardDialog}

@@ -95,3 +95,6 @@ pnpm-debug.log*
 *.wasm
 !apps/web/public/**/*.wasm
 .gstack/
+
+# ── Local design scratch (screenshots, review snapshots) ──────
+design/
