@@ -146,6 +146,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       setProgress(100);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
+        if (abortRef.current !== abort) return;
         cancel();
         return;
       }
@@ -157,7 +158,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       setError(message);
       setPhase('error');
     } finally {
-      abortRef.current = null;
+      if (abortRef.current === abort) abortRef.current = null;
     }
   }, [cancel, findClips]);
 
@@ -170,11 +171,15 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     try {
       await findClips(merged, durationRef.current, abort.signal);
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') { cancel(); return; }
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        if (abortRef.current !== abort) return;
+        cancel();
+        return;
+      }
       setError('Clip finding failed.');
       setPhase('error');
     } finally {
-      abortRef.current = null;
+      if (abortRef.current === abort) abortRef.current = null;
     }
   }, [cancel, findClips]);
 
