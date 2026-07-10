@@ -109,9 +109,14 @@ export async function ingestEpisode(
       const windowBuffer = concatAudioBuffers(pieces);
       pieces.length = 0;
 
+      // Note: startRendering()/finalize() below aren't interruptible mid-flight;
+      // these checks discard an already-completed window promptly instead.
       const mono = await toMono16k(windowBuffer);
+      if (opts.signal.aborted) throw new DOMException('Aborted', 'AbortError');
       energyAcc.add(mono.getChannelData(0), start, TARGET_RATE);
-      chunks.push({ startSec: start, blob: await encodeChunk(mono, strategy) });
+      const blob = await encodeChunk(mono, strategy);
+      if (opts.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      chunks.push({ startSec: start, blob });
       opts.onProgress?.((i + 1) / windows.length);
     }
 
