@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { z } from 'zod';
+import { auth } from '@clerk/nextjs/server';
 import { WordSchema } from '@Ordio/shared/schemas';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
 
@@ -16,7 +17,7 @@ function getClient(): OpenAI {
 }
 
 const RequestSchema = z.object({
-  words: z.array(WordSchema).min(1),
+  words: z.array(WordSchema).min(1).max(20000),
   durationSec: z.number().positive(),
 });
 
@@ -51,6 +52,11 @@ function buildPrompt(words: z.infer<typeof WordSchema>[], durationSec: number): 
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = RequestSchema.safeParse(await request.json());
     if (!body.success) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -89,7 +95,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ candidates });
   } catch (err) {
     console.error('[find-clips]', err);
-    const message = err instanceof Error ? err.message : 'Clip finding failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Clip finding failed' }, { status: 500 });
   }
 }
