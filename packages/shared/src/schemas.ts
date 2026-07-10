@@ -54,3 +54,16 @@ export const JobConfigSchema = z.object({
 });
 
 export type JobConfig = z.infer<typeof JobConfigSchema>;
+
+/**
+ * A candidate clip window found inside a long episode.
+ * start/end are episode-absolute seconds; windows are 30–60s.
+ */
+export const ClipCandidateSchema = z.object({
+  start: z.number().min(0),
+  end: z.number().min(0),
+  hookText: z.string().min(1),
+  rationale: z.string().min(1),
+});
+
+export type ClipCandidate = z.infer<typeof ClipCandidateSchema>;
