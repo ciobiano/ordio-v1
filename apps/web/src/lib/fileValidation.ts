@@ -54,7 +54,7 @@ export function isAcceptedFileType(file: File): boolean {
   return ext ? ACCEPTED_EXTENSIONS.has(ext) : false;
 }
 
-export type FileValidationError = 'too_large' | 'unsupported_format';
+export type FileValidationError = 'too_large' | 'unsupported_format' | 'episode_too_large';
 
 export function validateFile(file: File): FileValidationError | null {
   if (file.size > MAX_FILE_SIZE_BYTES) return 'too_large';
@@ -62,7 +62,16 @@ export function validateFile(file: File): FileValidationError | null {
   return null;
 }
 
+export const MAX_EPISODE_FILE_BYTES = 250 * 1024 * 1024; // episodes route, per design
+
+export function validateEpisodeFile(file: File): FileValidationError | null {
+  if (file.size > MAX_EPISODE_FILE_BYTES) return 'episode_too_large';
+  if (!isAcceptedFileType(file)) return 'unsupported_format';
+  return null;
+}
+
 export const FILE_ERROR_MESSAGES: Record<FileValidationError, string> = {
   too_large: 'File is too large — maximum is 50 MB',
   unsupported_format: 'Unsupported format — try MP3, M4A, WAV, WEBM, OGG, FLAC, or MP4',
+  episode_too_large: 'Episode is too large — maximum is 250 MB',
 };
