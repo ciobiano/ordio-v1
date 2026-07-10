@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';
+import { windowTranscript } from '@/components/soul/clips/ClipPickerSheet';
 
 const mk = (start: number, end: number) => ({ start, end, hookText: 'h', rationale: 'r' });
 
@@ -45,5 +46,18 @@ describe('fallbackWindows', () => {
 
   it('returns [] when episode is shorter than a window', () => {
     expect(fallbackWindows([1, 1, 1], 30)).toEqual([]);
+  });
+});
+
+describe('windowTranscript', () => {
+  it('keeps only in-window words, re-based to clip time', () => {
+    const words = [
+      { text: 'before', start: 10, end: 11 },
+      { text: 'inside', start: 61, end: 62 },
+      { text: 'edge', start: 89, end: 91 }, // ends after window — excluded
+    ];
+    expect(windowTranscript(words, 60, 90)).toEqual([
+      { text: 'inside', start: 1, end: 2 },
+    ]);
   });
 });
