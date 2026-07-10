@@ -183,29 +183,6 @@ export const captureSheetSurface =
 export const panelCard = 'rounded-2xl bg-muted border border-border';
 
 /**
- * Export dock center slot — "Export video" pill (preview), progress fill (exporting),
- * or "Download" pill (done). Mirrors captureCenterSlot's phase-keyed sizing/radius pattern.
- */
-export const exportCenterSlot = cva(
-  'flex-1 min-w-0 relative flex items-center justify-center overflow-hidden border-none transition-all duration-300',
-  {
-    variants: {
-      phase: {
-        preview: 'h-11.5 bg-white rounded-full cursor-pointer',
-        exporting: 'h-2.5 bg-white/10 rounded-full cursor-default',
-        done: 'h-11.5 bg-white rounded-full cursor-pointer',
-      },
-    },
-  }
-);
-
-/**
- * Floating sheet surface — shared by StyleSheet/EditSheet, matching UploadActionSheet's
- * rounded dark container.
- */
-export const exportSheetSurface = 'rounded-[28px] overflow-hidden bg-[#0d0d10]';
-
-/**
  * Brand heading — responsive type scale per GitHub 2026.
  * Uses CSS custom properties defined in globals.css.
  */

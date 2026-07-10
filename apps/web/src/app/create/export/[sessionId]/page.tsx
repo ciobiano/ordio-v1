@@ -12,7 +12,7 @@ import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
-import ExportScreen from '@/components/soul/export/ExportScreen';
+import ExportState from '@/components/soul/states/ExportState';
 
 
 export default function ExportPage({ params }: { params: Promise<{ sessionId: string }> }) {
@@ -152,9 +152,9 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
     return (
     <main
       id="main-content"
-      className="min-h-dvh flex items-center justify-center relative"
+      className="min-h-dvh flex flex-col px-4 sm:px-6 relative"
     >
-      <ExportScreen
+      <ExportState
         playback={playback}
         exporter={exporter}
         format={format}
