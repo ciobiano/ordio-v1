@@ -91,7 +91,7 @@ export function ClipPickerSheet({
               <li key={`${c.start}-${c.end}`}>
                 <button
                   type="button"
-                  disabled={pickingIndex !== null}
+                  disabled={pickingIndex !== null || !episodeFile}
                   onClick={() => pick(c, i)}
                   className={cn(
                     'w-full text-left rounded-2xl border border-white/10 bg-white/4 px-4 py-3',
