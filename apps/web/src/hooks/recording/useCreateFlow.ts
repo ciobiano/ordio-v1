@@ -18,7 +18,29 @@ import {
 } from '@/hooks/audio/useAudioProcessing';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useVAD } from '@/hooks/recording/useVAD';
-import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
+import { useEpisodeIngestion } from '@/hooks/audio/useEpisodeIngestion';
+import {
+  validateFile,
+  validateEpisodeFile,
+  MAX_FILE_SIZE_BYTES,
+  FILE_ERROR_MESSAGES,
+} from '@/lib/fileValidation';
+import { EPISODE_ROUTE_THRESHOLD_SEC } from '@/lib/media/episodePlan';
+
+/** Fast duration probe via metadata only (no decode). Returns null on any failure. */
+async function probeDurationSec(file: File): Promise<number | null> {
+  try {
+    const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
+    const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+    try {
+      return await input.computeDuration();
+    } finally {
+      input.dispose();
+    }
+  } catch {
+    return null;
+  }
+}
 
 // ── Processing alert types ───────────────────────────────────────────
 
@@ -85,6 +107,7 @@ export function useCreateFlow() {
   const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
   const capabilities = useCapabilities();
   const vad = useVAD(recorder.isRecording);
+  const episode = useEpisodeIngestion();
 
   // ── Error handling ───────────────────────────────────────────────
 
@@ -180,20 +203,39 @@ export function useCreateFlow() {
 
   // ── File upload handlers ─────────────────────────────────────────
 
-  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
     if (!file) return;
+
+    // Long files (or files too large for the short path) route to the
+    // episode pipeline instead of the staged-file confirm flow. The
+    // duration probe is metadata-only and fails closed: any error (corrupt
+    // file, unsupported container, etc.) falls through to the existing
+    // short-path validation below, unchanged.
+    const durationSec = await probeDurationSec(file);
+    const isEpisode =
+      (durationSec !== null && durationSec > EPISODE_ROUTE_THRESHOLD_SEC) ||
+      file.size > MAX_FILE_SIZE_BYTES; // too big for the short path — try episode path
+
+    if (isEpisode) {
+      const episodeError = validateEpisodeFile(file);
+      if (episodeError) {
+        toast.error(FILE_ERROR_MESSAGES[episodeError]);
+        return;
+      }
+      void episode.startEpisode(file);
+      return;
+    }
 
     const error = validateFile(file);
     if (error) {
       toast.error(FILE_ERROR_MESSAGES[error]);
-      if (e.target) e.target.value = '';
       return;
     }
 
     setStagedFile(file);
-    if (e.target) e.target.value = '';
-  }, []);
+  }, [episode]);
 
   const handleFileConfirm = useCallback(async () => {
     if (!stagedFile) return;
@@ -256,6 +298,9 @@ export function useCreateFlow() {
     handleFileSelect,
     handleFileConfirm,
     setStagedFile,
+
+    // Long-episode clip-finder pipeline
+    episode,
 
     // Processing
     handleReset,
