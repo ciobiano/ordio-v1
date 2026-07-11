@@ -254,6 +254,7 @@ export function useCreateFlow() {
         toast.error(FILE_ERROR_MESSAGES[episodeError]);
         return;
       }
+      toast.info('Long episode detected — finding your best moments…');
       void episode.startEpisode(file);
       return;
     }
