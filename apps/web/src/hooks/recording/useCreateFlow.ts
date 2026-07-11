@@ -42,6 +42,30 @@ async function probeDurationSec(file: File): Promise<number | null> {
   }
 }
 
+/**
+ * Conservative lower bound on audio bitrate (bits/sec). Real-world audio is
+ * essentially never encoded below this — used only to compute a byte-size
+ * floor below which a file physically cannot contain
+ * EPISODE_ROUTE_THRESHOLD_SEC seconds of audio.
+ */
+const MIN_PLAUSIBLE_AUDIO_BITRATE_BPS = 32_000;
+
+/**
+ * Byte-size floor below which a file cannot possibly hold more than
+ * EPISODE_ROUTE_THRESHOLD_SEC seconds of audio, even at the lowest plausible
+ * bitrate. Files under this size skip the async duration probe entirely and
+ * go straight to the existing (synchronous) short-path validation — this is
+ * a heuristic, not a hard guarantee: a real long file with an unusually low
+ * bitrate could fall under this floor and be misrouted to the short path,
+ * but that just means it hits validateFile's normal checks like any file
+ * does today, so it is not a regression.
+ *
+ * Math: EPISODE_ROUTE_THRESHOLD_SEC (900s) * 32_000 bps / 8 bits-per-byte
+ * = 3,600,000 bytes (~3.43 MiB).
+ */
+const PROBE_SKIP_SIZE_BYTES =
+  (EPISODE_ROUTE_THRESHOLD_SEC * MIN_PLAUSIBLE_AUDIO_BITRATE_BPS) / 8;
+
 // ── Processing alert types ───────────────────────────────────────────
 
 export interface ProcessingAlertState {
@@ -213,10 +237,16 @@ export function useCreateFlow() {
     // duration probe is metadata-only and fails closed: any error (corrupt
     // file, unsupported container, etc.) falls through to the existing
     // short-path validation below, unchanged.
-    const durationSec = await probeDurationSec(file);
+    //
+    // Perf: skip the async probe entirely for files too small to possibly
+    // be long episodes (see PROBE_SKIP_SIZE_BYTES) — keeps the overwhelming
+    // majority of short-file uploads fully synchronous, as before.
+    const tooBigForShortPath = file.size > MAX_FILE_SIZE_BYTES;
+    const couldBeLongEpisode = file.size >= PROBE_SKIP_SIZE_BYTES;
+    const durationSec = couldBeLongEpisode ? await probeDurationSec(file) : null;
     const isEpisode =
       (durationSec !== null && durationSec > EPISODE_ROUTE_THRESHOLD_SEC) ||
-      file.size > MAX_FILE_SIZE_BYTES; // too big for the short path — try episode path
+      tooBigForShortPath; // too big for the short path — try episode path
 
     if (isEpisode) {
       const episodeError = validateEpisodeFile(file);

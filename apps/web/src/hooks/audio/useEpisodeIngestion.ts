@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
 import { ingestEpisode, EpisodeIngestError } from '@/lib/media/episodeIngest';
@@ -183,8 +183,12 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     }
   }, [cancel, findClips]);
 
-  return {
-    phase, progress, candidates, episodeFile, episodeWords, error, partialAvailable,
-    startEpisode, usePartialTranscript, cancel,
-  };
+  return useMemo(
+    () => ({
+      phase, progress, candidates, episodeFile, episodeWords, error, partialAvailable,
+      startEpisode, usePartialTranscript, cancel,
+    }),
+    [phase, progress, candidates, episodeFile, episodeWords, error, partialAvailable,
+      startEpisode, usePartialTranscript, cancel]
+  );
 }
