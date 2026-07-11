@@ -48,7 +48,7 @@ async function probeDurationSec(file: File): Promise<number | null> {
  * floor below which a file physically cannot contain
  * EPISODE_ROUTE_THRESHOLD_SEC seconds of audio.
  */
-const MIN_PLAUSIBLE_AUDIO_BITRATE_BPS = 32_000;
+export const MIN_PLAUSIBLE_AUDIO_BITRATE_BPS = 32_000;
 
 /**
  * Byte-size floor below which a file cannot possibly hold more than

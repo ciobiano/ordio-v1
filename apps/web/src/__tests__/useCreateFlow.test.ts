@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ChangeEvent } from 'react';
 import { EPISODE_ROUTE_THRESHOLD_SEC } from '@/lib/media/episodePlan';
+import { MIN_PLAUSIBLE_AUDIO_BITRATE_BPS } from '@/hooks/recording/useCreateFlow';
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
@@ -67,8 +68,8 @@ function fileSelectEvent(file: File | null): ChangeEvent<HTMLInputElement> {
 }
 
 // Below the size floor a file cannot possibly hold EPISODE_ROUTE_THRESHOLD_SEC
-// seconds of audio at the conservative 32kbps minimum bitrate assumption.
-const PROBE_SKIP_SIZE_BYTES = (EPISODE_ROUTE_THRESHOLD_SEC * 32_000) / 8;
+// seconds of audio at the conservative minimum bitrate assumption.
+const PROBE_SKIP_SIZE_BYTES = (EPISODE_ROUTE_THRESHOLD_SEC * MIN_PLAUSIBLE_AUDIO_BITRATE_BPS) / 8;
 
 describe('useCreateFlow.handleFileSelect routing', () => {
   beforeEach(() => {

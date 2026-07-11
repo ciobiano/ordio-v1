@@ -4,7 +4,6 @@
  */
 
 export const MAX_EPISODE_SEC = 90 * 60; // design: hard reject above 90 min
-export const MAX_EPISODE_BYTES = 250 * 1024 * 1024;
 /** Files longer than this route to the episode pipeline instead of processAudio. */
 export const EPISODE_ROUTE_THRESHOLD_SEC = 15 * 60;
 export const OPUS_CHUNK_SEC = 600; // ~10 min per design
