@@ -25,6 +25,25 @@ export const TimelineSchema = z.object({
 export type Timeline = z.infer<typeof TimelineSchema>;
 
 /**
+ * Background for the audiogram canvas: a solid color or a looping video.
+ * Video backgrounds resolve by source — 'curated' via the static
+ * BACKGROUND_LIBRARY manifest, 'custom' via a Convex backgroundAssets id.
+ */
+export const BackgroundSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('solid'),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  }),
+  z.object({
+    type: z.literal('video'),
+    source: z.enum(['curated', 'custom']),
+    assetId: z.string().min(1),
+  }),
+]);
+
+export type Background = z.infer<typeof BackgroundSchema>;
+
+/**
  * Style configuration for the audiogram.
  * Guarantees visual consistency between preview and export.
  */
@@ -32,6 +51,11 @@ export const StyleConfigSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  /**
+   * Rich background (solid | video). Optional and additive: when absent,
+   * renderers fall back to backgroundColor as an implicit solid background.
+   */
+  background: BackgroundSchema.optional(),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora']),
   fontSize: z.number().positive(),
