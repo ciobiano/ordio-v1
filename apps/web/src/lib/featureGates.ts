@@ -15,7 +15,9 @@ export type FeatureKey =
   | 'format_instagram'
   | 'layout_flipped'
   | 'caption_karaoke'
-  | 'unlimited_exports';
+  | 'unlimited_exports'
+  | 'background_video'
+  | 'background_upload';
 
 const TIER_RANK: Record<UserTier, number> = {
   free: 0,
@@ -39,6 +41,8 @@ export const FEATURE_GATES: Record<FeatureKey, UserTier> = {
   layout_flipped: 'creator',
   caption_karaoke: 'creator',
   unlimited_exports: 'creator',
+  background_video: 'creator', // export with a video background (preview is free)
+  background_upload: 'creator', // uploading custom backgrounds (gated at the action)
 };
 
 export function tierHasAccess(userTier: UserTier, required: UserTier): boolean {

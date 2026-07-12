@@ -14,6 +14,7 @@ import type { CaptionAnimation } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
+import { BackgroundVideoPicker } from './BackgroundVideoPicker';
 
 const FONTS: StyleConfig['fontFamily'][] = [
   'Inter', 'Roboto', 'Outfit',
@@ -232,8 +233,16 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
       return (
         <div className="flex flex-col gap-2.5">
           <ColorRow label="Waveform" value={style.waveColor} onChange={(v) => setStyle({ waveColor: v })} />
-          <ColorRow label="Background" value={style.backgroundColor} onChange={(v) => setStyle({ backgroundColor: v })} />
+          <ColorRow
+            label="Background"
+            value={style.backgroundColor}
+            onChange={(v) =>
+              // Picking a color also reverts a video background to solid
+              setStyle({ backgroundColor: v, background: { type: 'solid', color: v } })
+            }
+          />
           <ColorRow label="Text" value={style.textColor} onChange={(v) => setStyle({ textColor: v })} />
+          <BackgroundVideoPicker onLocked={onLocked} />
         </div>
       );
     }
