@@ -1,9 +1,44 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useConvex } from 'convex/react';
+import { api } from '@Ordio/convex';
+import type { GenericId } from 'convex/values';
+import type { ConvexReactClient } from 'convex/react';
+import type { Background } from '@Ordio/shared/schemas';
 import { useUIStore, useProcessingStore } from '@/stores';
 import { encodeVideo, hasWebCodecsSupport } from '@/lib/video';
 import { encodeVideoFFmpeg } from '@/lib/video';
+import { getCuratedBackground } from '@/lib/backgrounds/backgroundLibrary';
+
+/**
+ * Fetch the selected video background as a Blob for export compositing.
+ * Any failure returns undefined — export falls back to the solid color,
+ * never a broken export. (The ffmpeg.wasm path never composites video;
+ * the picker disables the option where WebCodecs is unavailable.)
+ */
+async function resolveBackgroundBlob(
+  background: Background | undefined,
+  convex: ConvexReactClient,
+  signal: AbortSignal
+): Promise<Blob | undefined> {
+  if (background?.type !== 'video' || !hasWebCodecsSupport()) return undefined;
+  try {
+    const url =
+      background.source === 'curated'
+        ? (getCuratedBackground(background.assetId)?.videoPath ?? null)
+        : await convex.query(api.backgrounds.getBackgroundUrl, {
+            assetId: background.assetId as GenericId<'backgroundAssets'>,
+          });
+    if (!url) return undefined;
+    const res = await fetch(url, { signal });
+    if (!res.ok) return undefined;
+    return await res.blob();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    return undefined;
+  }
+}
 
 interface UseVideoExporterReturn {
   isExporting: boolean;
@@ -28,6 +63,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
   const abortRef = useRef<AbortController | null>(null);
   const prevUrlRef = useRef<string | null>(null);
+  const convex = useConvex();
 
   const startExport = useCallback(
     async (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer, showWatermark = false) => {
@@ -49,6 +85,12 @@ export function useVideoExporter(): UseVideoExporterReturn {
         const { transcript, captionGroups } = useProcessingStore.getState();
         const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
 
+        const backgroundVideo = await resolveBackgroundBlob(
+          style.background,
+          convex,
+          abortController.signal
+        );
+
         const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
         const result = await encode({
           canvas,
@@ -63,6 +105,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
           showWatermark,
           graphicStyle,
           captionTransform,
+          backgroundVideo,
           onProgress: (progress) => setExportProgress(progress * 100),
           signal: abortController.signal,
         });
@@ -83,7 +126,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
         abortRef.current = null;
       }
     },
-    []
+    [convex]
   );
 
   const cancelExport = useCallback(() => {

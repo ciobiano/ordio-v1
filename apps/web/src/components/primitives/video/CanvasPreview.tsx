@@ -8,11 +8,15 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '@Ordio/convex';
+import type { GenericId } from 'convex/values';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@/lib/video';
 import { loadFont } from '@/lib/loaders';
+import { loadCuratedBackground, loadCustomBackground } from '@/lib/loaders/backgroundLoader';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@/lib/loaders';
@@ -109,6 +113,49 @@ export default function CanvasPreview({
     loadFont(style.fontFamily).then(() => setFontLoaded(true));
   }, [style.fontFamily]);
 
+  // Video background: load + autoplay the loop, draw it into renderFrame per
+  // tick (same composite path as export — preview == export, scrim included).
+  const background = style.background;
+  const bgIsVideo = background?.type === 'video';
+  const bgSource = bgIsVideo ? background.source : null;
+  const bgAssetId = bgIsVideo ? background.assetId : null;
+  const customBgUrl = useQuery(
+    api.backgrounds.getBackgroundUrl,
+    bgIsVideo && bgSource === 'custom'
+      ? { assetId: bgAssetId as GenericId<'backgroundAssets'> }
+      : 'skip'
+  );
+  const [bgVideo, setBgVideo] = useState<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!bgIsVideo || !bgAssetId) {
+      setBgVideo(null);
+      return;
+    }
+    const loadPromise =
+      bgSource === 'curated'
+        ? loadCuratedBackground(bgAssetId)
+        : customBgUrl
+          ? loadCustomBackground(bgAssetId, customBgUrl)
+          : null;
+    if (!loadPromise) return; // custom URL still resolving
+
+    loadPromise
+      .then((video) => {
+        if (cancelled) return;
+        void video.play().catch(() => {});
+        setBgVideo(video);
+      })
+      .catch(() => {
+        // Asset failed to load — fall back to solid color, never a broken preview
+        if (!cancelled) setBgVideo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bgIsVideo, bgSource, bgAssetId, customBgUrl]);
+
   // Pre-load graphic asset when graphic style changes
   useEffect(() => {
     if (graphicStyle) loadGraphic(graphicStyle);
@@ -179,6 +226,7 @@ export default function CanvasPreview({
       captionGroups,
       captionAnimation,
       captionTransform,
+      backgroundFrame: bgVideo ?? undefined,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
@@ -196,7 +244,7 @@ export default function CanvasPreview({
       captionMode,
     });
     setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded, bgVideo]);
 
   const showCaptionBox = captionBox !== null;
 
@@ -321,9 +369,10 @@ export default function CanvasPreview({
     activateTransform();
   }, [activateTransform]);
 
-  // Render loop: animate during playback, single frame when paused
+  // Render loop: animate during playback — or whenever a video background is
+  // live, so the loop keeps moving while audio is paused.
   useEffect(() => {
-    if (playback.isPlaying) {
+    if (playback.isPlaying || bgVideo) {
       const tick = () => {
         drawCurrentFrame();
         rafRef.current = requestAnimationFrame(tick);
@@ -337,7 +386,7 @@ export default function CanvasPreview({
       // Single render when paused or seeking
       drawCurrentFrame();
     }
-  }, [playback.isPlaying, drawCurrentFrame]);
+  }, [playback.isPlaying, drawCurrentFrame, bgVideo]);
 
   // Keyboard shortcut: Space to toggle play/pause (ignore inputs)
   useEffect(() => {

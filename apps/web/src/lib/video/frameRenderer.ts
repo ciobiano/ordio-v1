@@ -23,6 +23,41 @@ export interface FrameOptions {
   /** Editorial caption groups from processingStore. Falls back to auto-phrase grouping if omitted. */
   captionGroups?: CaptionGroup[];
   captionTransform?: CaptionTransform;
+  /**
+   * Decoded video background frame for this output frame (VideoFrame or
+   * HTMLVideoElement). Caller owns decode/looping/lifecycle; renderFrame
+   * only composites. Cover-fit + a fixed dark scrim keeps captions legible
+   * over real-life footage.
+   */
+  backgroundFrame?: CanvasImageSource & { width?: number; height?: number };
+}
+
+/** Scrim over video backgrounds so captions stay legible on busy footage. */
+export const BACKGROUND_SCRIM_ALPHA = 0.35;
+
+/** Cover-fit source dimensions onto a target canvas. Pure — unit-testable. */
+export function coverFit(
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number
+): { dx: number; dy: number; dw: number; dh: number } {
+  const scale = Math.max(dstW / srcW, dstH / srcH);
+  const dw = srcW * scale;
+  const dh = srcH * scale;
+  return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh };
+}
+
+function sourceDimensions(
+  frame: CanvasImageSource & { width?: number; height?: number }
+): { w: number; h: number } {
+  if (typeof VideoFrame !== 'undefined' && frame instanceof VideoFrame) {
+    return { w: frame.displayWidth, h: frame.displayHeight };
+  }
+  if (frame instanceof HTMLVideoElement) {
+    return { w: frame.videoWidth, h: frame.videoHeight };
+  }
+  return { w: Number(frame.width) || 0, h: Number(frame.height) || 0 };
 }
 
 /**
@@ -54,9 +89,23 @@ export function renderFrame(
   const layout = canvasLayout ?? 'top';
   const flipped = layout === 'flipped';
 
-  // 1. Background
-  ctx.fillStyle = style.backgroundColor;
-  ctx.fillRect(0, 0, width, height);
+  // 1. Background — video frame (cover-fit + scrim) or solid color
+  const { backgroundFrame } = options;
+  if (backgroundFrame) {
+    const { w: srcW, h: srcH } = sourceDimensions(backgroundFrame);
+    if (srcW > 0 && srcH > 0) {
+      const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
+      ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+      ctx.fillStyle = `rgba(0, 0, 0, ${BACKGROUND_SCRIM_ALPHA})`;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.fillStyle = style.backgroundColor;
+      ctx.fillRect(0, 0, width, height);
+    }
+  } else {
+    ctx.fillStyle = style.backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   // 2. Visual zone
   if (captionMode !== 'karaoke') {

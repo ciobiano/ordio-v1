@@ -10,6 +10,7 @@ import {
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from './frameRenderer';
+import { createBackgroundFrameStream } from './backgroundFrameStream';
 import { loadFont } from '@/lib/loaders';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId, CaptionTransform } from '@/stores';
@@ -45,6 +46,13 @@ export interface EncodeVideoOptions {
   onProgress?: (progress: number) => void;
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+  /**
+   * Looping video background, pre-fetched as a Blob by the caller
+   * (curated: fetch from public/backgrounds; custom: fetch from the signed
+   * Convex URL). Composited under waveform/captions via the shared
+   * renderFrame path, streamed one frame at a time.
+   */
+  backgroundVideo?: Blob;
 }
 
 export interface EncodeResult {
@@ -78,6 +86,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     captionTransform,
     onProgress,
     signal,
+    backgroundVideo,
   } = options;
 
   // Load font before rendering
@@ -141,28 +150,46 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     captionTransform,
   };
 
+  // Optional looping background stream (one decoded frame alive at a time)
+  const backgroundStream = backgroundVideo
+    ? await createBackgroundFrameStream(backgroundVideo, totalFrames, FPS)
+    : null;
+
   // Render and encode frame by frame
   let lastProgressPct = -1;
-  for (let i = 0; i < totalFrames; i++) {
-    if (signal?.aborted) {
-      throw new DOMException('Export cancelled', 'AbortError');
-    }
+  try {
+    for (let i = 0; i < totalFrames; i++) {
+      if (signal?.aborted) {
+        throw new DOMException('Export cancelled', 'AbortError');
+      }
 
-    // Render frame to canvas
-    renderFrame(ctx, i, totalFrames, frameOptions);
+      const bgFrame = backgroundStream ? await backgroundStream.next() : null;
+      try {
+        // Render frame to canvas (background composited inside renderFrame
+        // so preview == export holds)
+        renderFrame(ctx, i, totalFrames, {
+          ...frameOptions,
+          backgroundFrame: bgFrame?.image,
+        });
+      } finally {
+        bgFrame?.close();
+      }
 
-    // Encode current canvas state
-    const timestamp = i * frameDuration;
-    await videoSource.add(timestamp, frameDuration);
+      // Encode current canvas state
+      const timestamp = i * frameDuration;
+      await videoSource.add(timestamp, frameDuration);
 
-    // Report progress — deduplicated to at most one call per integer percent
-    if (onProgress) {
-      const pct = Math.floor(((i + 1) / totalFrames) * 100);
-      if (pct !== lastProgressPct) {
-        onProgress((i + 1) / totalFrames);
-        lastProgressPct = pct;
+      // Report progress — deduplicated to at most one call per integer percent
+      if (onProgress) {
+        const pct = Math.floor(((i + 1) / totalFrames) * 100);
+        if (pct !== lastProgressPct) {
+          onProgress((i + 1) / totalFrames);
+          lastProgressPct = pct;
+        }
       }
     }
+  } finally {
+    backgroundStream?.dispose();
   }
 
   // Close video source and finalize
