@@ -1283,9 +1283,13 @@ import { StudioDesk } from '@/components/studio/StudioDesk';
 vi.mock('convex/react', () => ({
   useConvexAuth: () => ({ isAuthenticated: false }),
   usePaginatedQuery: () => ({ results: [] }),
+  useMutation: () => vi.fn(),
 }));
 vi.mock('@Ordio/convex', () => ({
-  api: { sessions: { listMySessionsPaginated: 'sessions:listMySessionsPaginated' } },
+  api: {
+    sessions: { listMySessionsPaginated: 'sessions:listMySessionsPaginated', createSession: 'sessions:createSession' },
+    jobs: { generateUploadUrl: 'jobs:generateUploadUrl' },
+  },
 }));
 vi.mock('@/hooks/playback/usePlayback', () => ({
   usePlayback: () => ({
