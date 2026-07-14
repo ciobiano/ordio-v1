@@ -3,6 +3,25 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { CenterStage } from '@/components/studio/CenterStage';
 import type { UseStudioFlowReturn } from '@/hooks/studio/useStudioFlow';
 
+vi.mock('@/hooks/playback/usePlayback', () => ({
+  usePlayback: () => ({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 47,
+    play: vi.fn(),
+    pause: vi.fn(),
+    seek: vi.fn(),
+    load: vi.fn(),
+  }),
+}));
+vi.mock('@/components/primitives/video/CanvasPreview', () => ({
+  default: () => <div data-testid="canvas-preview" />,
+}));
+vi.mock('@/stores', () => ({
+  useUIStore: (selector: (s: { format: string; waveformStyle: string; captionMode: string }) => unknown) =>
+    selector({ format: 'vertical', waveformStyle: 'bars', captionMode: 'karaoke' }),
+}));
+
 function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn {
   return {
     view: 'idle',
@@ -42,5 +61,11 @@ describe('CenterStage', () => {
     const flow = makeFlow({ view: 'processing', processingProgress: 42 });
     render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
     expect(screen.getByText(/42%/)).toBeInTheDocument();
+  });
+
+  it('edit: renders the canvas preview once a session is loaded', () => {
+    const flow = makeFlow({ view: 'edit', sessionId: 's1' });
+    render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} />);
+    expect(screen.getByTestId('canvas-preview')).toBeInTheDocument();
   });
 });

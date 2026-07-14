@@ -1,9 +1,11 @@
 'use client';
 
 import { PromptBar } from './PromptBar';
+import { usePlayback } from '@/hooks/playback/usePlayback';
+import CanvasPreview from '@/components/primitives/video/CanvasPreview';
+import { useUIStore } from '@/stores';
 import type { UseStudioFlowReturn } from '@/hooks/studio/useStudioFlow';
 
-// Filled in by Task 6 — Edit/Export bodies need playback + canvas data.
 export interface SessionEditData {
   sessionId: string;
 }
@@ -20,6 +22,11 @@ function formatTimer(seconds: number): string {
 }
 
 export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps) {
+  const playback = usePlayback();
+  const format = useUIStore((s) => s.format);
+  const waveformStyle = useUIStore((s) => s.waveformStyle);
+  const captionMode = useUIStore((s) => s.captionMode);
+
   return (
     <div className="flex-1 relative flex flex-col items-center justify-center min-w-0 bg-[radial-gradient(120%_90%_at_50%_0%,var(--acid-bg-subtle)_0%,var(--acid-bg-base)_60%)] p-7">
       {flow.view === 'idle' && (
@@ -98,7 +105,16 @@ export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps)
       )}
 
       {flow.view === 'edit' && sessionData && (
-        <div className="text-acid-text-3 text-sm">Editing {sessionData.sessionId}</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-67.5 h-120 rounded-acid-lg overflow-hidden border border-acid-border-default shadow-2xl">
+            <CanvasPreview
+              playback={playback}
+              format={format}
+              waveformStyle={waveformStyle}
+              captionMode={captionMode}
+            />
+          </div>
+        </div>
       )}
 
       <PromptBar
