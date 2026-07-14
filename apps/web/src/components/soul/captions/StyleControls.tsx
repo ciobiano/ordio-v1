@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { loadFont } from '@/lib/loaders';
+import { loadFont } from '@Ordio/engine/loaders';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUIStore } from '@/stores';

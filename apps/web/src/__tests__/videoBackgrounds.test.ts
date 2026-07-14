@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { BackgroundSchema } from '@Ordio/shared/schemas';
-import { BACKGROUND_LIBRARY, getCuratedBackground } from '@/lib/backgrounds/backgroundLibrary';
-import { clampBackgroundDuration, BACKGROUND_MAX_DURATION_SEC } from '@/lib/media/transcodeBackgroundUpload';
-import { coverFit, BACKGROUND_SCRIM_ALPHA } from '@/lib/video/frameRenderer';
-import { loopTimestamps } from '@/lib/video/backgroundFrameStream';
+import { BACKGROUND_LIBRARY, getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
+import { clampBackgroundDuration, BACKGROUND_MAX_DURATION_SEC } from '@Ordio/engine/media/transcodeBackgroundUpload';
+import { coverFit, BACKGROUND_SCRIM_ALPHA } from '@Ordio/engine/video/frameRenderer';
+import { loopTimestamps } from '@Ordio/engine/video/backgroundFrameStream';
 import { FEATURE_GATES, tierHasAccess } from '@/lib/featureGates';
 
 describe('BackgroundSchema', () => {

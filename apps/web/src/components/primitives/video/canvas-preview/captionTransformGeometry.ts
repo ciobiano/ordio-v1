@@ -4,8 +4,8 @@ import {
   measureActivePhraseCaption,
   measureSpotlightCaptionBlock,
   measureStackCaptionBlock,
-} from '@/lib/processing/captions';
-import { measureKaraokeCaptionBlock } from '@/lib/video/karaoke';
+} from '@Ordio/engine/processing/captions';
+import { measureKaraokeCaptionBlock } from '@Ordio/engine/video/karaoke';
 
 const MIN_TOUCH_TARGET_PX = 44;
 /** Extra padding around measured caption bounds so the transform frame does not hug glyphs. */

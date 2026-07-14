@@ -14,7 +14,9 @@
     "incremental": true,
     "jsx": "preserve",
     "paths": {
-      "@Ordio/shared/*": ["./packages/shared/src/*"]
+      "@Ordio/shared/*": ["./packages/shared/src/*"],
+      "@Ordio/engine": ["./packages/engine/src/index.ts"],
+      "@Ordio/engine/*": ["./packages/engine/src/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

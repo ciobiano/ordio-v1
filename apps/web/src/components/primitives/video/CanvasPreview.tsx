@@ -14,12 +14,12 @@ import type { GenericId } from 'convex/values';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
-import { renderFrame, type FrameOptions } from '@/lib/video';
-import { loadFont } from '@/lib/loaders';
-import { loadCuratedBackground, loadCustomBackground } from '@/lib/loaders/backgroundLoader';
+import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
+import { loadFont } from '@Ordio/engine/loaders';
+import { loadCuratedBackground, loadCustomBackground } from '@Ordio/engine/loaders/backgroundLoader';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
-import { loadGraphic } from '@/lib/loaders';
+import { loadGraphic } from '@Ordio/engine/loaders';
 import { cn } from '@/lib/utils';
 import { CanvasCaptionTransformOverlay } from './canvas-preview/CanvasCaptionTransformOverlay';
 import {

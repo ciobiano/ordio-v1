@@ -6,9 +6,9 @@ import {
   drawSpotlightCaptions,
   drawStackCaptions,
   measureSpotlightCaptionBlock,
-} from '@/lib/processing/captions';
-import { getMaxCaptionTextWidth, SPOTLIGHT_WIDTH_RATIO } from '@/lib/processing/captions/shared';
-import { drawKaraokeCaptions } from '@/lib/video/karaoke';
+} from '@Ordio/engine/processing/captions';
+import { getMaxCaptionTextWidth, SPOTLIGHT_WIDTH_RATIO } from '@Ordio/engine/processing/captions/shared';
+import { drawKaraokeCaptions } from '@Ordio/engine/video/karaoke';
 
 function createMockCtx(): CanvasRenderingContext2D {
   const calls: Array<{ method: string; args: unknown[] }> = [];

@@ -7,9 +7,9 @@ import type { GenericId } from 'convex/values';
 import type { ConvexReactClient } from 'convex/react';
 import type { Background } from '@Ordio/shared/schemas';
 import { useUIStore, useProcessingStore } from '@/stores';
-import { encodeVideo, hasWebCodecsSupport } from '@/lib/video';
-import { encodeVideoFFmpeg } from '@/lib/video';
-import { getCuratedBackground } from '@/lib/backgrounds/backgroundLibrary';
+import { encodeVideo, hasWebCodecsSupport } from '@Ordio/engine/video';
+import { encodeVideoFFmpeg } from '@Ordio/engine/video';
+import { getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
 
 /**
  * Fetch the selected video background as a Blob for export compositing.
