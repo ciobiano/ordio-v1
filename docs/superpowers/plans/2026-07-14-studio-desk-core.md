@@ -176,7 +176,6 @@ export type StudioView = 'idle' | 'capture' | 'processing' | 'edit' | 'export';
 export interface UseStudioFlowReturn {
   view: StudioView;
   sessionId: string | null;
-  audioLevel: number;
   recordingTime: number;
   processingProgress: number;
   transcript: Word[];
@@ -187,6 +186,7 @@ export interface UseStudioFlowReturn {
   openClip: (sessionId: string) => void;
   goIdle: () => void;
   goExport: () => void;
+  getAudioLevel: () => number;
 }
 export function useStudioFlow(): UseStudioFlowReturn
 ```
@@ -312,7 +312,6 @@ export type StudioView = 'idle' | 'capture' | 'processing' | 'edit' | 'export';
 export interface UseStudioFlowReturn {
   view: StudioView;
   sessionId: string | null;
-  audioLevel: number;
   recordingTime: number;
   processingProgress: number;
   transcript: Word[];
@@ -323,6 +322,7 @@ export interface UseStudioFlowReturn {
   openClip: (sessionId: string) => void;
   goIdle: () => void;
   goExport: () => void;
+  getAudioLevel: () => number;
 }
 
 export function useStudioFlow(): UseStudioFlowReturn {
@@ -330,7 +330,6 @@ export function useStudioFlow(): UseStudioFlowReturn {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [micDenied, setMicDenied] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0);
 
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
@@ -383,7 +382,6 @@ export function useStudioFlow(): UseStudioFlowReturn {
   return {
     view,
     sessionId,
-    audioLevel,
     recordingTime: recorder.recordingTime,
     processingProgress,
     transcript: transcription.transcript,
@@ -394,18 +392,12 @@ export function useStudioFlow(): UseStudioFlowReturn {
     openClip,
     goIdle,
     goExport,
+    getAudioLevel: analyser.getAudioLevel,
   };
 }
 ```
 
-Note: `audioLevel` is wired via a polling effect in Task 6 (CenterStage owns the `requestAnimationFrame` loop while `view === 'capture'`, calling `analyser.getAudioLevel()` — kept out of the hook to avoid a rAF loop running in tests). For now the hook exposes the setter implicitly unused; adjust by exporting `analyser.getAudioLevel` too:
-
-```typescript
-  // add to the returned object:
-  getAudioLevel: analyser.getAudioLevel,
-```
-
-and add `getAudioLevel: () => number;` to `UseStudioFlowReturn`.
+`audioLevel` itself stays `0` from this hook — it's a poll-driven value. CenterStage (Task 5) owns the `requestAnimationFrame` loop that calls `flow.getAudioLevel()` while `view === 'capture'`, so no rAF loop runs during hook tests.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -732,7 +724,7 @@ git commit -m "feat(studio): add LeftRail with real Library query and Transcript
 
 **Interfaces:**
 - Consumes: `UseStudioFlowReturn` fields (`view`, `audioLevel`, `recordingTime`, `processingProgress`, `micDenied`, `startRecording`, `stopRecording`), `PromptBar` (Task 3).
-- Produces: `<CenterStage flow={UseStudioFlowReturn} sessionData={SessionEditData | null} />` — `SessionEditData` (for Edit/Export bodies) is defined and consumed in Task 6; this task only needs to accept and ignore it for now, so the prop is added here and filled in next task.
+- Produces: `<CenterStage flow={UseStudioFlowReturn} sessionData={SessionEditData | null} audioLevel={number} />` — `SessionEditData` (for Edit/Export bodies) is defined and consumed in Task 6; this task only needs to accept and ignore it for now, so the prop is added here and filled in next task. `audioLevel` is a plain number prop, not read from `flow` — `StudioDesk` (Task 9) owns the single `requestAnimationFrame` poll of `flow.getAudioLevel()` and passes the live value down to both `CenterStage` and `RightInspector`, so there is only one poll loop for the whole desk.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -758,6 +750,7 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
     openClip: vi.fn(),
     goIdle: vi.fn(),
     goExport: vi.fn(),
+    getAudioLevel: vi.fn(() => 0),
     ...overrides,
   };
 }
@@ -765,14 +758,14 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
 describe('CenterStage', () => {
   it('idle: shows the record orb and calls startRecording on click', () => {
     const flow = makeFlow({ view: 'idle' });
-    render(<CenterStage flow={flow} sessionData={null} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
     fireEvent.click(screen.getByRole('button', { name: /tap to record/i }));
     expect(flow.startRecording).toHaveBeenCalled();
   });
 
   it('capture: shows recording timer and calls stopRecording on click', () => {
     const flow = makeFlow({ view: 'capture', recordingTime: 12 });
-    render(<CenterStage flow={flow} sessionData={null} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
     expect(screen.getByText(/recording/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
     expect(flow.stopRecording).toHaveBeenCalled();
@@ -780,7 +773,7 @@ describe('CenterStage', () => {
 
   it('processing: shows progress percentage', () => {
     const flow = makeFlow({ view: 'processing', processingProgress: 42 });
-    render(<CenterStage flow={flow} sessionData={null} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
     expect(screen.getByText(/42%/)).toBeInTheDocument();
   });
 });
@@ -808,6 +801,7 @@ export interface SessionEditData {
 interface CenterStageProps {
   flow: UseStudioFlowReturn;
   sessionData: SessionEditData | null;
+  audioLevel: number;
 }
 
 function formatTimer(seconds: number): string {
@@ -815,7 +809,7 @@ function formatTimer(seconds: number): string {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-export function CenterStage({ flow, sessionData }: CenterStageProps) {
+export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps) {
   return (
     <div className="flex-1 relative flex flex-col items-center justify-center min-w-0 bg-[radial-gradient(120%_90%_at_50%_0%,var(--acid-bg-subtle)_0%,var(--acid-bg-base)_60%)] p-7">
       {flow.view === 'idle' && (
@@ -855,7 +849,7 @@ export function CenterStage({ flow, sessionData }: CenterStageProps) {
               <div
                 key={i}
                 className="w-1 rounded bg-acid-text-1/70"
-                style={{ height: `${20 + Math.abs(Math.sin(i * 0.7 + flow.audioLevel * 10)) * 70}%` }}
+                style={{ height: `${20 + Math.abs(Math.sin(i * 0.7 + audioLevel * 10)) * 70}%` }}
               />
             ))}
           </div>
@@ -947,7 +941,7 @@ vi.mock('@/components/primitives/video/CanvasPreview', () => ({
 
 it('edit: renders the canvas preview once a session is loaded', () => {
   const flow = makeFlow({ view: 'edit', sessionId: 's1' });
-  render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} />);
+  render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} />);
   expect(screen.getByTestId('canvas-preview')).toBeInTheDocument();
 });
 ```
@@ -975,7 +969,7 @@ export interface SessionEditData {
 
 // ... (formatTimer, CenterStageProps unchanged from Task 5) ...
 
-export function CenterStage({ flow, sessionData }: CenterStageProps) {
+export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps) {
   const playback = usePlayback();
   const format = useUIStore((s) => s.format);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
@@ -1323,6 +1317,7 @@ Expected: FAIL with "Cannot find module '@/components/studio/StudioDesk'"
 // apps/web/src/components/studio/StudioDesk.tsx
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useStudioFlow } from '@/hooks/studio/useStudioFlow';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { TopBar } from './TopBar';
@@ -1335,6 +1330,27 @@ export function StudioDesk() {
   const flow = useStudioFlow();
   const playback = usePlayback();
 
+  // Single audio-level poll for the whole desk — both CenterStage's live
+  // waveform and RightInspector's level meter read this one value.
+  const [audioLevel, setAudioLevel] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (flow.view !== 'capture') {
+      setAudioLevel(0);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    const tick = () => {
+      setAudioLevel(flow.getAudioLevel());
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [flow.view, flow.getAudioLevel]);
+
   return (
     <div className="w-full h-dvh bg-acid-bg-base text-acid-text-1 flex flex-col overflow-hidden">
       <TopBar title="Untitled recording" onExport={flow.goExport} />
@@ -1345,8 +1361,12 @@ export function StudioDesk() {
           onOpenClip={flow.openClip}
           transcript={flow.transcript}
         />
-        <CenterStage flow={flow} sessionData={flow.sessionId ? { sessionId: flow.sessionId } : null} />
-        <RightInspector view={flow.view} audioLevel={flow.audioLevel} onLocked={() => {}} />
+        <CenterStage
+          flow={flow}
+          sessionData={flow.sessionId ? { sessionId: flow.sessionId } : null}
+          audioLevel={audioLevel}
+        />
+        <RightInspector view={flow.view} audioLevel={audioLevel} onLocked={() => {}} />
       </div>
       <TimelineStrip currentTime={playback.currentTime} duration={playback.duration} onSeek={playback.seek} />
     </div>
@@ -1367,18 +1387,31 @@ export default function StudioPage() {
 // apps/web/src/app/studio/layout.tsx
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
+import { useEffect } from 'react';
+import { useAuth, useClerk } from '@clerk/nextjs';
 
+// No dedicated /sign-in route exists in this app — mobile's SplashScreen
+// triggers Clerk's imperative modal via useClerk(), not a route redirect.
+// Studio mirrors that mechanism, just without the splash animation.
 export default function StudioLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const { openSignIn } = useClerk();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) openSignIn();
+  }, [isLoaded, isSignedIn, openSignIn]);
+
   if (!isLoaded) return null;
-  if (!isSignedIn) redirect('/sign-in');
+  if (!isSignedIn) {
+    return (
+      <div className="w-full h-dvh bg-acid-bg-base flex items-center justify-center text-acid-text-3 text-sm">
+        Sign in to continue.
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 ```
-
-Verify a `/sign-in` route exists (`find apps/web/src/app -iname "sign-in*"`); if the project uses a Clerk modal instead of a route, replace the `redirect` call with the project's existing sign-in trigger pattern instead of inventing a route.
 
 - [ ] **Step 4: Run test to verify it passes**
 
