@@ -10,4 +10,9 @@ describe('TopBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
     expect(onExport).toHaveBeenCalled();
   });
+
+  it('logo links back to the marketing home page', () => {
+    render(<TopBar title="Untitled recording" onExport={vi.fn()} />);
+    expect(screen.getByRole('link', { name: /ordio home/i })).toHaveAttribute('href', '/');
+  });
 });

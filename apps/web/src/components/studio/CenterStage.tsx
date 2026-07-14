@@ -3,6 +3,7 @@
 import { PromptBar } from './PromptBar';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
+import { Orb } from '@/components/primitives/orb/Orb';
 import { useUIStore } from '@/stores';
 import type { UseStudioFlowReturn } from '@/hooks/studio/useStudioFlow';
 
@@ -41,14 +42,12 @@ export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps)
               Tap the orb to record, drop a file anywhere, or press ⌘K.
             </div>
           </div>
-          <button
-            aria-label="Tap to record"
-            onClick={() => void flow.startRecording()}
-            disabled={flow.isStarting}
-            className="w-37.5 h-37.5 rounded-full bg-[radial-gradient(circle_at_34%_28%,#ffffff,var(--acid-text-1)_45%,var(--acid-surface-3)_100%)] flex items-center justify-center cursor-pointer"
-          >
-            <div className="w-5 h-8.5 rounded-xl bg-acid-bg-base/80" />
-          </button>
+          <Orb
+            state="dormant"
+            intensity={0}
+            onClick={flow.isStarting ? undefined : () => void flow.startRecording()}
+            ariaLabel="Tap to record"
+          />
           {flow.micDenied && (
             <div className="text-xs text-acid-error">Microphone access denied — check browser settings.</div>
           )}

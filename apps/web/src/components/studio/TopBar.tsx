@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { studioButton } from '@/lib/studioVariants';
 
 interface TopBarProps {
@@ -11,9 +12,13 @@ export function TopBar({ title, onExport }: TopBarProps) {
   return (
     <div className="h-15 flex-none flex items-center gap-4 px-4.5 bg-acid-bg-subtle border-b border-acid-border-subtle">
       <div className="flex items-center gap-3.5 w-65">
-        <div className="w-7.5 h-7.5 rounded-lg bg-acid-text-1 text-acid-bg-base flex items-center justify-center font-acid-display font-bold text-lg flex-none">
+        <Link
+          href="/"
+          aria-label="Ordio home"
+          className="w-7.5 h-7.5 rounded-lg bg-acid-text-1 text-acid-bg-base flex items-center justify-center font-acid-display font-bold text-lg flex-none"
+        >
           O
-        </div>
+        </Link>
         <div className="flex flex-col min-w-0">
           <div className="font-acid-display font-semibold text-base text-acid-text-1 truncate">
             {title}

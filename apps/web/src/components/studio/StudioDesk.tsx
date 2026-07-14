@@ -42,6 +42,7 @@ export function StudioDesk() {
           view={flow.view}
           activeSessionId={flow.sessionId}
           onOpenClip={flow.openClip}
+          onGoIdle={flow.goIdle}
           transcript={flow.transcript}
         />
         <CenterStage

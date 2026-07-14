@@ -13,16 +13,17 @@ interface LeftRailProps {
   view: StudioView;
   activeSessionId: string | null;
   onOpenClip: (sessionId: string) => void;
+  onGoIdle: () => void;
   transcript: Word[];
 }
 
-export function LeftRail({ view, activeSessionId, onOpenClip, transcript }: LeftRailProps) {
+export function LeftRail({ view, activeSessionId, onOpenClip, onGoIdle, transcript }: LeftRailProps) {
   const isTranscript = view === 'edit' || view === 'export';
 
   return (
     <div className="w-70 flex-none bg-acid-bg-subtle border-r border-acid-border-subtle flex flex-col min-h-0 overflow-y-auto">
       {isTranscript ? (
-        <TranscriptPane transcript={transcript} />
+        <TranscriptPane transcript={transcript} onGoIdle={onGoIdle} />
       ) : (
         <LibraryPane activeSessionId={activeSessionId} onOpenClip={onOpenClip} />
       )}
@@ -71,10 +72,16 @@ function LibraryPane({
   );
 }
 
-function TranscriptPane({ transcript }: { transcript: Word[] }) {
+function TranscriptPane({ transcript, onGoIdle }: { transcript: Word[]; onGoIdle: () => void }) {
   return (
     <>
       <div className="px-4 pt-3.5 pb-2.5 border-b border-acid-border-subtle">
+        <button
+          onClick={onGoIdle}
+          className="text-xs text-acid-text-2 hover:text-acid-text-1 flex items-center gap-1.5 mb-2"
+        >
+          ‹ Library
+        </button>
         <div className="font-acid-display font-semibold text-[15px] text-acid-text-1">Transcript</div>
         <div className="text-[11px] text-acid-text-3 mt-0.5">Click a word to cut it</div>
       </div>
