@@ -1,8 +1,8 @@
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from './frameRenderer';
-import { loadFont } from '@/lib/loaders';
-import { loadGraphic } from '@/lib/loaders';
+import { loadFont } from '../loaders';
+import { loadGraphic } from '../loaders';
 import type { EncodeVideoOptions, EncodeResult } from './videoEncoder';
 
 /**

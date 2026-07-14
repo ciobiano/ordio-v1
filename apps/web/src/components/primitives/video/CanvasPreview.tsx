@@ -126,11 +126,13 @@ export default function CanvasPreview({
       : 'skip'
   );
   const [bgVideo, setBgVideo] = useState<HTMLVideoElement | null>(null);
+  const [bgLoading, setBgLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     if (!bgIsVideo || !bgAssetId) {
       setBgVideo(null);
+      setBgLoading(false);
       return;
     }
     const loadPromise =
@@ -141,20 +143,35 @@ export default function CanvasPreview({
           : null;
     if (!loadPromise) return; // custom URL still resolving
 
+    setBgLoading(true);
     loadPromise
       .then((video) => {
         if (cancelled) return;
-        void video.play().catch(() => {});
         setBgVideo(video);
       })
       .catch(() => {
         // Asset failed to load — fall back to solid color, never a broken preview
         if (!cancelled) setBgVideo(null);
+      })
+      .finally(() => {
+        if (!cancelled) setBgLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, [bgIsVideo, bgSource, bgAssetId, customBgUrl]);
+
+  // Keep the background video's own playback in lockstep with the audio-driven
+  // preview — the play button controls both, and the loop must not keep
+  // running (or drift out of sync) while the transcript is paused.
+  useEffect(() => {
+    if (!bgVideo) return;
+    if (playback.isPlaying) {
+      void bgVideo.play().catch(() => {});
+    } else {
+      bgVideo.pause();
+    }
+  }, [bgVideo, playback.isPlaying]);
 
   // Pre-load graphic asset when graphic style changes
   useEffect(() => {
@@ -369,10 +386,10 @@ export default function CanvasPreview({
     activateTransform();
   }, [activateTransform]);
 
-  // Render loop: animate during playback — or whenever a video background is
-  // live, so the loop keeps moving while audio is paused.
+  // Render loop: animate only while playback is actually running — paused
+  // audio must show a paused (single, static) frame, background video included.
   useEffect(() => {
-    if (playback.isPlaying || bgVideo) {
+    if (playback.isPlaying) {
       const tick = () => {
         drawCurrentFrame();
         rafRef.current = requestAnimationFrame(tick);
@@ -386,7 +403,7 @@ export default function CanvasPreview({
       // Single render when paused or seeking
       drawCurrentFrame();
     }
-  }, [playback.isPlaying, drawCurrentFrame, bgVideo]);
+  }, [playback.isPlaying, drawCurrentFrame]);
 
   // Keyboard shortcut: Space to toggle play/pause (ignore inputs)
   useEffect(() => {
@@ -472,6 +489,17 @@ export default function CanvasPreview({
       )}
       {/* Optional grid overlay for composition studies */}
       {showGrid && <div aria-hidden="true" style={gridOverlayStyle} />}
+      {/* Background video loading — shown while a newly selected background is
+          being fetched/decoded, before it appears in the preview */}
+      {bgLoading && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="status"
+          aria-label="Loading background video"
+        >
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/25 border-t-white/80" />
+        </div>
+      )}
       {/* Format badge */}
       <div className="absolute top-2 left-2 z-20 bg-black/50 text-[clamp(0.625rem,2vw,0.75rem)] text-white/70 px-2 py-0.5 rounded-lg backdrop-blur" aria-hidden="true">
         {getFormatLabel(format)}

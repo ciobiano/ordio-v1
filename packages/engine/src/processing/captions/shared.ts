@@ -1,10 +1,10 @@
-import type { CanvasLayout, CaptionAnimation, CaptionGroup } from '@/stores';
+import type { CanvasLayout, CaptionAnimation, CaptionGroup } from '../../types';
 import {
   GAP_ABOVE_WAVEFORM,
   WAVEFORM_CENTER_Y,
   WAVEFORM_CENTER_Y_FLIPPED,
   WAVEFORM_MAX_AMP,
-} from '@/lib/waveforms/constants';
+} from '../../waveforms/constants';
 
 export const CAPTION_SIDE_MARGIN_PX = 2;
 export const CAPTION_VERTICAL_SAFE_RATIO = 0.08;

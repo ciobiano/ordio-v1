@@ -4,12 +4,12 @@ import type {
   CaptionAnimation,
   CaptionGroup,
   CaptionTransform,
-} from '@/stores';
-import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+} from '../../types';
+import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
 import {
   buildOneLinePhraseSegments,
   findActiveDisplaySegment,
-} from '@/lib/captions/display';
+} from '../../captions/display';
 import {
   calculatePhraseTextY,
   FONT_WEIGHT,

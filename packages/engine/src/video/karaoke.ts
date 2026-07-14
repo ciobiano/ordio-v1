@@ -1,9 +1,9 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionAnimation, CaptionGroup, CaptionTransform } from '@/stores';
+import type { CaptionAnimation, CaptionGroup, CaptionTransform } from '../types';
 import {
   buildSentenceSegments,
   findActiveDisplaySegment,
-} from '@/lib/captions/display';
+} from '../captions/display';
 import { drawSpacedText, measureTextWidth } from './textLayout';
 
 const CAPTION_SIDE_MARGIN_PX = 2;

@@ -1,11 +1,11 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionGroup, CaptionTransform } from '@/stores';
-import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+import type { CaptionGroup, CaptionTransform } from '../../types';
+import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
 import {
   buildStackSegments,
   findActiveDisplaySegment,
-} from '@/lib/captions/display';
-import { hasStrongPunctuation, hasSoftPunctuation } from '@/lib/captions/display/textBoundaries';
+} from '../../captions/display';
+import { hasStrongPunctuation, hasSoftPunctuation } from '../../captions/display/textBoundaries';
 import {
   STACK_COLUMN_RATIO,
   STACK_LEFT_RATIO,
@@ -30,8 +30,7 @@ type StackWord = Word & {
  */
 function getActiveStackSceneWords(
   transcript: Word[],
-  currentTime: number,
-  _groups?: CaptionGroup[]
+  currentTime: number
 ): StackWordSource {
   const segments = buildStackSegments(transcript);
   const activeSegment = findActiveDisplaySegment(segments, currentTime);
@@ -189,12 +188,12 @@ function layoutStackScene(
   transcript: Word[],
   currentTime: number,
   style: StyleConfig,
-  groups?: CaptionGroup[]
+  _groups?: CaptionGroup[]
 ): StackSceneLayout | null {
   if (transcript.length === 0) return null;
 
   const { width, height, fontFamily, fontSize, characterSpacing = 0 } = style;
-  const scene = getActiveStackSceneWords(transcript, currentTime, groups);
+  const scene = getActiveStackSceneWords(transcript, currentTime);
   const words = scene.words;
   if (words.length === 0) return null;
 
@@ -257,7 +256,7 @@ export function drawStackCaptions(
   const layout = layoutStackScene(ctx, transcript, currentTime, style, groups);
   if (!layout) return;
 
-  const { wordLines, metrics, spaceWidth } = layout;
+  const { wordLines, metrics } = layout;
   const characterSpacing = style.characterSpacing ?? 0;
 
   const centerX = metrics.blockCenterX + (captionTransform?.offsetXRatio ?? 0) * style.width;

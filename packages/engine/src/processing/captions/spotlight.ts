@@ -1,10 +1,10 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CanvasLayout, CaptionGroup, CaptionTransform } from '@/stores';
-import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+import type { CanvasLayout, CaptionGroup, CaptionTransform } from '../../types';
+import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
 import {
   buildOneLinePhraseSegments,
   findActiveDisplaySegment,
-} from '@/lib/captions/display';
+} from '../../captions/display';
 import {
   FONT_WEIGHT,
   getSpotlightCenterY,

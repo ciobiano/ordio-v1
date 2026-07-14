@@ -1,4 +1,4 @@
-import type { GraphicStyleId } from '@/stores';
+import type { GraphicStyleId } from '../types';
 
 const cache = new Map<string, HTMLImageElement>();
 

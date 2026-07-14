@@ -1,4 +1,4 @@
-import { measureTextWidth } from '@/lib/video/textLayout';
+import { measureTextWidth } from '../../video/textLayout';
 
 export function wrapText(
   ctx: CanvasRenderingContext2D,

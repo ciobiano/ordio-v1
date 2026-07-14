@@ -6,7 +6,7 @@
  * the React layer resolves them via api.backgrounds.getBackgroundUrl and
  * passes the URL down — this module stays hook-free).
  */
-import { getCuratedBackground } from '@/lib/backgrounds/backgroundLibrary';
+import { getCuratedBackground } from '../backgrounds/backgroundLibrary';
 
 const cache = new Map<string, HTMLVideoElement>();
 

@@ -1,10 +1,44 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { BackgroundSchema } from '@Ordio/shared/schemas';
 import { BACKGROUND_LIBRARY, getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
-import { clampBackgroundDuration, BACKGROUND_MAX_DURATION_SEC } from '@Ordio/engine/media/transcodeBackgroundUpload';
+import {
+  clampBackgroundDuration,
+  BACKGROUND_MAX_DURATION_SEC,
+  transcodeBackgroundUpload,
+} from '@Ordio/engine/media/transcodeBackgroundUpload';
 import { coverFit, BACKGROUND_SCRIM_ALPHA } from '@Ordio/engine/video/frameRenderer';
 import { loopTimestamps } from '@Ordio/engine/video/backgroundFrameStream';
 import { FEATURE_GATES, tierHasAccess } from '@/lib/featureGates';
+
+const mockConversion: { onProgress?: (p: number) => void; isValid: boolean } = { isValid: true };
+
+class MockInput {
+  computeDuration = vi.fn().mockResolvedValue(5);
+  dispose = vi.fn();
+}
+
+class MockOutput {
+  target = { buffer: new ArrayBuffer(8) };
+}
+
+vi.mock('mediabunny', () => ({
+  Input: MockInput,
+  Output: MockOutput,
+  Conversion: {
+    init: vi.fn().mockResolvedValue(
+      Object.assign(mockConversion, {
+        execute: vi.fn().mockImplementation(async () => {
+          mockConversion.onProgress?.(0.5);
+          mockConversion.onProgress?.(1);
+        }),
+      })
+    ),
+  },
+  BlobSource: class {},
+  BufferTarget: class {},
+  Mp4OutputFormat: class {},
+  ALL_FORMATS: {},
+}));
 
 describe('BackgroundSchema', () => {
   it('accepts a solid background', () => {
@@ -88,6 +122,23 @@ describe('coverFit', () => {
   it('scrim alpha stays in a legible range', () => {
     expect(BACKGROUND_SCRIM_ALPHA).toBeGreaterThan(0.2);
     expect(BACKGROUND_SCRIM_ALPHA).toBeLessThan(0.6);
+  });
+});
+
+describe('transcodeBackgroundUpload', () => {
+  it('forwards conversion progress to the caller-supplied callback', async () => {
+    const file = new File([new Uint8Array(8)], 'clip.mp4', { type: 'video/mp4' });
+    const onProgress = vi.fn();
+
+    await transcodeBackgroundUpload(file, onProgress);
+
+    expect(onProgress).toHaveBeenCalledWith(0.5);
+    expect(onProgress).toHaveBeenCalledWith(1);
+  });
+
+  it('does not throw when no progress callback is supplied', async () => {
+    const file = new File([new Uint8Array(8)], 'clip.mp4', { type: 'video/mp4' });
+    await expect(transcodeBackgroundUpload(file)).resolves.toBeDefined();
   });
 });
 

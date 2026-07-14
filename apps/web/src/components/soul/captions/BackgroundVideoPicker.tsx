@@ -37,6 +37,7 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const webCodecsOk = hasWebCodecsSupport();
   const selected = style.background?.type === 'video' ? style.background : null;
@@ -62,9 +63,15 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
   const handleFile = async (file: File | undefined) => {
     if (!file || isUploading) return;
     setIsUploading(true);
+    setUploadProgress(0);
     try {
-      const { blob, durationSec } = await transcodeBackgroundUpload(file);
+      // Transcoding is the dominant wait for a client-side conversion — give it
+      // most of the bar; the actual upload of a ≤2MB clip is comparatively fast.
+      const { blob, durationSec } = await transcodeBackgroundUpload(file, (p) =>
+        setUploadProgress(Math.round(p * 80))
+      );
       const uploadUrl = await generateUploadUrl();
+      setUploadProgress(85);
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'video/mp4' },
@@ -72,12 +79,14 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
       });
       if (!res.ok) throw new Error('Upload failed');
       const { storageId } = (await res.json()) as { storageId: string };
+      setUploadProgress(95);
       const assetId = await uploadBackground({
         storageId: storageId as GenericId<'_storage'>,
         label: file.name.replace(/\.[^.]+$/, ''),
         durationSec,
         sizeBytes: blob.size,
       });
+      setUploadProgress(100);
       setStyle({ background: { type: 'video', source: 'custom', assetId } });
       toast.success('Background added');
     } catch (err) {
@@ -85,6 +94,7 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
       toast.error(err instanceof Error ? err.message : 'Could not add this background');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -161,9 +171,15 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
               (!webCodecsOk || isUploading) && 'opacity-40'
             )}
             aria-label="Upload a background video"
+            aria-busy={isUploading}
           >
-            <span className="flex h-full items-center justify-center text-lg">
-              {isUploading ? '…' : '+'}
+            <span
+              className={cn(
+                'flex h-full items-center justify-center',
+                isUploading ? 'text-[10px] tabular-nums text-white/70' : 'text-lg'
+              )}
+            >
+              {isUploading ? `${uploadProgress}%` : '+'}
             </span>
           </button>
           {isLocked('background_upload') && (

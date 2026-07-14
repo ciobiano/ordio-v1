@@ -1,21 +1,11 @@
-import {
-  Output,
-  Mp4OutputFormat,
-  BufferTarget,
-  CanvasSource,
-  AudioBufferSource,
-  QUALITY_HIGH,
-  QUALITY_MEDIUM,
-} from 'mediabunny';
+import { Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioBufferSource } from 'mediabunny';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from './frameRenderer';
 import { createBackgroundFrameStream } from './backgroundFrameStream';
-import { loadFont } from '@/lib/loaders';
+import { loadFont, loadGraphic } from '../loaders';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId, CaptionTransform } from '@/stores';
-import { loadGraphic } from '@/lib/loaders';
-import type { CaptionGroup } from '@/stores/types';
+import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId, CaptionTransform, CaptionGroup } from '../types';
 
 export interface EncodeVideoOptions {
   /** Canvas element to render frames onto */

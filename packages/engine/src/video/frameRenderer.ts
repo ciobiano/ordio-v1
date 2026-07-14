@@ -1,9 +1,8 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
-import type { WaveformVariant, CaptionMode, CaptionAnimation, GraphicStyleId, CanvasLayout, CaptionTransform } from '@/stores';
-import type { CaptionGroup } from '@/stores/types';
-import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '@/lib/waveforms';
-import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '@/lib/waveforms/constants';
+import type { WaveformVariant, CaptionMode, CaptionAnimation, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
+import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '../waveforms';
+import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '../waveforms/constants';
 import { getGraphic } from '../loaders/graphicLoader';
 import { drawGraphic } from '../graphic';
 import { drawCaptions, drawSpotlightCaptions, drawStackCaptions } from '../processing/captions';
