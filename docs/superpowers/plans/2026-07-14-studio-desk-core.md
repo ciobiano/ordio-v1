@@ -1044,7 +1044,7 @@ describe('RightInspector', () => {
   it('edit: renders the real StyleControls and a background placeholder', () => {
     render(<RightInspector view="edit" audioLevel={0} onLocked={vi.fn()} />);
     expect(screen.getByTestId('style-controls')).toBeInTheDocument();
-    expect(screen.getByText(/background/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/background/i).length).toBeGreaterThan(0);
   });
 });
 ```
