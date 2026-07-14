@@ -551,7 +551,7 @@ git commit -m "feat(studio): add TopBar and PromptBar"
 - Test: `apps/web/src/__tests__/LeftRail.test.tsx`
 
 **Interfaces:**
-- Consumes: `studioRailRow` (Task 1), `api.sessions.listMySessionsPaginated` (existing Convex query, same shape `CaptureSidebar.tsx` uses: `{ _id, title, durationMs, createdAt, status }`), `formatDuration` from `@/components/saved-audio/formatters` (existing).
+- Consumes: `studioRailRow` (Task 1), `api.sessions.listMySessionsPaginated` (existing Convex query, real shape per `packages/convex/convex/sessions.ts`: `{ id, name, createdAt, updatedAt, expiresAt, durationMs }` — no `status` field; every session in this list is already finalized), `formatDuration` from `@/components/saved-audio/formatters` (existing).
 - Produces: `<LeftRail view={StudioView} activeSessionId={string|null} onOpenClip={(id: string) => void} transcript={Word[]} />`.
 
 - [ ] **Step 1: Write the failing test**
@@ -566,8 +566,8 @@ vi.mock('convex/react', () => ({
   useConvexAuth: () => ({ isAuthenticated: true }),
   usePaginatedQuery: () => ({
     results: [
-      { _id: 's1', title: 'Why I quit my design job', durationMs: 47000, createdAt: Date.now(), status: 'ready' },
-      { _id: 's2', title: 'Untitled recording', durationMs: 58000, createdAt: Date.now(), status: 'processing' },
+      { id: 's1', name: 'Why I quit my design job', durationMs: 47000, createdAt: Date.now() },
+      { id: 's2', name: 'Untitled recording', durationMs: 58000, createdAt: Date.now() },
     ],
   }),
 }));
@@ -665,16 +665,14 @@ function LibraryPane({
       <div className="flex-1 px-2.5 pb-3 flex flex-col gap-1">
         {sessions.map((session) => (
           <div
-            key={session._id}
-            className={studioRailRow({ active: session._id === activeSessionId })}
-            onClick={() => onOpenClip(session._id)}
+            key={session.id}
+            className={studioRailRow({ active: session.id === activeSessionId })}
+            onClick={() => onOpenClip(session.id)}
           >
             <div className="w-11 h-11 rounded-lg bg-acid-surface-2 border border-acid-border-subtle flex-none" />
             <div className="flex-1 min-w-0">
-              <div className="text-[13.5px] font-bold text-acid-text-1 truncate">{session.title}</div>
-              <div className="text-[11.5px] text-acid-text-3 mt-0.5">
-                {session.status === 'processing' ? 'transcribing…' : formatDuration(session.durationMs)}
-              </div>
+              <div className="text-[13.5px] font-bold text-acid-text-1 truncate">{session.name}</div>
+              <div className="text-[11.5px] text-acid-text-3 mt-0.5">{formatDuration(session.durationMs)}</div>
             </div>
           </div>
         ))}
