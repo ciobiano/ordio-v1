@@ -20,7 +20,10 @@ export function clampBackgroundDuration(sourceDurationSec: number): number {
   return Math.min(sourceDurationSec, BACKGROUND_MAX_DURATION_SEC);
 }
 
-export async function transcodeBackgroundUpload(file: File): Promise<TranscodedBackground> {
+export async function transcodeBackgroundUpload(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<TranscodedBackground> {
   const { Input, Output, Conversion, BlobSource, BufferTarget, Mp4OutputFormat, ALL_FORMATS } =
     await import('mediabunny');
 
@@ -49,6 +52,8 @@ export async function transcodeBackgroundUpload(file: File): Promise<TranscodedB
     input.dispose();
     throw new Error('This video cannot be converted in this browser.');
   }
+
+  if (onProgress) conversion.onProgress = onProgress;
 
   await conversion.execute();
 
