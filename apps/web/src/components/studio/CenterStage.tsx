@@ -1,7 +1,7 @@
 'use client';
 
 import { PromptBar } from './PromptBar';
-import { usePlayback } from '@/hooks/playback/usePlayback';
+import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
 import { Orb } from '@/components/primitives/orb/Orb';
 import { useUIStore } from '@/stores';
@@ -15,6 +15,7 @@ interface CenterStageProps {
   flow: UseStudioFlowReturn;
   sessionData: SessionEditData | null;
   audioLevel: number;
+  playback: UsePlaybackReturn;
 }
 
 function formatTimer(seconds: number): string {
@@ -22,8 +23,7 @@ function formatTimer(seconds: number): string {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps) {
-  const playback = usePlayback();
+export function CenterStage({ flow, sessionData, audioLevel, playback }: CenterStageProps) {
   const format = useUIStore((s) => s.format);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
   const captionMode = useUIStore((s) => s.captionMode);
@@ -100,6 +100,12 @@ export function CenterStage({ flow, sessionData, audioLevel }: CenterStageProps)
               </div>
             </div>
           </div>
+          <button
+            onClick={flow.cancelProcessing}
+            className="h-8.5 px-4 rounded-acid-sm border border-acid-border-default text-acid-text-2 text-xs font-bold hover:text-acid-text-1 hover:border-acid-border-strong"
+          >
+            Cancel
+          </button>
         </div>
       )}
 

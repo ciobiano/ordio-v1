@@ -3,17 +3,19 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { CenterStage } from '@/components/studio/CenterStage';
 import type { UseStudioFlowReturn } from '@/hooks/studio/useStudioFlow';
 
-vi.mock('@/hooks/playback/usePlayback', () => ({
-  usePlayback: () => ({
-    isPlaying: false,
-    currentTime: 0,
-    duration: 47,
-    play: vi.fn(),
-    pause: vi.fn(),
-    seek: vi.fn(),
-    load: vi.fn(),
-  }),
-}));
+const mockPlayback = {
+  isPlaying: false,
+  currentTime: 0,
+  duration: 47,
+  play: vi.fn(),
+  pause: vi.fn(),
+  stop: vi.fn(),
+  seek: vi.fn(),
+  previewAt: vi.fn(),
+  load: vi.fn(),
+  registerTimeListener: vi.fn(() => () => {}),
+};
+
 vi.mock('@/components/primitives/video/CanvasPreview', () => ({
   default: () => <div data-testid="canvas-preview" />,
 }));
@@ -37,6 +39,7 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
     goIdle: vi.fn(),
     goExport: vi.fn(),
     getAudioLevel: vi.fn(() => 0),
+    cancelProcessing: vi.fn(),
     ...overrides,
   };
 }
@@ -44,14 +47,14 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
 describe('CenterStage', () => {
   it('idle: shows the record orb and calls startRecording on click', () => {
     const flow = makeFlow({ view: 'idle' });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
     fireEvent.click(screen.getByRole('button', { name: /tap to record/i }));
     expect(flow.startRecording).toHaveBeenCalled();
   });
 
   it('capture: shows recording timer and calls stopRecording on click', () => {
     const flow = makeFlow({ view: 'capture', recordingTime: 12 });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
     expect(screen.getByText(/recording/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
     expect(flow.stopRecording).toHaveBeenCalled();
@@ -59,13 +62,20 @@ describe('CenterStage', () => {
 
   it('processing: shows progress percentage', () => {
     const flow = makeFlow({ view: 'processing', processingProgress: 42 });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
     expect(screen.getByText(/42%/)).toBeInTheDocument();
+  });
+
+  it('processing: Cancel button calls flow.cancelProcessing', () => {
+    const flow = makeFlow({ view: 'processing', processingProgress: 10 });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(flow.cancelProcessing).toHaveBeenCalled();
   });
 
   it('edit: renders the canvas preview once a session is loaded', () => {
     const flow = makeFlow({ view: 'edit', sessionId: 's1' });
-    render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} />);
+    render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} playback={mockPlayback} />);
     expect(screen.getByTestId('canvas-preview')).toBeInTheDocument();
   });
 });

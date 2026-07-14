@@ -9,6 +9,7 @@ const disconnect = vi.fn();
 const transcribeAudio = vi.fn(async () => []);
 const clearTranscript = vi.fn();
 const processAudio = vi.fn(async () => 'session-123');
+const cancelProcessing = vi.fn();
 
 vi.mock('@/hooks/audio/useAudioRecorder', () => ({
   useAudioRecorder: () => ({
@@ -33,7 +34,7 @@ vi.mock('@/hooks/recording/useTranscription', () => ({
   }),
 }));
 vi.mock('@/hooks/audio/useAudioProcessing', () => ({
-  useAudioProcessing: () => ({ processingProgress: 0, processAudio, cancelProcessing: vi.fn() }),
+  useAudioProcessing: () => ({ processingProgress: 0, processAudio, cancelProcessing }),
 }));
 
 describe('useStudioFlow', () => {
@@ -87,5 +88,18 @@ describe('useStudioFlow', () => {
     act(() => result.current.openClip('s1'));
     act(() => result.current.goExport());
     expect(result.current.view).toBe('export');
+  });
+
+  it('cancelling processing stops the transcription job and returns to idle', async () => {
+    const { result } = renderHook(() => useStudioFlow());
+    await act(async () => {
+      await result.current.startRecording();
+    });
+    act(() => {
+      result.current.cancelProcessing();
+    });
+    expect(cancelProcessing).toHaveBeenCalled();
+    expect(result.current.view).toBe('idle');
+    expect(result.current.sessionId).toBeNull();
   });
 });

@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { UserButton } from '@clerk/nextjs';
 import { studioButton } from '@/lib/studioVariants';
 
 interface TopBarProps {
   title: string;
   onExport: () => void;
+  onOpenSearch: () => void;
 }
 
-export function TopBar({ title, onExport }: TopBarProps) {
+export function TopBar({ title, onExport, onOpenSearch }: TopBarProps) {
   return (
     <div className="h-15 flex-none flex items-center gap-4 px-4.5 bg-acid-bg-subtle border-b border-acid-border-subtle">
       <div className="flex items-center gap-3.5 w-65">
@@ -27,7 +29,11 @@ export function TopBar({ title, onExport }: TopBarProps) {
         </div>
       </div>
       <div className="flex-1 flex justify-center">
-        <div className="flex items-center gap-2.5 h-8.5 px-3 bg-acid-surface-1 border border-acid-border-subtle rounded-acid-sm text-acid-text-3 text-sm min-w-75">
+        <button
+          onClick={onOpenSearch}
+          aria-label="Search actions, ask copilot"
+          className="flex items-center gap-2.5 h-8.5 px-3 bg-acid-surface-1 border border-acid-border-subtle rounded-acid-sm text-acid-text-3 text-sm min-w-75"
+        >
           Search actions, ask copilot…
           <span className="ml-auto flex gap-0.5">
             <kbd className="bg-acid-surface-2 border border-acid-border-subtle rounded px-1.5 text-[11px] font-bold text-acid-text-2">
@@ -37,15 +43,17 @@ export function TopBar({ title, onExport }: TopBarProps) {
               K
             </kbd>
           </span>
-        </div>
+        </button>
       </div>
       <div className="flex items-center gap-3">
         <button className={studioButton({ variant: 'primary' })} onClick={onExport}>
           Export ↗
         </button>
-        <div className="w-8.5 h-8.5 rounded-full bg-acid-surface-2 border border-acid-border-default flex items-center justify-center text-sm font-bold text-acid-text-1">
-          MK
-        </div>
+        <UserButton
+          appearance={{
+            elements: { avatarBox: 'w-8.5 h-8.5' },
+          }}
+        />
       </div>
     </div>
   );

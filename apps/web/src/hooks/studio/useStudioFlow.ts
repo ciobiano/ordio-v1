@@ -23,6 +23,7 @@ export interface UseStudioFlowReturn {
   goIdle: () => void;
   goExport: () => void;
   getAudioLevel: () => number;
+  cancelProcessing: () => void;
 }
 
 export function useStudioFlow(): UseStudioFlowReturn {
@@ -34,7 +35,8 @@ export function useStudioFlow(): UseStudioFlowReturn {
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
-  const { processingProgress, processAudio } = useAudioProcessing(transcription);
+  const { processingProgress, processAudio, cancelProcessing: cancelProcessingJob } =
+    useAudioProcessing(transcription);
 
   const startRecording = useCallback(async () => {
     setIsStarting(true);
@@ -79,6 +81,12 @@ export function useStudioFlow(): UseStudioFlowReturn {
 
   const goExport = useCallback(() => setView('export'), []);
 
+  const cancelProcessing = useCallback(() => {
+    cancelProcessingJob();
+    setSessionId(null);
+    setView('idle');
+  }, [cancelProcessingJob]);
+
   return {
     view,
     sessionId,
@@ -93,5 +101,6 @@ export function useStudioFlow(): UseStudioFlowReturn {
     goIdle,
     goExport,
     getAudioLevel: analyser.getAudioLevel,
+    cancelProcessing,
   };
 }
