@@ -2,7 +2,7 @@
 
 import { Upload, Settings, Stop, Pause, Play, Refresh, Close, Microphone } from 'griddy-icons';
 import { cn } from '@/lib/utils';
-import { captureCenterSlot, capturePillBar, captureRecordBtn, captureRoundBtn } from '@/lib/variants';
+import { captureCenterSlot, captureRecordHero, captureRoundBtn } from '@/lib/variants';
 import type { CapturePhase } from './types';
 
 interface CaptureDockProps {
@@ -37,26 +37,47 @@ export function CaptureDock({
   onCancel,
 }: CaptureDockProps) {
   if (phase === 'idle') {
+    // Camera-app dock: record is the centered hero, upload/settings flank it as
+    // labeled icon buttons. (The old full-width "Upload audio or video" pill
+    // read as a search field next to mobile browsers' URL bars.)
     return (
       <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
-        <div className="flex items-center gap-3 w-full min-h-15">
-          <button type="button" onClick={onOpenUpload} className={capturePillBar} aria-label="Upload audio or video">
-            <Upload size={20} className="shrink-0 text-white/45" />
-            <span className="truncate">Upload audio or video</span>
-          </button>
-          <button
-            type="button"
-            onPointerDown={onRecordPressStart}
-            onPointerUp={onRecordPressEnd}
-            onPointerLeave={onRecordPressEnd}
-            className={captureRecordBtn}
-            aria-label="Press and hold to record"
-          >
-            <Microphone size={20}  />
-          </button>
-          <button type="button" onClick={onOpenSettings} className={captureRoundBtn({ tone: 'neutral' })} aria-label="Settings">
-            <Settings size={20} />
-          </button>
+        <div className="flex items-end justify-center gap-10 w-full">
+          <div className="flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onOpenUpload}
+              className={captureRoundBtn({ tone: 'neutral' })}
+              aria-label="Upload audio or video"
+            >
+              <Upload size={18} />
+            </button>
+            <span className="text-[11px] text-white/40" aria-hidden="true">Upload</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              onPointerDown={onRecordPressStart}
+              onPointerUp={onRecordPressEnd}
+              onPointerLeave={onRecordPressEnd}
+              className={captureRecordHero}
+              aria-label="Press to record"
+            >
+              <Microphone size={26} />
+            </button>
+            <span className="text-[11px] text-white/60" aria-hidden="true">Record</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className={captureRoundBtn({ tone: 'neutral' })}
+              aria-label="Settings"
+            >
+              <Settings size={18} />
+            </button>
+            <span className="text-[11px] text-white/40" aria-hidden="true">Settings</span>
+          </div>
         </div>
       </div>
     );

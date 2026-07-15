@@ -125,12 +125,13 @@ export const captureGlossyBtn =
 
 export const captureNavBtn = `${captureGlossyBtn} w-9 h-9`;
 
-export const capturePillBar =
-  'flex-1 min-w-0 flex items-center gap-2.5 h-11.5 px-4.5 rounded-full bg-[#1c1c1e] border-none ' +
-  'cursor-pointer text-white/45 text-base';
-
-export const captureRecordBtn =
-  'shrink-0 w-11.5 h-11.5 rounded-full flex items-center justify-center bg-[#1c1c1e] border-none cursor-pointer';
+/**
+ * Idle-dock hero record button — the primary action, sized and colored like a
+ * camera/voice-memo shutter so it can't be mistaken for an input field.
+ */
+export const captureRecordHero =
+  'shrink-0 w-17 h-17 rounded-full flex items-center justify-center bg-[#ff453a] text-white ' +
+  'border-4 border-white/15 cursor-pointer transition-transform duration-150 active:scale-92';
 
 /**
  * Center dock slot — waveform (recording/paused), "Process recording" pill (ready), or

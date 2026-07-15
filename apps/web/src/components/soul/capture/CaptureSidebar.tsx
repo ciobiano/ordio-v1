@@ -63,6 +63,7 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
   const deleteSession = useMutation(api.sessions.deleteSession);
   const [pendingDelete, setPendingDelete] = useState<(typeof sessions)[number] | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!pendingDelete) return;
@@ -74,6 +75,7 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
     } finally {
       setIsDeleting(false);
       setPendingDelete(null);
+      setSwipeOpenId(null);
     }
   }, [deleteSession, pendingDelete]);
 
@@ -133,11 +135,22 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
               dragConstraints={{ left: -80, right: 0 }}
               dragElastic={0.06}
               dragMomentum={false}
+              animate={{ x: swipeOpenId === session.id ? -80 : 0 }}
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              onDragEnd={(_, info) =>
+                setSwipeOpenId(info.offset.x < -40 ? session.id : null)
+              }
               className="relative bg-[color:var(--sheet-bg)]"
             >
               <button
                 type="button"
-                onClick={() => handleSelect(session.id)}
+                onClick={() => {
+                  if (swipeOpenId !== null) {
+                    setSwipeOpenId(null);
+                    return;
+                  }
+                  handleSelect(session.id);
+                }}
                 className="w-full text-left px-3 py-3 text-base text-white/85 cursor-pointer truncate hover:bg-white/5"
               >
                 {session.name}

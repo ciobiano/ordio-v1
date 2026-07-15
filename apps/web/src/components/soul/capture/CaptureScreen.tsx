@@ -164,8 +164,10 @@ export function CaptureScreen({
       className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto overflow-hidden select-none"
       style={{ perspective: '1400px' }}
     >
-      {/* Sidebar sits behind the page at all times; revealed as the page slides right. */}
-      <div className="absolute inset-0 z-1 bg-[color:var(--sheet-bg)]">
+      {/* Sidebar sits behind the page at all times; revealed as the page slides right.
+          Its width matches the reveal distance — content laid out at full container
+          width would put row actions (e.g. swipe-to-delete) under the covering page. */}
+      <div className="absolute inset-y-0 left-0 z-1 bg-[color:var(--sheet-bg)]" style={{ width: revealPx }}>
         <CaptureSidebar
           onOpenUpload={() => setUploadOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
