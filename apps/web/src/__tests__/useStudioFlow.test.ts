@@ -4,6 +4,7 @@ import { useStudioFlow } from '@/hooks/studio/useStudioFlow';
 
 const startRecording = vi.fn(async () => ({}) as unknown as MediaStream);
 const stopRecording = vi.fn();
+const stopAndGetBlob = vi.fn(async () => new Blob(['x']));
 const connectStream = vi.fn();
 const disconnect = vi.fn();
 const transcribeAudio = vi.fn(async () => []);
@@ -19,7 +20,14 @@ vi.mock('@/hooks/audio/useAudioRecorder', () => ({
     error: null,
     startRecording,
     stopRecording,
+    stopAndGetBlob,
   }),
+}));
+vi.mock('@/stores', () => ({
+  useCaptureStore: (selector: (s: { resetCapture: () => void }) => unknown) =>
+    selector({ resetCapture: vi.fn() }),
+  useProcessingStore: (selector: (s: { resetProcessing: () => void }) => unknown) =>
+    selector({ resetProcessing: vi.fn() }),
 }));
 vi.mock('@/hooks/audio/useAudioAnalyser', () => ({
   useAudioAnalyser: () => ({ connectStream, getAudioLevel: () => 0.4, disconnect }),
@@ -62,7 +70,7 @@ describe('useStudioFlow', () => {
     await act(async () => {
       await result.current.stopRecording();
     });
-    expect(stopRecording).toHaveBeenCalled();
+    expect(stopAndGetBlob).toHaveBeenCalled();
     expect(processAudio).toHaveBeenCalled();
     await waitFor(() => expect(result.current.view).toBe('edit'));
     expect(result.current.sessionId).toBe('session-123');

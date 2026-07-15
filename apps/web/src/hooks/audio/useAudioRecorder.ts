@@ -15,8 +15,15 @@ interface UseAudioRecorderReturn {
   recordingTime: number;
   audioBlob: Blob | null;
   error: string | null;
-  startRecording: () => Promise<MediaStream | undefined>;
+  startRecording: (deviceId?: string) => Promise<MediaStream | undefined>;
   stopRecording: () => void;
+  /**
+   * Stops recording and resolves with the final Blob once MediaRecorder's
+   * async `onstop` fires. `audioBlob` state is NOT yet set on the very next
+   * line after `stopRecording()` — callers that need the blob immediately
+   * must use this instead of reading `audioBlob`.
+   */
+  stopAndGetBlob: () => Promise<Blob | null>;
   pauseRecording: () => void;
   resumeRecording: () => void;
   resetRecording: () => void;
@@ -35,6 +42,7 @@ export function useAudioRecorder(
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingStopRef = useRef<((blob: Blob) => void) | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -50,13 +58,14 @@ export function useAudioRecorder(
     }, 1000);
   }, [clearTimer]);
 
-  const startRecording = useCallback(async (): Promise<MediaStream | undefined> => {
+  const startRecording = useCallback(async (deviceId?: string): Promise<MediaStream | undefined> => {
     try {
       setError(null);
       chunksRef.current = [];
 
       const rawStream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
           noiseSuppression: { ideal: true },
           echoCancellation: { ideal: true },
           autoGainControl: { ideal: true },
@@ -86,6 +95,8 @@ export function useAudioRecorder(
         setAudioBlob(blob);
         setState('stopped');
         clearTimer();
+        pendingStopRef.current?.(blob);
+        pendingStopRef.current = null;
       };
 
       recorder.start(100); // Collect data every 100ms
@@ -111,6 +122,19 @@ export function useAudioRecorder(
     streamRef.current?.getTracks().forEach((track) => track.stop());
     clearTimer();
   }, [clearTimer]);
+
+  const stopAndGetBlob = useCallback((): Promise<Blob | null> => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
+      stopRecording();
+      return Promise.resolve(null);
+    }
+    const promise = new Promise<Blob | null>((resolve) => {
+      pendingStopRef.current = resolve;
+    });
+    stopRecording();
+    return promise;
+  }, [stopRecording]);
 
   const pauseRecording = useCallback(() => {
     if (recorderRef.current?.state === 'recording') {
@@ -155,6 +179,7 @@ export function useAudioRecorder(
     error,
     startRecording,
     stopRecording,
+    stopAndGetBlob,
     pauseRecording,
     resumeRecording,
     resetRecording,
