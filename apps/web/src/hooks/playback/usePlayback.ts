@@ -73,6 +73,9 @@ export function usePlayback(): UsePlaybackReturn {
         playingRef.current = false;
         setIsPlaying(false);
         setCurrentTime(rangeDur);
+        // Reset the seek position so the next play() restarts from the top
+        // instead of resuming from a stale pre-play offset.
+        seekPositionRef.current = 0;
         for (const fn of timeListenersRef.current) fn(rangeDur, rangeDur);
       }
     };
@@ -157,7 +160,13 @@ export function usePlayback(): UsePlaybackReturn {
     playingRef.current = false;
     setIsPlaying(false);
     stopTimeLoop();
-  }, [stopTimeLoop]);
+    // Sync UI to the exact pause position — the time loop throttles React
+    // state to ~4fps, so without this the frozen frame can lag the audio.
+    const rangeDur = getRangeDuration();
+    const paused = Math.min(seekPositionRef.current, rangeDur);
+    setCurrentTime(paused);
+    for (const fn of timeListenersRef.current) fn(paused, rangeDur);
+  }, [stopTimeLoop, getRangeDuration]);
 
   const seek = useCallback(
     (time: number) => {
@@ -173,9 +182,12 @@ export function usePlayback(): UsePlaybackReturn {
         playingRef.current = false;
         setIsPlaying(false);
         stopTimeLoop();
+        // Scrubbing mid-playback should relocate the playhead, not kill
+        // playback — restart from the new position.
+        void play();
       }
     },
-    [stopTimeLoop, getRangeDuration]
+    [stopTimeLoop, getRangeDuration, play]
   );
 
   const previewAt = useCallback(

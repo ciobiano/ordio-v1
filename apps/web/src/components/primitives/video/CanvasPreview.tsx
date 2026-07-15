@@ -24,6 +24,7 @@ import {
 } from './canvas-preview/captionTransformGeometry';
 import {
   isCaptionActivationDoubleTap,
+  CAPTION_ACTIVATION_DOUBLE_TAP_WINDOW_MS,
   type CaptionActivationTap,
 } from './canvas-preview/captionActivationGesture';
 
@@ -287,19 +288,36 @@ export default function CanvasPreview({
     return () => window.clearTimeout(timer);
   }, [showCaptionBox, isTransformActive]);
 
+  const singleTapTimerRef = useRef<number | null>(null);
+
+  const clearSingleTapTimer = useCallback(() => {
+    if (singleTapTimerRef.current !== null) {
+      window.clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearSingleTapTimer, [clearSingleTapTimer]);
+
+  const togglePlayback = useCallback(() => {
+    if (playback.isPlaying) playback.pause();
+    else void playback.play();
+  }, [playback]);
+
   const activateTransform = useCallback(() => {
     if (!showCaptionBox) return;
     activationTapRef.current = null;
+    clearSingleTapTimer();
     setIsTransformActive(true);
-  }, [showCaptionBox]);
+  }, [showCaptionBox, clearSingleTapTimer]);
 
+  // The activation hotspot sits above the full-canvas play/pause toggle, so a
+  // single tap/click over the captions must fall through to play/pause — only
+  // a double tap/click enters transform mode. We disambiguate with a timer
+  // matched to the double-tap window.
   const handleActivationPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-
-    if (event.pointerType === 'mouse') {
-      return;
-    }
 
     const previousTap = activationTapRef.current;
     const nextTap: CaptionActivationTap = {
@@ -312,8 +330,15 @@ export default function CanvasPreview({
 
     if (isCaptionActivationDoubleTap(previousTap, nextTap)) {
       activateTransform();
+      return;
     }
-  }, [activateTransform]);
+
+    clearSingleTapTimer();
+    singleTapTimerRef.current = window.setTimeout(() => {
+      singleTapTimerRef.current = null;
+      togglePlayback();
+    }, CAPTION_ACTIVATION_DOUBLE_TAP_WINDOW_MS);
+  }, [activateTransform, clearSingleTapTimer, togglePlayback]);
 
   const handleActivationDoubleClick = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     event.preventDefault();
@@ -338,6 +363,13 @@ export default function CanvasPreview({
       drawCurrentFrame();
     }
   }, [playback.isPlaying, drawCurrentFrame]);
+
+  // Paused scrubbing: time listeners update displayTime, but the loop above
+  // only reacts to isPlaying/draw-input changes — redraw so the frozen frame
+  // tracks the playhead. No-op while playing (the rAF loop owns drawing).
+  useEffect(() => {
+    if (!playback.isPlaying) drawCurrentFrame();
+  }, [displayTime, playback.isPlaying, drawCurrentFrame]);
 
   // Keyboard shortcut: Space to toggle play/pause (ignore inputs)
   useEffect(() => {

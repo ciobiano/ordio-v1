@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback } from 'react';
+import { Play, Pause } from 'griddy-icons';
 import { cn } from '@/lib/utils';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
@@ -79,6 +80,15 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
 
   return (
     <div className={cn('flex items-center gap-3 w-full', className)}>
+      <button
+        type="button"
+        onClick={() => (playback.isPlaying ? playback.pause() : void playback.play())}
+        disabled={duration === 0}
+        aria-label={playback.isPlaying ? 'Pause' : 'Play'}
+        className="shrink-0 w-9 h-9 -my-1 rounded-full flex items-center justify-center bg-white/8 text-white hover:bg-white/14 disabled:opacity-40 disabled:cursor-default cursor-pointer transition-colors"
+      >
+        {playback.isPlaying ? <Pause size={16} /> : <Play size={16} />}
+      </button>
       <span
         ref={timeDisplayRef}
         className="text-muted-foreground text-xs tabular-nums shrink-0"

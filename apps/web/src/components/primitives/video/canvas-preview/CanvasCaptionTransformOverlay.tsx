@@ -87,18 +87,18 @@ export function CanvasCaptionTransformOverlay({
       <button
         type="button"
         aria-label="Delete captions"
-        className="absolute -left-5 -top-5 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -left-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();
           onHideCaptions();
         }}
       >
-        <HugeiconsIcon icon={Delete02Icon} size={10} />
+        <HugeiconsIcon icon={Delete02Icon} size={14} />
       </button>
       <button
         type="button"
-        className="absolute -right-5 -top-5 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -right-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
         onPointerDown={(event) => {
           event.stopPropagation();
           onBeginRotate(event);
@@ -108,11 +108,11 @@ export function CanvasCaptionTransformOverlay({
         onPointerCancel={onGestureEnd}
         aria-label="Rotate captions"
       >
-        <HugeiconsIcon icon={Rotate02Icon} size={10} />
+        <HugeiconsIcon icon={Rotate02Icon} size={14} />
       </button>
       <button
         type="button"
-        className="absolute -right-5 -bottom-5 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -right-4.5 -bottom-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
         onPointerDown={(event) => {
           event.stopPropagation();
           onBeginResize(event);
@@ -122,7 +122,7 @@ export function CanvasCaptionTransformOverlay({
         onPointerCancel={onGestureEnd}
         aria-label="Resize captions"
       >
-        <HugeiconsIcon icon={CropIcon} size={10} />
+        <HugeiconsIcon icon={CropIcon} size={14} />
       </button>
     </div>
   );
