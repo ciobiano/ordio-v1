@@ -63,9 +63,13 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
     void hydrate();
   }, [sessionId, session, audioUrl, audioBuffer, isHydrating, setAudioBuffer, setAudioBlob, setAudioDuration, setTranscript]);
 
+  // Depend on the stable `load` callback, NOT the playback object — that gets
+  // a new identity every render, and re-running load() stops playback and
+  // resets the playhead to 0 on every re-render (frozen preview + timeline).
+  const load = playback.load;
   useEffect(() => {
-    if (audioBuffer) playback.load(audioBuffer);
-  }, [audioBuffer, playback]);
+    if (audioBuffer) load(audioBuffer);
+  }, [audioBuffer, load]);
 
   return { isHydrating };
 }

@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { studioButton, studioPill, studioCard, studioRailRow } from '@/lib/studioVariants';
 
 describe('studioVariants', () => {
-  it('studioButton primary uses the off-white accent, not lime', () => {
+  it('studioButton primary uses the lime accent per the design handoff', () => {
     const cls = studioButton({ variant: 'primary' });
-    expect(cls).toContain('bg-acid-text-1');
-    expect(cls).not.toContain('acid-accent');
+    expect(cls).toContain('bg-acid-accent');
+    expect(cls).toContain('text-acid-on-accent');
   });
 
   it('studioButton secondary is a neutral surface', () => {

@@ -44,10 +44,10 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-140 h-max max-h-110 bg-acid-surface-1 border border-acid-border-default rounded-acid-lg shadow-2xl overflow-hidden flex flex-col"
+        className="w-140 h-max max-h-110 bg-acid-surface-1 border border-acid-border-subtle rounded-acid-lg shadow-[0_40px_120px_-20px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col"
       >
         <div className="flex items-center gap-3 px-4.5 py-4 border-b border-acid-border-subtle">
-          <span className="text-acid-text-1 text-lg">✦</span>
+          <span className="text-acid-accent text-lg">✦</span>
           <input
             autoFocus
             value={query}
@@ -90,7 +90,7 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
             >
               <span
                 aria-hidden="true"
-                className="w-7 h-7 rounded-lg bg-acid-surface-2 border border-acid-border-subtle flex items-center justify-center text-[13px] text-acid-text-2 flex-none"
+                className="w-7 h-7 rounded-lg bg-acid-surface-2 border border-acid-border-subtle flex items-center justify-center text-[13px] text-acid-accent flex-none"
               >
                 {action.icon ?? '·'}
               </span>

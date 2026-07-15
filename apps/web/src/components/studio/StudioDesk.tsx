@@ -5,9 +5,10 @@ import { useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { api } from '@Ordio/convex';
 import { useStudioFlow } from '@/hooks/studio/useStudioFlow';
+import { useStudioEdits } from '@/hooks/studio/useStudioEdits';
 import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
 import { usePlayback } from '@/hooks/playback/usePlayback';
-import { useUIStore } from '@/stores';
+import { useProcessingStore, useUIStore } from '@/stores';
 import { useCheckout } from '@/hooks/billing/useCheckout';
 import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
 import UpgradeSheet from '@/components/soul/modals/UpgradeSheet';
@@ -23,6 +24,13 @@ export function StudioDesk() {
   const flow = useStudioFlow();
   const playback = usePlayback();
   useSessionHydration(flow.sessionId, playback);
+  const edits = useStudioEdits(playback, flow.sessionId);
+
+  // Edit/export views show the processed transcript from the store — the one
+  // useStudioEdits cuts against. flow.transcript is the live Web Speech feed,
+  // whose indices don't match the Whisper transcript.
+  const storeTranscript = useProcessingStore((s) => s.transcript);
+  const editableTranscript = useMemo(() => storeTranscript ?? [], [storeTranscript]);
 
   const [showCmdk, setShowCmdk] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -127,6 +135,9 @@ export function StudioDesk() {
       { id: 'upload', label: 'Upload audio or video', icon: '⤓', run: () => fileInputRef.current?.click() },
       { id: 'export', label: 'Export clip', icon: '↗', run: flow.goExport },
       { id: 'library', label: 'Go to Library', icon: '☰', run: flow.goIdle },
+      { id: 'fillers', label: 'Remove filler words', icon: '✦', run: edits.markFillerWords },
+      { id: 'apply-cuts', label: 'Apply pending cuts', icon: '✂', run: edits.applyCuts },
+      { id: 'undo-cuts', label: 'Undo last cut', icon: '⎌', run: edits.undo },
       { id: 'cap-karaoke', label: 'Set caption style → Karaoke', icon: 'A', run: () => setCaptionMode('karaoke') },
       { id: 'cap-phrase', label: 'Set caption style → Phrase', icon: 'A', run: () => setCaptionMode('phrase') },
       { id: 'cap-stack', label: 'Set caption style → Stack', icon: 'A', run: () => setCaptionMode('stack') },
@@ -136,7 +147,7 @@ export function StudioDesk() {
       { id: 'wave-bars', label: 'Set waveform → Bars', icon: '‖', run: () => setWaveformStyle('bars') },
       { id: 'wave-circle', label: 'Set waveform → Circle', icon: '◯', run: () => setWaveformStyle('circle') },
     ],
-    [flow, setCaptionMode, setFormat, setWaveformStyle]
+    [flow, edits, setCaptionMode, setFormat, setWaveformStyle]
   );
 
   return (
@@ -148,7 +159,8 @@ export function StudioDesk() {
           activeSessionId={flow.sessionId}
           onOpenClip={flow.openClip}
           onGoIdle={flow.goIdle}
-          transcript={flow.transcript}
+          transcript={flow.view === 'edit' || flow.view === 'export' ? editableTranscript : flow.transcript}
+          edits={edits}
         />
         <CenterStage
           flow={flow}
@@ -164,7 +176,13 @@ export function StudioDesk() {
           onLocked={setUpgradeTarget}
         />
       </div>
-      <TimelineStrip currentTime={playback.currentTime} duration={playback.duration} onSeek={playback.seek} />
+      <TimelineStrip
+        currentTime={playback.currentTime}
+        duration={playback.duration}
+        onSeek={playback.seek}
+        registerTimeListener={playback.registerTimeListener}
+        cutRanges={edits.cutRanges}
+      />
       <CommandPalette open={showCmdk} onClose={() => setShowCmdk(false)} actions={paletteActions} />
 
       {isDragging && (

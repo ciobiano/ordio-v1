@@ -15,13 +15,13 @@ export function PromptBar({ visible, placeholder, onOpen }: PromptBarProps) {
         type="button"
         onClick={onOpen}
         aria-label="Search actions, ask copilot"
-        className="w-full flex items-center gap-3 h-14 pl-4.5 pr-2 bg-acid-surface-1 border border-acid-border-default rounded-acid-lg shadow-2xl cursor-pointer text-left hover:border-acid-border-strong transition-colors"
+        className="w-full flex items-center gap-3 h-14 pl-4.5 pr-2 bg-acid-surface-1 border border-acid-border-subtle rounded-acid-lg shadow-[0_18px_50px_-18px_rgba(0,0,0,0.7)] cursor-pointer text-left hover:border-acid-border-default transition-colors"
       >
-        <span className="text-acid-text-1 text-lg">✦</span>
+        <span className="text-acid-accent text-lg">✦</span>
         <span className="flex-1 text-[15px] text-acid-text-2">{placeholder}</span>
         <span
           aria-hidden="true"
-          className="w-10 h-10 rounded-acid-sm bg-acid-text-1 text-acid-bg-base font-bold flex items-center justify-center"
+          className="w-10 h-10 rounded-[14px] bg-acid-accent text-acid-on-accent font-black text-[17px] flex items-center justify-center"
         >
           ↑
         </span>

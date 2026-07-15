@@ -1,17 +1,18 @@
 import { cva } from 'class-variance-authority';
 
 /**
- * Studio-only CVA variants. Accent is the existing `acid-text-1` off-white
- * token — never `acid-accent` (lime is mobile's signature, not Studio's).
+ * Studio-only CVA variants. Per the approved Claude Design handoff
+ * (Ordio Studio.dc.html), lime `acid-accent` IS the studio's primary accent —
+ * primary actions are lime fills with ink text.
  */
 export const studioButton = cva(
-  'inline-flex items-center justify-center h-9 px-4 rounded-acid-sm text-sm font-bold transition-colors',
+  'inline-flex items-center justify-center h-9 px-4 rounded-acid-sm text-sm font-black transition-colors',
   {
     variants: {
       variant: {
-        primary: 'bg-acid-text-1 text-acid-bg-base hover:bg-white',
+        primary: 'bg-acid-accent text-acid-on-accent hover:brightness-105',
         secondary:
-          'bg-acid-surface-1 text-acid-text-1 border border-acid-border-default hover:bg-acid-surface-2',
+          'bg-acid-surface-1 text-acid-text-1 border border-acid-border-subtle hover:bg-acid-surface-2',
       },
     },
     defaultVariants: { variant: 'primary' },

@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCaptureStore } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
+import type { CutRange } from '@/lib/studio/transcriptCuts';
 
 const BAR_COUNT = 150;
 /** Normalized amplitude below this renders as a dimmed "silence" bar. */
@@ -12,6 +13,13 @@ interface TimelineStripProps {
   currentTime: number;
   duration: number;
   onSeek: (time: number) => void;
+  /**
+   * Hot-path time updates (60fps, no React re-render) — the playhead tracks
+   * playback through this; `currentTime` alone is throttled to ~4fps.
+   */
+  registerTimeListener?: (fn: (t: number, d: number) => void) => () => void;
+  /** Pending transcript cuts — their bars render red, per the design. */
+  cutRanges?: CutRange[];
 }
 
 function formatTime(seconds: number): string {
@@ -19,13 +27,25 @@ function formatTime(seconds: number): string {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripProps) {
+export function TimelineStrip({
+  currentTime,
+  duration,
+  onSeek,
+  registerTimeListener,
+  cutRanges = [],
+}: TimelineStripProps) {
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const playheadRef = useRef<HTMLDivElement | null>(null);
+  const timeLabelRef = useRef<HTMLSpanElement | null>(null);
+  const draggingRef = useRef(false);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
 
   // While dragging, the playhead follows the pointer locally; the actual
   // seek fires once on release so playback isn't restarted per pointermove.
   const [dragRatio, setDragRatio] = useState<number | null>(null);
+  useEffect(() => {
+    draggingRef.current = dragRatio !== null;
+  }, [dragRatio]);
 
   const bars = useMemo(
     () => (audioBuffer ? waveformSampler(audioBuffer, BAR_COUNT) : []),
@@ -35,6 +55,31 @@ export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripPr
   const playRatio = duration > 0 ? currentTime / duration : 0;
   const progress = dragRatio ?? playRatio;
   const hasAudio = bars.length > 0 && duration > 0;
+
+  // Smooth playhead: direct DOM updates from the playback time loop.
+  useEffect(() => {
+    if (!registerTimeListener) return;
+    return registerTimeListener((t, d) => {
+      if (draggingRef.current || d <= 0) return;
+      if (playheadRef.current) {
+        playheadRef.current.style.left = `${(t / d) * 100}%`;
+      }
+      if (timeLabelRef.current) {
+        timeLabelRef.current.textContent = formatTime(t);
+      }
+    });
+  }, [registerTimeListener]);
+
+  const barIsCut = useMemo(() => {
+    if (!hasAudio || cutRanges.length === 0) return null;
+    const flags = new Array<boolean>(BAR_COUNT).fill(false);
+    for (const range of cutRanges) {
+      const from = Math.max(0, Math.floor((range.start / duration) * BAR_COUNT));
+      const to = Math.min(BAR_COUNT, Math.ceil((range.end / duration) * BAR_COUNT));
+      for (let i = from; i < to; i++) flags[i] = true;
+    }
+    return flags;
+  }, [hasAudio, cutRanges, duration]);
 
   const ratioFromPointer = (e: React.PointerEvent<HTMLDivElement>): number => {
     const el = stripRef.current;
@@ -75,7 +120,11 @@ export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripPr
             <span key={i}>{formatTime(t)}</span>
           ))}
         </span>
-        {hasAudio && <span className="tabular-nums">{formatTime(dragRatio !== null ? dragRatio * duration : currentTime)}</span>}
+        {hasAudio && (
+          <span ref={timeLabelRef} className="tabular-nums">
+            {formatTime(dragRatio !== null ? dragRatio * duration : currentTime)}
+          </span>
+        )}
       </div>
       <div
         ref={stripRef}
@@ -93,7 +142,11 @@ export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripPr
                 key={i}
                 className={
                   'flex-1 min-w-0 rounded-[1px] ' +
-                  (amp < SILENCE_THRESHOLD ? 'bg-acid-surface-3' : 'bg-acid-accent/50')
+                  (barIsCut?.[i]
+                    ? 'bg-acid-error/55'
+                    : amp < SILENCE_THRESHOLD
+                      ? 'bg-acid-surface-3'
+                      : 'bg-acid-accent/50')
                 }
                 style={{ height: `${Math.max(6, Math.min(100, amp * 100))}%` }}
               />
@@ -106,6 +159,7 @@ export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripPr
         )}
         {hasAudio && (
           <div
+            ref={playheadRef}
             className="absolute -top-1 -bottom-1 w-0.5 bg-acid-text-1 pointer-events-none"
             style={{ left: `${progress * 100}%` }}
           >
