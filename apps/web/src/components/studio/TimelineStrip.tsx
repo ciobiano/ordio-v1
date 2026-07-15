@@ -1,6 +1,12 @@
 'use client';
 
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useCaptureStore } from '@/stores';
+import { waveformSampler } from '@Ordio/shared/waveform';
+
+const BAR_COUNT = 150;
+/** Normalized amplitude below this renders as a dimmed "silence" bar. */
+const SILENCE_THRESHOLD = 0.08;
 
 interface TimelineStripProps {
   currentTime: number;
@@ -15,36 +21,97 @@ function formatTime(seconds: number): string {
 
 export function TimelineStrip({ currentTime, duration, onSeek }: TimelineStripProps) {
   const stripRef = useRef<HTMLDivElement | null>(null);
-  const progress = duration > 0 ? currentTime / duration : 0;
+  const audioBuffer = useCaptureStore((s) => s.audioBuffer);
+
+  // While dragging, the playhead follows the pointer locally; the actual
+  // seek fires once on release so playback isn't restarted per pointermove.
+  const [dragRatio, setDragRatio] = useState<number | null>(null);
+
+  const bars = useMemo(
+    () => (audioBuffer ? waveformSampler(audioBuffer, BAR_COUNT) : []),
+    [audioBuffer]
+  );
+
+  const playRatio = duration > 0 ? currentTime / duration : 0;
+  const progress = dragRatio ?? playRatio;
+  const hasAudio = bars.length > 0 && duration > 0;
+
+  const ratioFromPointer = (e: React.PointerEvent<HTMLDivElement>): number => {
+    const el = stripRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = stripRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    if (!hasAudio) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDragRatio(ratioFromPointer(e));
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRatio === null) return;
+    setDragRatio(ratioFromPointer(e));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRatio === null) return;
+    const ratio = ratioFromPointer(e);
+    setDragRatio(null);
     onSeek(ratio * duration);
   };
+
+  const ruler =
+    duration > 0
+      ? [0, duration / 3, (2 * duration) / 3, duration]
+      : [0];
 
   return (
     <div className="h-25 flex-none bg-acid-bg-subtle border-t border-acid-border-subtle px-4.5 py-3 flex flex-col gap-2">
       <div className="flex items-center justify-between text-[11px] text-acid-text-3 font-bold">
         <span className="flex gap-3.5">
           <span className="text-acid-text-1">Timeline</span>
-          <span>{formatTime(0)}</span>
-          <span>{formatTime(duration)}</span>
+          {ruler.map((t, i) => (
+            <span key={i}>{formatTime(t)}</span>
+          ))}
         </span>
+        {hasAudio && <span className="tabular-nums">{formatTime(dragRatio !== null ? dragRatio * duration : currentTime)}</span>}
       </div>
       <div
         ref={stripRef}
         data-testid="timeline-strip"
         onPointerDown={handlePointerDown}
-        className="flex-1 relative flex items-center cursor-pointer"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => setDragRatio(null)}
+        className="flex-1 relative flex items-center cursor-pointer touch-none select-none"
       >
-        <div className="w-full h-13 bg-acid-surface-1 rounded-acid-sm" aria-hidden="true" />
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-acid-text-1 pointer-events-none"
-          style={{ left: `${progress * 100}%` }}
-        />
+        {hasAudio ? (
+          <div className="w-full h-13 flex items-center gap-px" aria-hidden="true">
+            {bars.map((amp, i) => (
+              <div
+                key={i}
+                className={
+                  'flex-1 min-w-0 rounded-[1px] ' +
+                  (amp < SILENCE_THRESHOLD ? 'bg-acid-surface-3' : 'bg-acid-accent/50')
+                }
+                style={{ height: `${Math.max(6, Math.min(100, amp * 100))}%` }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="w-full h-13 bg-acid-surface-1 rounded-acid-sm flex items-center justify-center text-[11px] text-acid-text-4">
+            Record or open a clip to see its waveform
+          </div>
+        )}
+        {hasAudio && (
+          <div
+            className="absolute -top-1 -bottom-1 w-0.5 bg-acid-text-1 pointer-events-none"
+            style={{ left: `${progress * 100}%` }}
+          >
+            <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-[3px] bg-acid-text-1" />
+          </div>
+        )}
       </div>
     </div>
   );

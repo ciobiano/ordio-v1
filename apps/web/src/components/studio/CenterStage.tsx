@@ -1,6 +1,7 @@
 'use client';
 
 import { PromptBar } from './PromptBar';
+import { StudioExportBody } from './StudioExportBody';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
 import { Orb } from '@/components/primitives/orb/Orb';
@@ -16,6 +17,7 @@ interface CenterStageProps {
   sessionData: SessionEditData | null;
   audioLevel: number;
   playback: UsePlaybackReturn;
+  onOpenPalette: () => void;
 }
 
 function formatTimer(seconds: number): string {
@@ -23,10 +25,19 @@ function formatTimer(seconds: number): string {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-export function CenterStage({ flow, sessionData, audioLevel, playback }: CenterStageProps) {
+const LIVE_CAPTION_WORDS = 12;
+
+export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPalette }: CenterStageProps) {
   const format = useUIStore((s) => s.format);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
   const captionMode = useUIStore((s) => s.captionMode);
+  const canvasLayout = useUIStore((s) => s.canvasLayout);
+  const graphicStyle = useUIStore((s) => s.graphicStyle);
+
+  const liveCaption = flow.transcript
+    .slice(-LIVE_CAPTION_WORDS)
+    .map((w) => w.text)
+    .join(' ');
 
   return (
     <div className="flex-1 relative flex flex-col items-center justify-center min-w-0 bg-[radial-gradient(120%_90%_at_50%_0%,var(--acid-bg-subtle)_0%,var(--acid-bg-base)_60%)] p-7">
@@ -72,6 +83,12 @@ export function CenterStage({ flow, sessionData, audioLevel, playback }: CenterS
               />
             ))}
           </div>
+          <div
+            className="min-h-16 max-w-135 text-center font-acid-display font-semibold text-[26px] leading-[1.25] text-acid-text-1"
+            aria-live="polite"
+          >
+            {liveCaption || <span className="text-acid-text-4">Say something…</span>}
+          </div>
           <button
             aria-label="Stop recording"
             onClick={() => void flow.stopRecording()}
@@ -96,10 +113,16 @@ export function CenterStage({ flow, sessionData, audioLevel, playback }: CenterS
                 Transcribing your clip…
               </div>
               <div className="text-xs text-acid-text-3 mt-0.5">
-                {Math.round(flow.processingProgress)}% · you can keep recording, this won&apos;t block you
+                {Math.round(flow.processingProgress)}% · usually takes a few seconds
               </div>
             </div>
           </div>
+          {liveCaption && (
+            <div className="w-full bg-acid-surface-1 border border-acid-border-subtle rounded-acid-lg px-6 py-5 text-[15px] leading-relaxed text-acid-text-2">
+              {liveCaption}
+              <span className="text-acid-text-1 animate-pulse">▍</span>
+            </div>
+          )}
           <button
             onClick={flow.cancelProcessing}
             className="h-8.5 px-4 rounded-acid-sm border border-acid-border-default text-acid-text-2 text-xs font-bold hover:text-acid-text-1 hover:border-acid-border-strong"
@@ -111,20 +134,25 @@ export function CenterStage({ flow, sessionData, audioLevel, playback }: CenterS
 
       {flow.view === 'edit' && sessionData && (
         <div className="flex flex-col items-center gap-4">
-          <div className="relative w-67.5 h-120 rounded-acid-lg overflow-hidden border border-acid-border-default shadow-2xl">
+          <div className="relative w-67.5 rounded-acid-lg overflow-hidden border border-acid-border-default shadow-2xl">
             <CanvasPreview
               playback={playback}
               format={format}
               waveformStyle={waveformStyle}
               captionMode={captionMode}
+              canvasLayout={canvasLayout}
+              graphicStyle={graphicStyle ?? undefined}
             />
           </div>
         </div>
       )}
 
+      {flow.view === 'export' && <StudioExportBody playback={playback} />}
+
       <PromptBar
         visible={flow.view === 'idle' || flow.view === 'edit'}
         placeholder={flow.view === 'edit' ? 'remove all the ums' : 'record, drop, or ask anything…'}
+        onOpen={onOpenPalette}
       />
     </div>
   );

@@ -15,12 +15,31 @@ vi.mock('@Ordio/convex', () => ({
       createSession: 'sessions:createSession',
       getSession: 'sessions:getSession',
       getAudioUrl: 'sessions:getAudioUrl',
+      deleteSession: 'sessions:deleteSession',
     },
     jobs: { generateUploadUrl: 'jobs:generateUploadUrl' },
   },
 }));
-vi.mock('@clerk/nextjs', () => ({
-  UserButton: () => <div data-testid="user-button" />,
+vi.mock('@/components/soul/auth/UserAvatarButton', () => ({
+  default: () => <div data-testid="user-avatar-button" />,
+}));
+vi.mock('@/components/soul/modals/UpgradeSheet', () => ({
+  default: () => null,
+}));
+vi.mock('@/components/soul/captions/StyleControls', () => ({
+  default: () => <div data-testid="style-controls" />,
+}));
+vi.mock('@/components/soul/shared/FormatToggle', () => ({
+  default: () => <div data-testid="format-toggle" />,
+}));
+vi.mock('@/components/soul/recording/AudioSettings', () => ({
+  default: () => <div data-testid="audio-settings" />,
+}));
+vi.mock('@/components/studio/StudioExportBody', () => ({
+  StudioExportBody: () => <div data-testid="export-body" />,
+}));
+vi.mock('@/hooks/billing/useCheckout', () => ({
+  useCheckout: () => ({ startCheckout: vi.fn(async () => {}) }),
 }));
 vi.mock('@/hooks/playback/usePlayback', () => ({
   usePlayback: () => ({
@@ -31,6 +50,9 @@ vi.mock('@/hooks/playback/usePlayback', () => ({
     pause: vi.fn(),
     seek: vi.fn(),
     load: vi.fn(),
+    stop: vi.fn(),
+    previewAt: vi.fn(),
+    registerTimeListener: vi.fn(() => () => {}),
   }),
 }));
 
@@ -41,11 +63,19 @@ describe('StudioDesk', () => {
     expect(screen.getByText(/what are we making/i)).toBeInTheDocument();
     expect(screen.getByText('Input')).toBeInTheDocument();
     expect(screen.getByTestId('timeline-strip')).toBeInTheDocument();
+    expect(screen.getByTestId('user-avatar-button')).toBeInTheDocument();
   });
 
   it('the search bar opens the command palette', () => {
     render(<StudioDesk />);
-    fireEvent.click(screen.getByRole('button', { name: /search actions, ask copilot/i }));
-    expect(screen.getByPlaceholderText(/search actions/i)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /search actions, ask copilot/i })[0]);
+    expect(screen.getByPlaceholderText(/record, drop, or ask/i)).toBeInTheDocument();
+  });
+
+  it('the command palette lists real actions', () => {
+    render(<StudioDesk />);
+    fireEvent.click(screen.getAllByRole('button', { name: /search actions, ask copilot/i })[0]);
+    expect(screen.getByText('New recording')).toBeInTheDocument();
+    expect(screen.getByText('Upload audio or video')).toBeInTheDocument();
   });
 });

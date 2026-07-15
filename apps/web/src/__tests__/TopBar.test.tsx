@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TopBar } from '@/components/studio/TopBar';
 
-vi.mock('@clerk/nextjs', () => ({
-  UserButton: () => <div data-testid="user-button" />,
+vi.mock('@/components/soul/auth/UserAvatarButton', () => ({
+  default: () => <div data-testid="user-avatar-button" />,
 }));
 
 describe('TopBar', () => {
@@ -29,6 +29,6 @@ describe('TopBar', () => {
 
   it('renders a real profile menu, not a static avatar', () => {
     render(<TopBar title="Untitled recording" onExport={vi.fn()} onOpenSearch={vi.fn()} />);
-    expect(screen.getByTestId('user-button')).toBeInTheDocument();
+    expect(screen.getByTestId('user-avatar-button')).toBeInTheDocument();
   });
 });

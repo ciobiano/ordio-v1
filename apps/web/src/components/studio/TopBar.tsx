@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import UserAvatarButton from '@/components/soul/auth/UserAvatarButton';
 import { studioButton } from '@/lib/studioVariants';
 
 interface TopBarProps {
@@ -49,11 +49,7 @@ export function TopBar({ title, onExport, onOpenSearch }: TopBarProps) {
         <button className={studioButton({ variant: 'primary' })} onClick={onExport}>
           Export ↗
         </button>
-        <UserButton
-          appearance={{
-            elements: { avatarBox: 'w-8.5 h-8.5' },
-          }}
-        />
+        <UserAvatarButton />
       </div>
     </div>
   );

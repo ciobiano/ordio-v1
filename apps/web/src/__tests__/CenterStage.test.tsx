@@ -20,9 +20,33 @@ vi.mock('@/components/primitives/video/CanvasPreview', () => ({
   default: () => <div data-testid="canvas-preview" />,
 }));
 vi.mock('@/stores', () => ({
-  useUIStore: (selector: (s: { format: string; waveformStyle: string; captionMode: string }) => unknown) =>
-    selector({ format: 'vertical', waveformStyle: 'bars', captionMode: 'karaoke' }),
+  useUIStore: (
+    selector: (s: {
+      format: string;
+      waveformStyle: string;
+      captionMode: string;
+      canvasLayout: string;
+      graphicStyle: null;
+    }) => unknown
+  ) =>
+    selector({
+      format: 'vertical',
+      waveformStyle: 'bars',
+      captionMode: 'karaoke',
+      canvasLayout: 'top',
+      graphicStyle: null,
+    }),
 }));
+vi.mock('@/components/studio/StudioExportBody', () => ({
+  StudioExportBody: () => <div data-testid="export-body" />,
+}));
+
+const mockMics = {
+  devices: [],
+  selectedDeviceId: undefined,
+  selectDevice: vi.fn(),
+  refresh: vi.fn(async () => {}),
+};
 
 function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn {
   return {
@@ -33,8 +57,10 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
     transcript: [],
     isStarting: false,
     micDenied: false,
+    mics: mockMics,
     startRecording: vi.fn(),
     stopRecording: vi.fn(),
+    processFile: vi.fn(),
     openClip: vi.fn(),
     goIdle: vi.fn(),
     goExport: vi.fn(),
@@ -47,14 +73,14 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
 describe('CenterStage', () => {
   it('idle: shows the record orb and calls startRecording on click', () => {
     const flow = makeFlow({ view: 'idle' });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /tap to record/i }));
     expect(flow.startRecording).toHaveBeenCalled();
   });
 
   it('capture: shows recording timer and calls stopRecording on click', () => {
     const flow = makeFlow({ view: 'capture', recordingTime: 12 });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     expect(screen.getByText(/recording/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
     expect(flow.stopRecording).toHaveBeenCalled();
@@ -62,20 +88,20 @@ describe('CenterStage', () => {
 
   it('processing: shows progress percentage', () => {
     const flow = makeFlow({ view: 'processing', processingProgress: 42 });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     expect(screen.getByText(/42%/)).toBeInTheDocument();
   });
 
   it('processing: Cancel button calls flow.cancelProcessing', () => {
     const flow = makeFlow({ view: 'processing', processingProgress: 10 });
-    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} />);
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
     expect(flow.cancelProcessing).toHaveBeenCalled();
   });
 
   it('edit: renders the canvas preview once a session is loaded', () => {
     const flow = makeFlow({ view: 'edit', sessionId: 's1' });
-    render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} playback={mockPlayback} />);
+    render(<CenterStage flow={flow} sessionData={{ sessionId: 's1' }} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     expect(screen.getByTestId('canvas-preview')).toBeInTheDocument();
   });
 });

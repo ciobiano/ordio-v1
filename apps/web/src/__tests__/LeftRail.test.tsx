@@ -4,6 +4,7 @@ import { LeftRail } from '@/components/studio/LeftRail';
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => ({ isAuthenticated: true }),
+  useMutation: () => vi.fn(),
   usePaginatedQuery: () => ({
     results: [
       { id: 's1', name: 'Why I quit my design job', durationMs: 47000, createdAt: Date.now() },
@@ -12,7 +13,7 @@ vi.mock('convex/react', () => ({
   }),
 }));
 vi.mock('@Ordio/convex', () => ({
-  api: { sessions: { listMySessionsPaginated: 'sessions:listMySessionsPaginated' } },
+  api: { sessions: { listMySessionsPaginated: 'sessions:listMySessionsPaginated', deleteSession: 'sessions:deleteSession' } },
 }));
 
 describe('LeftRail', () => {
