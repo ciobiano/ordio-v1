@@ -25,29 +25,53 @@ function pairSpacing(
   return Math.max(characterSpacing, -maxTightening);
 }
 
+// Text measurement is on the render hot path — the preview measures the same
+// phrase strings every animation frame (and per character on the fallback
+// path). Widths only depend on font + spacing + text, so memoize them.
+const measureCache = new Map<string, number>();
+const MEASURE_CACHE_MAX = 2000;
+
+/**
+ * Widths measured before a web font finishes loading are wrong once the real
+ * glyphs arrive (the ctx.font string is identical either way). Font loaders
+ * must call this after a face loads.
+ */
+export function invalidateTextMeasureCache(): void {
+  measureCache.clear();
+}
+
 export function measureTextWidth(
   ctx: CanvasRenderingContext2D,
   text: string,
   characterSpacing = 0
 ): number {
   if (text.length === 0) return 0;
-  if (characterSpacing === 0) return ctx.measureText(text).width;
 
-  if (supportsCanvasLetterSpacing(ctx)) {
+  const cacheKey = `${ctx.font}|${characterSpacing}|${text}`;
+  const cached = measureCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  let width: number;
+  if (characterSpacing === 0) {
+    width = ctx.measureText(text).width;
+  } else if (supportsCanvasLetterSpacing(ctx)) {
     ctx.save();
     (ctx as CanvasTextContext).letterSpacing = `${characterSpacing}px`;
-    const width = ctx.measureText(text).width;
+    width = ctx.measureText(text).width;
     ctx.restore();
-    return width;
+  } else {
+    const chars = [...text];
+    width = 0;
+    for (let i = 0; i < chars.length; i++) {
+      width += ctx.measureText(chars[i]).width;
+      width += pairSpacing(ctx, chars[i], chars[i + 1], characterSpacing);
+    }
+    width = Math.max(0, width);
   }
 
-  const chars = [...text];
-  let width = 0;
-  for (let i = 0; i < chars.length; i++) {
-    width += ctx.measureText(chars[i]).width;
-    width += pairSpacing(ctx, chars[i], chars[i + 1], characterSpacing);
-  }
-  return Math.max(0, width);
+  if (measureCache.size >= MEASURE_CACHE_MAX) measureCache.clear();
+  measureCache.set(cacheKey, width);
+  return width;
 }
 
 interface DrawSpacedTextOptions {

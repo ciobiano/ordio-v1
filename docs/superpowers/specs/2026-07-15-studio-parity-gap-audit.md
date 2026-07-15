@@ -92,3 +92,23 @@ TopBar always shows `"Untitled recording"` — `session.name` exists in Convex a
 **Phase B — the desktop-defining slices, in spec order:** Slice 2 (EDL + transcript editing) → Slice 3 (action registry + ⌘K + prompt bar tier 1) → Slice 4 (copilot) → Slice 5 (export matrix) → 6/7 on signal.
 
 Phase A has no unresolved design questions — every item reuses an existing mobile component, hook, or Convex mutation. It should be one plan (`superpowers:writing-plans`) executed as a single slice.
+
+---
+
+## Appendix: Claude Design handoff (source of truth for visuals)
+
+`~/Downloads/Ordio Studio Desktop Workspace-handoff.zip` → `project/Ordio Studio.dc.html` (1440×900 mock, read 2026-07-15). Deltas the mock specifies beyond the current build:
+
+- **Top bar:** clip title is *editable inline* (contenteditable); avatar is a branded initials chip, not stock Clerk.
+- **Idle inspector (Input):** actual mic device name with dropdown (`MacBook Pro Mic ▾`), **live input level meter** (16 bars, red clip zone), Noise suppression toggle, Auto-transcribe toggle, Sample rate readout.
+- **Capture:** live caption stream (word-by-word) under the waveform; left/right rails ghost under blur scrims; inspector shows live meter + "Peak −6 dB · no clipping".
+- **Processing (center):** streaming transcript card + `Open in editor` / `Record again` buttons — non-blocking; library rows show a progress ring while transcribing.
+- **Library rows:** mini-waveform thumbnails, active row accent border + left bar, meta like `today · 47s`.
+- **Transcript pane:** words toggle cut on click — red strikethrough; header shows duration.
+- **Edit stage:** caption is directly draggable on the stage with center snap guides (crosshair lines while dragging).
+- **Timeline:** ~150-bar real waveform; silence bars dimmed (#2A2E2A), cut ranges red; time ruler (0:00/0:16/0:31/0:47); `− Zoom +` control; draggable playhead with square grab handle.
+- **⌘K:** 8 actions with icons + shortcut chips (set caption style, trim silence, ask copilot to remove fillers, export all formats, change background, split at playhead, duplicate clip, new recording); input placeholder "record, drop, or ask anything…".
+- **Copilot diff gate:** bottom-center card — summary ("Remove 4 filler words — tightens by 2.3s"), inline strikethrough preview, `Accept cuts` / `Keep as is`.
+- **Drop overlay:** full-window dashed lime dropzone, "MP3, WAV, MP4, MOV — we'll transcribe it instantly."
+- **Export:** 3-up format matrix with dashed caption safe-areas; render queue rows with per-format progress; Quality/Destination card; `+ Add format`.
+- **Brand:** lime `#C6FF3D` + cyan `#6BE0FF` accents on `#0A0B0A`; Clash Grotesk (display) + Satoshi (body).

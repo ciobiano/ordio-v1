@@ -7,6 +7,8 @@ import {
 } from '@/lib/waveforms/constants';
 
 export const CAPTION_SIDE_MARGIN_PX = 2;
+/** Phrase captions keep a real safe margin so text never runs edge-to-edge. */
+export const CAPTION_SIDE_MARGIN_RATIO = 0.06;
 export const CAPTION_VERTICAL_SAFE_RATIO = 0.08;
 export const FONT_WEIGHT = '600';
 export const MIN_CAPTION_SAFE_ZONE = 0.02;
@@ -60,7 +62,10 @@ export function hasPulse(animation: CaptionAnimation): boolean {
 }
 
 export function getMaxCaptionTextWidth(width: number): number {
-  const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
+  const padding = Math.min(
+    Math.max(CAPTION_SIDE_MARGIN_PX, width * CAPTION_SIDE_MARGIN_RATIO),
+    width / 2
+  );
   return width - padding * 2;
 }
 

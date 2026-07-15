@@ -3,6 +3,8 @@
  * Fonts are cached — each font is only fetched once per session.
  */
 
+import { invalidateTextMeasureCache } from '@/lib/video/textLayout';
+
 const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com/css2';
 
 const LOCAL_FONTS: Record<string, { src: string; weight: string }> = {
@@ -44,6 +46,7 @@ async function doLoad(fontFamily: string): Promise<void> {
       await face.load();
       document.fonts.add(face);
       loaded.add(fontFamily);
+      invalidateTextMeasureCache();
       return;
     }
 
@@ -59,6 +62,7 @@ async function doLoad(fontFamily: string): Promise<void> {
     ]);
     await document.fonts.ready;
     loaded.add(fontFamily);
+    invalidateTextMeasureCache();
   } catch {
     // Silently fall back — canvas will use sans-serif
     loaded.add(fontFamily);

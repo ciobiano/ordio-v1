@@ -6,6 +6,7 @@ import type {
   CaptionTransform,
 } from '@/stores';
 import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+import { wrapText } from './wrapText';
 import {
   buildOneLinePhraseSegments,
   findActiveDisplaySegment,
@@ -97,16 +98,22 @@ function getPhraseTransition(
   return { currentText: '', prevText: '', progress: 1, groupIndex: -1 };
 }
 
-function measurePhraseCaptionText(
+/**
+ * Lays out a phrase caption at a FIXED font size, wrapping into lines instead
+ * of shrinking to fit the canvas width. Font size stays constant across short
+ * and long groups — a two-word phrase and a four-line sentence render at the
+ * same scale, so the video doesn't pump between tiny and huge text.
+ * `fitScale` only drops below 1 for a single unbreakable over-wide word.
+ */
+function layoutPhraseLines(
   ctx: CanvasRenderingContext2D,
   text: string,
-  style: StyleConfig,
-  textY: number
-): PhraseCaptionMetrics {
+  style: StyleConfig
+): { lines: string[]; blockWidth: number; blockHeight: number; lineHeight: number; fitScale: number } {
   const maxTextWidth = getMaxCaptionTextWidth(style.width);
   const characterSpacing = style.characterSpacing ?? 0;
   const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
-  const lines = [text];
+  const lines = wrapText(ctx, text, maxTextWidth, characterSpacing);
   const blockWidth = Math.max(
     0,
     ...lines.map((line) => measureTextWidth(ctx, line, characterSpacing))
@@ -114,14 +121,10 @@ function measurePhraseCaptionText(
   const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
 
   return {
-    text,
     lines,
-    centerX: style.width / 2,
-    textY,
-    lineHeight,
     blockWidth,
     blockHeight,
-    blockCenterY: textY + blockHeight / 2,
+    lineHeight,
     fitScale: blockWidth > 0 ? Math.min(1, maxTextWidth / blockWidth) : 1,
   };
 }
@@ -148,7 +151,6 @@ export function drawCaptions(
     fontFamily,
     fontSize,
     characterSpacing = 0,
-    lineHeight: lineHeightMultiplier = 1.4,
   } = style;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
@@ -166,14 +168,6 @@ export function drawCaptions(
   if (!transition.currentText && !transition.prevText) return;
 
   const text = transition.currentText || transition.prevText;
-  const lineHeight = fontSize * lineHeightMultiplier;
-  const textY = calculatePhraseTextY(
-    height,
-    layout,
-    hasVisualZone,
-    flipped,
-    Math.max(lineHeight, lineHeight)
-  );
 
   ctx.textAlign = 'center';
   const centerX = width / 2;
@@ -181,12 +175,16 @@ export function drawCaptions(
     ? 1 + 0.035 * Math.sin(Math.min(1, transition.progress) * Math.PI)
     : 1;
 
-  const renderText = (lineToRender: string, alpha: number) => {
-    const measuredWidth = measureTextWidth(ctx, lineToRender, characterSpacing);
-    const maxScaleForWidth = measuredWidth > 0 ? maxTextWidth / measuredWidth : 1;
-    const fitScale = Math.min(1, maxScaleForWidth);
+  const renderText = (textToRender: string, alpha: number) => {
+    const { lines, blockWidth, blockHeight, lineHeight, fitScale } = layoutPhraseLines(
+      ctx,
+      textToRender,
+      style
+    );
+    const textY = calculatePhraseTextY(height, layout, hasVisualZone, flipped, blockHeight);
+    // Even mid-pulse, the widest line must stay inside the safe width.
+    const maxScaleForWidth = blockWidth > 0 ? maxTextWidth / blockWidth : 1;
     const constrainedScale = Math.min(fitScale * pulseScale, maxScaleForWidth);
-    const blockHeight = lineHeight;
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -204,17 +202,19 @@ export function drawCaptions(
     ctx.lineJoin = 'round';
     ctx.lineWidth = Math.max(1.25, fontSize * 0.022);
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
-    const lineY = textY + lineHeight / 2;
-    drawSpacedText(ctx, lineToRender, centerX, lineY, {
-      textAlign: 'center',
-      mode: 'stroke',
-      characterSpacing,
-    });
-    ctx.fillStyle = textColor;
-    drawSpacedText(ctx, lineToRender, centerX, lineY, {
-      textAlign: 'center',
-      mode: 'fill',
-      characterSpacing,
+    lines.forEach((line, i) => {
+      const lineY = textY + (i + 0.5) * lineHeight;
+      drawSpacedText(ctx, line, centerX, lineY, {
+        textAlign: 'center',
+        mode: 'stroke',
+        characterSpacing,
+      });
+      ctx.fillStyle = textColor;
+      drawSpacedText(ctx, line, centerX, lineY, {
+        textAlign: 'center',
+        mode: 'fill',
+        characterSpacing,
+      });
     });
     ctx.restore();
   };
@@ -254,9 +254,22 @@ export function measureActivePhraseCaption(
   const text = transition.currentText || transition.prevText;
   if (!text) return null;
 
-  const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
-  const blockHeight = Math.max(lineHeight, lineHeight);
+  const { lines, blockWidth, blockHeight, lineHeight, fitScale } = layoutPhraseLines(
+    ctx,
+    text,
+    style
+  );
   const textY = calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, blockHeight);
 
-  return measurePhraseCaptionText(ctx, text, style, textY);
+  return {
+    text,
+    lines,
+    centerX: style.width / 2,
+    textY,
+    lineHeight,
+    blockWidth,
+    blockHeight,
+    blockCenterY: textY + blockHeight / 2,
+    fitScale,
+  };
 }
