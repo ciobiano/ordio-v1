@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 interface ExportHeaderProps {
   exportedUrl: string | null;
   exportDisabled: boolean;
+  exportFailed?: boolean;
   onBack: () => void;
   onExport: () => void;
   onDownload: () => void;
@@ -14,10 +15,13 @@ interface ExportHeaderProps {
 export function ExportHeader({
   exportedUrl,
   exportDisabled,
+  exportFailed = false,
   onBack,
   onExport,
   onDownload,
 }: ExportHeaderProps) {
+  const exportLabel = exportedUrl ? 'Download' : exportFailed ? 'Retry export' : 'Export';
+
   return (
     <header
       className="fixed left-0 right-0 z-30 flex items-center justify-between px-3 py-3"
@@ -52,12 +56,12 @@ export function ExportHeader({
         size="xl"
         onClick={exportedUrl ? onDownload : onExport}
         disabled={exportDisabled && !exportedUrl}
-        aria-label={exportedUrl ? 'Download' : 'Export'}
+        aria-label={exportLabel}
         className="text-[17px] font-semibold text-white
                    hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed
                    active:scale-[0.97]"
       >
-        {exportedUrl ? 'Download' : 'Export'}
+        {exportLabel}
       </Button>
     </header>
   );

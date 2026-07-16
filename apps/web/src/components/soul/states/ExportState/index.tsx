@@ -174,6 +174,7 @@ export default function ExportState({
       <ExportHeader
         exportedUrl={exporter.exportedUrl}
         exportDisabled={exportDisabled}
+        exportFailed={!!exporter.error}
         onBack={() => setShowDiscardDialog(true)}
         onExport={handleExport}
         onDownload={onDownload}
