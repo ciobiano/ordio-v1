@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCaptureStore } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
-import type { CutRange } from '@/lib/studio/transcriptCuts';
+import type { CutRange } from '@/hooks/studio/useStudioEdits';
 
 const BAR_COUNT = 150;
 /** Normalized amplitude below this renders as a dimmed "silence" bar. */

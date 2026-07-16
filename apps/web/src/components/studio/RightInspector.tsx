@@ -3,15 +3,20 @@
 import StyleControls from '@/components/soul/captions/StyleControls';
 import FormatToggle from '@/components/soul/shared/FormatToggle';
 import AudioSettings from '@/components/soul/recording/AudioSettings';
+import { TrimPanel } from '@/components/soul/editor/TrimPanel';
 import { studioCard } from '@/lib/studioVariants';
 import type { StudioView } from '@/hooks/studio/useStudioFlow';
 import type { UseMicDevicesReturn } from '@/hooks/studio/useMicDevices';
+import type { UseStudioEditsReturn } from '@/hooks/studio/useStudioEdits';
 import type { FeatureKey } from '@/lib/featureGates';
 
 interface RightInspectorProps {
   view: StudioView;
   audioLevel: number;
   mics: UseMicDevicesReturn;
+  edits: UseStudioEditsReturn;
+  audioBuffer: AudioBuffer | null;
+  onPreviewAt: (time: number) => void;
   onLocked: (feature: FeatureKey) => void;
 }
 
@@ -48,7 +53,15 @@ function MicPicker({ mics }: { mics: UseMicDevicesReturn }) {
   );
 }
 
-export function RightInspector({ view, audioLevel, mics, onLocked }: RightInspectorProps) {
+export function RightInspector({
+  view,
+  audioLevel,
+  mics,
+  edits,
+  audioBuffer,
+  onPreviewAt,
+  onLocked,
+}: RightInspectorProps) {
   return (
     <div className="w-80 flex-none bg-acid-bg-subtle border-l border-acid-border-subtle overflow-y-auto p-4 flex flex-col gap-3.5 min-h-0">
       {view === 'idle' && (
@@ -98,7 +111,27 @@ export function RightInspector({ view, audioLevel, mics, onLocked }: RightInspec
 
       {(view === 'edit' || view === 'export') && (
         <>
-          <div className="font-acid-display font-semibold text-sm text-acid-text-1">Format</div>
+          <div className="font-acid-display font-semibold text-sm text-acid-text-1">Trim</div>
+          <div className={studioCard()}>
+            <TrimPanel
+              audioBuffer={audioBuffer}
+              trimmer={edits.trimmer}
+              onCommit={edits.commit}
+              onUndo={edits.undo}
+              onRedo={edits.redo}
+              canUndo={edits.canUndo}
+              canRedo={edits.canRedo}
+              onPreviewAt={onPreviewAt}
+            />
+            <button
+              type="button"
+              onClick={edits.markFillerWords}
+              className="h-8 rounded-acid-sm bg-acid-surface-2 border border-acid-border-subtle text-xs font-bold text-acid-text-2 hover:text-acid-text-1"
+            >
+              Remove filler words
+            </button>
+          </div>
+          <div className="font-acid-display font-semibold text-sm text-acid-text-1 mt-1">Format</div>
           <FormatToggle onLocked={onLocked} />
           <div className="font-acid-display font-semibold text-sm text-acid-text-1 mt-1">
             Caption Style

@@ -32,14 +32,14 @@ export function TopBar({ title, onExport, onOpenSearch }: TopBarProps) {
         <button
           onClick={onOpenSearch}
           aria-label="Search actions, ask copilot"
-          className="flex items-center gap-2.5 h-8.5 px-3 bg-acid-surface-1 border border-acid-border-subtle rounded-acid-sm text-acid-text-3 text-sm min-w-75"
+          className="flex items-center gap-2.5 h-8.5 px-3 bg-acid-surface-1 border border-transparent rounded-acid-sm text-acid-text-3 text-sm min-w-75 hover:bg-acid-surface-2 transition-colors"
         >
           Search actions, ask copilot…
           <span className="ml-auto flex gap-0.5">
-            <kbd className="bg-acid-surface-2 border border-acid-border-subtle rounded px-1.5 text-[11px] font-bold text-acid-text-2">
+            <kbd className="bg-acid-surface-2 rounded px-1.5 text-[11px] font-bold text-acid-text-2">
               ⌘
             </kbd>
-            <kbd className="bg-acid-surface-2 border border-acid-border-subtle rounded px-1.5 text-[11px] font-bold text-acid-text-2">
+            <kbd className="bg-acid-surface-2 rounded px-1.5 text-[11px] font-bold text-acid-text-2">
               K
             </kbd>
           </span>
