@@ -39,6 +39,7 @@ test-results/
 .superpowers/
 CLAUDE.md
 AGENTS.md
+.gbrain-source
 
 # ── Planning / non-essential docs ────────────────────────────
 tasks/
