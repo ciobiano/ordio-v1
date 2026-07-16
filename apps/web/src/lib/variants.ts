@@ -369,3 +369,22 @@ export const shareCardHeadline = cva('font-acid-display font-semibold', {
   },
   defaultVariants: { variant: 'acid' },
 });
+
+/**
+ * Canvas preview frame — the outer chrome around the rendered video canvas.
+ * Aspect ratio varies per format, set via the --canvas-aspect-ratio custom
+ * property rather than an inline style prop.
+ */
+export const canvasPreviewFrame =
+  'relative rounded-xl overflow-hidden w-full bg-[#0a0a0a] border border-white/[0.12] ' +
+  'shadow-[0_18px_48px_rgba(0,0,0,0.42)] animate-[fadeIn_0.2s_ease-out] ' +
+  'aspect-[var(--canvas-aspect-ratio)] transition-[aspect-ratio] duration-300 ease-out';
+
+/**
+ * Optional composition grid overlay on the canvas preview. Cell size varies
+ * per instance via the --grid-size custom property.
+ */
+export const canvasGridOverlay =
+  'absolute inset-0 pointer-events-none mix-blend-overlay ' +
+  'bg-[length:var(--grid-size)_var(--grid-size)] ' +
+  '[background-image:linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)]';

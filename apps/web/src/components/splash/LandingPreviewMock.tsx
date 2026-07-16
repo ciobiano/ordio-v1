@@ -6,7 +6,7 @@ import WaveformDisplay from '@/components/primitives/waveform/WaveformDisplay';
 import type { WaveformVariant, CanvasLayout, FormatVariant } from '@/stores';
 import { cn } from '@/lib/utils';
 
-interface VideoPreviewProps {
+interface LandingPreviewMockProps {
   format: FormatVariant;
   waveformStyle: WaveformVariant;
   canvasLayout?: CanvasLayout;
@@ -82,7 +82,7 @@ const FORMAT_CONFIG: Record<FormatVariant, { label: string, ratio: number, width
   instagram: { label: '4:5', ratio: 4 / 5, width: 'w-[220px] sm:w-[260px]' },
 };
 
-export default function VideoPreview({ format, waveformStyle, canvasLayout = 'top' }: VideoPreviewProps) {
+export default function LandingPreviewMock({ format, waveformStyle, canvasLayout = 'top' }: LandingPreviewMockProps) {
   const isVertical = format === 'vertical' || format === 'instagram';
   const config = FORMAT_CONFIG[format];
 
