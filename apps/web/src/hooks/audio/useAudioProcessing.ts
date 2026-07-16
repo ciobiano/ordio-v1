@@ -7,6 +7,7 @@ import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
 import type { AppPhase } from '@/stores';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
 import { decodeBlobToAudioBuffer } from '@/lib/media';
+import { clearRecordingDraft } from '@/lib/persistence/recordingDraft';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
 import {
   audioBufferToWavBlob,
@@ -243,6 +244,7 @@ export function useAudioProcessing(
         });
 
         // Step 5: Finalize
+        void clearRecordingDraft();
         setProcessingProgress(100);
 
         return sessionId;
