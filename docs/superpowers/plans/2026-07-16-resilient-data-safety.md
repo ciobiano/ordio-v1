@@ -657,7 +657,13 @@ describe('hooks/recording: useRecordingRecovery', () => {
       expect(toast).toHaveBeenCalledTimes(1);
     });
 
-    const [, options] = vi.mocked(toast).mock.calls[0];
+    // `as unknown as [...]` because Sonner's real ExternalToast type has
+    // `action`/`cancel` typed as a loose union that doesn't structurally
+    // overlap with the concrete object shape this hook actually passes.
+    const [, options] = vi.mocked(toast).mock.calls[0] as unknown as [
+      string,
+      { action: { onClick: () => void }; cancel: { onClick: () => void } },
+    ];
     options.action.onClick();
     expect(onResume).toHaveBeenCalledWith(draft.blob);
 

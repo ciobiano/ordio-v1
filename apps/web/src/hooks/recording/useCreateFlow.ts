@@ -17,6 +17,7 @@ import {
   useAudioProcessing,
 } from '@/hooks/audio/useAudioProcessing';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
+import { useRecordingRecovery } from '@/hooks/recording/useRecordingRecovery';
 import { useVAD } from '@/hooks/recording/useVAD';
 import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
 
@@ -167,6 +168,19 @@ export function useCreateFlow() {
       handleProcessingFailure(err);
     }
   }, [recorder.audioBlob, processAudio, router, handleProcessingFailure]);
+
+  const handleResumeRecovery = useCallback(async (blob: Blob) => {
+    setProcessingAlert(null);
+    try {
+      const sessionId = await processAudio(blob);
+      if (!sessionId) return;
+      router.push(`/create/export/${sessionId}`);
+    } catch (err) {
+      handleProcessingFailure(err);
+    }
+  }, [processAudio, router, handleProcessingFailure]);
+
+  useRecordingRecovery(handleResumeRecovery);
 
   const handleRestart = useCallback(async () => {
     setProcessingAlert(null);
