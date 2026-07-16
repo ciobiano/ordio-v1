@@ -7,7 +7,9 @@ Supersedes: none — implements Option 3 ("Bulletproof Resilience & Data Safety"
 
 ## Problem Statement
 
-`app/error.tsx` already tells users "Your recording is safe — try again" when a route-level render error occurs, but nothing currently backs that promise. The raw recorded audio `Blob` lives only in `useAudioRecorder`'s React state and `useCaptureStore` (a plain, non-persisted Zustand store) from the moment recording stops through the entire decode → enhance → transcribe → upload pipeline in `useAudioProcessing.ts`. A crashed tab, an accidental navigation, or a browser force-quit anywhere in that window loses the user's only copy of their recording, with no recovery path.
+`app/error.tsx` already tells users "Your recording is safe — try again" when a route-level render error occurs, but nothing currently backs that promise. The raw recorded audio `Blob` lives only in `useAudioRecorder`'s React state and `useCaptureStore` (a plain, non-persisted Zustand store) from the moment recording *starts* through the entire decode → enhance → transcribe → upload pipeline in `useAudioProcessing.ts`. A crashed tab, an accidental navigation, or a browser force-quit anywhere in that window loses the user's only copy of their recording, with no recovery path — including mid-recording, before the user ever hits stop.
+
+**Scope note (added after initial brainstorming):** the first pass of this spec only covered the stop→process window. The user asked directly whether a mid-recording crash ("something cut the recording by mistake") could be recovered — the honest answer is that *true* resumption (continuing to capture into the same `MediaRecorder` session) is impossible after a crash/reload; the browser API and mic stream are gone. But `MediaRecorder` already fires `ondataavailable` every 100ms (`recorder.start(100)` in `useAudioRecorder.ts`), so periodically coalescing the accumulated chunks and persisting them closes nearly all of the gap — a mid-recording crash loses at most the last few seconds, not the whole take.
 
 Separately, two crash-prone spots in the canvas/WebCodecs pipeline have no user-facing failure handling:
 - **Preview:** `CanvasPreview.tsx`'s `drawCurrentFrame`, called every tick from a `requestAnimationFrame` loop, has zero error handling. A thrown exception there is an uncaught runtime error — it does not trip `app/error.tsx` (React error boundaries only catch errors during render/commit, not inside RAF callbacks), so the loop dies silently with no feedback.
@@ -23,7 +25,7 @@ Separately, two crash-prone spots in the canvas/WebCodecs pipeline have no user-
 
 ## Premises
 
-1. The vulnerable window for data loss starts the moment `MediaRecorder.onstop` fires (in `useAudioRecorder.ts`), not when `processAudio` begins — there's a full review-screen dwell time between "recording stopped" and "user hits Proceed" that the original roadmap doc's "the millisecond the mic stops" framing undersold.
+1. The vulnerable window for data loss starts the moment recording *starts*, not when `processAudio` begins, and not only at `onstop` — there's a full review-screen dwell time between "recording stopped" and "user hits Proceed," *and* an active-recording window before the user ever hits stop, both of which the original roadmap doc's "the millisecond the mic stops" framing undersold.
 2. Preview crashes and export crashes have different blast radii and need different handling: a dead preview is cosmetic (the user's audio is untouched), a dead export silently wastes the user's wait. Preview degrades gracefully (freeze on last good frame); export fails loudly with a retry path.
 3. Recovery should put the user in control (a dismissible Resume/Discard prompt), not silently resume or silently discard — matches this app's existing pattern of explicit user actions at every pipeline stage (Proceed, Restart, Discard).
 4. No TTL/expiry logic is needed for v1 — a draft only ever exists between "recording stopped" and "session created or explicitly discarded," so raw staleness isn't really possible outside the crash-recovery case itself, where any age is exactly what should be recovered.
@@ -64,18 +66,18 @@ Single IndexedDB key (`ordio:recording-draft`) — only ever one draft at a time
 | File | Change |
 |---|---|
 | `apps/web/src/lib/persistence/recordingDraft.ts` (create) | `idb-keyval` wrapper: save/get/clear |
-| `apps/web/src/hooks/audio/useAudioRecorder.ts` (modify) | `recorder.onstop` calls `saveRecordingDraft(blob, {...})` right after `setAudioBlob(blob)`; `resetRecording` calls `clearRecordingDraft()` |
+| `apps/web/src/hooks/audio/useAudioRecorder.ts` (modify) | New periodic timer (5s interval) alongside the existing `recordingTime` timer: coalesces `chunksRef.current` into a `Blob` and calls `saveRecordingDraft` while recording. Also persists immediately on `onstop` and on `pauseRecording` (before clearing the timer); `resetRecording` calls `clearRecordingDraft()` and stops the timer |
 | `apps/web/src/hooks/audio/useAudioProcessing.ts` (modify) | `processAudio` calls `clearRecordingDraft()` after `createSession` resolves |
-| `apps/web/src/hooks/recording/useRecordingRecovery.ts` (create) | On mount: `getRecordingDraft()`; if found, Sonner toast with Resume/Discard actions. Resume → `setAudioBlob`/`setAudioBuffer` into `useCaptureStore`, navigate to review screen. Discard → `clearRecordingDraft()` |
-| `apps/web/src/components/soul/capture/CaptureScreen.tsx` (modify) | Calls `useRecordingRecovery()` once on mount |
+| `apps/web/src/hooks/recording/useRecordingRecovery.ts` (create) | Called once from `useCreateFlow`. On mount: `getRecordingDraft()`; if found, Sonner toast with Resume/Discard actions. Resume → calls `processAudio(draft.blob)` directly (same function `handleProceed` uses) — skips the review screen and goes straight to processing, since lifting `CaptureScreen`'s local `recordingSubPhase` state to support "resume into review" would be a larger, unrelated refactor. Discard → `clearRecordingDraft()` |
+| `apps/web/src/hooks/recording/useCreateFlow.ts` (modify) | Calls `useRecordingRecovery(processAudio, handleProcessingFailure)` once |
 | `apps/web/src/components/primitives/video/CanvasPreview.tsx` (modify) | Wrap `drawCurrentFrame`'s body in try/catch: log once, toast once (ref-guarded dedup), skip `renderFrame()`/`setCaptionBox` for that tick — canvas keeps showing the last successfully drawn frame |
 | `apps/web/src/components/soul/states/ExportState/ExportHeader.tsx` (modify) | Polish only (functional retry already works): accept an `exportFailed` prop, render the header button label as "Retry export" instead of "Export" when true |
 | `apps/web/src/components/soul/states/ExportState/index.tsx` (modify) | Pass `exportFailed={!!exporter.error}` through to `ExportHeader` |
 
 ## Error Handling
 
-- **Recording → draft lifecycle:** save on `onstop`, clear on successful `createSession` or on explicit `resetRecording`/`handleRestart`. Uploaded files never write a draft.
-- **Recovery:** `useRecordingRecovery` runs once per `CaptureScreen` mount. Found draft → non-blocking toast, user chooses Resume or Discard. No draft → silent no-op.
+- **Recording → draft lifecycle:** save every 5s during active recording, plus immediately on pause and on stop; clear on successful `createSession` or on explicit `resetRecording`/`handleRestart`. Uploaded files never write a draft.
+- **Recovery:** `useRecordingRecovery` runs once per `useCreateFlow` mount. Found draft → non-blocking toast, user chooses Resume (→ `processAudio(draft.blob)`, straight to processing) or Discard (→ `clearRecordingDraft()`). No draft → silent no-op.
 - **Preview crash:** caught in `drawCurrentFrame`, logged once (`console.error`), toasted once via a `hasWarnedRef` guard (prevents a persistent per-frame error from firing ~60 toasts/sec), frame skipped, RAF loop continues untouched. Playback, seeking, and export remain available — this is a presentation-only failure.
 - **Export crash:** already fully handled (caught in `startExport`, displayed by `ExportFooter`, retriable via the still-enabled header button) — the only change is relabeling that button "Retry export" instead of "Export" when `exporter.error` is set, so the existing retry affordance is explicit.
 
@@ -95,7 +97,7 @@ Matches this project's existing accepted pattern for WebCodecs/canvas paths (sam
 
 ## Success Criteria
 
-- A user whose tab crashes or is force-closed after stopping a recording, at any point before the session is created, sees a Resume/Discard prompt on their next visit and can recover the full-quality original recording.
+- A user whose tab crashes or is force-closed at any point from recording-start through session-created — mid-recording, on the review screen, or mid-processing — sees a Resume/Discard prompt on their next visit and can recover their audio (mid-recording crashes may lose at most ~5s since the last periodic save; every other window recovers in full).
 - A user who explicitly restarts or completes a recording never sees a stale recovery prompt (draft is cleared on both paths).
 - A user who uploads a file (not a live recording) never triggers autosave — no redundant storage writes.
 - A crash inside the live canvas preview freezes the visual output without breaking playback, seeking, or the ability to export.
