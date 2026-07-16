@@ -11,7 +11,7 @@ Supersedes: none — implements Option 3 ("Bulletproof Resilience & Data Safety"
 
 Separately, two crash-prone spots in the canvas/WebCodecs pipeline have no user-facing failure handling:
 - **Preview:** `CanvasPreview.tsx`'s `drawCurrentFrame`, called every tick from a `requestAnimationFrame` loop, has zero error handling. A thrown exception there is an uncaught runtime error — it does not trip `app/error.tsx` (React error boundaries only catch errors during render/commit, not inside RAF callbacks), so the loop dies silently with no feedback.
-- **Export:** `useVideoExporter.ts`'s `startExport` already has a top-level try/catch that sets an `error` state on any `encode()` failure — but `app/create/export/[sessionId]/page.tsx` never reads `exporter.error`. The catch exists; nothing surfaces it. A failed export currently looks identical to a stuck progress bar.
+- **Export:** `useVideoExporter.ts`'s `startExport` already has a top-level try/catch that sets an `error` state on any `encode()` failure, and `ExportFooter.tsx` already renders it as a visible red alert (line 84-88). The header's "Export" button is also never disabled on error (`exportDisabled = exporter.isExporting || trimmer.isEmpty` in `ExportState/index.tsx`), so clicking it again already re-triggers `startExport` — a working retry path already exists. **Corrected during planning** (verified by tracing `ExportFooter.tsx` and `ExportState/index.tsx`, not just the top-level page): this is not a real functional gap. The only remaining value here is a small clarity polish — relabel the button "Retry export" when `exporter.error` is set, so the retry affordance is explicit instead of implicit.
 
 ## Constraints
 
@@ -36,7 +36,7 @@ Tiny (~600B gzipped), promise-based, actively maintained (v6.3.0, published with
 **Rejected:** raw `indexedDB` API (hand-rolling promise wrappers around a callback API for no benefit here); `idb` or Dexie.js (both built for multi-store/indexed/reactive use cases this app doesn't have — one key, one value, no queries).
 
 ### Crash surfacing: domain-specific try/catch at the two call sites (CHOSEN)
-Follows the `AudioProcessingError` pattern already established in this codebase — typed errors, caught close to the source, mapped to UI state. Preview: try/catch around the RAF tick's render call. Export: no new catch needed (one already exists in `startExport`) — wire the already-set `error` state into the export page's UI.
+Follows the `AudioProcessingError` pattern already established in this codebase — typed errors, caught close to the source, mapped to UI state. Preview: try/catch around the RAF tick's render call (genuinely missing). Export: already fully handled end-to-end (catch, state, visible alert, working retry-via-existing-button) — only a button-label polish remains.
 
 **Rejected:** a global `window.onerror`/`unhandledrejection` listener (too broad to give the per-context preview-vs-export distinction this spec requires, and can't stop the export loop cleanly since it fires after the fact); a new generic `AppError` class app-wide (bigger, unrelated refactor — see Constraints).
 
@@ -69,22 +69,24 @@ Single IndexedDB key (`ordio:recording-draft`) — only ever one draft at a time
 | `apps/web/src/hooks/recording/useRecordingRecovery.ts` (create) | On mount: `getRecordingDraft()`; if found, Sonner toast with Resume/Discard actions. Resume → `setAudioBlob`/`setAudioBuffer` into `useCaptureStore`, navigate to review screen. Discard → `clearRecordingDraft()` |
 | `apps/web/src/components/soul/capture/CaptureScreen.tsx` (modify) | Calls `useRecordingRecovery()` once on mount |
 | `apps/web/src/components/primitives/video/CanvasPreview.tsx` (modify) | Wrap `drawCurrentFrame`'s body in try/catch: log once, toast once (ref-guarded dedup), skip `renderFrame()`/`setCaptionBox` for that tick — canvas keeps showing the last successfully drawn frame |
-| `apps/web/src/app/create/export/[sessionId]/page.tsx` (modify) | Read `exporter.error`: toast + inline "Retry export" button that re-invokes `startExport(canvas, audioBuffer, showWatermark)` with the same in-scope args |
+| `apps/web/src/components/soul/states/ExportState/ExportHeader.tsx` (modify) | Polish only (functional retry already works): accept an `exportFailed` prop, render the header button label as "Retry export" instead of "Export" when true |
+| `apps/web/src/components/soul/states/ExportState/index.tsx` (modify) | Pass `exportFailed={!!exporter.error}` through to `ExportHeader` |
 
 ## Error Handling
 
 - **Recording → draft lifecycle:** save on `onstop`, clear on successful `createSession` or on explicit `resetRecording`/`handleRestart`. Uploaded files never write a draft.
 - **Recovery:** `useRecordingRecovery` runs once per `CaptureScreen` mount. Found draft → non-blocking toast, user chooses Resume or Discard. No draft → silent no-op.
 - **Preview crash:** caught in `drawCurrentFrame`, logged once (`console.error`), toasted once via a `hasWarnedRef` guard (prevents a persistent per-frame error from firing ~60 toasts/sec), frame skipped, RAF loop continues untouched. Playback, seeking, and export remain available — this is a presentation-only failure.
-- **Export crash:** already caught in `startExport` (no new catch). New: the export page surfaces `exporter.error` as a toast plus a visible "Retry export" action, so a failed export never looks like a silently-stuck progress bar.
+- **Export crash:** already fully handled (caught in `startExport`, displayed by `ExportFooter`, retriable via the still-enabled header button) — the only change is relabeling that button "Retry export" instead of "Export" when `exporter.error` is set, so the existing retry affordance is explicit.
 
 ## Testing
 
 Matches this project's existing accepted pattern for WebCodecs/canvas paths (same as the video-backgrounds slice): unit-testable logic gets unit tests; browser-only failure paths get on-device QA, not jsdom mocks.
 
 - **Unit tests (vitest):** `recordingDraft.ts` save/get/clear round-trip (via `fake-indexeddb`, added as a dev dependency); `useRecordingRecovery`'s found-draft vs. no-draft branches (mocked draft module); the preview error-guard's dedup logic (inject the same error twice, assert exactly one toast fires).
-- **No jsdom coverage** (accepted limitation): the actual RAF-loop crash path and the actual WebCodecs export crash path both need on-device QA — force a preview render error and confirm freeze-not-crash behavior; force an export failure and confirm the Retry button actually recovers.
-- **Regression check:** existing `useVideoExporter.test.ts` and `frameRenderer.test.ts` should not need changes — this design only adds a catch/surface path around existing logic, not a change to the happy path.
+- **No jsdom coverage** (accepted limitation): the actual RAF-loop crash path needs on-device QA — force a preview render error and confirm freeze-not-crash behavior.
+- **`ExportHeader` label test:** straightforward unit test (renders "Export" vs "Retry export" based on an `exportFailed` prop) — no on-device QA needed since it's pure prop-driven rendering, not a WebCodecs path.
+- **Regression check:** existing `useVideoExporter.test.ts` and `frameRenderer.test.ts` should not need changes — this design only adds a catch path around the preview loop and a label prop around existing export logic, not a change to any happy path.
 
 ## Open Questions
 
@@ -97,4 +99,4 @@ Matches this project's existing accepted pattern for WebCodecs/canvas paths (sam
 - A user who explicitly restarts or completes a recording never sees a stale recovery prompt (draft is cleared on both paths).
 - A user who uploads a file (not a live recording) never triggers autosave — no redundant storage writes.
 - A crash inside the live canvas preview freezes the visual output without breaking playback, seeking, or the ability to export.
-- A crash inside the export encode loop surfaces a visible error with a working Retry action, never a silently-stuck progress bar.
+- A failed export's header button reads "Retry export" instead of "Export," making the already-working retry path explicit rather than implicit.
