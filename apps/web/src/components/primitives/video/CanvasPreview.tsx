@@ -8,6 +8,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { toast } from 'sonner';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
@@ -88,6 +89,7 @@ export default function CanvasPreview({
   const waveformDataRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
   const currentTimeRef = useRef(0);
+  const hasWarnedRenderErrorRef = useRef(false);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [displayTime, setDisplayTime] = useState(0);
   const [isTransformActive, setIsTransformActive] = useState(false);
@@ -159,43 +161,53 @@ export default function CanvasPreview({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const duration = playback.duration || 1;
-    const totalFrames = Math.ceil(duration * FPS);
-    const frameIndex = Math.min(
-      Math.floor(currentTimeRef.current * FPS),
-      totalFrames - 1
-    );
+    try {
+      const duration = playback.duration || 1;
+      const totalFrames = Math.ceil(duration * FPS);
+      const frameIndex = Math.min(
+        Math.floor(currentTimeRef.current * FPS),
+        totalFrames - 1
+      );
 
-    const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
-    const frameOptions: FrameOptions = {
-      waveformData: waveformDataRef.current,
-      transcript,
-      style: renderStyle,
-      waveformStyle,
-      captionMode,
-      canvasLayout,
-      showWatermark,
-      graphicStyle,
-      captionGroups,
-      captionAnimation,
-      captionTransform,
-    };
+      const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
+      const frameOptions: FrameOptions = {
+        waveformData: waveformDataRef.current,
+        transcript,
+        style: renderStyle,
+        waveformStyle,
+        captionMode,
+        canvasLayout,
+        showWatermark,
+        graphicStyle,
+        captionGroups,
+        captionAnimation,
+        captionTransform,
+      };
 
-    renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-    const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-    const nextCaptionBox = measureCaptionTransformBox({
-      ctx,
-      currentTime: currentTimeRef.current,
-      transcript,
-      captionGroups,
-      style: renderStyle,
-      layout: canvasLayout ?? 'top',
-      hasVisualZone,
-      flipped: canvasLayout === 'flipped',
-      transform: captionTransform,
-      captionMode,
-    });
-    setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
+      renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
+      const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
+      const nextCaptionBox = measureCaptionTransformBox({
+        ctx,
+        currentTime: currentTimeRef.current,
+        transcript,
+        captionGroups,
+        style: renderStyle,
+        layout: canvasLayout ?? 'top',
+        hasVisualZone,
+        flipped: canvasLayout === 'flipped',
+        transform: captionTransform,
+        captionMode,
+      });
+      setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
+    } catch (err) {
+      console.error('[CanvasPreview] render frame failed', err);
+      if (!hasWarnedRenderErrorRef.current) {
+        hasWarnedRenderErrorRef.current = true;
+        toast.error('Preview is temporarily unavailable. Your audio is unaffected.');
+      }
+      // Intentionally no re-throw and no further drawing this tick — canvas
+      // keeps showing the last successfully rendered frame.
+    }
   }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
 
   const showCaptionBox = captionBox !== null;

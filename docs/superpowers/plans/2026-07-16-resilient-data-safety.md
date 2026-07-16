@@ -830,7 +830,17 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
     // draws with it, it just needs to not be null.
     HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({});
     useUIStore.setState({
-      style: { width: 1080, height: 1080, backgroundColor: '#000', textColor: '#fff', fontFamily: 'Inter' },
+      style: {
+        width: 1080,
+        height: 1080,
+        backgroundColor: '#000000',
+        textColor: '#ffffff',
+        fontFamily: 'Inter',
+        fontSize: 72,
+        waveColor: '#ffffff',
+        characterSpacing: 0,
+        lineHeight: 1.4,
+      },
       captionAnimation: 'none',
       captionTransform: { visible: true, scale: 1, rotationDeg: 0, offsetXRatio: 0, offsetYRatio: 0 },
     });
