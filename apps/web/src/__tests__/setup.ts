@@ -76,13 +76,18 @@ Object.defineProperty(window, 'AudioContext', {
 Object.defineProperty(window, 'MediaRecorder', {
   writable: true,
   value: Object.assign(
-    vi.fn().mockImplementation(() => ({
-      start: vi.fn(),
-      stop: vi.fn(),
-      ondataavailable: null,
-      onstop: null,
-      state: 'inactive',
-    })),
+    // Uses a real `function`, not an arrow function, so `new MediaRecorder()`
+    // behaves reliably under `vi.useFakeTimers()` — see:
+    // https://vitest.dev/api/vi#vi-spyon
+    vi.fn().mockImplementation(function MockMediaRecorder() {
+      return {
+        start: vi.fn(),
+        stop: vi.fn(),
+        ondataavailable: null,
+        onstop: null,
+        state: 'inactive',
+      };
+    }),
     {
       isTypeSupported: vi.fn().mockReturnValue(false),
     }
