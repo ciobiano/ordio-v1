@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 
 // Live-caption model per the 2026-07-17 spec: cheapest OpenAI streaming path.
 // Swap to 'gpt-realtime-whisper' if caption latency disappoints in QA.
 const LIVE_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
+
+// Generous for real use (a mint per recording + reconnects), a brake on
+// runaway loops. In-memory per instance — see rateLimit.ts for limits.
+const MINTS_PER_HOUR = 20;
+const HOUR_MS = 60 * 60 * 1000;
 
 /**
  * Mints a short-lived OpenAI ephemeral client secret for a transcription-only
@@ -16,6 +22,13 @@ export async function POST(): Promise<NextResponse> {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!consumeRateLimit(userId, MINTS_PER_HOUR, HOUR_MS)) {
+    return NextResponse.json(
+      { error: 'Too many live caption sessions — try again later' },
+      { status: 429 }
+    );
   }
 
   const apiKey = process.env.OPENAI_API_KEY;

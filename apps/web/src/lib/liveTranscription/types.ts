@@ -21,6 +21,12 @@ export interface LiveTranscriber {
   start(stream: MediaStream): Promise<void>;
   /** Tear down socket + audio graph. Safe to call repeatedly. */
   stop(): void;
+  /**
+   * Recording paused (true) / resumed (false): implementations must stop
+   * emitting audio upstream while suspended — paused speech is not being
+   * recorded, so captioning it would lie, and silence still bills.
+   */
+  setSuspended(suspended: boolean): void;
   onPartial(cb: (event: LivePartialEvent) => void): void;
   onFinal(cb: (event: LiveFinalEvent) => void): void;
   onError(cb: (message: string) => void): void;

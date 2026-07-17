@@ -40,6 +40,8 @@ const baseProps = {
   fileInputRef: { current: null },
   onFileUpload: vi.fn(),
   isPaused: false,
+  committedCaptionLines: [],
+  interimCaptionText: '',
   onStartRecording: vi.fn(),
   onPauseRecording: vi.fn(),
   onResumeRecording: vi.fn(),

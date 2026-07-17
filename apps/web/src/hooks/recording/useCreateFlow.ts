@@ -176,6 +176,18 @@ export function useCreateFlow() {
     analyser.disconnect();
   }, [recorder, analyser, live]);
 
+  // Pause/resume must reach both the recorder and the caption stream —
+  // paused speech isn't recorded, so captioning it would lie.
+  const handlePauseRecording = useCallback(() => {
+    recorder.pauseRecording();
+    live.setLiveSuspended(true);
+  }, [recorder, live]);
+
+  const handleResumeRecording = useCallback(() => {
+    recorder.resumeRecording();
+    live.setLiveSuspended(false);
+  }, [recorder, live]);
+
   const handleProceed = useCallback(async () => {
     if (!recorder.audioBlob) return;
     setProcessingAlert(null);
@@ -275,6 +287,8 @@ export function useCreateFlow() {
     recorder,
     handleStartRecording,
     handleStopRecording,
+    handlePauseRecording,
+    handleResumeRecording,
     handleProceed,
     handleRestart,
     setUpgradeTarget,

@@ -53,6 +53,8 @@ export interface UseLiveTranscriptionReturn {
   liveError: string | null;
   startLive: (stream: MediaStream) => void;
   stopLive: () => void;
+  /** Mirror recording pause/resume so paused speech is never captioned. */
+  setLiveSuspended: (suspended: boolean) => void;
   resetCaptions: () => void;
 }
 
@@ -86,6 +88,10 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
     [stopLive]
   );
 
+  const setLiveSuspended = useCallback((suspended: boolean) => {
+    transcriberRef.current?.setSuspended(suspended);
+  }, []);
+
   const resetCaptions = useCallback(() => {
     dispatch({ type: 'reset' });
     setLiveError(null);
@@ -97,6 +103,7 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
     liveError,
     startLive,
     stopLive,
+    setLiveSuspended,
     resetCaptions,
   };
 }

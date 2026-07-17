@@ -53,8 +53,8 @@ export default function CreatePage() {
         committedCaptionLines={flow.committedCaptionLines}
         interimCaptionText={flow.interimCaptionText}
         onStartRecording={flow.handleStartRecording}
-        onPauseRecording={flow.recorder.pauseRecording}
-        onResumeRecording={flow.recorder.resumeRecording}
+        onPauseRecording={flow.handlePauseRecording}
+        onResumeRecording={flow.handleResumeRecording}
         onStopRecording={flow.handleStopRecording}
         onRestart={flow.handleRestart}
         onProceed={flow.handleProceed}
