@@ -894,6 +894,42 @@ select {
   }
 }
 
+/* ── Audio orb icon — the canonical "tap/press to record" mic mark, lifted
+   from the desktop studio's idle-state record button (Ordio Studio.dc.html).
+   Reused wherever the app needs to represent "audio/voice" as an icon. ── */
+@keyframes audioOrbBreathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.055);
+  }
+}
+@keyframes audioOrbGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 60px 6px rgba(198, 255, 61, 0.28),
+      0 0 120px 20px rgba(107, 224, 255, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 90px 14px rgba(198, 255, 61, 0.42),
+      0 0 160px 34px rgba(107, 224, 255, 0.26);
+  }
+}
+.audio-orb-icon {
+  animation:
+    audioOrbBreathe 3.4s ease-in-out infinite,
+    audioOrbGlow 3.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .audio-orb-icon {
+    animation: none;
+  }
+}
+
 /* ── Export canvas: one-time caption "this is editable" stroke pulse ──
    Breathes twice then fades — replaces the old text banner hint. */
 @keyframes captionHintPulse {

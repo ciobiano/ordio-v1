@@ -327,6 +327,27 @@ export const acidCta = cva(
 /**
  * Acid pill — selectable tab/option (e.g. control dock: Captions/Style/Trim/Reframe).
  */
+/**
+ * Onboarding auth tray buttons (mobile sign-up screen + desktop auth modal).
+ * `apple` gets Apple's mandated light pill per HIG; the rest sit on the acid
+ * dark surface system so the tray matches the desktop studio's palette.
+ */
+export const authTrayBtn = cva(
+  'h-15.5 rounded-2xl flex items-center justify-center font-black text-[17px] ' +
+  'tracking-[-0.01em] cursor-pointer transition-transform duration-150 active:scale-[0.985]',
+  {
+    variants: {
+      variant: {
+        apple: 'bg-white text-acid-bg-base',
+        google: 'bg-acid-surface-3 text-acid-text-1',
+        signup: 'bg-acid-surface-3 text-acid-text-1',
+        login: 'bg-transparent border border-acid-border-default text-acid-text-1',
+      },
+    },
+    defaultVariants: { variant: 'signup' },
+  }
+);
+
 export const acidPill = cva(
   'flex-1 text-center font-acid-body font-medium ' +
   'text-[length:var(--acid-text-label)] rounded-acid-md py-2.5 ' +
