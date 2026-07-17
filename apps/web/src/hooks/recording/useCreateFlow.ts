@@ -17,6 +17,7 @@ import {
   useAudioProcessing,
 } from '@/hooks/audio/useAudioProcessing';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
+import { useMicPermission } from '@/hooks/recording/useMicPermission';
 import { useVAD } from '@/hooks/recording/useVAD';
 import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
 
@@ -84,6 +85,7 @@ export function useCreateFlow() {
   const transcription = useTranscription();
   const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
   const capabilities = useCapabilities();
+  const micPermission = useMicPermission();
   const vad = useVAD(recorder.isRecording);
 
   // ── Error handling ───────────────────────────────────────────────
@@ -140,16 +142,20 @@ export function useCreateFlow() {
         const isDenied =
           recorder.error?.toLowerCase().includes('denied') ||
           recorder.error?.toLowerCase().includes('permission');
-        if (isDenied) setMicDenied(true);
+        if (isDenied) {
+          setMicDenied(true);
+          micPermission.recordDenial();
+        }
         return;
       }
       setMicDenied(false);
+      micPermission.recordGrant();
       analyser.connectStream(stream);
       setCurrentState('recording');
     } finally {
       setIsStarting(false);
     }
-  }, [recorder, analyser, transcription, setCurrentState]);
+  }, [recorder, analyser, transcription, setCurrentState, micPermission]);
 
   const handleStopRecording = useCallback(() => {
     recorder.stopRecording();
@@ -243,6 +249,7 @@ export function useCreateFlow() {
 
     // Capabilities
     capabilities,
+    micPermissionStatus: micPermission.status,
 
     // Recording
     recorder,

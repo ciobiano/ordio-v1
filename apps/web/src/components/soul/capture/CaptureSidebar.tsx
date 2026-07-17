@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Search, Folders, Menu, Plus, Settings, Trash } from 'griddy-icons';
+import { Search, Plus, Settings, Trash } from 'griddy-icons';
 import { api } from '@Ordio/convex';
 import { captureGlossyBtn } from '@/lib/variants';
 import { formatDuration } from '@/components/saved-audio/formatters';
@@ -89,18 +89,6 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
       </div>
 
       <div className="px-3 pt-0.5 flex flex-col gap-0.5">
-        <button type="button" className="flex items-center gap-4 w-full text-left border-none bg-transparent px-2 py-3 rounded-xl cursor-pointer hover:bg-white/5">
-          <span className="w-5.5 flex items-center justify-center shrink-0">
-            <Folders size={18} />
-          </span>
-          <span className="text-[17px] text-white">Library</span>
-        </button>
-        <button type="button" className="flex items-center gap-4 w-full text-left border-none bg-transparent px-2 py-3 rounded-xl cursor-pointer hover:bg-white/5">
-          <span className="w-5.5 flex items-center justify-center shrink-0">
-            <Menu size={18} />
-          </span>
-          <span className="text-[17px] text-white">All recordings</span>
-        </button>
         <button
           type="button"
           onClick={() => {
@@ -163,7 +151,7 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
         ))}
       </div>
 
-      <div className="flex items-center justify-end px-4 py-3.5 border-t border-white/8">
+      <div className="flex items-center justify-start px-4 py-3.5 border-t border-white/8">
         <button
           type="button"
           onClick={onOpenSettings}

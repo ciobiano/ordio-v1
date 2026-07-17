@@ -93,7 +93,7 @@ export function CaptureDock({
         <button
           type="button"
           onClick={isRecPaused ? onGoReady : onOpenSettings}
-          className={captureRoundBtn({ tone: isRecPaused ? 'dark' : 'neutral' })}
+          className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
           aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
         >
           {isRecPaused ? <Stop size={20} /> : <Settings size={20} />}
@@ -139,7 +139,9 @@ export function CaptureDock({
           <button
             type="button"
             onClick={phase === 'recording' ? onPause : phase === 'paused' ? onResume : onRestart}
-            className={captureRoundBtn({ tone: 'danger' })}
+            className={captureRoundBtn({
+              tone: phase === 'recording' ? 'warning' : phase === 'paused' ? 'success' : 'danger',
+            })}
             aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
           >
             {phase === 'recording' && <Pause size={18} />}

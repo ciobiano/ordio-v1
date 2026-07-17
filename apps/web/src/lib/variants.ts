@@ -130,7 +130,7 @@ export const captureNavBtn = `${captureGlossyBtn} w-9 h-9`;
  * camera/voice-memo shutter so it can't be mistaken for an input field.
  */
 export const captureRecordHero =
-  'shrink-0 w-17 h-17 rounded-full flex items-center justify-center bg-[#ff453a] text-white ' +
+  'shrink-0 w-17 h-17 rounded-full flex items-center justify-center bg-acid-error text-white ' +
   'border-4 border-white/15 cursor-pointer transition-transform duration-150 active:scale-92';
 
 /**
@@ -153,16 +153,22 @@ export const captureCenterSlot = cva(
 
 /**
  * Round dock button — settings/stop/pause/play/restart/cancel, 40px (down from the mockup's
- * earlier 54-64px pass). Every role shares the same glossy-dark look now except the mid
- * pause/play/restart button, which keeps its destructive-red tint.
+ * earlier 54-64px pass). Tone maps to what the action *means*, using the acid semantic
+ * tokens instead of one undifferentiated red: `primary` (lime) for the confident "stop and
+ * review" action, `warning` (amber) for pause, `success` (green) for resume, `danger` (red)
+ * for restart since it discards the current take.
  */
 export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-center justify-center', {
   variants: {
     tone: {
       neutral: `${captureGlossyBtn}`,
-      dark: `${captureGlossyBtn}`,
+      primary: 'border-none cursor-pointer text-acid-on-accent bg-acid-accent',
+      warning:
+        'border-none cursor-pointer text-acid-warning bg-acid-warning/16 border border-acid-warning/50',
+      success:
+        'border-none cursor-pointer text-acid-success bg-acid-success/16 border border-acid-success/50',
       danger:
-        'border-none cursor-pointer text-white bg-[rgba(255,69,58,0.16)] border border-[rgba(255,69,58,0.5)]',
+        'border-none cursor-pointer text-acid-error bg-acid-error/16 border border-acid-error/50',
     },
   },
   defaultVariants: { tone: 'neutral' },
