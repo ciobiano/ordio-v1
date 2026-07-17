@@ -1,26 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useAuth, useClerk } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
+import { StudioAuthModal } from '@/components/soul/auth/StudioAuthModal';
 
-// No dedicated /sign-in route exists in this app — mobile's SplashScreen
-// triggers Clerk's imperative modal via useClerk(), not a route redirect.
-// Studio mirrors that mechanism, just without the splash animation.
+// The studio itself always mounts — StudioAuthModal blocks it behind a
+// blurred, inert overlay until the user signs up/in, then gets out of the
+// way. Replaces the old opaque "Sign in to continue" placeholder + Clerk's
+// imperative openSignIn() modal.
 export default function StudioLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
-  const { openSignIn } = useClerk();
-
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) openSignIn();
-  }, [isLoaded, isSignedIn, openSignIn]);
 
   if (!isLoaded) return null;
-  if (!isSignedIn) {
-    return (
-      <div className="w-full h-dvh bg-acid-bg-base flex items-center justify-center text-acid-text-3 text-sm">
-        Sign in to continue.
+
+  return (
+    <>
+      <div inert={!isSignedIn} aria-hidden={!isSignedIn}>
+        {children}
       </div>
-    );
-  }
-  return <>{children}</>;
+      <StudioAuthModal open={!isSignedIn} />
+    </>
+  );
 }

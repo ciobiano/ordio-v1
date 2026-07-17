@@ -1,4 +1,3 @@
-export { default as AuthGate } from './auth/AuthGate';
 export { default as UserAvatarButton } from './auth/UserAvatarButton';
 export { default as AudioSettings } from './recording/AudioSettings';
 export { default as CaptionEditor } from './captions/CaptionEditor';
