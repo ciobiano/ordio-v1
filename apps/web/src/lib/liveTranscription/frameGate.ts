@@ -17,11 +17,13 @@ export interface FrameGateConfig {
   preRollFrames: number;
 }
 
-// 100ms frames: 3 = 300ms pre-roll (spec 6), 8 = 800ms hangover.
+// 100ms frames: 4 = 400ms pre-roll, 8 = 800ms hangover. Threshold softened
+// 0.015 → 0.010 after mobile QA reported dropped words (mobile mics with AGC
+// can sit lower than desktop levels).
 export const DEFAULT_GATE_CONFIG: FrameGateConfig = {
-  openRms: 0.015,
+  openRms: 0.01,
   hangoverFrames: 8,
-  preRollFrames: 3,
+  preRollFrames: 4,
 };
 
 export interface FrameGateState {

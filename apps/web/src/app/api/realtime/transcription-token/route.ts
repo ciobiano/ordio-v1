@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 
-// Live-caption model per the 2026-07-17 spec: cheapest OpenAI streaming path.
-// Swap to 'gpt-realtime-whisper' if caption latency disappoints in QA.
-const LIVE_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
+// Purpose-built streaming model (spec's designated latency fallback, promoted
+// after mobile QA): gpt-4o-mini-transcribe only emitted turn-level chunks —
+// captions lagged by whole utterances. gpt-realtime-whisper streams deltas
+// continuously, supports the `delay` knob, and uses manual buffer commits
+// (the client's frame gate commits at end-of-speech). ~$0.017/min vs $0.003 —
+// still ~$0.05 per 3-min recording.
+const LIVE_TRANSCRIPTION_MODEL = 'gpt-realtime-whisper';
 
 // Generous for real use (a mint per recording + reconnects), a brake on
 // runaway loops. In-memory per instance — see rateLimit.ts for limits.
@@ -53,9 +57,15 @@ export async function POST(): Promise<NextResponse> {
           audio: {
             input: {
               format: { type: 'audio/pcm', rate: 24000 },
+              // gpt-realtime-whisper requires manual commits (no server VAD);
+              // the client's frame gate commits when speech ends.
+              turn_detection: null,
               transcription: {
                 model: LIVE_TRANSCRIPTION_MODEL,
                 language: 'en',
+                // Earlier partials at slightly higher word-error — right
+                // trade for disposable captions ('minimal' if still laggy).
+                delay: 'low',
               },
             },
           },

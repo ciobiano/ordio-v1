@@ -121,6 +121,11 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
     this.suspended = suspended;
 
     if (suspended) {
+      // Mid-speech pause: finalize what was already streamed so the last
+      // words commit instead of dangling as interim forever.
+      if (this.gateState.open && this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+      }
       this.gateState = INITIAL_GATE_STATE;
       this.suspendTimer = setTimeout(() => {
         this.closeSocketOnly();
@@ -225,6 +230,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
       if (this.suspended) return;
       if (this.ws?.readyState !== WebSocket.OPEN) return;
 
+      const wasOpen = this.gateState.open;
       const { state, framesToSend } = processFrame(
         this.gateState,
         new Int16Array(msg.data),
@@ -239,6 +245,12 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
             audio: pcmFrameToBase64(frame.buffer as ArrayBuffer),
           })
         );
+      }
+
+      // gpt-realtime-whisper uses manual commits (no server VAD): the gate
+      // closing IS end-of-speech, so finalize the utterance right there.
+      if (wasOpen && !state.open) {
+        this.ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       }
     };
 

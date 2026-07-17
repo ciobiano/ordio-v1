@@ -54,6 +54,8 @@ Deferred items surfaced during plan review. Each entry: what, why, pros/cons, co
 
 ## Real-time live captioning during recording
 
+**Status:** ✅ DONE 2026-07-17 — `useMockLiveCaption` deleted; the CaptureStage slot now renders real streaming text from `useLiveTranscription` (OpenAI Realtime, `gpt-realtime-whisper`, frame-gated PCM over WebSocket). Also wired into `/studio`'s CenterStage. See `docs/superpowers/specs/2026-07-17-live-transcription-design.md`.
+
 **What:** Replace the mocked live-caption cycling in the Unified Capture screen's `useMockLiveCaption` hook with a real streaming transcript — either Web Speech API interim results while `isSpeaking` is true, or streaming Whisper if Web Speech accuracy/browser coverage proves insufficient.
 
 **Why:** The Unified Capture screen design (`docs/superpowers/specs/2026-07-07-unified-capture-screen-design.md`) calls for a live word-by-word caption while voice is detected during recording, matching the original Claude Design mockup. The mockup's caption was faked with canned phrases since it's a prototype; today's app has no live/streaming transcription source (`useTranscription.transcribeAudio` only runs once, post-recording, via batch Whisper). Per user direction, the mock ships now so the UI/animation exists, with real data wired in later.

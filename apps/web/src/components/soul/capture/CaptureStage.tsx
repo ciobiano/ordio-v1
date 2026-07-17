@@ -4,17 +4,21 @@ import { motion } from 'framer-motion';
 import { Orb } from '@/components/primitives/orb/Orb';
 import { deriveStatusText } from './phase';
 import { useIdleTypewriter } from './useIdleTypewriter';
-import { useMockLiveCaption } from './useMockLiveCaption';
 import type { CapturePhase } from './types';
 
 interface CaptureStageProps {
   phase: CapturePhase;
   audioLevel: number;
   isSpeaking: boolean;
+  /** Live transcription text (committed + interim). The stage shows the tail. */
+  liveCaptionText: string;
   onOrbClick?: () => void;
   onOrbPressStart?: () => void;
   onOrbPressEnd?: () => void;
 }
+
+/** The designed slot is a ~3-line block under the orb; show the newest words. */
+const LIVE_CAPTION_WORDS = 14;
 
 /** Base orb render size is 200px (Orb's own w-50 class) — scale relative to that per phase. */
 const BASE_ORB_PX = 200;
@@ -52,6 +56,7 @@ export function CaptureStage({
   phase,
   audioLevel,
   isSpeaking,
+  liveCaptionText,
   onOrbClick,
   onOrbPressStart,
   onOrbPressEnd,
@@ -59,7 +64,16 @@ export function CaptureStage({
   const isIdle = phase === 'idle';
   const status = deriveStatusText({ phase, audioLevel, isSpeaking });
   const idleText = useIdleTypewriter(isIdle);
-  const mockCaption = useMockLiveCaption(status.kind === 'voice-detected');
+  const liveCaption = liveCaptionText
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-LIVE_CAPTION_WORDS)
+    .join(' ');
+  // Caption presence beats the VAD flicker: once real words exist, keep
+  // showing them through brief isSpeaking=false gaps instead of bouncing
+  // back to the "Listening" pulse.
+  const showCaption =
+    (status.kind === 'voice-detected' || status.kind === 'listening') && liveCaption.length > 0;
 
   const scale = ORB_TARGET_PX[phase] / BASE_ORB_PX;
 
@@ -90,15 +104,24 @@ export function CaptureStage({
         )}
         {status.kind === 'paused' && <p className="text-white/45 text-xl">Paused</p>}
         {status.kind === 'too-quiet' && <p className="text-white/45 text-xl">Too quiet</p>}
-        {status.kind === 'listening' && (
+        {status.kind === 'listening' && !showCaption && (
           <p className="text-white/45 text-xl tracking-[0.3px]">
             Listening
             <span className="inline-block w-4 h-4 rounded-full ml-2 bg-white/55 animate-pulse" />
           </p>
         )}
-        {status.kind === 'voice-detected' && (
-          <p className="text-white text-[22px] font-semibold text-center leading-[1.35] max-w-80">
-            {mockCaption}
+        {showCaption && (
+          <p
+            className="text-white text-[22px] font-semibold text-center leading-[1.35] max-w-80"
+            aria-live="polite"
+          >
+            {liveCaption}
+          </p>
+        )}
+        {status.kind === 'voice-detected' && !showCaption && (
+          <p className="text-white/45 text-xl tracking-[0.3px]">
+            Listening
+            <span className="inline-block w-4 h-4 rounded-full ml-2 bg-white/55 animate-pulse" />
           </p>
         )}
         {status.kind === 'ready' && <p className="text-white/45 text-xl">Ready to process</p>}

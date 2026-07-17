@@ -9,7 +9,6 @@ import { useHaptics } from '@/hooks/useHaptics';
 import type { FeatureKey } from '@/lib/featureGates';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
-import { CaptureCaptions } from './CaptureCaptions';
 import { CaptureDock } from './CaptureDock';
 import { CaptureSidebar } from './CaptureSidebar';
 import { UploadActionSheet } from './UploadActionSheet';
@@ -222,16 +221,13 @@ export function CaptureScreen({
           phase={phase}
           audioLevel={audioLevel}
           isSpeaking={isSpeaking}
+          liveCaptionText={[...committedCaptionLines, interimCaptionText].join(' ').trim()}
           // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
           // itself is a no-op here since pointerdown/pointerup already handle start/finish.
           onOrbClick={() => {}}
           onOrbPressStart={handlePrimaryDown}
           onOrbPressEnd={finishPress}
         />
-
-        {(phase === 'recording' || phase === 'paused') && (
-          <CaptureCaptions committedLines={committedCaptionLines} interimText={interimCaptionText} />
-        )}
 
         <CaptureDock
           phase={phase}
