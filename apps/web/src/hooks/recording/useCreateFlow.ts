@@ -17,6 +17,7 @@ import {
   useAudioProcessing,
 } from '@/hooks/audio/useAudioProcessing';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
+import { useLiveTranscription } from '@/hooks/recording/useLiveTranscription';
 import { useMicPermission } from '@/hooks/recording/useMicPermission';
 import { useVAD } from '@/hooks/recording/useVAD';
 import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
@@ -86,7 +87,17 @@ export function useCreateFlow() {
   const { processingProgress, processAudio, cancelProcessing } = useAudioProcessing(transcription);
   const capabilities = useCapabilities();
   const micPermission = useMicPermission();
+  const live = useLiveTranscription();
   const vad = useVAD(recorder.isRecording);
+
+  // Surface live-caption failures once; recording itself is unaffected.
+  const lastLiveErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (live.liveError && live.liveError !== lastLiveErrorRef.current) {
+      lastLiveErrorRef.current = live.liveError;
+      toast.error(live.liveError);
+    }
+  }, [live.liveError]);
 
   // ── Error handling ───────────────────────────────────────────────
 
@@ -151,16 +162,19 @@ export function useCreateFlow() {
       setMicDenied(false);
       micPermission.recordGrant();
       analyser.connectStream(stream);
+      live.resetCaptions();
+      live.startLive(stream);
       setCurrentState('recording');
     } finally {
       setIsStarting(false);
     }
-  }, [recorder, analyser, transcription, setCurrentState, micPermission]);
+  }, [recorder, analyser, transcription, setCurrentState, micPermission, live]);
 
   const handleStopRecording = useCallback(() => {
+    live.stopLive();
     recorder.stopRecording();
     analyser.disconnect();
-  }, [recorder, analyser]);
+  }, [recorder, analyser, live]);
 
   const handleProceed = useCallback(async () => {
     if (!recorder.audioBlob) return;
@@ -220,11 +234,13 @@ export function useCreateFlow() {
 
   const handleReset = useCallback(() => {
     cancelProcessing();
+    live.stopLive();
+    live.resetCaptions();
     recorder.resetRecording();
     transcription.clearTranscript();
     setProcessingAlert(null);
     reset();
-  }, [cancelProcessing, recorder, transcription, reset]);
+  }, [cancelProcessing, recorder, transcription, reset, live]);
 
   const handleDisableEnhancement = useCallback(() => {
     setEnhanceTier('none');
@@ -250,6 +266,10 @@ export function useCreateFlow() {
     // Capabilities
     capabilities,
     micPermissionStatus: micPermission.status,
+
+    // Live captions (disposable; final transcript comes from processing)
+    committedCaptionLines: live.committedLines,
+    interimCaptionText: live.interimText,
 
     // Recording
     recorder,

@@ -9,6 +9,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 import type { FeatureKey } from '@/lib/featureGates';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
+import { CaptureCaptions } from './CaptureCaptions';
 import { CaptureDock } from './CaptureDock';
 import { CaptureSidebar } from './CaptureSidebar';
 import { UploadActionSheet } from './UploadActionSheet';
@@ -35,6 +36,8 @@ interface CaptureScreenProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
   onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   isPaused: boolean;
+  committedCaptionLines: string[];
+  interimCaptionText: string;
   onStartRecording: () => void;
   onPauseRecording: () => void;
   onResumeRecording: () => void;
@@ -56,6 +59,8 @@ export function CaptureScreen({
   fileInputRef,
   onFileUpload,
   isPaused,
+  committedCaptionLines,
+  interimCaptionText,
   onStartRecording,
   onPauseRecording,
   onResumeRecording,
@@ -223,6 +228,10 @@ export function CaptureScreen({
           onOrbPressStart={handlePrimaryDown}
           onOrbPressEnd={finishPress}
         />
+
+        {(phase === 'recording' || phase === 'paused') && (
+          <CaptureCaptions committedLines={committedCaptionLines} interimText={interimCaptionText} />
+        )}
 
         <CaptureDock
           phase={phase}

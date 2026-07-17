@@ -50,6 +50,8 @@ export default function CreatePage() {
         fileInputRef={flow.fileInputRef}
         onFileUpload={flow.handleFileSelect}
         isPaused={flow.recorder.isPaused}
+        committedCaptionLines={flow.committedCaptionLines}
+        interimCaptionText={flow.interimCaptionText}
         onStartRecording={flow.handleStartRecording}
         onPauseRecording={flow.recorder.pauseRecording}
         onResumeRecording={flow.recorder.resumeRecording}
