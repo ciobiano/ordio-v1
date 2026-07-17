@@ -26,10 +26,10 @@ function generateBars(count: number): EarBar[] {
 // Vibrant neon colors that POP on #000 background
 const GREETING_COLORS = {
   morning: {
-    body: '#00ff88',
-    glow: '0 0 60px rgba(0,255,136,0.5), 0 0 100px rgba(0,255,136,0.2)',
+    body: '#c6ff3d',
+    glow: '0 0 60px rgba(198,255,61,0.5), 0 0 100px rgba(198,255,61,0.2)',
     eye: '#ffffff',
-    ring: 'rgba(0,255,136,0.15)',
+    ring: 'rgba(198,255,61,0.15)',
   },
   afternoon: {
     body: '#00ccff',

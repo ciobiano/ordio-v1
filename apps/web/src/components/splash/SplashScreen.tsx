@@ -24,7 +24,7 @@ function getTimeBasedGreeting(): GreetingConfig {
   if (hour < 12) {
     return {
       text: 'Good morning',
-      color: 'text-[#3fb950]', 
+      color: 'text-acid-accent',
       fontWeight: 'font-medium',
       mascotType: 'morning',
     };

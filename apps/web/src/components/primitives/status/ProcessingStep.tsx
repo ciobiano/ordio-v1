@@ -13,7 +13,7 @@ interface ProcessingStepProps {
 const stepRoot = cva('flex items-center gap-3 transition-colors duration-200', {
   variants: {
     state: {
-      done: 'text-[--accent-green]',
+      done: 'text-acid-accent',
       active: 'text-white',
       pending: 'text-white/50',
     },

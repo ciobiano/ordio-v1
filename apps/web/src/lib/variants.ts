@@ -120,7 +120,7 @@ export const proceedBtn = cva(
  * carries the radial-gradient + inset-shadow combo, since that's unwieldy as a utility string.
  */
 export const captureGlossyBtn =
-  'capture-glossy-btn shrink-0 rounded-full flex items-center justify-center border-none ' +
+  'capture-glossy-btn shrink-0 rounded-full flex items-center justify-center ' +
   'text-white cursor-pointer transition-transform duration-300';
 
 export const captureNavBtn = `${captureGlossyBtn} w-9 h-9`;
@@ -239,7 +239,7 @@ export const brandBorder = cva('', {
     variant: {
       default: 'border-border border-2',
       subtle: 'border-border border-2',
-      accent: 'border-l-4 border-l-accent-green',
+      accent: 'border-l-4 border-l-acid-accent',
     },
   },
   defaultVariants: { variant: 'default' },

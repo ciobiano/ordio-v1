@@ -50,7 +50,7 @@ export default function UserAvatarButton() {
         <div
           role="button"
           tabIndex={0}
-          className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-transform duration-100 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green cursor-pointer"
+          className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-transform duration-100 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent cursor-pointer"
           aria-label="Open user menu"
         >
           <Image
@@ -84,7 +84,7 @@ export default function UserAvatarButton() {
                   onClick={() => handleSelect(id)}
                   className={cn(
                     'w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/10 transition-transform duration-100 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105',
-                    selected === id && 'ring-2 ring-accent-green'
+                    selected === id && 'ring-2 ring-acid-accent'
                   )}
                   aria-label={`Select avatar ${id}`}
                   aria-pressed={selected === id}
