@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth, useClerk, useUser } from '@clerk/nextjs';
-import { OnboardingCarousel } from './OnboardingCarousel';
+import { useAuth } from '@clerk/nextjs';
+import { OnboardingScreen } from './OnboardingScreen';
 import { SlideToContinue } from './SlideToContinue';
 import { useNavigate, useOverlayLoading } from '@/components/NavigationTransition';
 import { Mascot } from '@/components/mascot/Mascot';
@@ -59,8 +59,6 @@ const CYCLE_TYPES: CycleType[] = ['time-based', 'welcome-back'];
 
 export function SplashScreen() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { openSignUp } = useClerk();
-  const { user } = useUser();
   const { navigate } = useNavigate();
   useOverlayLoading(!isLoaded);
 
@@ -149,12 +147,5 @@ export function SplashScreen() {
     );
   }
 
-  return (
-    <main className="min-h-dvh bg-black relative">
-      {logo}
-      {mascotBg}
-      {mascot}
-      <OnboardingCarousel onCTA={() => openSignUp()} />
-    </main>
-  );
+  return <OnboardingScreen />;
 }

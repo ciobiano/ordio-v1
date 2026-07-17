@@ -4,8 +4,11 @@ import { SplashScreen } from '@/components/splash/SplashScreen';
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: vi.fn(),
-  useClerk: vi.fn(() => ({ openSignUp: vi.fn() })),
-  useUser: vi.fn(() => ({ user: null })),
+  useClerk: vi.fn(() => ({ openSignUp: vi.fn(), openSignIn: vi.fn() })),
+}));
+
+vi.mock('@clerk/nextjs/legacy', () => ({
+  useSignUp: vi.fn(() => ({ isLoaded: true, signUp: { authenticateWithRedirect: vi.fn() } })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -18,7 +21,7 @@ vi.mock('@/components/NavigationTransition', () => ({
   useOverlayLoading: vi.fn(),
 }));
 
-import { useAuth, useClerk } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 
 describe('SplashScreen', () => {
   it('renders nothing while Clerk is loading (overlay handled by NavigationTransition)', () => {
@@ -28,25 +31,16 @@ describe('SplashScreen', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows OnboardingCarousel when user is not signed in', () => {
+  it('shows OnboardingScreen when user is not signed in', () => {
     (useAuth as Mock).mockReturnValue({ isLoaded: true, isSignedIn: false });
     const { getByTestId } = render(<SplashScreen />);
-    expect(getByTestId('carousel-container')).toBeInTheDocument();
+    expect(getByTestId('onboarding-screen')).toBeInTheDocument();
   });
 
   it('shows SlideToContinue when user is signed in', () => {
     (useAuth as Mock).mockReturnValue({ isLoaded: true, isSignedIn: true });
     const { getByTestId } = render(<SplashScreen />);
     expect(getByTestId('slide-track')).toBeInTheDocument();
-  });
-
-  it('calls openSignUp when CTA is clicked in carousel', () => {
-    const openSignUp = vi.fn();
-    (useAuth as Mock).mockReturnValue({ isLoaded: true, isSignedIn: false });
-    (useClerk as Mock).mockReturnValue({ openSignUp });
-    const { getByRole } = render(<SplashScreen />);
-    getByRole('button', { name: /get started/i }).click();
-    expect(openSignUp).toHaveBeenCalledTimes(1);
   });
 
   it('calls navigate to /create when SlideToContinue onComplete fires', () => {
