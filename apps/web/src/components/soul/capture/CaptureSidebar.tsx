@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { motion } from 'framer-motion';
@@ -21,6 +21,13 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const PAGE_SIZE = 8;
+
+/** Swipe-to-delete discoverability (HIG: never rely on an invisible gesture).
+ * First visit with recordings present: the top row peeks open to flash the
+ * delete action, then springs back. Shown once, remembered here. Long-press
+ * remains the permanent alternate path to delete. */
+const SWIPE_HINT_SEEN_KEY = 'ordio-swipe-delete-hint-seen';
+const LONG_PRESS_MS = 500;
 
 function formatRecentMeta(durationMs: number, createdAt: number): string {
   const created = new Date(createdAt);
@@ -64,6 +71,37 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
   const [pendingDelete, setPendingDelete] = useState<(typeof sessions)[number] | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
+
+  const [hintRowId, setHintRowId] = useState<string | null>(null);
+  const hintQueuedRef = useRef(false);
+  useEffect(() => {
+    if (hintQueuedRef.current || sessions.length === 0) return;
+    if (localStorage.getItem(SWIPE_HINT_SEEN_KEY)) return;
+    hintQueuedRef.current = true;
+    setHintRowId(sessions[0].id);
+  }, [sessions]);
+
+  const completeHint = useCallback(() => {
+    localStorage.setItem(SWIPE_HINT_SEEN_KEY, '1');
+    setHintRowId(null);
+  }, []);
+
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressFiredRef = useRef(false);
+  const beginLongPress = useCallback((session: (typeof sessions)[number]) => {
+    longPressFiredRef.current = false;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressFiredRef.current = true;
+      setPendingDelete(session);
+    }, LONG_PRESS_MS);
+  }, []);
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => cancelLongPress, [cancelLongPress]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!pendingDelete) return;
@@ -123,8 +161,20 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
               dragConstraints={{ left: -80, right: 0 }}
               dragElastic={0.06}
               dragMomentum={false}
-              animate={{ x: swipeOpenId === session.id ? -80 : 0 }}
-              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              onDragStart={cancelLongPress}
+              animate={
+                hintRowId === session.id
+                  ? { x: [0, -64, 0] }
+                  : { x: swipeOpenId === session.id ? -80 : 0 }
+              }
+              transition={
+                hintRowId === session.id
+                  ? { delay: 0.6, duration: 1.15, times: [0, 0.4, 1], ease: [0.32, 0.72, 0, 1] }
+                  : { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+              }
+              onAnimationComplete={() => {
+                if (hintRowId === session.id) completeHint();
+              }}
               onDragEnd={(_, info) =>
                 setSwipeOpenId(info.offset.x < -40 ? session.id : null)
               }
@@ -132,7 +182,15 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
             >
               <button
                 type="button"
+                onPointerDown={() => beginLongPress(session)}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
                 onClick={() => {
+                  cancelLongPress();
+                  if (longPressFiredRef.current) {
+                    longPressFiredRef.current = false;
+                    return;
+                  }
                   if (swipeOpenId !== null) {
                     setSwipeOpenId(null);
                     return;

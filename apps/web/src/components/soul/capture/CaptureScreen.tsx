@@ -21,8 +21,15 @@ const RecordingSettingsSheet = dynamic(
   { ssr: false }
 );
 
-const EASE = [0.32, 0.72, 0, 1] as const;
 const FALLBACK_CONTAINER_PX = 440; // matches the outer container's max-w-[440px]
+
+// Velocity-aware spring so a release mid-drag settles from the finger's actual
+// momentum instead of restarting a fixed-duration tween (the old 0.44s tween
+// read as lag). Tuned to settle in ~350ms without visible oscillation.
+const SIDEBAR_SPRING = { type: 'spring', stiffness: 420, damping: 42, mass: 0.9 } as const;
+
+// A flick past this speed (px/s) wins over position — matches platform sheet behavior.
+const FLICK_VELOCITY_PX_S = 300;
 
 interface CaptureScreenProps {
   currentState: 'idle' | 'recording' | 'processing';
@@ -156,6 +163,10 @@ export function CaptureScreen({
 
   const handleSidebarDragEnd = useCallback(
     (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
+      if (Math.abs(info.velocity.x) > FLICK_VELOCITY_PX_S) {
+        setFilesOpen(info.velocity.x > 0);
+        return;
+      }
       const draggedTo = (filesOpen ? revealPx : 0) + info.offset.x;
       setFilesOpen(draggedTo > revealPx / 2);
     },
@@ -197,11 +208,14 @@ export function CaptureScreen({
         dragElastic={0}
         dragMomentum={false}
         onDragEnd={handleSidebarDragEnd}
-        animate={{ x: filesOpen ? revealPx : 0 }}
-        transition={{ duration: 0.44, ease: EASE }}
-        style={{
+        animate={{
+          x: filesOpen ? revealPx : 0,
           borderTopLeftRadius: filesOpen ? 44 : 0,
           borderBottomLeftRadius: filesOpen ? 44 : 0,
+        }}
+        transition={SIDEBAR_SPRING}
+        style={{
+          willChange: 'transform',
           boxShadow: filesOpen ? '-18px 0 40px rgba(0,0,0,.55)' : 'none',
         }}
       >

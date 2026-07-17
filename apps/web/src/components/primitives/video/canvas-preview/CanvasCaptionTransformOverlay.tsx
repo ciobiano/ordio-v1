@@ -58,12 +58,11 @@ export function CanvasCaptionTransformOverlay({
           <span className="sr-only">Edit captions</span>
         </button>
         {showTransformHint && (
-          <div
-            className="absolute left-1/2 top-4 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-[11px] text-white/80 backdrop-blur-xl"
+          <span
             aria-hidden="true"
-          >
-            <span>Double-tap or double-click captions to edit</span>
-          </div>
+            className="caption-hint-pulse pointer-events-none absolute z-40 rounded-xl border border-white/80 shadow-[0_0_24px_rgba(255,255,255,0.18)]"
+            style={captionBox.style}
+          />
         )}
       </>
     );
@@ -87,7 +86,7 @@ export function CanvasCaptionTransformOverlay({
       <button
         type="button"
         aria-label="Delete captions"
-        className="absolute -left-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -left-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl after:absolute after:-inset-1.5 after:content-['']"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();
@@ -98,7 +97,7 @@ export function CanvasCaptionTransformOverlay({
       </button>
       <button
         type="button"
-        className="absolute -right-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -right-4.5 -top-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl after:absolute after:-inset-1.5 after:content-['']"
         onPointerDown={(event) => {
           event.stopPropagation();
           onBeginRotate(event);
@@ -112,7 +111,7 @@ export function CanvasCaptionTransformOverlay({
       </button>
       <button
         type="button"
-        className="absolute -right-4.5 -bottom-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl"
+        className="absolute -right-4.5 -bottom-4.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/88 text-white shadow-lg backdrop-blur-xl after:absolute after:-inset-1.5 after:content-['']"
         onPointerDown={(event) => {
           event.stopPropagation();
           onBeginResize(event);

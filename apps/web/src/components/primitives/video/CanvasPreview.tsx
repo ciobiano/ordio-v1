@@ -28,6 +28,10 @@ import {
   type CaptionActivationTap,
 } from './canvas-preview/captionActivationGesture';
 
+/** Set once the user has entered caption transform mode — the stroke-pulse
+ * affordance stops appearing after that. */
+const CAPTION_HINT_SEEN_KEY = 'ordio-caption-edit-hint-seen';
+
 interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
   format: FormatVariant;
@@ -92,7 +96,7 @@ export default function CanvasPreview({
   const [fontLoaded, setFontLoaded] = useState(false);
   const [displayTime, setDisplayTime] = useState(0);
   const [isTransformActive, setIsTransformActive] = useState(false);
-  const [showTransformHint, setShowTransformHint] = useState(true);
+  const [showTransformHint, setShowTransformHint] = useState(false);
   const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
   const activationTapRef = useRef<CaptionActivationTap | null>(null);
 
@@ -278,13 +282,17 @@ export default function CanvasPreview({
     }
   }, [showCaptionBox]);
 
+  // One-time affordance: the caption box stroke breathes twice (CSS
+  // .caption-hint-pulse) instead of a text banner. Re-shown on later visits
+  // until the user actually enters transform mode once, then never again.
   useEffect(() => {
     if (!showCaptionBox || isTransformActive) {
       setShowTransformHint(false);
       return;
     }
+    if (localStorage.getItem(CAPTION_HINT_SEEN_KEY)) return;
     setShowTransformHint(true);
-    const timer = window.setTimeout(() => setShowTransformHint(false), 5000);
+    const timer = window.setTimeout(() => setShowTransformHint(false), 3600);
     return () => window.clearTimeout(timer);
   }, [showCaptionBox, isTransformActive]);
 
@@ -308,6 +316,7 @@ export default function CanvasPreview({
     if (!showCaptionBox) return;
     activationTapRef.current = null;
     clearSingleTapTimer();
+    localStorage.setItem(CAPTION_HINT_SEEN_KEY, '1');
     setIsTransformActive(true);
   }, [showCaptionBox, clearSingleTapTimer]);
 
