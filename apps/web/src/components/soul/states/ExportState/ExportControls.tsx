@@ -2,11 +2,10 @@
 
 import { useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { panelCard, captureSheetSurface } from '@/lib/variants'
+import { panelCard } from '@/lib/variants'
 import { IconToolbar } from '@/components/ui/IconToolbar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dock } from '@/components/ui/Dock'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
@@ -16,13 +15,11 @@ import type { ToolbarPanel } from '@/components/ui/IconToolbar'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer'
 import type { FeatureKey } from '@/lib/featureGates'
-import type { Word } from '@Ordio/shared/schemas'
 
 interface ExportControlsProps {
   playback: UsePlaybackReturn
   trimmer: UseAudioTrimmerReturn
   audioBuffer: AudioBuffer | null
-  transcript: Word[]
   onLocked: (feature: FeatureKey) => void
   onCommit: () => void
   onUndo: () => void
@@ -42,7 +39,6 @@ export function ExportControls({
   playback,
   trimmer,
   audioBuffer,
-  transcript,
   onLocked,
   onCommit,
   onUndo,
@@ -56,9 +52,14 @@ export function ExportControls({
 
   const handleDockItemClick = useCallback((id: string) => {
     const panelId = id as ToolbarPanel
+    // Tapping the already-active item collapses the panel back into the dock.
+    if (drawerOpen && panelId === mobilePanel) {
+      setDrawerOpen(false)
+      return
+    }
     setMobilePanel(panelId)
     setDrawerOpen(true)
-  }, [])
+  }, [drawerOpen, mobilePanel])
 
   return (
     <>
@@ -95,54 +96,71 @@ export function ExportControls({
         )}
       </div>
 
-      {/* Mobile: Dock (bottom bar) + Drawer (sheet) */}
-      <Dock
-        items={DOCK_ITEMS}
-        activeItem={drawerOpen ? mobilePanel : null}
-        onItemClick={handleDockItemClick}
-      />
-
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent
-          overlayClassName="bg-transparent supports-backdrop-filter:backdrop-blur-none backdrop-blur-none"
-          className={cn(captureSheetSurface, 'md:hidden p-0')}
+      {/* Mobile: one bottom surface — the panel grows out of the dock itself
+          (grid-rows expansion) instead of a separate drawer layering in front. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
+        <div
+          className={cn(
+            'overflow-hidden border-t border-white/[0.08] bg-[color:var(--sheet-bg)]',
+            'transition-[border-radius] duration-300',
+            drawerOpen ? 'rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)]' : 'rounded-t-none'
+          )}
         >
-          <DrawerTitle className="sr-only">Export Tools</DrawerTitle>
-          {/* Drag handle */}
-          <div className="flex justify-center pt-2 pb-1">
-            <div className="h-1.5 w-12 rounded-full bg-white/20" />
+          <div
+            className={cn(
+              'grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              drawerOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+            )}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <button
+                type="button"
+                aria-label="Close panel"
+                onClick={() => setDrawerOpen(false)}
+                className="flex w-full cursor-pointer justify-center pt-2 pb-1"
+              >
+                <span className="h-1.5 w-12 rounded-full bg-white/20" />
+              </button>
+
+              {/* Panel Content (no TabBar - Dock is the tab bar) */}
+              {mobilePanel === 'captions' ? (
+                <div className="h-[46vh] min-h-0 px-4 pt-3 pb-4">
+                  <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
+                </div>
+              ) : mobilePanel === 'style' ? (
+                <div className="h-[46vh] min-h-0 overflow-hidden px-4 pt-3 pb-4">
+                  <StyleControls onLocked={onLocked} />
+                </div>
+              ) : (
+                <ScrollArea className="h-[46vh] pb-4">
+                  <div className="px-4 pt-3">
+                    {mobilePanel === 'trim' && (
+                      <TrimPanel
+                        audioBuffer={audioBuffer}
+                        trimmer={trimmer}
+                        onCommit={onCommit}
+                        onUndo={onUndo}
+                        onRedo={onRedo}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        onPreviewAt={playback.previewAt}
+                      />
+                    )}
+                    {mobilePanel === 'format' && <FormatToggle onLocked={onLocked} />}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
           </div>
 
-          {/* Panel Content (no TabBar - Dock is the tab bar) */}
-          {mobilePanel === 'captions' ? (
-            <div className="h-[50vh] min-h-0 px-4 pt-4 pb-4">
-              <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
-            </div>
-          ) : mobilePanel === 'style' ? (
-            <div className="h-[50vh] min-h-0 overflow-hidden px-4 pt-4 pb-4">
-              <StyleControls onLocked={onLocked} />
-            </div>
-          ) : (
-            <ScrollArea className="h-[50vh] pb-4">
-              <div className="px-4 pt-4">
-                {mobilePanel === 'trim' && (
-                  <TrimPanel
-                    audioBuffer={audioBuffer}
-                    trimmer={trimmer}
-                    onCommit={onCommit}
-                    onUndo={onUndo}
-                    onRedo={onRedo}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                    onPreviewAt={playback.previewAt}
-                  />
-                )}
-                {mobilePanel === 'format' && <FormatToggle onLocked={onLocked} />}
-              </div>
-            </ScrollArea>
-          )}
-        </DrawerContent>
-      </Drawer>
+          <Dock
+            inline
+            items={DOCK_ITEMS}
+            activeItem={drawerOpen ? mobilePanel : null}
+            onItemClick={handleDockItemClick}
+          />
+        </div>
+      </div>
     </>
   )
 }

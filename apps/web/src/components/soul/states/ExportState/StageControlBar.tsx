@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
 import type { FeatureKey } from '@/lib/featureGates'
-import type { CanvasLayout, CaptionMode, GraphicStyleId, WaveformVariant } from '@/stores'
+import type { CaptionMode, GraphicStyleId, WaveformVariant } from '@/stores'
 
 const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
@@ -32,11 +32,6 @@ const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] =
   { value: 'spotlight', label: 'Spotlight' },
 ]
 
-const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[] = [
-  { value: 'top', label: 'Upper' },
-  { value: 'compact', label: 'Tight' },
-  { value: 'flipped', label: 'Lower', gate: 'layout_flipped' },
-]
 
 interface StageControlBarProps {
   onLocked?: (feature: FeatureKey) => void
@@ -61,6 +56,16 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
       setGraphicsExpanded(false)
     }
   }, [displayOpen])
+
+  // Legacy persisted 'compact' (pre-migration edge) renders as Upper.
+  const layoutFlipped = canvasLayout === 'flipped'
+  const handleFlipStage = () => {
+    if (!layoutFlipped && isLocked('layout_flipped')) {
+      onLocked?.('layout_flipped')
+      return
+    }
+    setCanvasLayout(layoutFlipped ? 'top' : 'flipped')
+  }
 
   const displayLabel = lyricsOwnsStage
     ? 'Full-stage'
@@ -199,33 +204,27 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
         </SelectContent>
       </Select>
 
-      <Select value={canvasLayout} onValueChange={(value) => setCanvasLayout(value as CanvasLayout)}>
-        <SelectTrigger
-          size="sm"
-          className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
-        >
-          <span className="text-white/40">Stage</span>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent side="top" className="border-white/8 bg-[color:var(--sheet-bg)]">
-          {LAYOUT_OPTIONS.map((option) => {
-            const locked = option.gate ? isLocked(option.gate) : false
-            return (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                disabled={locked}
-                className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
-              >
-                {option.label}
-                {locked && option.gate && (
-                  <LockBadge onClick={() => onLocked?.(option.gate!)} label={`${option.label} requires Creator`} />
-                )}
-              </SelectItem>
-            )
-          })}
-        </SelectContent>
-      </Select>
+      {/* Two-state flip: captions are freely draggable, so the old three-way
+          preset ('Tight' middle option) was redundant — a single toggle flips
+          the stage layout between upper and lower. */}
+      <button
+        type="button"
+        onClick={handleFlipStage}
+        aria-pressed={layoutFlipped}
+        aria-label={layoutFlipped ? 'Flip stage to upper' : 'Flip stage to lower'}
+        className="flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8 whitespace-nowrap outline-none"
+      >
+        <span className="text-white/40">Stage</span>
+        <span>{layoutFlipped ? 'Lower' : 'Upper'}</span>
+        <HugeiconsIcon
+          icon={UnfoldMoreIcon}
+          strokeWidth={2}
+          className={cn(
+            'pointer-events-none size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            layoutFlipped && 'rotate-180'
+          )}
+        />
+      </button>
     </div>
   )
 }

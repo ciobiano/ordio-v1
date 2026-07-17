@@ -17,12 +17,20 @@ interface DockProps {
   items: DockItem[]
   activeItem: string | null
   onItemClick: (id: string) => void
+  /** Render as a plain row inside a parent surface (the parent owns
+   * positioning + background) instead of a self-positioned fixed bar. */
+  inline?: boolean
 }
 
-export function Dock({ items, activeItem, onItemClick }: DockProps) {
+export function Dock({ items, activeItem, onItemClick, inline = false }: DockProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--sheet-bg)] pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden"
+      className={cn(
+        'pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden',
+        inline
+          ? 'relative'
+          : 'fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--sheet-bg)]'
+      )}
       role="toolbar"
       aria-label="Export tools"
       style={{ height: 'calc(49px + env(safe-area-inset-bottom) + 8px)' }}

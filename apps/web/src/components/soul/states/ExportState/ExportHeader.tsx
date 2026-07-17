@@ -4,19 +4,19 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 interface ExportHeaderProps {
-  exportedUrl: string | null;
-  exportDisabled: boolean;
+  /** 'Export' before a render exists, 'Save' once one does — a single primary
+   * action; the overlay owns the rest of the flow. */
+  primaryLabel: string;
+  primaryDisabled: boolean;
   onBack: () => void;
-  onExport: () => void;
-  onDownload: () => void;
+  onPrimary: () => void;
 }
 
 export function ExportHeader({
-  exportedUrl,
-  exportDisabled,
+  primaryLabel,
+  primaryDisabled,
   onBack,
-  onExport,
-  onDownload,
+  onPrimary,
 }: ExportHeaderProps) {
   return (
     <header
@@ -50,14 +50,14 @@ export function ExportHeader({
         type="button"
         variant="ghost"
         size="xl"
-        onClick={exportedUrl ? onDownload : onExport}
-        disabled={exportDisabled && !exportedUrl}
-        aria-label={exportedUrl ? 'Download' : 'Export'}
-        className="text-[17px] font-semibold text-white
-                   hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed
+        onClick={onPrimary}
+        disabled={primaryDisabled}
+        aria-label={primaryLabel}
+        className="text-[17px] font-semibold text-acid-accent
+                   hover:text-acid-accent/80 disabled:opacity-30 disabled:cursor-not-allowed
                    active:scale-[0.97]"
       >
-        {exportedUrl ? 'Download' : 'Export'}
+        {primaryLabel}
       </Button>
     </header>
   );

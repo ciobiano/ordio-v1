@@ -63,7 +63,7 @@ const initialPersisted = {
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,
-  canvasLayout: 'compact' as CanvasLayout,
+  canvasLayout: 'top' as CanvasLayout,
   captionMode: 'phrase' as CaptionMode,
   captionAnimation: 'sweep-pulse' as CaptionAnimation,
   format: 'square' as FormatVariant,
@@ -129,6 +129,16 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'ordio-ui-preferences',
+      version: 1,
+      // v1: the 'compact' stage preset was retired (captions are freely
+      // draggable, so upper/lower cover it) — remap persisted values.
+      migrate: (persisted) => {
+        const state = persisted as { canvasLayout?: CanvasLayout } | undefined;
+        if (state?.canvasLayout === 'compact') {
+          return { ...state, canvasLayout: 'top' as CanvasLayout };
+        }
+        return persisted;
+      },
       partialize: (state) => ({
         theme: state.theme,
         style: state.style,

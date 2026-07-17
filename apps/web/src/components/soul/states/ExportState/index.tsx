@@ -7,6 +7,7 @@ import { ExportHeader } from './ExportHeader';
 import { ExportCanvas } from './ExportCanvas';
 import { ExportControls } from './ExportControls';
 import { ExportFooter } from './ExportFooter';
+import { ExportOverlay } from './ExportOverlay';
 import { DiscardDialog } from './DiscardDialog';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type {
@@ -75,6 +76,7 @@ export default function ExportState({
   onLocked,
 }: ExportStateProps) {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [exportOverlayOpen, setExportOverlayOpen] = useState(false);
 
   type TrimSnapshot = { audioBuffer: AudioBuffer; transcript: Word[] };
   const MAX_HISTORY = 5;
@@ -142,6 +144,8 @@ export default function ExportState({
     const allowed = await onExportStart();
     if (!allowed) return;
 
+    setExportOverlayOpen(true);
+
     const trimmedChannels = trimmer.getTrimmedAudio(audioBuffer, transcript);
     const trimmedBuffer = buildAudioBuffer(trimmedChannels, audioBuffer.sampleRate);
     const trimmedTranscript = trimmer.getTrimmedTranscript(transcript);
@@ -168,15 +172,15 @@ export default function ExportState({
   }, [audioBuffer, transcript, trimmer, format, exporter, showWatermark, onExportStart]);
 
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
+  const hasRender = exporter.exportedUrl !== null && !exporter.isExporting;
 
   return (
     <div className="flex flex-col w-full  min-h-dvh animate-fadeIn">
       <ExportHeader
-        exportedUrl={exporter.exportedUrl}
-        exportDisabled={exportDisabled}
+        primaryLabel={hasRender ? 'Save' : 'Export'}
+        primaryDisabled={exportDisabled && !hasRender}
         onBack={() => setShowDiscardDialog(true)}
-        onExport={handleExport}
-        onDownload={onDownload}
+        onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
       />
 
         <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row md:items-start md:gap-6 md:px-6">
@@ -195,7 +199,6 @@ export default function ExportState({
           playback={playback}
           trimmer={trimmer}
           audioBuffer={audioBuffer}
-          transcript={transcript ?? []}
           onLocked={onLocked}
           onCommit={handleCommitTrim}
           onUndo={handleUndoTrim}
@@ -205,12 +208,15 @@ export default function ExportState({
         />
       </div>
 
-      <ExportFooter
-        trimIsEmpty={trimmer.isEmpty}
+      <ExportFooter trimIsEmpty={trimmer.isEmpty} />
+
+      <ExportOverlay
+        open={exportOverlayOpen}
         exporter={exporter}
-        onDownload={onDownload}
         transcript={transcript ?? []}
         durationSeconds={audioBuffer?.duration ?? 0}
+        onDownload={onDownload}
+        onClose={() => setExportOverlayOpen(false)}
       />
 
       <DiscardDialog
