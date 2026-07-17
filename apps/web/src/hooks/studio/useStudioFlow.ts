@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/audio/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/audio/useAudioAnalyser';
+import { useLiveTranscription } from '@/hooks/recording/useLiveTranscription';
 import { useTranscription } from '@/hooks/recording/useTranscription';
 import {
   AudioProcessingError,
@@ -21,6 +22,8 @@ export interface UseStudioFlowReturn {
   recordingTime: number;
   processingProgress: number;
   transcript: Word[];
+  /** Live during-recording caption text (committed + interim). Disposable UI. */
+  liveCaptionText: string;
   isStarting: boolean;
   micDenied: boolean;
   mics: UseMicDevicesReturn;
@@ -55,7 +58,17 @@ export function useStudioFlow(): UseStudioFlowReturn {
   const recorder = useAudioRecorder();
   const analyser = useAudioAnalyser();
   const transcription = useTranscription();
+  const live = useLiveTranscription();
   const mics = useMicDevices();
+
+  // Surface live-caption failures once; recording itself is unaffected.
+  const lastLiveErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (live.liveError && live.liveError !== lastLiveErrorRef.current) {
+      lastLiveErrorRef.current = live.liveError;
+      toast.error(live.liveError);
+    }
+  }, [live.liveError]);
   const { processingProgress, processAudio, cancelProcessing: cancelProcessingJob } =
     useAudioProcessing(transcription);
 
@@ -85,11 +98,13 @@ export function useStudioFlow(): UseStudioFlowReturn {
       // Permission granted → device labels are now readable.
       void mics.refresh();
       analyser.connectStream(stream);
+      live.resetCaptions();
+      live.startLive(stream);
       setView('capture');
     } finally {
       setIsStarting(false);
     }
-  }, [recorder, analyser, transcription, mics, clearLoadedClip]);
+  }, [recorder, analyser, transcription, mics, clearLoadedClip, live]);
 
   const runProcessing = useCallback(
     async (source: Blob) => {
@@ -111,6 +126,7 @@ export function useStudioFlow(): UseStudioFlowReturn {
   );
 
   const stopRecording = useCallback(async () => {
+    live.stopLive();
     analyser.disconnect();
     // MediaRecorder finalizes the blob asynchronously in `onstop` — reading
     // recorder.audioBlob here would always see null.
@@ -121,7 +137,7 @@ export function useStudioFlow(): UseStudioFlowReturn {
       return;
     }
     await runProcessing(blob);
-  }, [recorder, analyser, runProcessing]);
+  }, [recorder, analyser, runProcessing, live]);
 
   const processFile = useCallback(
     async (file: File) => {
@@ -143,10 +159,12 @@ export function useStudioFlow(): UseStudioFlowReturn {
   );
 
   const goIdle = useCallback(() => {
+    live.stopLive();
+    live.resetCaptions();
     clearLoadedClip();
     setSessionId(null);
     setView('idle');
-  }, [clearLoadedClip]);
+  }, [clearLoadedClip, live]);
 
   const goExport = useCallback(() => setView('export'), []);
 
@@ -162,6 +180,7 @@ export function useStudioFlow(): UseStudioFlowReturn {
     recordingTime: recorder.recordingTime,
     processingProgress,
     transcript: transcription.transcript,
+    liveCaptionText: [...live.committedLines, live.interimText].join(' ').trim(),
     isStarting,
     micDenied,
     mics,

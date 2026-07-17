@@ -34,9 +34,12 @@ export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPal
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const graphicStyle = useUIStore((s) => s.graphicStyle);
 
-  const liveCaption = flow.transcript
+  // Tail of the live stream (committed + interim); the designed slot shows
+  // only the last few words, teleprompter-style.
+  const liveCaption = flow.liveCaptionText
+    .split(/\s+/)
+    .filter(Boolean)
     .slice(-LIVE_CAPTION_WORDS)
-    .map((w) => w.text)
     .join(' ');
 
   return (

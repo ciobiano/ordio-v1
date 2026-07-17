@@ -55,6 +55,7 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
     recordingTime: 0,
     processingProgress: 0,
     transcript: [],
+    liveCaptionText: '',
     isStarting: false,
     micDenied: false,
     mics: mockMics,
@@ -84,6 +85,21 @@ describe('CenterStage', () => {
     expect(screen.getByText(/recording/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
     expect(flow.stopRecording).toHaveBeenCalled();
+  });
+
+  it('capture: renders the tail of the live caption text', () => {
+    const words = Array.from({ length: 20 }, (_, i) => `word${i + 1}`);
+    const flow = makeFlow({ view: 'capture', liveCaptionText: words.join(' ') });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
+    // Slot shows only the last 12 words, teleprompter-style.
+    expect(screen.getByText(/word20/)).toBeInTheDocument();
+    expect(screen.queryByText(/word1\b/)).not.toBeInTheDocument();
+  });
+
+  it('capture: shows the placeholder when no live caption text yet', () => {
+    const flow = makeFlow({ view: 'capture', liveCaptionText: '' });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
+    expect(screen.getByText(/say something/i)).toBeInTheDocument();
   });
 
   it('processing: shows progress percentage', () => {

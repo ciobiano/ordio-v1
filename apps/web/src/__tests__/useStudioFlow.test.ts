@@ -11,6 +11,9 @@ const transcribeAudio = vi.fn(async () => []);
 const clearTranscript = vi.fn();
 const processAudio = vi.fn(async () => 'session-123');
 const cancelProcessing = vi.fn();
+const startLive = vi.fn();
+const stopLive = vi.fn();
+const resetCaptions = vi.fn();
 
 vi.mock('@/hooks/audio/useAudioRecorder', () => ({
   useAudioRecorder: () => ({
@@ -44,6 +47,16 @@ vi.mock('@/hooks/recording/useTranscription', () => ({
 vi.mock('@/hooks/audio/useAudioProcessing', () => ({
   useAudioProcessing: () => ({ processingProgress: 0, processAudio, cancelProcessing }),
 }));
+vi.mock('@/hooks/recording/useLiveTranscription', () => ({
+  useLiveTranscription: () => ({
+    committedLines: [],
+    interimText: '',
+    liveError: null,
+    startLive,
+    stopLive,
+    resetCaptions,
+  }),
+}));
 
 describe('useStudioFlow', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -60,6 +73,19 @@ describe('useStudioFlow', () => {
     });
     expect(startRecording).toHaveBeenCalled();
     expect(result.current.view).toBe('capture');
+  });
+
+  it('starts live captions with the mic stream and stops them on stopRecording', async () => {
+    const { result } = renderHook(() => useStudioFlow());
+    await act(async () => {
+      await result.current.startRecording();
+    });
+    expect(resetCaptions).toHaveBeenCalled();
+    expect(startLive).toHaveBeenCalled();
+    await act(async () => {
+      await result.current.stopRecording();
+    });
+    expect(stopLive).toHaveBeenCalled();
   });
 
   it('moves capture -> processing -> edit on stopRecording, setting sessionId', async () => {
