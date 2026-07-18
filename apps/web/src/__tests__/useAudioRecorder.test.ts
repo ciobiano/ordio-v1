@@ -68,4 +68,33 @@ describe('hooks/audio: useAudioRecorder autosave', () => {
 
     expect(recordingDraft.clearRecordingDraft).toHaveBeenCalledTimes(1);
   });
+
+  it('does not resurrect a draft or clobber state when onstop fires after resetRecording (discard race)', async () => {
+    const { result } = renderHook(() => useAudioRecorder());
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    const recorderInstance = (window.MediaRecorder as unknown as ReturnType<typeof vi.fn>).mock.results[0].value;
+    act(() => {
+      recorderInstance.ondataavailable({ data: new Blob(['chunk']), size: 5 } as unknown as BlobEvent);
+    });
+
+    vi.clearAllMocks();
+
+    act(() => {
+      result.current.resetRecording();
+    });
+
+    // MediaRecorder's real 'stop' event fires asynchronously — simulate it
+    // landing after resetRecording already cleared state/chunks/draft.
+    act(() => {
+      recorderInstance.onstop();
+    });
+
+    expect(recordingDraft.saveRecordingDraft).not.toHaveBeenCalled();
+    expect(result.current.state).toBe('idle');
+    expect(result.current.audioBlob).toBeNull();
+  });
 });

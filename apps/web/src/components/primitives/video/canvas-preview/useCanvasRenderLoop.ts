@@ -72,6 +72,14 @@ export function useCanvasRenderLoop({
   const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
   const rafRef = useRef<number | null>(null);
   const hasWarnedRenderErrorRef = useRef(false);
+  /** Off-screen buffer renderFrame draws into. renderFrame clears/fills the
+   * background before drawing waveform/captions/etc, so an exception partway
+   * through would leave the visible canvas showing a half-composited frame
+   * (background repainted, rest missing) rather than the last good one —
+   * canvas 2D has no rollback. Rendering here first and only blitting to the
+   * visible canvas once a full frame succeeds gives real crash-freeze
+   * semantics. */
+  const bufferCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const drawCurrentFrame = useCallback(() => {
     const canvas = canvasRef.current;
@@ -79,6 +87,16 @@ export function useCanvasRenderLoop({
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    let buffer = bufferCanvasRef.current;
+    if (!buffer || buffer.width !== canvasWidth || buffer.height !== canvasHeight) {
+      buffer = document.createElement('canvas');
+      buffer.width = canvasWidth;
+      buffer.height = canvasHeight;
+      bufferCanvasRef.current = buffer;
+    }
+    const bufferCtx = buffer.getContext('2d');
+    if (!bufferCtx) return;
 
     try {
       const duration = playback.duration || 1;
@@ -104,10 +122,10 @@ export function useCanvasRenderLoop({
         backgroundFrame: bgVideo ?? undefined,
       };
 
-      renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
+      renderFrame(bufferCtx, Math.max(0, frameIndex), totalFrames, frameOptions);
       const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
       const nextCaptionBox = measureCaptionTransformBox({
-        ctx,
+        ctx: bufferCtx,
         currentTime: currentTimeRef.current,
         transcript,
         captionGroups,
@@ -119,14 +137,17 @@ export function useCanvasRenderLoop({
         captionMode,
       });
       setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
+
+      // Full frame rendered without throwing — safe to show it.
+      ctx.drawImage(buffer, 0, 0);
     } catch (err) {
       console.error('[CanvasPreview] render frame failed', err);
       if (!hasWarnedRenderErrorRef.current) {
         hasWarnedRenderErrorRef.current = true;
         toast.error('Preview is temporarily unavailable. Your audio is unaffected.');
       }
-      // Intentionally no re-throw and no further drawing this tick — canvas
-      // keeps showing the last successfully rendered frame.
+      // Intentionally no re-throw and no drawImage this tick — the visible
+      // canvas keeps showing whatever the last successful blit painted.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded, bgVideo]);
