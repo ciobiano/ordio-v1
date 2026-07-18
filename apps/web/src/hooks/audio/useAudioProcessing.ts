@@ -14,7 +14,7 @@ import {
   reduceAudioForWhisper,
   shouldTranscodeForWhisper,
   WHISPER_SIZE_LIMIT,
-} from './processing/whisperAudio';
+} from '@Ordio/engine/media/whisperAudio';
 import { sendProcessingDebugIngest } from './processing/debugIngest';
 interface UseAudioProcessingReturn {
   processingProgress: number;
