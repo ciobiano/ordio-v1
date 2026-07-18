@@ -33,6 +33,8 @@ function featureLabel(feature: FeatureKey): string {
     layout_flipped: 'Flipped Layout',
     caption_karaoke: 'Karaoke Mode',
     unlimited_exports: 'Unlimited Exports',
+    background_video: 'Video Backgrounds',
+    background_upload: 'Custom Backgrounds',
   }
   return labels[feature]
 }

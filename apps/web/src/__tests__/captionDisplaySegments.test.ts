@@ -3,7 +3,7 @@ import type { Word } from '@Ordio/shared/schemas';
 import {
   buildOneLinePhraseSegments,
   buildSentenceSegments,
-} from '@/lib/captions/display';
+} from '@Ordio/engine/captions/display';
 
 function word(text: string, index: number, gap = 0.08): Word {
   const start = index * (0.34 + gap);

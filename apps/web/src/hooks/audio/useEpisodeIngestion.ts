@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
-import { ingestEpisode, EpisodeIngestError } from '@/lib/media/episodeIngest';
-import { isSparseTranscript } from '@/lib/media/episodePlan';
+import { ingestEpisode, EpisodeIngestError } from '@Ordio/engine/media/episodeIngest';
+import { isSparseTranscript } from '@Ordio/engine/media/episodePlan';
 import { transcribeChunk } from '@/lib/transcription/transcribeChunk';
 import { mergeChunkTranscripts } from '@/lib/transcription/mergeChunkTranscripts';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';

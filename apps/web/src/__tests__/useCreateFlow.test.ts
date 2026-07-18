@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ChangeEvent } from 'react';
-import { EPISODE_ROUTE_THRESHOLD_SEC } from '@/lib/media/episodePlan';
+import { EPISODE_ROUTE_THRESHOLD_SEC } from '@Ordio/engine/media/episodePlan';
 import { MIN_PLAUSIBLE_AUDIO_BITRATE_BPS } from '@/hooks/recording/useCreateFlow';
 
 // ── Mocks ────────────────────────────────────────────────────────────

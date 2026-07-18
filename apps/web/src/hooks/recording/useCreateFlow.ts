@@ -25,7 +25,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   FILE_ERROR_MESSAGES,
 } from '@/lib/fileValidation';
-import { EPISODE_ROUTE_THRESHOLD_SEC } from '@/lib/media/episodePlan';
+import { EPISODE_ROUTE_THRESHOLD_SEC } from '@Ordio/engine/media/episodePlan';
 
 /** Fast duration probe via metadata only (no decode). Returns null on any failure. */
 async function probeDurationSec(file: File): Promise<number | null> {

@@ -4,7 +4,7 @@ import {
   createEnergyAccumulator,
   isSparseTranscript,
   OPUS_CHUNK_SEC,
-} from '@/lib/media/episodePlan';
+} from '@Ordio/engine/media/episodePlan';
 
 describe('planChunkWindows', () => {
   it('splits a 25-min episode into 600s windows with a short tail', () => {

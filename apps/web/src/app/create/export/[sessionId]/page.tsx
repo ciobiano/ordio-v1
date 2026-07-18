@@ -11,7 +11,7 @@ import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
-import { decodeBlobToAudioBuffer } from '@/lib/media';
+import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
 import ExportState from '@/components/soul/states/ExportState';
 
 

@@ -27,7 +27,7 @@ describe('graphicLoader', () => {
       }
     );
 
-    const { loadGraphic } = await import('@/lib/loaders');
+    const { loadGraphic } = await import('@Ordio/engine/loaders');
     const img = await loadGraphic('graphic-frame1');
     expect(img).toBeDefined();
     expect(img.src).toContain('frame1.svg');
@@ -52,14 +52,14 @@ describe('graphicLoader', () => {
       }
     );
 
-    const { loadGraphic } = await import('@/lib/loaders');
+    const { loadGraphic } = await import('@Ordio/engine/loaders');
     const img = await loadGraphic('graphic-frame2');
     expect(img.src).toContain('frame2.svg');
   });
 
   it('getGraphic returns null for uncached graphic', async () => {
     vi.resetModules();
-    const { getGraphic } = await import('@/lib/loaders');
+    const { getGraphic } = await import('@Ordio/engine/loaders');
     expect(getGraphic('graphic-frame1')).toBeNull();
   });
 
@@ -74,12 +74,12 @@ describe('graphicLoader', () => {
       }
     );
 
-    const { loadGraphic } = await import('@/lib/loaders');
+    const { loadGraphic } = await import('@Ordio/engine/loaders');
     await expect(loadGraphic('graphic-frame1')).rejects.toThrow('Failed to load graphic');
   });
 
   it('getGraphic returns null before any load', async () => {
-    const { getGraphic } = await import('@/lib/loaders');
+    const { getGraphic } = await import('@Ordio/engine/loaders');
     expect(getGraphic('graphic-frame1')).toBeNull();
   });
 });

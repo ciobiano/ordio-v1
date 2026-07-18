@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { extractWindow } from '@/lib/media/extractWindow';
-import { audioBufferToWavBlob } from '@/hooks/audio/processing/whisperAudio';
+import { extractWindow } from '@Ordio/engine/media/extractWindow';
+import { audioBufferToWavBlob } from '@Ordio/engine/media/whisperAudio';
 
 interface ClipPickerSheetProps {
   isOpen: boolean;

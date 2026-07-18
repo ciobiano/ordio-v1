@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectSilentRegions, type SilentRegion } from '@/lib/media/silenceDetector';
+import { detectSilentRegions, type SilentRegion } from '@Ordio/engine/media/silenceDetector';
 
 function createMockAudioBuffer(duration: number, sampleRate = 44100): AudioBuffer {
   const length = Math.floor(duration * sampleRate);

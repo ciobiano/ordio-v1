@@ -31,7 +31,7 @@ vi.stubGlobal('document', {
 });
 
 // Import after stubbing globals
-const { loadFont } = await import('../lib/loaders');
+const { loadFont } = await import('@Ordio/engine/loaders');
 
 describe('fontLoader', () => {
   beforeEach(() => {

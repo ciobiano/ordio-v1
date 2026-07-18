@@ -4,7 +4,6 @@ Ordio is an audio-to-caption/video workflow app built as a PNPM + Turborepo mono
 
 It includes:
 - `apps/web`: Next.js app (recording, transcription, caption editing, export UX)
-- `apps/renderer`: Remotion-based renderer service
 - `packages/convex`: Convex backend functions and schema
 - `packages/shared`: Shared types/utilities used by apps
 
@@ -13,7 +12,6 @@ It includes:
 - Next.js 15, React 19, TypeScript
 - Convex (backend + storage)
 - Clerk (auth)
-- Remotion (rendering)
 - Zustand (state)
 - Turborepo + PNPM workspaces
 
@@ -22,7 +20,6 @@ It includes:
 ```text
 apps/
   web/         # Main product UI
-  renderer/    # Video rendering service (Remotion)
 packages/
   convex/      # Convex functions/schema
   shared/      # Shared code between apps
@@ -73,11 +70,6 @@ Terminal 2:
 pnpm --filter web dev
 ```
 
-Optional renderer terminal:
-```bash
-pnpm --filter renderer start
-```
-
 ## Common Commands
 
 From repository root:
@@ -96,7 +88,6 @@ App-specific examples:
 pnpm --filter web test
 pnpm --filter web test:e2e
 pnpm --filter @Ordio/convex deploy
-pnpm --filter renderer type-check
 ```
 
 ## CI/CD Notes

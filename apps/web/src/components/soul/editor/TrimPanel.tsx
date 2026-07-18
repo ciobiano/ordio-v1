@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { waveformSampler } from '@Ordio/shared/waveform';
-import { detectSilentRegions } from '@/lib/media';
+import { detectSilentRegions } from '@Ordio/engine/media';
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer';
 
 interface TrimPanelProps {

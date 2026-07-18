@@ -1,0 +1,54 @@
+{
+  "name": "@Ordio/engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./video": "./src/video/index.ts",
+    "./video/karaoke": "./src/video/karaoke.ts",
+    "./video/textLayout": "./src/video/textLayout.ts",
+    "./video/frameRenderer": "./src/video/frameRenderer.ts",
+    "./video/backgroundFrameStream": "./src/video/backgroundFrameStream.ts",
+    "./video/videoEncoder": "./src/video/videoEncoder.ts",
+    "./waveforms": "./src/waveforms/index.ts",
+    "./waveforms/constants": "./src/waveforms/constants.ts",
+    "./captions/display": "./src/captions/display/index.ts",
+    "./captions/display/textBoundaries": "./src/captions/display/textBoundaries.ts",
+    "./captions/segmentation": "./src/captions/segmentation.ts",
+    "./backgrounds/backgroundLibrary": "./src/backgrounds/backgroundLibrary.ts",
+    "./media": "./src/media/index.ts",
+    "./media/silenceDetector": "./src/media/silenceDetector.ts",
+    "./media/transcodeBackgroundUpload": "./src/media/transcodeBackgroundUpload.ts",
+    "./media/audioCodecSupport": "./src/media/audioCodecSupport.ts",
+    "./media/episodeIngest": "./src/media/episodeIngest.ts",
+    "./media/episodePlan": "./src/media/episodePlan.ts",
+    "./media/extractWindow": "./src/media/extractWindow.ts",
+    "./media/whisperAudio": "./src/media/whisperAudio.ts",
+    "./processing/captions": "./src/processing/captions/index.ts",
+    "./processing/captions/shared": "./src/processing/captions/shared.ts",
+    "./processing/watermark": "./src/processing/watermark.ts",
+    "./loaders": "./src/loaders/index.ts",
+    "./loaders/backgroundLoader": "./src/loaders/backgroundLoader.ts",
+    "./loaders/graphicLoader": "./src/loaders/graphicLoader.ts",
+    "./graphic": "./src/graphic.ts",
+    "./webgl-detect": "./src/webgl-detect.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@Ordio/shared": "workspace:*",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "mediabunny": "^1.34.5"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}

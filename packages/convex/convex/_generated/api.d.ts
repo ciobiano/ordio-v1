@@ -10,6 +10,7 @@
 
 import type * as actions from "../actions.js";
 import type * as auth from "../auth.js";
+import type * as backgrounds from "../backgrounds.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   auth: typeof auth;
+  backgrounds: typeof backgrounds;
   crons: typeof crons;
   http: typeof http;
   jobs: typeof jobs;
