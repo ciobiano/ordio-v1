@@ -9,15 +9,19 @@ vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
 }));
 
-vi.mock('@/lib/video', () => ({
+vi.mock('@Ordio/engine/video', () => ({
   renderFrame: vi.fn().mockImplementation(() => {
     throw new Error('boom');
   }),
 }));
 
-vi.mock('@/lib/loaders', () => ({
+vi.mock('@Ordio/engine/loaders', () => ({
   loadFont: vi.fn().mockResolvedValue(undefined),
   loadGraphic: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/components/primitives/video/canvas-preview/useBackgroundVideo', () => ({
+  useBackgroundVideo: vi.fn().mockReturnValue({ bgVideo: null, bgLoading: false }),
 }));
 
 function buildPlayback(): UsePlaybackReturn {
