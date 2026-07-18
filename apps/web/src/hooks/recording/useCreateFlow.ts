@@ -78,6 +78,7 @@ export function useCreateFlow() {
   const [micDenied, setMicDenied] = useState(false);
   const [processingAlert, setProcessingAlert] = useState<ProcessingAlertState | null>(null);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -88,7 +89,7 @@ export function useCreateFlow() {
   const capabilities = useCapabilities();
   const micPermission = useMicPermission();
   const live = useLiveTranscription();
-  const vad = useVAD(recorder.isRecording);
+  const vad = useVAD(recorder.isRecording, micStream);
 
   // Surface live-caption failures once; recording itself is unaffected.
   const lastLiveErrorRef = useRef<string | null>(null);
@@ -162,6 +163,7 @@ export function useCreateFlow() {
       setMicDenied(false);
       micPermission.recordGrant();
       analyser.connectStream(stream);
+      setMicStream(stream);
       live.resetCaptions();
       live.startLive(stream);
       setCurrentState('recording');
@@ -174,6 +176,7 @@ export function useCreateFlow() {
     live.stopLive();
     recorder.stopRecording();
     analyser.disconnect();
+    setMicStream(null);
   }, [recorder, analyser, live]);
 
   // Pause/resume must reach both the recorder and the caption stream —
@@ -249,6 +252,7 @@ export function useCreateFlow() {
     live.stopLive();
     live.resetCaptions();
     recorder.resetRecording();
+    setMicStream(null);
     transcription.clearTranscript();
     setProcessingAlert(null);
     reset();

@@ -26,7 +26,8 @@ function writeStoredGrant(): void {
     const grant: StoredGrant = { grantedAt: Date.now() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(grant));
   } catch {
-   
+    // localStorage can throw (Safari private browsing, quota exceeded) —
+    // non-fatal, the grant cache is best-effort only.
   }
 }
 
