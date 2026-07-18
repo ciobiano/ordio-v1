@@ -22,6 +22,12 @@ vi.mock('@Ordio/convex', () => ({
   },
 }));
 
+vi.mock('@/lib/persistence/recordingDraft', () => ({
+  getRecordingDraft: vi.fn().mockResolvedValue(null),
+  saveRecordingDraft: vi.fn().mockResolvedValue(undefined),
+  clearRecordingDraft: vi.fn().mockResolvedValue(undefined),
+}));
+
 let computeDurationImpl: () => Promise<number> = () => Promise.resolve(0);
 const inputDisposeMock = vi.fn();
 const InputCtorMock = vi.fn().mockImplementation(function MockInput() {
