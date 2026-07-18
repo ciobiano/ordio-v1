@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderFrame, type FrameOptions } from '@/lib/video';
+import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 
 // Minimal canvas context mock
@@ -196,7 +196,7 @@ describe('renderFrame', () => {
   it('calls ctx.drawImage when graphicStyle is set and image is in cache', async () => {
     // vi.mock() is hoisted — use vi.doMock() + vi.resetModules() + dynamic import instead
     vi.resetModules();
-    vi.doMock('@/lib/loaders/graphicLoader', () => ({
+    vi.doMock('@Ordio/engine/loaders/graphicLoader', () => ({
       getGraphic: vi.fn(() =>
         Object.assign(new EventTarget(), {
           src: '/graphic-styles/frame2.svg',
@@ -207,7 +207,7 @@ describe('renderFrame', () => {
       loadGraphic: vi.fn(),
     }));
 
-    const { renderFrame: renderFrameFresh } = await import('@/lib/video');
+    const { renderFrame: renderFrameFresh } = await import('@Ordio/engine/video');
     const ctx = createMockCtx();
     const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
       .__calls;

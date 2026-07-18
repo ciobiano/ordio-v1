@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import * as video from '@/lib/video';
+import * as video from '@Ordio/engine/video';
 
 describe('lib/video: exports', () => {
   it('should export encodeVideo function', () => {

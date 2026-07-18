@@ -7,7 +7,6 @@ export { default as PlaybackControls } from './video/PlaybackControls';
 export { default as ProcessingStep } from './status/ProcessingStep';
 export { default as ProgressRing } from './status/ProgressRing';
 export { default as RecordingTimer } from './status/RecordingTimer';
-export { default as VideoPreview } from './video/VideoPreview';
 export { default as WaveformDisplay } from './waveform/WaveformDisplay';
 export { default as BarsWaveform } from './waveform/BarsWaveform';
 export { default as CircleWaveform } from './waveform/CircleWaveform';

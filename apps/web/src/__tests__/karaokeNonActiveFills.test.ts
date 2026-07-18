@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { karaokeNonActiveFills } from '@/lib/video/karaoke';
+import { karaokeNonActiveFills } from '@Ordio/engine/video/karaoke';
 
 describe('karaokeNonActiveFills', () => {
   it('lightens dark caption text on a light background', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { drawSpacedText, measureTextWidth } from '@/lib/video/textLayout';
+import { drawSpacedText, measureTextWidth } from '@Ordio/engine/video/textLayout';
 
 function makeContext() {
   const calls: Array<{ text: string; x: number }> = [];

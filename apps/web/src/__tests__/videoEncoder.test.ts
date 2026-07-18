@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { hasWebCodecsSupport } from '@/lib/video/videoEncoder';
+import { hasWebCodecsSupport } from '@Ordio/engine/video/videoEncoder';
 
-vi.mock('@/lib/loaders', () => ({
+vi.mock('@Ordio/engine/loaders', () => ({
   loadFont: vi.fn().mockResolvedValue(undefined),
   loadGraphic: vi.fn().mockResolvedValue(undefined),
 }));

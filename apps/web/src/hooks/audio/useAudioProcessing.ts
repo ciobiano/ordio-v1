@@ -6,7 +6,7 @@ import type { GenericId } from 'convex/values';
 import { useUIStore, useCaptureStore, useProcessingStore } from '@/stores';
 import type { AppPhase } from '@/stores';
 import { enhanceAudio } from '@/lib/audioEnhanceApi';
-import { decodeBlobToAudioBuffer } from '@/lib/media';
+import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
 import { clearRecordingDraft } from '@/lib/persistence/recordingDraft';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
 import {

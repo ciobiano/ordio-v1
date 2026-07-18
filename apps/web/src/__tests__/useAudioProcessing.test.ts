@@ -56,7 +56,7 @@ vi.mock('@/lib/audioEnhanceApi', () => ({
   enhanceAudio: vi.fn(),
 }));
 
-vi.mock('@/lib/media', () => ({
+vi.mock('@Ordio/engine/media', () => ({
   decodeBlobToAudioBuffer: vi.fn(),
 }));
 
@@ -104,7 +104,7 @@ describe('useAudioProcessing', () => {
       getChannelData: vi.fn(() => channel),
     } as unknown as AudioBuffer;
 
-    const decodeMod = await import('@/lib/media');
+    const decodeMod = await import('@Ordio/engine/media');
     (decodeMod.decodeBlobToAudioBuffer as Mock).mockResolvedValue({
       audioBuffer: decodedBuffer,
       decodePath: 'native' as const,
