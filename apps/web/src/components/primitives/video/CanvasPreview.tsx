@@ -1,36 +1,18 @@
 'use client';
 
-import {
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useRef, useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } from '@/stores';
 import { waveformSampler } from '@Ordio/shared/waveform';
-import { FPS } from '@Ordio/shared/time';
-import { renderFrame, type FrameOptions } from '@/lib/video';
-import { loadFont } from '@/lib/loaders';
+import { loadFont } from '@Ordio/engine/loaders';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
-import { loadGraphic } from '@/lib/loaders';
+import { loadGraphic } from '@Ordio/engine/loaders';
 import { cn } from '@/lib/utils';
+import { canvasPreviewFrame, canvasGridOverlay } from '@/lib/variants';
 import { CanvasCaptionTransformOverlay } from './canvas-preview/CanvasCaptionTransformOverlay';
-import {
-  measureCaptionTransformBox,
-  type CaptionTransformBox,
-} from './canvas-preview/captionTransformGeometry';
-import {
-  isCaptionActivationDoubleTap,
-  CAPTION_ACTIVATION_DOUBLE_TAP_WINDOW_MS,
-  type CaptionActivationTap,
-} from './canvas-preview/captionActivationGesture';
-
-/** Set once the user has entered caption transform mode — the stroke-pulse
- * affordance stops appearing after that. */
-const CAPTION_HINT_SEEN_KEY = 'ordio-caption-edit-hint-seen';
+import { useBackgroundVideo } from './canvas-preview/useBackgroundVideo';
+import { useCaptionGesture } from './canvas-preview/useCaptionGesture';
+import { useCanvasRenderLoop } from './canvas-preview/useCanvasRenderLoop';
 
 interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
@@ -64,19 +46,6 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-function areCaptionBoxesEqual(a: CaptionTransformBox | null, b: CaptionTransformBox | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-
-  return (
-    Math.abs(a.centerX - b.centerX) < 0.5 &&
-    Math.abs(a.centerY - b.centerY) < 0.5 &&
-    Math.abs(a.width - b.width) < 0.5 &&
-    Math.abs(a.height - b.height) < 0.5 &&
-    Math.abs(a.rotationDeg - b.rotationDeg) < 0.1
-  );
-}
-
 export default function CanvasPreview({
   playback,
   format,
@@ -91,14 +60,9 @@ export default function CanvasPreview({
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveformDataRef = useRef<number[]>([]);
-  const rafRef = useRef<number | null>(null);
   const currentTimeRef = useRef(0);
   const [fontLoaded, setFontLoaded] = useState(false);
   const [displayTime, setDisplayTime] = useState(0);
-  const [isTransformActive, setIsTransformActive] = useState(false);
-  const [showTransformHint, setShowTransformHint] = useState(false);
-  const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
-  const activationTapRef = useRef<CaptionActivationTap | null>(null);
 
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
@@ -113,6 +77,8 @@ export default function CanvasPreview({
     setFontLoaded(false);
     loadFont(style.fontFamily).then(() => setFontLoaded(true));
   }, [style.fontFamily]);
+
+  const { bgVideo, bgLoading } = useBackgroundVideo(style.background, playback.isPlaying);
 
   // Pre-load graphic asset when graphic style changes
   useEffect(() => {
@@ -145,233 +111,53 @@ export default function CanvasPreview({
   const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions(format);
   const aspectRatio = canvasWidth / canvasHeight;
 
-  // Optional grid overlay styling
-  const gridOverlayStyle = {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage:
-      `linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), ` +
-      `linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)`,
-    backgroundSize: `${gridSize}px ${gridSize}px`,
-    pointerEvents: 'none',
-    mixBlendMode: 'overlay',
-  } as const;
-
-  const drawCurrentFrame = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const duration = playback.duration || 1;
-    const totalFrames = Math.ceil(duration * FPS);
-    const frameIndex = Math.min(
-      Math.floor(currentTimeRef.current * FPS),
-      totalFrames - 1
-    );
-
-    const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
-    const frameOptions: FrameOptions = {
-      waveformData: waveformDataRef.current,
-      transcript,
-      style: renderStyle,
-      waveformStyle,
-      captionMode,
-      canvasLayout,
-      showWatermark,
-      graphicStyle,
-      captionGroups,
-      captionAnimation,
-      captionTransform,
-    };
-
-    renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-    const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-    const nextCaptionBox = measureCaptionTransformBox({
-      ctx,
-      currentTime: currentTimeRef.current,
-      transcript,
-      captionGroups,
-      style: renderStyle,
-      layout: canvasLayout ?? 'top',
-      hasVisualZone,
-      flipped: canvasLayout === 'flipped',
-      transform: captionTransform,
-      captionMode,
-    });
-    setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded]);
+  const { captionBox, drawCurrentFrame } = useCanvasRenderLoop({
+    canvasRef,
+    currentTimeRef,
+    waveformDataRef,
+    playback,
+    transcript,
+    style,
+    canvasWidth,
+    canvasHeight,
+    waveformStyle,
+    captionMode,
+    canvasLayout,
+    showWatermark,
+    graphicStyle,
+    captionGroups,
+    captionAnimation,
+    captionTransform,
+    bgVideo,
+    fontLoaded,
+  });
 
   const showCaptionBox = captionBox !== null;
-
-  const gestureRef = useRef<{
-    mode: 'move' | 'resize' | 'rotate';
-    pointerId: number;
-    startClientX: number;
-    startClientY: number;
-    startOffsetXRatio: number;
-    startOffsetYRatio: number;
-    startScale: number;
-    startRotationDeg: number;
-  } | null>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  const getCanvasDisplaySize = useCallback(() => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    return {
-      width: Math.max(1, rect?.width ?? canvasWidth),
-      height: Math.max(1, rect?.height ?? canvasHeight),
-    };
-  }, [canvasHeight, canvasWidth]);
-
-  const beginGesture = useCallback((mode: 'move' | 'resize' | 'rotate', e: ReactPointerEvent<HTMLElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    gestureRef.current = {
-      mode,
-      pointerId: e.pointerId,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startOffsetXRatio: captionTransform.offsetXRatio,
-      startOffsetYRatio: captionTransform.offsetYRatio,
-      startScale: captionTransform.scale,
-      startRotationDeg: captionTransform.rotationDeg,
-    };
-  }, [captionTransform]);
-
-  const handleGestureMove = useCallback((e: ReactPointerEvent<HTMLElement>) => {
-    const gesture = gestureRef.current;
-    if (!gesture || gesture.pointerId !== e.pointerId) return;
-    const dx = e.clientX - gesture.startClientX;
-    const dy = e.clientY - gesture.startClientY;
-    const displaySize = getCanvasDisplaySize();
-
-    if (gesture.mode === 'move') {
-      setCaptionTransform({
-        offsetXRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetXRatio + dx / displaySize.width)),
-        offsetYRatio: Math.max(-0.45, Math.min(0.45, gesture.startOffsetYRatio + dy / displaySize.height)),
-      });
-      return;
-    }
-
-    if (gesture.mode === 'resize') {
-      const nextScale =
-        gesture.startScale +
-        (dx / displaySize.width + dy / displaySize.height) * 1.2;
-      setCaptionTransform({ scale: Math.max(0.45, Math.min(2.8, nextScale)) });
-      return;
-    }
-
-    const nextRotation = gesture.startRotationDeg + dx * 0.35;
-    setCaptionTransform({ rotationDeg: nextRotation });
-  }, [getCanvasDisplaySize, setCaptionTransform]);
-
-  const endGesture = useCallback((e: ReactPointerEvent<HTMLElement>) => {
-    if (gestureRef.current?.pointerId !== e.pointerId) return;
-    gestureRef.current = null;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!showCaptionBox) {
-      setIsTransformActive(false);
-    }
-  }, [showCaptionBox]);
-
-  // One-time affordance: the caption box stroke breathes twice (CSS
-  // .caption-hint-pulse) instead of a text banner. Re-shown on later visits
-  // until the user actually enters transform mode once, then never again.
-  useEffect(() => {
-    if (!showCaptionBox || isTransformActive) {
-      setShowTransformHint(false);
-      return;
-    }
-    if (localStorage.getItem(CAPTION_HINT_SEEN_KEY)) return;
-    setShowTransformHint(true);
-    const timer = window.setTimeout(() => setShowTransformHint(false), 3600);
-    return () => window.clearTimeout(timer);
-  }, [showCaptionBox, isTransformActive]);
-
-  const singleTapTimerRef = useRef<number | null>(null);
-
-  const clearSingleTapTimer = useCallback(() => {
-    if (singleTapTimerRef.current !== null) {
-      window.clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => clearSingleTapTimer, [clearSingleTapTimer]);
 
   const togglePlayback = useCallback(() => {
     if (playback.isPlaying) playback.pause();
     else void playback.play();
   }, [playback]);
 
-  const activateTransform = useCallback(() => {
-    if (!showCaptionBox) return;
-    activationTapRef.current = null;
-    clearSingleTapTimer();
-    localStorage.setItem(CAPTION_HINT_SEEN_KEY, '1');
-    setIsTransformActive(true);
-  }, [showCaptionBox, clearSingleTapTimer]);
-
-  // The activation hotspot sits above the full-canvas play/pause toggle, so a
-  // single tap/click over the captions must fall through to play/pause — only
-  // a double tap/click enters transform mode. We disambiguate with a timer
-  // matched to the double-tap window.
-  const handleActivationPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const previousTap = activationTapRef.current;
-    const nextTap: CaptionActivationTap = {
-      timestamp: event.timeStamp,
-      clientX: event.clientX,
-      clientY: event.clientY,
-    };
-
-    activationTapRef.current = nextTap;
-
-    if (isCaptionActivationDoubleTap(previousTap, nextTap)) {
-      activateTransform();
-      return;
-    }
-
-    clearSingleTapTimer();
-    singleTapTimerRef.current = window.setTimeout(() => {
-      singleTapTimerRef.current = null;
-      togglePlayback();
-    }, CAPTION_ACTIVATION_DOUBLE_TAP_WINDOW_MS);
-  }, [activateTransform, clearSingleTapTimer, togglePlayback]);
-
-  const handleActivationDoubleClick = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    activateTransform();
-  }, [activateTransform]);
-
-  // Render loop: animate during playback, single frame when paused
-  useEffect(() => {
-    if (playback.isPlaying) {
-      const tick = () => {
-        drawCurrentFrame();
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-
-      return () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      };
-    } else {
-      // Single render when paused or seeking
-      drawCurrentFrame();
-    }
-  }, [playback.isPlaying, drawCurrentFrame]);
+  const {
+    isTransformActive,
+    setIsTransformActive,
+    showTransformHint,
+    overlayRef,
+    beginGesture,
+    handleGestureMove,
+    endGesture,
+    handleActivationPointerUp,
+    handleActivationDoubleClick,
+  } = useCaptionGesture({
+    canvasRef,
+    canvasWidth,
+    canvasHeight,
+    captionTransform,
+    setCaptionTransform,
+    showCaptionBox,
+    onActivationSingleTap: togglePlayback,
+  });
 
   // Paused scrubbing: time listeners update displayTime, but the loop above
   // only reacts to isPlaying/draw-input changes — redraw so the frozen frame
@@ -396,10 +182,7 @@ export default function CanvasPreview({
 
   return (
     <div
-      className={cn(
-        'relative rounded-xl overflow-hidden w-full',
-        className
-      )}
+      className={cn(canvasPreviewFrame, className)}
       onPointerDownCapture={(e) => {
         if (
           isTransformActive &&
@@ -409,14 +192,7 @@ export default function CanvasPreview({
           setIsTransformActive(false);
         }
       }}
-      style={{
-        background: '#0a0a0a',
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 18px 48px rgba(0,0,0,0.42)',
-        animation: 'fadeIn 0.2s ease-out',
-        aspectRatio: aspectRatio,
-        transition: 'aspect-ratio 0.3s ease-out',
-      }}
+      style={{ '--canvas-aspect-ratio': aspectRatio } as CSSProperties}
     >
       <canvas
         ref={canvasRef}
@@ -463,12 +239,29 @@ export default function CanvasPreview({
         </button>
       )}
       {/* Optional grid overlay for composition studies */}
-      {showGrid && <div aria-hidden="true" style={gridOverlayStyle} />}
+      {showGrid && (
+        <div
+          aria-hidden="true"
+          className={canvasGridOverlay}
+          style={{ '--grid-size': `${gridSize}px` } as CSSProperties}
+        />
+      )}
+      {/* Background video loading — shown while a newly selected background is
+          being fetched/decoded, before it appears in the preview */}
+      {bgLoading && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="status"
+          aria-label="Loading background video"
+        >
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/25 border-t-white/80" />
+        </div>
+      )}
       {/* Format badge */}
       <div className="absolute top-2 left-2 z-20 bg-black/50 text-[clamp(0.625rem,2vw,0.75rem)] text-white/70 px-2 py-0.5 rounded-lg backdrop-blur" aria-hidden="true">
         {getFormatLabel(format)}
       </div>
-      
+
       {/* Invisible full-canvas play/pause toggle (behind captions) */}
       <button
         type="button"

@@ -19,6 +19,7 @@ import type {
 } from '@/stores';
 import type { FeatureKey } from '@/lib/featureGates';
 import type { Word } from '@Ordio/shared/schemas';
+import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 
 interface UseVideoExporterShape {
   isExporting: boolean;
@@ -77,6 +78,7 @@ export default function ExportState({
 }: ExportStateProps) {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [exportOverlayOpen, setExportOverlayOpen] = useState(false);
+  const { isLocked } = useFeatureGates();
 
   type TrimSnapshot = { audioBuffer: AudioBuffer; transcript: Word[] };
   const MAX_HISTORY = 5;
@@ -141,6 +143,14 @@ export default function ExportState({
   const handleExport = useCallback(async () => {
     if (!audioBuffer || !transcript) return;
 
+    const style = useUIStore.getState().style;
+
+    // Video backgrounds preview free, but export is creator-gated.
+    if (style.background?.type === 'video' && isLocked('background_video')) {
+      onLocked('background_video');
+      return;
+    }
+
     const allowed = await onExportStart();
     if (!allowed) return;
 
@@ -154,7 +164,6 @@ export default function ExportState({
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    const style = useUIStore.getState().style;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.fillStyle = style.backgroundColor ?? '#000000';
@@ -169,7 +178,7 @@ export default function ExportState({
     } finally {
       useProcessingStore.setState({ transcript: originalTranscript });
     }
-  }, [audioBuffer, transcript, trimmer, format, exporter, showWatermark, onExportStart]);
+  }, [audioBuffer, transcript, trimmer, format, exporter, showWatermark, onExportStart, isLocked, onLocked]);
 
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
   const hasRender = exporter.exportedUrl !== null && !exporter.isExporting;

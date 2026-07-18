@@ -15,6 +15,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@Ordio/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@Ordio/engine': path.resolve(__dirname, '../../packages/engine/src'),
     },
   },
 });

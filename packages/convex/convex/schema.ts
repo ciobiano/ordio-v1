@@ -36,6 +36,16 @@ export default defineSchema({
   .index("by_stripe_customer", ["stripeCustomerId"])
   .index("by_paystack_customer", ["paystackCustomerCode"]),
 
+  backgroundAssets: defineTable({
+    userId: v.string(),          // Clerk user ID (tokenIdentifier)
+    storageId: v.id("_storage"), // transcoded loop in Convex storage
+    label: v.optional(v.string()),
+    durationSec: v.number(),
+    sizeBytes: v.number(),
+    createdAt: v.number(),
+  })
+  .index("by_user_id", ["userId"]),
+
   sessions: defineTable({
     userId: v.string(), // Clerk user ID
     storageId: v.id("_storage"), // Convex file storage reference

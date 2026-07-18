@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Word } from '@Ordio/shared/schemas';
-import { buildSmartSegments } from '@/lib/captions/segmentation';
+import { buildSmartSegments } from '@Ordio/engine/captions/segmentation';
 import type { TranscriptionSource, EnhanceTier, CaptionGroup } from './types';
 
 const MAX_UNDO_STEPS = 50;
