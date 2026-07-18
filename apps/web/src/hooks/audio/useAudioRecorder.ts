@@ -41,6 +41,11 @@ export function useAudioRecorder(
   const saveDraftTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingStartRef = useRef<number>(0);
   const mimeTypeRef = useRef<string>('audio/webm');
+  /** Set by resetRecording() right before it stops the recorder — MediaRecorder's
+   * 'stop' event fires asynchronously, so without this guard it lands after
+   * reset already cleared state/chunks/draft and re-saves an empty draft on
+   * top of the just-cleared one. */
+  const discardingRef = useRef(false);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -109,11 +114,15 @@ export function useAudioRecorder(
       };
 
       recorder.onstop = () => {
+        clearTimer();
+        clearSaveDraftTimer();
+        if (discardingRef.current) {
+          discardingRef.current = false;
+          return;
+        }
         const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setState('stopped');
-        clearTimer();
-        clearSaveDraftTimer();
         const durationSec = (Date.now() - recordingStartRef.current) / 1000;
         void saveRecordingDraft(blob, { mimeType, durationSec });
       };
@@ -163,6 +172,7 @@ export function useAudioRecorder(
   }, [startTimer, startSaveDraftTimer]);
 
   const resetRecording = useCallback(() => {
+    discardingRef.current = true;
     stopRecording();
     clearSaveDraftTimer();
     setState('idle');

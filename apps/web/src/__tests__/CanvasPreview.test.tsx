@@ -9,10 +9,12 @@ vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
 }));
 
+const renderFrameMock = vi.fn().mockImplementation(() => {
+  throw new Error('boom');
+});
+
 vi.mock('@Ordio/engine/video', () => ({
-  renderFrame: vi.fn().mockImplementation(() => {
-    throw new Error('boom');
-  }),
+  renderFrame: (...args: unknown[]) => renderFrameMock(...args),
 }));
 
 vi.mock('@Ordio/engine/loaders', () => ({
@@ -38,14 +40,20 @@ function buildPlayback(): UsePlaybackReturn {
 }
 
 describe('components/primitives/video: CanvasPreview crash surfacing', () => {
+  const drawImageMock = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    renderFrameMock.mockImplementation(() => {
+      throw new Error('boom');
+    });
     // jsdom has no real canvas backend — getContext('2d') returns null by
     // default, which would make drawCurrentFrame's early-return fire before
     // ever reaching the try/catch this test exists to exercise. Stub it to
-    // return a truthy object; the mocked renderFrame below never actually
-    // draws with it, it just needs to not be null.
-    HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({});
+    // return a truthy object shared by both the visible canvas and the
+    // internal off-screen buffer canvas, so drawImageMock observes the
+    // blit regardless of which one it was conceptually called on.
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({ drawImage: drawImageMock });
     useUIStore.setState({
       style: {
         width: 1080,
@@ -78,5 +86,35 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
     ).not.toThrow();
 
     expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('never blits to the visible canvas when the render errors — true freeze, not a half-composited frame', () => {
+    render(
+      <CanvasPreview
+        playback={buildPlayback()}
+        format="square"
+        waveformStyle="bars"
+        captionMode="phrase"
+      />
+    );
+
+    // renderFrame throws before any drawImage call is reached — the
+    // off-screen buffer never gets blitted onto the visible canvas.
+    expect(drawImageMock).not.toHaveBeenCalled();
+  });
+
+  it('blits the off-screen buffer to the visible canvas on a successful render', () => {
+    renderFrameMock.mockImplementation(() => {});
+
+    render(
+      <CanvasPreview
+        playback={buildPlayback()}
+        format="square"
+        waveformStyle="bars"
+        captionMode="phrase"
+      />
+    );
+
+    expect(drawImageMock).toHaveBeenCalled();
   });
 });
