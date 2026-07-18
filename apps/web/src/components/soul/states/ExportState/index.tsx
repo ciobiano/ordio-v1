@@ -182,11 +182,12 @@ export default function ExportState({
 
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
   const hasRender = exporter.exportedUrl !== null && !exporter.isExporting;
+  const primaryLabel = hasRender ? 'Save' : exporter.error ? 'Retry export' : 'Export';
 
   return (
     <div className="flex flex-col w-full  min-h-dvh animate-fadeIn">
       <ExportHeader
-        primaryLabel={hasRender ? 'Save' : 'Export'}
+        primaryLabel={primaryLabel}
         primaryDisabled={exportDisabled && !hasRender}
         onBack={() => setShowDiscardDialog(true)}
         onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}

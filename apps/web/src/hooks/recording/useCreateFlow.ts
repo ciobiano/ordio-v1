@@ -19,8 +19,55 @@ import {
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useLiveTranscription } from '@/hooks/recording/useLiveTranscription';
 import { useMicPermission } from '@/hooks/recording/useMicPermission';
+import { useRecordingRecovery } from '@/hooks/recording/useRecordingRecovery';
 import { useVAD } from '@/hooks/recording/useVAD';
-import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
+import { useEpisodeIngestion } from '@/hooks/audio/useEpisodeIngestion';
+import {
+  validateFile,
+  validateEpisodeFile,
+  MAX_FILE_SIZE_BYTES,
+  FILE_ERROR_MESSAGES,
+} from '@/lib/fileValidation';
+import { EPISODE_ROUTE_THRESHOLD_SEC } from '@Ordio/engine/media/episodePlan';
+
+/** Fast duration probe via metadata only (no decode). Returns null on any failure. */
+async function probeDurationSec(file: File): Promise<number | null> {
+  try {
+    const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
+    const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+    try {
+      return await input.computeDuration();
+    } finally {
+      input.dispose();
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Conservative lower bound on audio bitrate (bits/sec). Real-world audio is
+ * essentially never encoded below this — used only to compute a byte-size
+ * floor below which a file physically cannot contain
+ * EPISODE_ROUTE_THRESHOLD_SEC seconds of audio.
+ */
+export const MIN_PLAUSIBLE_AUDIO_BITRATE_BPS = 32_000;
+
+/**
+ * Byte-size floor below which a file cannot possibly hold more than
+ * EPISODE_ROUTE_THRESHOLD_SEC seconds of audio, even at the lowest plausible
+ * bitrate. Files under this size skip the async duration probe entirely and
+ * go straight to the existing (synchronous) short-path validation — this is
+ * a heuristic, not a hard guarantee: a real long file with an unusually low
+ * bitrate could fall under this floor and be misrouted to the short path,
+ * but that just means it hits validateFile's normal checks like any file
+ * does today, so it is not a regression.
+ *
+ * Math: EPISODE_ROUTE_THRESHOLD_SEC (900s) * 32_000 bps / 8 bits-per-byte
+ * = 3,600,000 bytes (~3.43 MiB).
+ */
+const PROBE_SKIP_SIZE_BYTES =
+  (EPISODE_ROUTE_THRESHOLD_SEC * MIN_PLAUSIBLE_AUDIO_BITRATE_BPS) / 8;
 
 // ── Processing alert types ───────────────────────────────────────────
 
@@ -90,6 +137,7 @@ export function useCreateFlow() {
   const micPermission = useMicPermission();
   const live = useLiveTranscription();
   const vad = useVAD(recorder.isRecording, micStream);
+  const episode = useEpisodeIngestion();
 
   // Surface live-caption failures once; recording itself is unaffected.
   const lastLiveErrorRef = useRef<string | null>(null);
@@ -203,6 +251,19 @@ export function useCreateFlow() {
     }
   }, [recorder.audioBlob, processAudio, router, handleProcessingFailure]);
 
+  const handleResumeRecovery = useCallback(async (blob: Blob) => {
+    setProcessingAlert(null);
+    try {
+      const sessionId = await processAudio(blob);
+      if (!sessionId) return;
+      router.push(`/create/export/${sessionId}`);
+    } catch (err) {
+      handleProcessingFailure(err);
+    }
+  }, [processAudio, router, handleProcessingFailure]);
+
+  useRecordingRecovery(handleResumeRecovery);
+
   const handleRestart = useCallback(async () => {
     setProcessingAlert(null);
     recorder.resetRecording();
@@ -215,20 +276,46 @@ export function useCreateFlow() {
 
   // ── File upload handlers ─────────────────────────────────────────
 
-  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
     if (!file) return;
+
+    // Long files (or files too large for the short path) route to the
+    // episode pipeline instead of the staged-file confirm flow. The
+    // duration probe is metadata-only and fails closed: any error (corrupt
+    // file, unsupported container, etc.) falls through to the existing
+    // short-path validation below, unchanged.
+    //
+    // Perf: skip the async probe entirely for files too small to possibly
+    // be long episodes (see PROBE_SKIP_SIZE_BYTES) — keeps the overwhelming
+    // majority of short-file uploads fully synchronous, as before.
+    const tooBigForShortPath = file.size > MAX_FILE_SIZE_BYTES;
+    const couldBeLongEpisode = file.size >= PROBE_SKIP_SIZE_BYTES;
+    const durationSec = couldBeLongEpisode ? await probeDurationSec(file) : null;
+    const isEpisode =
+      (durationSec !== null && durationSec > EPISODE_ROUTE_THRESHOLD_SEC) ||
+      tooBigForShortPath; // too big for the short path — try episode path
+
+    if (isEpisode) {
+      const episodeError = validateEpisodeFile(file);
+      if (episodeError) {
+        toast.error(FILE_ERROR_MESSAGES[episodeError]);
+        return;
+      }
+      toast.info('Long episode detected — finding your best moments…');
+      void episode.startEpisode(file);
+      return;
+    }
 
     const error = validateFile(file);
     if (error) {
       toast.error(FILE_ERROR_MESSAGES[error]);
-      if (e.target) e.target.value = '';
       return;
     }
 
     setStagedFile(file);
-    if (e.target) e.target.value = '';
-  }, []);
+  }, [episode]);
 
   const handleFileConfirm = useCallback(async () => {
     if (!stagedFile) return;
@@ -301,6 +388,9 @@ export function useCreateFlow() {
     handleFileSelect,
     handleFileConfirm,
     setStagedFile,
+
+    // Long-episode clip-finder pipeline
+    episode,
 
     // Processing
     handleReset,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { toast } from 'sonner';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
@@ -70,6 +71,7 @@ export function useCanvasRenderLoop({
 }: UseCanvasRenderLoopArgs) {
   const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
   const rafRef = useRef<number | null>(null);
+  const hasWarnedRenderErrorRef = useRef(false);
 
   const drawCurrentFrame = useCallback(() => {
     const canvas = canvasRef.current;
@@ -78,44 +80,54 @@ export function useCanvasRenderLoop({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const duration = playback.duration || 1;
-    const totalFrames = Math.ceil(duration * FPS);
-    const frameIndex = Math.min(
-      Math.floor(currentTimeRef.current * FPS),
-      totalFrames - 1
-    );
+    try {
+      const duration = playback.duration || 1;
+      const totalFrames = Math.ceil(duration * FPS);
+      const frameIndex = Math.min(
+        Math.floor(currentTimeRef.current * FPS),
+        totalFrames - 1
+      );
 
-    const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
-    const frameOptions: FrameOptions = {
-      waveformData: waveformDataRef.current,
-      transcript,
-      style: renderStyle,
-      waveformStyle,
-      captionMode,
-      canvasLayout,
-      showWatermark,
-      graphicStyle,
-      captionGroups,
-      captionAnimation,
-      captionTransform,
-      backgroundFrame: bgVideo ?? undefined,
-    };
+      const renderStyle = { ...style, width: canvasWidth, height: canvasHeight };
+      const frameOptions: FrameOptions = {
+        waveformData: waveformDataRef.current,
+        transcript,
+        style: renderStyle,
+        waveformStyle,
+        captionMode,
+        canvasLayout,
+        showWatermark,
+        graphicStyle,
+        captionGroups,
+        captionAnimation,
+        captionTransform,
+        backgroundFrame: bgVideo ?? undefined,
+      };
 
-    renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
-    const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-    const nextCaptionBox = measureCaptionTransformBox({
-      ctx,
-      currentTime: currentTimeRef.current,
-      transcript,
-      captionGroups,
-      style: renderStyle,
-      layout: canvasLayout ?? 'top',
-      hasVisualZone,
-      flipped: canvasLayout === 'flipped',
-      transform: captionTransform,
-      captionMode,
-    });
-    setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
+      renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
+      const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
+      const nextCaptionBox = measureCaptionTransformBox({
+        ctx,
+        currentTime: currentTimeRef.current,
+        transcript,
+        captionGroups,
+        style: renderStyle,
+        layout: canvasLayout ?? 'top',
+        hasVisualZone,
+        flipped: canvasLayout === 'flipped',
+        transform: captionTransform,
+        captionMode,
+      });
+      setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
+    } catch (err) {
+      console.error('[CanvasPreview] render frame failed', err);
+      if (!hasWarnedRenderErrorRef.current) {
+        hasWarnedRenderErrorRef.current = true;
+        toast.error('Preview is temporarily unavailable. Your audio is unaffected.');
+      }
+      // Intentionally no re-throw and no further drawing this tick — canvas
+      // keeps showing the last successfully rendered frame.
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded, bgVideo]);
 

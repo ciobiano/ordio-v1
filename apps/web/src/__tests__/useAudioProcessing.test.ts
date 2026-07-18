@@ -4,6 +4,7 @@ import { renderHook, act } from '@testing-library/react';
 import type { Mock } from 'vitest';
 import { AudioProcessingError, useAudioProcessing } from '@/hooks/audio/useAudioProcessing';
 import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription';
+import * as recordingDraft from '@/lib/persistence/recordingDraft';
 
 // Mock Convex hooks
 vi.mock('convex/react', () => ({
@@ -57,6 +58,10 @@ vi.mock('@/lib/audioEnhanceApi', () => ({
 
 vi.mock('@Ordio/engine/media', () => ({
   decodeBlobToAudioBuffer: vi.fn(),
+}));
+
+vi.mock('@/lib/persistence/recordingDraft', () => ({
+  clearRecordingDraft: vi.fn().mockResolvedValue(undefined),
 }));
 
 // AudioContext mock with decodeAudioData — defined as a proper class so `new` works
@@ -175,6 +180,33 @@ describe('useAudioProcessing', () => {
 
     expect(typeof sessionId).toBe('string');
     expect(sessionId).toBe('abc123sessionId');
+  });
+
+  it('clears the recording draft after a session is created successfully', async () => {
+    const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
+    const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
+
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock
+      .mockReturnValueOnce(mockGenerateUploadUrl)
+      .mockReturnValueOnce(mockCreateSession);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ storageId: 'storage_abc' }),
+    });
+
+    const blob = new Blob(['audio data'], { type: 'audio/webm' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await result.current.processAudio(blob);
+    });
+
+    expect(recordingDraft.clearRecordingDraft).toHaveBeenCalledTimes(1);
   });
 
   it('restores currentState to the pre-processing state on processing error', async () => {

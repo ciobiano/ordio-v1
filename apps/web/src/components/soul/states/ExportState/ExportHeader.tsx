@@ -4,8 +4,9 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 interface ExportHeaderProps {
-  /** 'Export' before a render exists, 'Save' once one does — a single primary
-   * action; the overlay owns the rest of the flow. */
+  /** 'Export' before a render exists, 'Retry export' after a failed attempt,
+   * 'Save' once a render does — a single primary action; the overlay owns
+   * the rest of the flow. */
   primaryLabel: string;
   primaryDisabled: boolean;
   onBack: () => void;
