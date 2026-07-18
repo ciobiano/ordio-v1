@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
 import { useCaptureStore, useProcessingStore } from '@/stores';
-import { decodeBlobToAudioBuffer } from '@/lib/media';
+import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
 import type { GenericId } from 'convex/values';
 
 interface PlaybackLoader {
