@@ -4,8 +4,6 @@ import { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
-export type { UsePlaybackReturn };
-
 interface PlaybackControlsProps {
   playback: UsePlaybackReturn;
   className?: string;

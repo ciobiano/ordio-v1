@@ -3,7 +3,7 @@
  * Pure functions — no React, no side effects.
  */
 
-export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 const ACCEPTED_MIME_TYPES = new Set([
   'audio/flac',
@@ -47,7 +47,7 @@ function getExtension(filename: string): string | undefined {
   return filename.split('.').pop()?.toLowerCase();
 }
 
-export function isAcceptedFileType(file: File): boolean {
+function isAcceptedFileType(file: File): boolean {
   if (ACCEPTED_MIME_TYPES.has(file.type)) return true;
   // Fallback: check extension when MIME is empty or generic (e.g. application/octet-stream)
   const ext = getExtension(file.name);
