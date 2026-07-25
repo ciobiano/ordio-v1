@@ -8,14 +8,13 @@ import CanvasPreview from '@/components/primitives/video/CanvasPreview'
 import PlaybackControls from '@/components/primitives/video/PlaybackControls'
 import { StageControlBar } from './StageControlBar'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
-import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores'
+import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores'
 import type { FeatureKey } from '@/lib/featureGates'
 
 interface ExportCanvasProps {
   playback: UsePlaybackReturn
   format: FormatVariant
   waveformStyle: WaveformVariant
-  captionMode: CaptionMode
   canvasLayout?: CanvasLayout
   graphicStyle?: GraphicStyleId
   showWatermark?: boolean
@@ -26,7 +25,6 @@ export function ExportCanvas({
   playback,
   format,
   waveformStyle,
-  captionMode,
   canvasLayout,
   graphicStyle,
   showWatermark,
@@ -45,7 +43,6 @@ export function ExportCanvas({
             playback={playback}
             format={format}
             waveformStyle={waveformStyle}
-            captionMode={captionMode}
             canvasLayout={canvasLayout}
             graphicStyle={graphicStyle}
             showWatermark={showWatermark}

@@ -39,6 +39,11 @@ export const BackgroundSchema = z.discriminatedUnion('type', [
     source: z.enum(['curated', 'custom']),
     assetId: z.string().min(1),
   }),
+  z.object({
+    type: z.literal('gradient'),
+    variant: z.enum(['sunset', 'electric', 'acid-signal']),
+    decoration: z.enum(['blob', 'grain', 'none']).optional(),
+  }),
 ]);
 
 export type Background = z.infer<typeof BackgroundSchema>;
@@ -64,6 +69,23 @@ export const StyleConfigSchema = z.object({
   characterSpacing: z.number().min(-12).max(12).default(0),
   /** Line height multiplier. Values below 1 tighten the spacing between lines. */
   lineHeight: z.number().min(0.4).max(3).default(1.4),
+  /** Which caption style is active — see CAPTION_STYLE_PRESETS in @Ordio/engine. */
+  captionStyleId: z
+    .enum([
+      'word-pop',
+      'bold-outline',
+      'karaoke-chip',
+      'minimal-lower-third',
+      'big-statement',
+      'script-accent',
+    ])
+    .default('minimal-lower-third'),
+  /** Text stroke — used by styles whose preset declares a `stroke` default (e.g. bold-outline). */
+  strokeWidth: z.number().min(0).max(8).optional(),
+  strokeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /** Text glow — used by styles whose preset declares a `glow` default (e.g. script-accent). */
+  glowIntensity: z.number().min(0).max(1).optional(),
+  glowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;

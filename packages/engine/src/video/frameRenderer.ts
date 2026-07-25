@@ -1,21 +1,24 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
-import type { WaveformVariant, CaptionMode, CaptionAnimation, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
+import type { WaveformVariant, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
 import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '../waveforms';
 import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '../waveforms/constants';
 import { getGraphic } from '../loaders/graphicLoader';
 import { drawGraphic } from '../graphic';
-import { drawCaptions, drawSpotlightCaptions, drawStackCaptions } from '../processing/captions';
-import { drawKaraokeCaptions } from './karaoke';
+import {
+  drawWordSwapCaptions,
+  drawPhraseCutCaptions,
+  drawStaticHighlightCaptions,
+} from '../processing/captions';
+import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
+import { drawGradientBackground } from '../backgrounds/gradientBackground';
 
 export interface FrameOptions {
   waveformData: number[];
   transcript: Word[];
   style: StyleConfig;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
-  captionAnimation?: CaptionAnimation;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
@@ -74,8 +77,6 @@ export function renderFrame(
     transcript,
     style,
     waveformStyle,
-    captionMode,
-    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -87,8 +88,9 @@ export function renderFrame(
   const duration = totalFrames / FPS;
   const layout = canvasLayout ?? 'top';
   const flipped = layout === 'flipped';
+  const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
 
-  // 1. Background — video frame (cover-fit + scrim) or solid color
+  // 1. Background — video frame (cover-fit + scrim), gradient, or solid color
   const { backgroundFrame } = options;
   if (backgroundFrame) {
     const { w: srcW, h: srcH } = sourceDimensions(backgroundFrame);
@@ -101,13 +103,18 @@ export function renderFrame(
       ctx.fillStyle = style.backgroundColor;
       ctx.fillRect(0, 0, width, height);
     }
+  } else if (style.background?.type === 'gradient') {
+    drawGradientBackground(ctx, style.background.variant, style.background.decoration, width, height);
   } else {
     ctx.fillStyle = style.backgroundColor;
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Visual zone
-  if (captionMode !== 'karaoke') {
+  // 2. Visual zone — static-highlight's multi-line block takes the same
+  // full-screen precedence the old karaoke mode had; other mechanics share
+  // the screen with the waveform/graphic zone as phrase mode always did.
+  const takesFullScreen = mechanic === 'static-highlight';
+  if (!takesFullScreen) {
     if (graphicStyle) {
       const img = getGraphic(graphicStyle);
       if (img) drawGraphic(ctx, img, graphicStyle, style, flipped);
@@ -117,37 +124,13 @@ export function renderFrame(
   }
 
   // 3. Captions
-  const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-  switch (captionMode) {
-    case 'karaoke':
-      // Karaoke canvas timing is word-scoped; ignore style-panel motion preset here.
-      drawKaraokeCaptions(
-        ctx,
-        currentTime,
-        transcript,
-        style,
-        captionGroups,
-        'sweep-pulse',
-        captionTransform
-      );
+  const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
+  switch (mechanic) {
+    case 'static-highlight':
+      drawStaticHighlightCaptions(ctx, currentTime, transcript, style, captionTransform);
       break;
-    case 'stack':
-      drawStackCaptions(ctx, currentTime, transcript, style, captionGroups, captionTransform);
-      break;
-    case 'spotlight':
-      drawSpotlightCaptions(
-        ctx,
-        currentTime,
-        transcript,
-        style,
-        layout,
-        hasVisualZone,
-        captionGroups,
-        captionTransform
-      );
-      break;
-    case 'phrase':
-      drawCaptions(
+    case 'word-swap':
+      drawWordSwapCaptions(
         ctx,
         currentTime,
         transcript,
@@ -156,7 +139,19 @@ export function renderFrame(
         hasVisualZone,
         flipped,
         captionGroups,
-        captionAnimation,
+        captionTransform
+      );
+      break;
+    case 'phrase-cut':
+      drawPhraseCutCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        layout,
+        hasVisualZone,
+        flipped,
+        captionGroups,
         captionTransform
       );
       break;

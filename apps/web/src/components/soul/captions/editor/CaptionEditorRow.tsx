@@ -11,6 +11,7 @@ type CaptionGroup = {
   end: number;
   text: string;
   wordIndices: number[];
+  accentWordIndices?: number[];
 };
 
 type CaptionEditorRowProps = {
@@ -20,8 +21,11 @@ type CaptionEditorRowProps = {
   isSelected: boolean;
   transcript: TranscriptWord[];
   cursorPosition: number | null;
+  /** Whether the active caption style honors accent words (word-pop, big-statement, script-accent) — hides the toggle affordance for styles that ignore it. */
+  supportsAccent: boolean;
   onSelect: (groupIndex: number, startTime: number) => void;
   onToggleCursor: (positionInGroup: number) => void;
+  onToggleAccent: (positionInGroup: number) => void;
   setGroupRef: (idx: number, el: HTMLDivElement | null) => void;
 };
 
@@ -32,8 +36,10 @@ export function CaptionEditorRow({
   isSelected,
   transcript,
   cursorPosition,
+  supportsAccent,
   onSelect,
   onToggleCursor,
+  onToggleAccent,
   setGroupRef,
 }: CaptionEditorRowProps) {
   const rowState = isActive ? 'active' : isSelected ? 'selected' : 'idle';
@@ -74,6 +80,7 @@ export function CaptionEditorRow({
                 const word = transcript[wordIndex];
                 if (!word) return null;
                 const isCursorHere = cursorPosition === positionInGroup;
+                const isAccented = group.accentWordIndices?.includes(positionInGroup) ?? false;
 
                 return (
                   <span key={wordIndex} className="inline-flex items-baseline">
@@ -100,9 +107,31 @@ export function CaptionEditorRow({
                       </button>
                     )}
 
-                    <span className={cn('text-sm', isCursorHere ? 'text-foreground' : 'text-foreground/80')}>
-                      {word.text}
-                    </span>
+                    {supportsAccent ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleAccent(positionInGroup);
+                        }}
+                        aria-pressed={isAccented}
+                        aria-label={`${isAccented ? 'Remove' : 'Mark'} accent on "${word.text}"`}
+                        className={cn(
+                          'rounded-md px-0.5 text-sm transition-colors',
+                          isAccented
+                            ? 'bg-primary/20 text-primary'
+                            : isCursorHere
+                              ? 'text-foreground'
+                              : 'text-foreground/80'
+                        )}
+                      >
+                        {word.text}
+                      </button>
+                    ) : (
+                      <span className={cn('text-sm', isCursorHere ? 'text-foreground' : 'text-foreground/80')}>
+                        {word.text}
+                      </span>
+                    )}
                   </span>
                 );
               })}

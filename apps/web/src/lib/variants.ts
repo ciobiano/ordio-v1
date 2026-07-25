@@ -262,6 +262,21 @@ export const shareCardHeadline = cva('font-acid-display font-semibold', {
 });
 
 /**
+ * Gradient background picker swatch — same gradient values as shareCard's
+ * sunset/electric variants (reused, not a new palette), plus acid-signal
+ * (the app's own lime->cyan accent gradient token).
+ */
+export const gradientSwatch = cva('relative overflow-hidden rounded-xl', {
+  variants: {
+    variant: {
+      sunset: 'bg-[linear-gradient(155deg,#FF8A4A_0%,#FF2E7E_55%,#B0165C_100%)]',
+      electric: 'bg-[linear-gradient(155deg,#3A2BFF_0%,#4D7CFF_45%,#00D4FF_100%)]',
+      'acid-signal': 'bg-[image:var(--acid-signal)]',
+    },
+  },
+});
+
+/**
  * Canvas preview frame — the outer chrome around the rendered video canvas.
  * Aspect ratio varies per format, set via the --canvas-aspect-ratio custom
  * property rather than an inline style prop.

@@ -23,7 +23,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
 
   const { setTranscript } = useProcessingStore();
 
-  const { setUpgradeTarget, format, waveformStyle, canvasLayout, captionMode, graphicStyle } =
+  const { setUpgradeTarget, format, waveformStyle, canvasLayout, graphicStyle } =
     useUIStore();
 
   const resetUI = useUIStore((s) => s.resetUI);
@@ -159,7 +159,6 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
         exporter={exporter}
         format={format}
         waveformStyle={waveformStyle}
-        captionMode={captionMode}
         canvasLayout={canvasLayout}
         graphicStyle={graphicStyle}
         showWatermark={tier === 'free'}

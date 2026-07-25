@@ -6,10 +6,11 @@ export {
 } from './videoEncoder';
 export { encodeVideoFFmpeg } from './ffmpegEncoder';
 export { renderFrame, type FrameOptions } from './frameRenderer';
-export { drawKaraokeCaptions, karaokeNonActiveFills, measureKaraokeCaptionBlock } from './karaoke';
 export {
-  drawSpotlightCaptions,
-  drawStackCaptions,
-  measureSpotlightCaptionBlock,
-  measureStackCaptionBlock,
+  drawWordSwapCaptions,
+  drawPhraseCutCaptions,
+  drawStaticHighlightCaptions,
+  measureWordSwapCaptionBlock,
+  measurePhraseCutCaptionBlock,
+  measureStaticHighlightCaptionBlock,
 } from '../processing/captions';

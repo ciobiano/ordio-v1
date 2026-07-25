@@ -83,7 +83,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
         // Read current style/variant state from store
         const { transcript, captionGroups } = useProcessingStore.getState();
-        const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
+        const { style, waveformStyle, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
 
         const backgroundVideo = await resolveBackgroundBlob(
           style.background,
@@ -99,8 +99,6 @@ export function useVideoExporter(): UseVideoExporterReturn {
           captionGroups,
           style,
           waveformStyle,
-          captionMode,
-          captionAnimation,
           canvasLayout,
           showWatermark,
           graphicStyle,

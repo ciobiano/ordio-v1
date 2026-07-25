@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useUIStore } from '@/stores/uiStore';
+import { useUIStore, LEGACY_CAPTION_MODE_MIGRATION } from '@/stores/uiStore';
 
 describe('store: uiStore', () => {
   beforeEach(() => {
@@ -16,11 +16,11 @@ describe('store: uiStore', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        captionStyleId: 'minimal-lower-third' as const,
       },
       waveformStyle: 'bars',
       graphicStyle: null,
       canvasLayout: 'compact',
-      captionMode: 'phrase',
       format: 'square',
     });
   });
@@ -45,8 +45,8 @@ describe('store: uiStore', () => {
       expect(useUIStore.getState().canvasLayout).toBe('compact');
     });
 
-    it('should have phrase caption mode', () => {
-      expect(useUIStore.getState().captionMode).toBe('phrase');
+    it('should have minimal-lower-third caption style', () => {
+      expect(useUIStore.getState().style.captionStyleId).toBe('minimal-lower-third');
     });
 
     it('should have square format', () => {
@@ -113,20 +113,20 @@ describe('store: uiStore', () => {
     });
   });
 
-  describe('setCaptionMode', () => {
-    it('should set caption mode to karaoke', () => {
-      useUIStore.getState().setCaptionMode('karaoke');
-      expect(useUIStore.getState().captionMode).toBe('karaoke');
+  describe('setStyle (captionStyleId)', () => {
+    it('should set caption style to karaoke-chip', () => {
+      useUIStore.getState().setStyle({ captionStyleId: 'karaoke-chip' });
+      expect(useUIStore.getState().style.captionStyleId).toBe('karaoke-chip');
     });
 
-    it('should set caption mode to stack', () => {
-      useUIStore.getState().setCaptionMode('stack');
-      expect(useUIStore.getState().captionMode).toBe('stack');
+    it('should set caption style to word-pop', () => {
+      useUIStore.getState().setStyle({ captionStyleId: 'word-pop' });
+      expect(useUIStore.getState().style.captionStyleId).toBe('word-pop');
     });
 
-    it('should set caption mode to spotlight', () => {
-      useUIStore.getState().setCaptionMode('spotlight');
-      expect(useUIStore.getState().captionMode).toBe('spotlight');
+    it('should set caption style to big-statement', () => {
+      useUIStore.getState().setStyle({ captionStyleId: 'big-statement' });
+      expect(useUIStore.getState().style.captionStyleId).toBe('big-statement');
     });
   });
 
@@ -187,6 +187,31 @@ describe('store: uiStore', () => {
       expect(state.currentState).toBe('idle');
       expect(state.upgradeTarget).toBeNull();
       expect(state.theme).toBe('dark');
+    });
+  });
+
+  describe('legacy CaptionMode migration', () => {
+    it('maps every old CaptionMode value to a valid CaptionStyleId', () => {
+      const validStyleIds = [
+        'word-pop',
+        'bold-outline',
+        'karaoke-chip',
+        'minimal-lower-third',
+        'big-statement',
+        'script-accent',
+      ];
+      const oldModes = ['phrase', 'karaoke', 'spotlight', 'stack'];
+      for (const mode of oldModes) {
+        expect(LEGACY_CAPTION_MODE_MIGRATION[mode]).toBeDefined();
+        expect(validStyleIds).toContain(LEGACY_CAPTION_MODE_MIGRATION[mode]);
+      }
+    });
+
+    it('is deterministic — the same old mode always maps to the same new style', () => {
+      expect(LEGACY_CAPTION_MODE_MIGRATION.phrase).toBe('minimal-lower-third');
+      expect(LEGACY_CAPTION_MODE_MIGRATION.karaoke).toBe('karaoke-chip');
+      expect(LEGACY_CAPTION_MODE_MIGRATION.spotlight).toBe('big-statement');
+      expect(LEGACY_CAPTION_MODE_MIGRATION.stack).toBe('word-pop');
     });
   });
 });

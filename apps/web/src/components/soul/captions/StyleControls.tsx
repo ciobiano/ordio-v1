@@ -10,11 +10,12 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUIStore } from '@/stores';
 import type { StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionAnimation } from '@/stores';
+import { getCaptionStylePreset } from '@Ordio/engine';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
 import { BackgroundVideoPicker } from './BackgroundVideoPicker';
+import { GradientBackgroundPicker } from './GradientBackgroundPicker';
 
 const FONTS: StyleConfig['fontFamily'][] = [
   'Inter', 'Roboto', 'Outfit',
@@ -41,19 +42,16 @@ const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
   'Playfair Display': 'font_playfair',
 };
 
-const MOTION_ROWS: { value: CaptionAnimation; title: string; subtitle: string }[] = [
-  { value: 'none', title: 'Static', subtitle: 'No motion' },
-  { value: 'sweep', title: 'Reveal', subtitle: 'Phrase sweep' },
-  { value: 'pulse', title: 'Breathe', subtitle: 'Scale pulse' },
-  { value: 'sweep-pulse', title: 'Reveal + Breathe', subtitle: 'Sweep with pulse' },
-];
-
 const LINE_SPACING_BASE = 1;
 const MIN_LINE_SPACING = -0.6;
 const MAX_LINE_SPACING = 1.4;
 const MIN_CHARACTER_SPACING = -12;
 const MAX_CHARACTER_SPACING = 12;
-const STYLE_TABS = ['colors', 'font', 'spacing', 'motion'] as const;
+const MIN_STROKE_WIDTH = 0;
+const MAX_STROKE_WIDTH = 8;
+const MIN_GLOW_INTENSITY = 0;
+const MAX_GLOW_INTENSITY = 1;
+const STYLE_TABS = ['colors', 'font', 'spacing'] as const;
 
 type StyleTab = (typeof STYLE_TABS)[number];
 
@@ -126,45 +124,6 @@ interface FontRowProps {
   onLocked?: (feature: FeatureKey) => void;
 }
 
-interface MotionRowProps {
-  value: CaptionAnimation;
-  title: string;
-  subtitle: string;
-  selected: boolean;
-  onSelect: () => void;
-}
-
-function MotionRow({ value, title, subtitle, selected, onSelect }: MotionRowProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={cn(
-        'flex min-h-11 w-full flex-col items-stretch gap-0.5 rounded-xl border px-2.5 py-2 text-left transition-colors duration-150',
-        selected
-          ? 'border-white/16 bg-white/[0.1] text-white'
-          : 'border-white/[0.08] bg-white/[0.03] text-white/74 hover:bg-white/[0.06] hover:text-white/90'
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-2">
-        <span className="min-w-0 flex-1 truncate text-[15px] font-medium leading-tight">{title}</span>
-        <span
-          className={cn(
-            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full transition-opacity duration-150',
-            selected ? 'bg-white text-black opacity-100' : 'opacity-0'
-          )}
-          aria-hidden="true"
-        >
-          <HugeiconsIcon icon={Tick02Icon} size={13} strokeWidth={2.3} />
-        </span>
-      </div>
-      <span className="hidden truncate pl-0 text-left text-[11px] text-white/42 min-[380px]:inline">{subtitle}</span>
-      <span className="sr-only">{value}</span>
-    </button>
-  );
-}
-
 function FontRow({ font, selected, locked, featureKey, onSelect, onLocked }: FontRowProps) {
   return (
     <div className="relative">
@@ -208,11 +167,10 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
   const [previousTab, setPreviousTab] = useState<StyleTab>('colors');
   const style = useUIStore((s) => s.style);
   const setStyle = useUIStore((s) => s.setStyle);
-  const captionAnimation = useUIStore((s) => s.captionAnimation);
-  const setCaptionAnimation = useUIStore((s) => s.setCaptionAnimation);
   const { isLocked } = useFeatureGates();
   const reduceMotion = useReducedMotion();
   const lineSpacing = (style.lineHeight ?? 1.4) - LINE_SPACING_BASE;
+  const activeStylePreset = getCaptionStylePreset(style.captionStyleId);
   const slideDirection = useMemo(() => {
     return STYLE_TABS.indexOf(activeTab) >= STYLE_TABS.indexOf(previousTab) ? 1 : -1;
   }, [activeTab, previousTab]);
@@ -242,7 +200,61 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
             }
           />
           <ColorRow label="Text" value={style.textColor} onChange={(v) => setStyle({ textColor: v })} />
+          <GradientBackgroundPicker />
           <BackgroundVideoPicker onLocked={onLocked} />
+
+          {/* Morphs based on the active caption style — stroke/glow controls only
+              appear for styles whose preset actually uses them (bold-outline,
+              script-accent), not shown for every style at once. */}
+          {activeStylePreset.stroke && (
+            <>
+              <ColorRow
+                label="Stroke"
+                value={style.strokeColor ?? activeStylePreset.stroke.defaultColor}
+                onChange={(v) => setStyle({ strokeColor: v })}
+              />
+              <SliderRow
+                label="Stroke width"
+                valueLabel={`${((style.strokeWidth ?? activeStylePreset.stroke.defaultWidth) * 100).toFixed(0)}%`}
+                minLabel="Thin"
+                maxLabel="Thick"
+                sliderProps={{
+                  min: MIN_STROKE_WIDTH,
+                  max: MAX_STROKE_WIDTH,
+                  step: 0.01,
+                  value: [style.strokeWidth ?? activeStylePreset.stroke.defaultWidth],
+                  onValueChange: (val) =>
+                    setStyle({ strokeWidth: Array.isArray(val) ? val[0] : val }),
+                  'aria-label': 'Stroke width',
+                }}
+              />
+            </>
+          )}
+
+          {activeStylePreset.glow && (
+            <>
+              <ColorRow
+                label="Glow"
+                value={style.glowColor ?? activeStylePreset.glow.defaultColor}
+                onChange={(v) => setStyle({ glowColor: v })}
+              />
+              <SliderRow
+                label="Glow intensity"
+                valueLabel={`${Math.round((style.glowIntensity ?? activeStylePreset.glow.defaultIntensity) * 100)}%`}
+                minLabel="Subtle"
+                maxLabel="Strong"
+                sliderProps={{
+                  min: MIN_GLOW_INTENSITY,
+                  max: MAX_GLOW_INTENSITY,
+                  step: 0.01,
+                  value: [style.glowIntensity ?? activeStylePreset.glow.defaultIntensity],
+                  onValueChange: (val) =>
+                    setStyle({ glowIntensity: Array.isArray(val) ? val[0] : val }),
+                  'aria-label': 'Glow intensity',
+                }}
+              />
+            </>
+          )}
         </div>
       );
     }
@@ -326,25 +338,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
       );
     }
 
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Caption motion (phrase mode)">
-          {MOTION_ROWS.map(({ value, title, subtitle }) => {
-            const selected = captionAnimation === value;
-            return (
-              <MotionRow
-                key={value}
-                value={value}
-                title={title}
-                subtitle={subtitle}
-                selected={selected}
-                onSelect={() => setCaptionAnimation(value)}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
+    return null;
   };
 
   return (
@@ -362,9 +356,6 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
         </TabsTrigger>
         <TabsTrigger value="spacing" className="text-xs flex-1">
           Spacing
-        </TabsTrigger>
-        <TabsTrigger value="motion" className="text-xs flex-1">
-          Motion
         </TabsTrigger>
       </TabsList>
       <div

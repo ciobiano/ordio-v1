@@ -1,9 +1,5 @@
-export { drawCaptions, measureActivePhraseCaption } from './phrase';
-export { drawStackCaptions, measureStackCaptionBlock } from './stack';
-export { drawSpotlightCaptions, measureSpotlightCaptionBlock } from './spotlight';
+export { drawWordSwapCaptions, measureWordSwapCaptionBlock } from './wordSwap';
+export { drawPhraseCutCaptions, measurePhraseCutCaptionBlock } from './phraseCut';
+export { drawStaticHighlightCaptions, measureStaticHighlightCaptionBlock } from './staticHighlight';
 export { wrapText } from './wrapText';
-export type {
-  PhraseCaptionMetrics,
-  StackCaptionMetrics,
-  SpotlightCaptionMetrics,
-} from './shared';
+export type { PhraseCaptionMetrics, HighlightCaptionMetrics } from './shared';

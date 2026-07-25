@@ -5,7 +5,7 @@ import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } 
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { loadFont } from '@Ordio/engine/loaders';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
-import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
+import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@Ordio/engine/loaders';
 import { cn } from '@/lib/utils';
 import { canvasPreviewFrame, canvasGridOverlay } from '@/lib/variants';
@@ -18,7 +18,6 @@ interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
   format: FormatVariant;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
@@ -50,7 +49,6 @@ export default function CanvasPreview({
   playback,
   format,
   waveformStyle,
-  captionMode,
   canvasLayout,
   showWatermark = false,
   graphicStyle,
@@ -67,7 +65,6 @@ export default function CanvasPreview({
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
-  const captionAnimation = useUIStore((s) => s.captionAnimation);
   const captionTransform = useUIStore((s) => s.captionTransform);
   const setCaptionTransform = useUIStore((s) => s.setCaptionTransform);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
@@ -121,12 +118,10 @@ export default function CanvasPreview({
     canvasWidth,
     canvasHeight,
     waveformStyle,
-    captionMode,
     canvasLayout,
     showWatermark,
     graphicStyle,
     captionGroups,
-    captionAnimation,
     captionTransform,
     bgVideo,
     fontLoaded,

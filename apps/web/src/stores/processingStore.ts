@@ -157,6 +157,14 @@ interface ProcessingState {
   mergeUpAtCursor: (index: number, cursorPosition: number | null) => void;
   mergeDownAtCursor: (index: number, cursorPosition: number | null) => void;
 
+  /**
+   * Toggle whether the word at `positionInGroup` (a position within the
+   * group's wordIndices, not a raw transcript index) is rendered with the
+   * active caption style's accent treatment. Not undo-tracked — a stylistic
+   * toggle, not a structural transcript edit.
+   */
+  toggleAccentWord: (groupIndex: number, positionInGroup: number) => void;
+
   // Undo / Redo
   undoCaptions: () => void;
   redoCaptions: () => void;
@@ -385,6 +393,24 @@ export const useProcessingStore = create<ProcessingState>()(
             ...captionGroups.slice(index + 2),
           ];
           set({ captionGroups: newGroups, selectedGroupIndices: [index] });
+        },
+
+        // ── Accent word toggle (script-accent, word-pop, big-statement styles) ──
+        toggleAccentWord: (groupIndex, positionInGroup) => {
+          const { captionGroups } = get();
+          if (groupIndex < 0 || groupIndex >= captionGroups.length) return;
+
+          const group = captionGroups[groupIndex];
+          if (positionInGroup < 0 || positionInGroup >= group.wordIndices.length) return;
+
+          const current = group.accentWordIndices ?? [];
+          const nextAccent = current.includes(positionInGroup)
+            ? current.filter((i) => i !== positionInGroup)
+            : [...current, positionInGroup];
+
+          const newGroups = [...captionGroups];
+          newGroups[groupIndex] = { ...group, accentWordIndices: nextAccent };
+          set({ captionGroups: newGroups });
         },
 
         // ── Selection ────────────────────────────────────────────────────
