@@ -48,6 +48,9 @@ Object.defineProperty(globalThis, 'AudioBuffer', {
     getChannelData(channel: number) {
       return this._channelData[channel] ?? new Float32Array(this._length);
     }
+    copyToChannel(source: Float32Array, channelNumber: number, bufferOffset = 0) {
+      this._channelData[channelNumber]?.set(source, bufferOffset);
+    }
   },
 });
 

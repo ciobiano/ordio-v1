@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useAudioTrimmer, type UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer';
 import { useCaptureStore, useProcessingStore } from '@/stores';
@@ -68,12 +68,19 @@ export function useStudioEdits(playback: PlaybackLoader, sessionId: string | nul
   const [future, setFuture] = useState<EditSnapshot[]>([]);
 
   // Switching clips must not carry over pending trim state or history —
-  // it belongs to the previous clip's audio/transcript.
+  // it belongs to the previous clip's audio/transcript. Read the incoming
+  // clip's duration from a ref rather than depending on it directly: if a
+  // buffer is already resident when sessionId changes, resetting to a
+  // hardcoded 0 would collapse the trim window to zero-length instead of
+  // the full clip.
+  const durationRef = useRef(audioBuffer?.duration ?? 0);
+  durationRef.current = audioBuffer?.duration ?? 0;
   const resetTrimmer = trimmer.resetAll;
   useEffect(() => {
-    resetTrimmer(0);
+    resetTrimmer(durationRef.current);
     setPast([]);
     setFuture([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, resetTrimmer]);
 
   const markFillerWords = useCallback(() => {
