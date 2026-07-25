@@ -16,7 +16,6 @@ import {
   shouldTranscodeForWhisper,
   WHISPER_SIZE_LIMIT,
 } from '@Ordio/engine/media/whisperAudio';
-import { sendProcessingDebugIngest } from './processing/debugIngest';
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
@@ -82,48 +81,12 @@ export function useAudioProcessing(
       setProcessingProgress(0);
 
       try {
-        sendProcessingDebugIngest({
-          location: 'useAudioProcessing.ts:processAudio:entry',
-          message: 'processAudio entry',
-          data: {
-            mime: blob.type,
-            size: blob.size,
-            name: blob instanceof File ? blob.name : '(blob)',
-          },
-          hypothesisId: 'A,B',
-        });
         // Step 1: Decode audio (0–15% when enhancing, 0–25% otherwise)
         const enhanceTier = useProcessingStore.getState().enhanceTier;
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
         setProcessingProgress(10);
-        let decoded: AudioBuffer;
-        let transcriptionBuffer: AudioBuffer;
-        try {
-          const { audioBuffer, decodePath } = await decodeBlobToAudioBuffer(blob);
-          decoded = audioBuffer;
-          transcriptionBuffer = audioBuffer;
-          sendProcessingDebugIngest({
-            location: 'useAudioProcessing.ts:processAudio:decodeOk',
-            message: 'decode to AudioBuffer succeeded',
-            data: {
-              decodePath,
-              durationSec: decoded.duration,
-              sampleRate: decoded.sampleRate,
-            },
-            hypothesisId: 'A',
-          });
-        } catch (decodeErr) {
-          sendProcessingDebugIngest({
-            location: 'useAudioProcessing.ts:processAudio:decodeFail',
-            message: 'decode to AudioBuffer failed',
-            data: {
-              errName: decodeErr instanceof Error ? decodeErr.name : 'unknown',
-              errMessage: decodeErr instanceof Error ? decodeErr.message : String(decodeErr),
-            },
-            hypothesisId: 'A',
-          });
-          throw decodeErr;
-        }
+        const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
+        let transcriptionBuffer: AudioBuffer = decoded;
         setAudioBuffer(decoded);
         setAudioBlob(blob);
         setAudioDuration(decoded.duration);
@@ -221,12 +184,6 @@ export function useAudioProcessing(
         })();
 
         const [words, storageId] = await Promise.all([transcriptionTask, uploadTask]);
-        sendProcessingDebugIngest({
-          location: 'useAudioProcessing.ts:processAudio:afterTranscribe',
-          message: 'transcribe + upload parallel done',
-          data: { wordCount: words.length },
-          hypothesisId: 'C',
-        });
 
         if (words.length > 0) {
           setTranscript(words);
