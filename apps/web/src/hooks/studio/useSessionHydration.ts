@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
@@ -29,6 +29,13 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
 
   const [isHydrating, setIsHydrating] = useState(false);
 
+  // Read inside the async hydrate() closure to detect a session switch that
+  // happened while a fetch was in flight — updated synchronously every
+  // render, not via an effect, so it's always current by the time a stale
+  // fetch resolves.
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+
   const session = useQuery(
     api.sessions.getSession,
     sessionId ? { sessionId: sessionId as GenericId<'sessions'> } : 'skip'
@@ -42,6 +49,7 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
     if (!sessionId || !session || !audioUrl || audioBuffer || isHydrating) return;
 
     setIsHydrating(true);
+    const hydratingFor = sessionId;
 
     const hydrate = async () => {
       try {
@@ -49,12 +57,17 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
         const arrayBuf = await res.arrayBuffer();
         const blob = new Blob([arrayBuf], { type: session.mimeType });
         const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
-        setAudioBuffer(decoded);
-        setAudioBlob(blob);
-        setAudioDuration(decoded.duration);
-        setTranscript(session.transcript);
+        // A different session may have been opened while this fetch was in
+        // flight — discard the stale result instead of clobbering the
+        // session the user actually has open now.
+        if (sessionIdRef.current === hydratingFor) {
+          setAudioBuffer(decoded);
+          setAudioBlob(blob);
+          setAudioDuration(decoded.duration);
+          setTranscript(session.transcript);
+        }
       } catch {
-        toast.error('Failed to load this clip.');
+        if (sessionIdRef.current === hydratingFor) toast.error('Failed to load this clip.');
       } finally {
         setIsHydrating(false);
       }

@@ -141,9 +141,11 @@ export function useCanvasRenderLoop({
       // Full frame rendered without throwing — safe to show it.
       ctx.drawImage(buffer, 0, 0);
     } catch (err) {
-      console.error('[CanvasPreview] render frame failed', err);
+      // Gated the same as the toast below — a persistent render error would
+      // otherwise log up to 60x/sec since drawCurrentFrame runs every frame.
       if (!hasWarnedRenderErrorRef.current) {
         hasWarnedRenderErrorRef.current = true;
+        console.error('[CanvasPreview] render frame failed', err);
         toast.error('Preview is temporarily unavailable. Your audio is unaffected.');
       }
       // Intentionally no re-throw and no drawImage this tick — the visible

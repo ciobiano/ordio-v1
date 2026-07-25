@@ -4,6 +4,15 @@ import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
 import { WordSchema } from '@Ordio/shared/schemas';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
+import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
+
+// Each request can trigger up to 2 OpenAI chat completions (initial +
+// corrective retry) against a transcript up to 20,000 words — generous for
+// real use (a handful of long episodes per session) but a brake on a
+// runaway/abusive client hammering this route. In-memory per instance, same
+// limitation as the transcription-token route's limiter.
+const FIND_CLIPS_PER_HOUR = 10;
+const HOUR_MS = 60 * 60 * 1000;
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -55,6 +64,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!consumeRateLimit(`find-clips:${userId}`, FIND_CLIPS_PER_HOUR, HOUR_MS)) {
+      return NextResponse.json(
+        { error: 'Too many clip-finding requests — try again later' },
+        { status: 429 }
+      );
     }
 
     const body = RequestSchema.safeParse(await request.json());
