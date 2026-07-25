@@ -4,6 +4,8 @@ import { useCallback } from 'react';
 import { getCanvasDimensions, useCaptureStore, useUIStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import { useExportGate } from '@/hooks/billing/useExportGate';
+import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
 import { studioButton, studioCard } from '@/lib/studioVariants';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
@@ -18,20 +20,37 @@ export function StudioExportBody({ playback }: StudioExportBodyProps) {
   const captionMode = useUIStore((s) => s.captionMode);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const graphicStyle = useUIStore((s) => s.graphicStyle);
+  const setUpgradeTarget = useUIStore((s) => s.setUpgradeTarget);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
   const { tier } = useCurrentUser();
   const exporter = useVideoExporter();
+  const exportGate = useExportGate();
+  const { isLocked } = useFeatureGates();
 
   const showWatermark = tier === 'free';
 
   const handleExport = useCallback(async () => {
     if (!audioBuffer) return;
+
+    const style = useUIStore.getState().style;
+
+    // Video backgrounds preview free, but export is creator-gated.
+    if (style.background?.type === 'video' && isLocked('background_video')) {
+      setUpgradeTarget('background_video');
+      return;
+    }
+
+    const gate = await exportGate.checkAndConsume();
+    if (!gate.allowed) {
+      setUpgradeTarget('export_limit');
+      return;
+    }
     const { width, height } = getCanvasDimensions(format);
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     await exporter.startExport(canvas, audioBuffer, showWatermark);
-  }, [audioBuffer, format, exporter, showWatermark]);
+  }, [audioBuffer, isLocked, exportGate, setUpgradeTarget, format, exporter, showWatermark]);
 
   const handleDownload = useCallback(() => {
     if (!exporter.exportedUrl) return;
