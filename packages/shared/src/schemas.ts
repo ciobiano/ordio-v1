@@ -69,17 +69,6 @@ export const StyleConfigSchema = z.object({
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;
 
 /**
- * Job configuration payload for generating a render.
- */
-export const JobConfigSchema = z.object({
-  timeline: TimelineSchema,
-  style: StyleConfigSchema,
-  audioStorageId: z.string(),
-});
-
-export type JobConfig = z.infer<typeof JobConfigSchema>;
-
-/**
  * A candidate clip window found inside a long episode.
  * start/end are episode-absolute seconds; windows are 30–60s.
  */
