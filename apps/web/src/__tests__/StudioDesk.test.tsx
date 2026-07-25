@@ -41,6 +41,11 @@ vi.mock('@/components/studio/StudioExportBody', () => ({
 vi.mock('@/hooks/billing/useCheckout', () => ({
   useCheckout: () => ({ startCheckout: vi.fn(async () => {}) }),
 }));
+vi.mock('@/lib/persistence/recordingDraft', () => ({
+  getRecordingDraft: vi.fn().mockResolvedValue(null),
+  saveRecordingDraft: vi.fn().mockResolvedValue(undefined),
+  clearRecordingDraft: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/hooks/playback/usePlayback', () => ({
   usePlayback: () => ({
     isPlaying: false,

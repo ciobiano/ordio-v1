@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { api } from '@Ordio/convex';
@@ -10,7 +11,6 @@ import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCaptureStore, useUIStore } from '@/stores';
 import { useCheckout } from '@/hooks/billing/useCheckout';
-import { validateFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
 import UpgradeSheet from '@/components/soul/modals/UpgradeSheet';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
@@ -19,6 +19,21 @@ import { RightInspector } from './RightInspector';
 import { TimelineStrip } from './TimelineStrip';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import type { GenericId } from 'convex/values';
+
+const ClipPickerSheet = dynamic(
+  () => import('@/components/soul/clips/ClipPickerSheet').then((m) => m.ClipPickerSheet),
+  { ssr: false }
+);
+
+const EpisodeProgressOverlay = dynamic(
+  () => import('@/components/soul/clips/EpisodeProgressOverlay').then((m) => m.EpisodeProgressOverlay),
+  { ssr: false }
+);
+
+const EpisodeErrorDialog = dynamic(
+  () => import('@/components/soul/clips/EpisodeErrorDialog').then((m) => m.EpisodeErrorDialog),
+  { ssr: false }
+);
 
 export function StudioDesk() {
   const flow = useStudioFlow();
@@ -82,11 +97,6 @@ export function StudioDesk() {
       dragDepthRef.current = 0;
       setIsDragging(false);
       const file = e.dataTransfer.files[0];
-      const error = validateFile(file);
-      if (error) {
-        toast.error(FILE_ERROR_MESSAGES[error]);
-        return;
-      }
       void flow.processFile(file);
     };
     window.addEventListener('dragenter', onDragEnter);
@@ -207,11 +217,6 @@ export function StudioDesk() {
           const file = e.target.files?.[0];
           if (e.target) e.target.value = '';
           if (!file) return;
-          const error = validateFile(file);
-          if (error) {
-            toast.error(FILE_ERROR_MESSAGES[error]);
-            return;
-          }
           void flow.processFile(file);
         }}
       />
@@ -224,6 +229,34 @@ export function StudioDesk() {
           startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
         }
       />
+
+      {/* Long-episode clip-finder pipeline — routes files over the duration
+          threshold away from the direct transcription path above. */}
+      <ClipPickerSheet
+        isOpen={flow.episode.phase === 'picking'}
+        candidates={flow.episode.candidates}
+        episodeFile={flow.episode.episodeFile}
+        episodeWords={flow.episode.episodeWords}
+        onClose={flow.episode.cancel}
+        onPicked={flow.openEpisodeClip}
+      />
+      {(flow.episode.phase === 'ingesting' ||
+        flow.episode.phase === 'transcribing' ||
+        flow.episode.phase === 'finding') && (
+        <EpisodeProgressOverlay
+          phase={flow.episode.phase}
+          progress={flow.episode.progress}
+          onCancel={flow.episode.cancel}
+        />
+      )}
+      {flow.episode.phase === 'error' && (
+        <EpisodeErrorDialog
+          message={flow.episode.error ?? 'Something went wrong.'}
+          partialAvailable={flow.episode.partialAvailable}
+          onUsePartial={flow.episode.usePartialTranscript}
+          onDismiss={flow.episode.cancel}
+        />
+      )}
     </div>
   );
 }

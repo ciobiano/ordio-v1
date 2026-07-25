@@ -26,6 +26,11 @@ vi.mock('@/hooks/audio/useAudioRecorder', () => ({
     stopAndGetBlob,
   }),
 }));
+vi.mock('@/lib/persistence/recordingDraft', () => ({
+  getRecordingDraft: vi.fn().mockResolvedValue(null),
+  saveRecordingDraft: vi.fn().mockResolvedValue(undefined),
+  clearRecordingDraft: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/stores', () => ({
   useCaptureStore: (selector: (s: { resetCapture: () => void }) => unknown) =>
     selector({ resetCapture: vi.fn() }),

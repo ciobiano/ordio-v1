@@ -5,12 +5,16 @@ import { toast } from 'sonner';
 import { useAudioRecorder } from '@/hooks/audio/useAudioRecorder';
 import { useAudioAnalyser } from '@/hooks/audio/useAudioAnalyser';
 import { useLiveTranscription } from '@/hooks/recording/useLiveTranscription';
+import { useRecordingRecovery } from '@/hooks/recording/useRecordingRecovery';
 import { useTranscription } from '@/hooks/recording/useTranscription';
 import {
   AudioProcessingError,
   useAudioProcessing,
 } from '@/hooks/audio/useAudioProcessing';
+import { useEpisodeIngestion, type UseEpisodeIngestionReturn } from '@/hooks/audio/useEpisodeIngestion';
 import { useMicDevices, type UseMicDevicesReturn } from '@/hooks/studio/useMicDevices';
+import { isEpisodeFile } from '@/lib/episodeRouting';
+import { validateFile, validateEpisodeFile, FILE_ERROR_MESSAGES } from '@/lib/fileValidation';
 import { useCaptureStore, useProcessingStore } from '@/stores';
 import type { Word } from '@Ordio/shared/schemas';
 
@@ -27,9 +31,13 @@ export interface UseStudioFlowReturn {
   isStarting: boolean;
   micDenied: boolean;
   mics: UseMicDevicesReturn;
+  /** Long-episode clip-finder pipeline — files routed here bypass processFile. */
+  episode: UseEpisodeIngestionReturn;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
   processFile: (file: File) => Promise<void>;
+  /** Opens the session created by the episode clip-picker (bypasses clearLoadedClip since it's a freshly transcribed clip, not a library switch). */
+  openEpisodeClip: (sessionId: string) => void;
   openClip: (sessionId: string) => void;
   goIdle: () => void;
   goExport: () => void;
@@ -60,6 +68,7 @@ export function useStudioFlow(): UseStudioFlowReturn {
   const transcription = useTranscription();
   const live = useLiveTranscription();
   const mics = useMicDevices();
+  const episode = useEpisodeIngestion();
 
   // Surface live-caption failures once; recording itself is unaffected.
   const lastLiveErrorRef = useRef<string | null>(null);
@@ -125,6 +134,15 @@ export function useStudioFlow(): UseStudioFlowReturn {
     [processAudio]
   );
 
+  const handleResumeRecovery = useCallback(
+    async (blob: Blob) => {
+      await runProcessing(blob);
+    },
+    [runProcessing]
+  );
+
+  useRecordingRecovery(handleResumeRecovery);
+
   const stopRecording = useCallback(async () => {
     live.stopLive();
     analyser.disconnect();
@@ -141,13 +159,40 @@ export function useStudioFlow(): UseStudioFlowReturn {
 
   const processFile = useCallback(
     async (file: File) => {
+      // Long files (or files too large for the direct Whisper path) route to
+      // the episode pipeline instead — otherwise processAudio throws
+      // 'Audio file is too large to transcribe in production' and the drop
+      // just fails.
+      if (await isEpisodeFile(file)) {
+        const episodeError = validateEpisodeFile(file);
+        if (episodeError) {
+          toast.error(FILE_ERROR_MESSAGES[episodeError]);
+          return;
+        }
+        toast.info('Long episode detected — finding your best moments…');
+        void episode.startEpisode(file);
+        return;
+      }
+
+      const error = validateFile(file);
+      if (error) {
+        toast.error(FILE_ERROR_MESSAGES[error]);
+        return;
+      }
+
       transcription.clearTranscript();
       clearLoadedClip();
       setSessionId(null);
       await runProcessing(file);
     },
-    [transcription, clearLoadedClip, runProcessing]
+    [transcription, clearLoadedClip, runProcessing, episode]
   );
+
+  const openEpisodeClip = useCallback((clipSessionId: string) => {
+    episode.cancel();
+    setSessionId(clipSessionId);
+    setView('edit');
+  }, [episode]);
 
   const openClip = useCallback(
     (clipSessionId: string) => {
@@ -184,9 +229,11 @@ export function useStudioFlow(): UseStudioFlowReturn {
     isStarting,
     micDenied,
     mics,
+    episode,
     startRecording,
     stopRecording,
     processFile,
+    openEpisodeClip,
     openClip,
     goIdle,
     goExport,
