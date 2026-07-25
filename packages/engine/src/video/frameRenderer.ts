@@ -127,7 +127,7 @@ export function renderFrame(
   const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
   switch (mechanic) {
     case 'static-highlight':
-      drawStaticHighlightCaptions(ctx, currentTime, transcript, style, captionTransform);
+      drawStaticHighlightCaptions(ctx, currentTime, transcript, style, captionTransform, captionGroups);
       break;
     case 'word-swap':
       drawWordSwapCaptions(

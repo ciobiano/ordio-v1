@@ -86,6 +86,8 @@ export const StyleConfigSchema = z.object({
   /** Text glow — used by styles whose preset declares a `glow` default (e.g. script-accent). */
   glowIntensity: z.number().min(0).max(1).optional(),
   glowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /** Accent-word color override — used by styles whose preset declares an `accentColor` default (word-pop, big-statement). */
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;
@@ -100,3 +102,49 @@ export const JobConfigSchema = z.object({
 });
 
 export type JobConfig = z.infer<typeof JobConfigSchema>;
+
+/**
+ * Ordio Director's curated look-preset ids — the single source of truth,
+ * since both the LLM response schema (here) and the preset table
+ * (LOOK_PRESETS in @Ordio/engine) need the exact same id list. Engine
+ * imports this type rather than declaring its own, so a mismatched preset
+ * key fails to compile instead of silently drifting from what the schema
+ * accepts.
+ */
+export const LOOK_PRESET_IDS = [
+  'neon-pop',
+  'street-bold',
+  'sunset-karaoke',
+  'clean-minimal',
+  'bold-statement',
+  'editorial-script',
+  'warm-pop',
+  'electric-outline',
+] as const;
+export type LookPresetId = (typeof LOOK_PRESET_IDS)[number];
+
+/**
+ * Structured-output contract for /api/direct. Constrains the LLM to picking
+ * a preset id (mostly enum selection) plus small bounded overrides, rather
+ * than generating a full StyleConfig — keeps hallucination risk low while
+ * still letting each look feel tailored to the transcript. See
+ * docs/superpowers/specs/2026-07-25-ordio-director-design.md.
+ */
+export const DirectorLookResponseSchema = z.object({
+  presetId: z.enum(LOOK_PRESET_IDS),
+  overrides: z
+    .object({
+      accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    })
+    .optional(),
+  /** Index into the session's captionGroups — Director's chosen hook phrase. */
+  hookGroupIndex: z.number().int().min(0),
+});
+
+export const DirectorResponseSchema = z.object({
+  looks: z.array(DirectorLookResponseSchema).length(3),
+});
+
+export type DirectorLookResponse = z.infer<typeof DirectorLookResponseSchema>;
+export type DirectorResponse = z.infer<typeof DirectorResponseSchema>;

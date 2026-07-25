@@ -9,9 +9,10 @@ import { Dock } from '@/components/ui/Dock'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
+import { DirectorSheet } from '@/components/soul/captions/DirectorSheet'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import FormatToggle from '@/components/soul/shared/FormatToggle'
-import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon } from '@hugeicons/core-free-icons'
+import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon, AiMagicIcon } from '@hugeicons/core-free-icons'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer'
@@ -32,6 +33,7 @@ interface ExportControlsProps {
 }
 
 const DOCK_ITEMS = [
+  { id: 'director', label: 'Direct it', icon: AiMagicIcon },
   { id: 'captions', label: 'Captions', icon: SubtitleIcon },
   { id: 'style',    label: 'Edit Style', icon: PaintBoardIcon },
   { id: 'trim',     label: 'Trim',     icon: ScissorIcon },
@@ -53,8 +55,13 @@ export function ExportControls({
   const [desktopPanel, setDesktopPanel] = useState<ToolbarPanel>('captions')
   const [mobilePanel, setMobilePanel] = useState<ToolbarPanel>('captions')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [directorOpen, setDirectorOpen] = useState(false)
 
   const handleDockItemClick = useCallback((id: string) => {
+    if (id === 'director') {
+      setDirectorOpen(true)
+      return
+    }
     const panelId = id as ToolbarPanel
     setMobilePanel(panelId)
     setDrawerOpen(true)
@@ -98,7 +105,7 @@ export function ExportControls({
       {/* Mobile: Dock (bottom bar) + Drawer (sheet) */}
       <Dock
         items={DOCK_ITEMS}
-        activeItem={drawerOpen ? mobilePanel : null}
+        activeItem={directorOpen ? 'director' : drawerOpen ? mobilePanel : null}
         onItemClick={handleDockItemClick}
       />
 
@@ -143,6 +150,12 @@ export function ExportControls({
           )}
         </DrawerContent>
       </Drawer>
+
+      <DirectorSheet
+        isOpen={directorOpen}
+        onClose={() => setDirectorOpen(false)}
+        onLocked={onLocked}
+      />
     </>
   )
 }

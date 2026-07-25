@@ -15,6 +15,7 @@ export {
 } from './video';
 
 export { CAPTION_STYLE_PRESETS, getCaptionStylePreset, type CaptionStylePreset, type CaptionMechanic } from './captions/presets';
+export { LOOK_PRESETS, getLookPreset, resolveLookStyle, type LookPreset, type LookPresetId } from './captions/lookPresets';
 
 export {
   decodeBlobToAudioBuffer,

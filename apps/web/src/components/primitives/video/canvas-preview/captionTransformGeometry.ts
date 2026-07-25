@@ -74,7 +74,7 @@ export function measureCaptionTransformBox(
   const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
 
   if (mechanic === 'static-highlight') {
-    const metrics = measureStaticHighlightCaptionBlock(ctx, currentTime, transcript, style);
+    const metrics = measureStaticHighlightCaptionBlock(ctx, currentTime, transcript, style, captionGroups);
     if (!metrics) return null;
 
     const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX);

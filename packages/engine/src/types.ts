@@ -52,4 +52,11 @@ export interface CaptionGroup {
    * means no accent words in this group.
    */
   accentWordIndices?: number[];
+  /**
+   * Marks this group for the Hook Card scale boost (Ordio Director). At most
+   * one group per session should carry 'hook' — applyLook in directorStore
+   * clears it from every group before setting a new one. Absent/'body'
+   * renders at normal scale.
+   */
+  role?: 'hook' | 'body';
 }

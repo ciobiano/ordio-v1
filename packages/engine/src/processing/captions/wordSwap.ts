@@ -10,6 +10,7 @@ import {
   FONT_WEIGHT,
   getActiveCaptionGroup,
   getMaxCaptionTextWidth,
+  HOOK_SCALE_MULTIPLIER,
   isGlobalWordIndexAccented,
   type PhraseCaptionMetrics,
 } from './shared';
@@ -17,6 +18,7 @@ import {
 interface ActiveWordScene {
   text: string;
   isAccented: boolean;
+  isHook: boolean;
 }
 
 function getActiveWordScene(
@@ -31,6 +33,7 @@ function getActiveWordScene(
   return {
     text: transcript[idx].text,
     isAccented: isGlobalWordIndexAccented(activeGroup, idx),
+    isHook: activeGroup?.role === 'hook',
   };
 }
 
@@ -77,7 +80,8 @@ export function drawWordSwapCaptions(
   const centerX = width / 2;
 
   const measuredWidth = measureTextWidth(ctx, scene.text, characterSpacing);
-  const fitScale = measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1;
+  const hookBoost = scene.isHook ? HOOK_SCALE_MULTIPLIER : 1;
+  const fitScale = (measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1) * hookBoost;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
@@ -100,7 +104,7 @@ export function drawWordSwapCaptions(
   drawSpacedText(ctx, scene.text, centerX, lineY, { textAlign: 'center', mode: 'stroke', characterSpacing });
 
   const isColorAccent = scene.isAccented && preset.fontTreatment === 'accent-swap' && preset.accentStyle === 'color';
-  ctx.fillStyle = isColorAccent ? (preset.accentColor ?? textColor) : textColor;
+  ctx.fillStyle = isColorAccent ? (style.accentColor ?? preset.accentColor ?? textColor) : textColor;
   drawSpacedText(ctx, scene.text, centerX, lineY, { textAlign: 'center', mode: 'fill', characterSpacing });
   ctx.restore();
 }

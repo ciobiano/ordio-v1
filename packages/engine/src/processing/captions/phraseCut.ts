@@ -9,6 +9,7 @@ import {
   FONT_WEIGHT,
   getActiveCaptionGroup,
   getMaxCaptionTextWidth,
+  HOOK_SCALE_MULTIPLIER,
   isGlobalWordIndexAccented,
   type PhraseCaptionMetrics,
 } from './shared';
@@ -126,7 +127,7 @@ function drawChunk(
       drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
       ctx.restore();
     } else if (w.isAccented && preset.accentStyle === 'color') {
-      ctx.fillStyle = preset.accentColor ?? textColor;
+      ctx.fillStyle = style.accentColor ?? preset.accentColor ?? textColor;
       drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
     } else {
       ctx.fillStyle = textColor;
@@ -170,7 +171,8 @@ export function drawPhraseCutCaptions(
 
   ctx.textBaseline = 'middle';
   const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing);
-  const fitScale = chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1;
+  const hookBoost = group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1;
+  const fitScale = (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) * hookBoost;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
@@ -223,6 +225,6 @@ export function measurePhraseCutCaptionBlock(
     blockWidth: chunk.totalWidth,
     blockHeight: lineHeight,
     blockCenterY: textY + lineHeight / 2,
-    fitScale: chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1,
+    fitScale: (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) * (group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1),
   };
 }

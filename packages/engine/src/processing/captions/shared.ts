@@ -25,6 +25,10 @@ export const SPOTLIGHT_WIDTH_RATIO = 0.86;
 export const SPOTLIGHT_TOP_RATIO = 0.2;
 export const SPOTLIGHT_WITH_VISUAL_RATIO = 0.14;
 
+/** Hook Card (Ordio Director): scale multiplier applied on top of the active
+ * caption style's own rendering when the group is marked CaptionGroup.role === 'hook'. */
+export const HOOK_SCALE_MULTIPLIER = 1.4;
+
 // --- Caption style presets (word-pop, bold-outline, karaoke-chip, minimal-lower-third,
 // big-statement, script-accent) — shared constants for the 3 reveal mechanics. ---
 /** Default thin legibility stroke every style falls back to when its preset/StyleConfig doesn't specify one. */

@@ -1,5 +1,5 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionTransform } from '../../types';
+import type { CaptionGroup, CaptionTransform } from '../../types';
 import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
 import { getCaptionStylePreset } from '../../captions/presets';
 import { buildSentenceSegments, findActiveDisplaySegment } from '../../captions/display';
@@ -9,9 +9,11 @@ import {
   CHIP_PADDING_Y_RATIO,
   CHIP_RADIUS_RATIO,
   FONT_WEIGHT,
+  getActiveCaptionGroup,
   HIGHLIGHT_LINE_HEIGHT_RATIO,
   HIGHLIGHT_TEXT_WIDTH_RATIO,
   HIGHLIGHT_TOP_RATIO,
+  HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
   type HighlightCaptionMetrics,
   type LayoutWord,
@@ -33,13 +35,15 @@ interface PreparedHighlightScene {
   blockLeft: number;
   blockCenterY: number;
   topPad: number;
+  hookBoost: number;
 }
 
 function prepareHighlightScene(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
-  style: StyleConfig
+  style: StyleConfig,
+  groups?: CaptionGroup[]
 ): PreparedHighlightScene | null {
   if (transcript.length === 0) return null;
 
@@ -81,6 +85,7 @@ function prepareHighlightScene(
   const blockLeft = Math.max(padding, (width - wrapLayout.logicalMaxWidth) / 2);
   const topPad = Math.max(height * CAPTION_VERTICAL_SAFE_RATIO, height * HIGHLIGHT_TOP_RATIO);
   const blockHeight = lines.length * lineHeight;
+  const activeGroup = getActiveCaptionGroup(groups ?? [], currentTime);
 
   return {
     width,
@@ -95,6 +100,7 @@ function prepareHighlightScene(
     blockLeft,
     blockCenterY: topPad + blockHeight / 2,
     topPad,
+    hookBoost: activeGroup?.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1,
   };
 }
 
@@ -102,18 +108,20 @@ export function measureStaticHighlightCaptionBlock(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
-  style: StyleConfig
+  style: StyleConfig,
+  groups?: CaptionGroup[]
 ): HighlightCaptionMetrics | null {
-  const prep = prepareHighlightScene(ctx, currentTime, transcript, style);
+  const prep = prepareHighlightScene(ctx, currentTime, transcript, style, groups);
   if (!prep) return null;
 
-  const { width, lines, layout, blockCenterY, lineHeight } = prep;
+  const { width, lines, layout, blockCenterY, lineHeight, hookBoost } = prep;
+  const scale = layout.scale * hookBoost;
   return {
     centerX: width / 2,
     blockCenterY,
-    blockWidth: layout.logicalMaxWidth * layout.scale,
-    blockHeight: lines.length * lineHeight * layout.scale,
-    layoutScale: layout.scale,
+    blockWidth: layout.logicalMaxWidth * scale,
+    blockHeight: lines.length * lineHeight * scale,
+    layoutScale: scale,
   };
 }
 
@@ -127,14 +135,15 @@ export function drawStaticHighlightCaptions(
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  captionTransform?: CaptionTransform
+  captionTransform?: CaptionTransform,
+  groups?: CaptionGroup[]
 ): void {
   if (captionTransform && !captionTransform.visible) return;
 
-  const prep = prepareHighlightScene(ctx, currentTime, transcript, style);
+  const prep = prepareHighlightScene(ctx, currentTime, transcript, style, groups);
   if (!prep) return;
 
-  const { width, height, textColor, fontFamily, fontSize, characterSpacing, lineHeight, lines, layout, blockLeft, blockCenterY, topPad } = prep;
+  const { width, height, textColor, fontFamily, fontSize, characterSpacing, lineHeight, lines, layout, blockLeft, blockCenterY, topPad, hookBoost } = prep;
   const preset = getCaptionStylePreset(style.captionStyleId);
   const chipColor = preset.chipColor ?? '#22D3EE';
 
@@ -148,7 +157,7 @@ export function drawStaticHighlightCaptions(
   const centerTY = blockCenterY + offsetY;
   const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
   const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
-  const combinedScale = manualScale * layout.scale;
+  const combinedScale = manualScale * layout.scale * hookBoost;
 
   ctx.save();
   ctx.translate(centerTX, centerTY);

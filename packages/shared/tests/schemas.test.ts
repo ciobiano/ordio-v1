@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BackgroundSchema, StyleConfigSchema } from '../src/schemas';
+import { BackgroundSchema, StyleConfigSchema, DirectorResponseSchema } from '../src/schemas';
 
 describe('BackgroundSchema', () => {
   it('accepts a valid gradient background', () => {
@@ -98,6 +98,70 @@ describe('StyleConfigSchema captionStyleId', () => {
       ...baseStyle,
       captionStyleId: 'script-accent',
       glowIntensity: 1.5,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+function validLook(overrides: Partial<Record<string, unknown>> = {}) {
+  return { presetId: 'neon-pop', hookGroupIndex: 0, ...overrides };
+}
+
+describe('DirectorResponseSchema', () => {
+  it('accepts a well-formed 3-look response', () => {
+    const result = DirectorResponseSchema.safeParse({
+      looks: [validLook(), validLook({ presetId: 'street-bold' }), validLook({ presetId: 'warm-pop' })],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a look with overrides', () => {
+    const result = DirectorResponseSchema.safeParse({
+      looks: [
+        validLook({ overrides: { accentColor: '#ff00ff', textColor: '#ffffff' } }),
+        validLook({ presetId: 'street-bold' }),
+        validLook({ presetId: 'warm-pop' }),
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a response with the wrong number of looks', () => {
+    expect(DirectorResponseSchema.safeParse({ looks: [validLook(), validLook()] }).success).toBe(false);
+    expect(
+      DirectorResponseSchema.safeParse({ looks: [validLook(), validLook(), validLook(), validLook()] }).success
+    ).toBe(false);
+  });
+
+  it('rejects an unknown presetId', () => {
+    const result = DirectorResponseSchema.safeParse({
+      looks: [
+        validLook({ presetId: 'not-a-real-preset' }),
+        validLook({ presetId: 'street-bold' }),
+        validLook({ presetId: 'warm-pop' }),
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a malformed override color', () => {
+    const result = DirectorResponseSchema.safeParse({
+      looks: [
+        validLook({ overrides: { accentColor: 'not-a-hex-color' } }),
+        validLook({ presetId: 'street-bold' }),
+        validLook({ presetId: 'warm-pop' }),
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a negative hookGroupIndex', () => {
+    const result = DirectorResponseSchema.safeParse({
+      looks: [
+        validLook({ hookGroupIndex: -1 }),
+        validLook({ presetId: 'street-bold' }),
+        validLook({ presetId: 'warm-pop' }),
+      ],
     });
     expect(result.success).toBe(false);
   });
