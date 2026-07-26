@@ -39,6 +39,12 @@ export interface EncodeVideoOptions {
    * renderFrame path, streamed one frame at a time.
    */
   backgroundVideo?: Blob;
+  /**
+   * Custom image background, pre-loaded by the caller. Unlike
+   * backgroundVideo, this is a single decoded frame reused for every output
+   * frame — no per-frame streaming decode needed.
+   */
+  backgroundImage?: HTMLImageElement;
 }
 
 export interface EncodeResult {
@@ -71,6 +77,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     onProgress,
     signal,
     backgroundVideo,
+    backgroundImage,
   } = options;
 
   // Load font before rendering
@@ -151,7 +158,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
         // so preview == export holds)
         renderFrame(ctx, i, totalFrames, {
           ...frameOptions,
-          backgroundFrame: bgFrame?.image,
+          backgroundFrame: bgFrame?.image ?? backgroundImage,
         });
       } finally {
         bgFrame?.close();

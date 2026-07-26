@@ -36,6 +36,29 @@ describe('BackgroundSchema', () => {
       BackgroundSchema.safeParse({ type: 'video', source: 'curated', assetId: 'loop-1' }).success
     ).toBe(true);
   });
+
+  it('accepts a custom image background', () => {
+    const result = BackgroundSchema.safeParse({
+      type: 'image',
+      source: 'custom',
+      assetId: 'abc123',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an image background with a non-custom source (no curated library exists)', () => {
+    const result = BackgroundSchema.safeParse({
+      type: 'image',
+      source: 'curated',
+      assetId: 'abc123',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an image background with an empty assetId', () => {
+    const result = BackgroundSchema.safeParse({ type: 'image', source: 'custom', assetId: '' });
+    expect(result.success).toBe(false);
+  });
 });
 
 const baseStyle = {

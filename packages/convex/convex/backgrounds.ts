@@ -16,7 +16,8 @@ export const uploadBackground = mutation({
   args: {
     storageId: v.id("_storage"),
     label: v.optional(v.string()),
-    durationSec: v.number(),
+    mediaType: v.union(v.literal("video"), v.literal("image")),
+    durationSec: v.optional(v.number()), // required for video, absent for image
     sizeBytes: v.number(),
   },
   handler: async (ctx, args) => {
@@ -35,8 +36,10 @@ export const uploadBackground = mutation({
     if (args.sizeBytes > MAX_BACKGROUND_BYTES) {
       throw new Error("Background exceeds the maximum stored size");
     }
-    if (args.durationSec <= 0 || args.durationSec > MAX_BACKGROUND_DURATION_SEC) {
-      throw new Error("Background must be between 0 and 10 seconds");
+    if (args.mediaType === "video") {
+      if (args.durationSec === undefined || args.durationSec <= 0 || args.durationSec > MAX_BACKGROUND_DURATION_SEC) {
+        throw new Error("Background must be between 0 and 10 seconds");
+      }
     }
 
     const existing = await ctx.db
@@ -53,6 +56,7 @@ export const uploadBackground = mutation({
       userId: user.tokenIdentifier,
       storageId: args.storageId,
       label: args.label,
+      mediaType: args.mediaType,
       durationSec: args.durationSec,
       sizeBytes: args.sizeBytes,
       createdAt: Date.now(),

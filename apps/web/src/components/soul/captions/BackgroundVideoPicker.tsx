@@ -31,7 +31,10 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
   const style = useUIStore((s) => s.style);
   const setStyle = useUIStore((s) => s.setStyle);
   const { isLocked } = useFeatureGates();
-  const myBackgrounds = useQuery(api.backgrounds.listMyBackgrounds) ?? [];
+  // mediaType absent means "video" — every row created before images shipped.
+  const myBackgrounds = (useQuery(api.backgrounds.listMyBackgrounds) ?? []).filter(
+    (asset) => (asset.mediaType ?? 'video') === 'video'
+  );
   const generateUploadUrl = useMutation(api.jobs.generateUploadUrl);
   const uploadBackground = useMutation(api.backgrounds.uploadBackground);
 
@@ -83,6 +86,7 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
       const assetId = await uploadBackground({
         storageId: storageId as GenericId<'_storage'>,
         label: file.name.replace(/\.[^.]+$/, ''),
+        mediaType: 'video',
         durationSec,
         sizeBytes: blob.size,
       });

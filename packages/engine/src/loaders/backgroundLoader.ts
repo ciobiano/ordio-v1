@@ -55,3 +55,37 @@ export function getLoadedBackground(
 ): HTMLVideoElement | null {
   return cache.get(cacheKey(source, assetId)) ?? null;
 }
+
+// --- Custom image backgrounds — no curated library, so no source discriminator needed. ---
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+function imageCacheKey(assetId: string): string {
+  return `image:${assetId}`;
+}
+
+/** Custom image uploads: caller resolves the signed Convex URL first, same as loadCustomBackground. */
+export async function loadCustomBackgroundImage(
+  assetId: string,
+  url: string
+): Promise<HTMLImageElement> {
+  const key = imageCacheKey(assetId);
+  const cached = imageCache.get(key);
+  if (cached) return cached;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = url;
+
+  await new Promise<void>((res, rej) => {
+    img.onload = () => res();
+    img.onerror = () => rej(new Error(`Failed to load background image: ${key}`));
+  });
+
+  imageCache.set(key, img);
+  return img;
+}
+
+export function getLoadedBackgroundImage(assetId: string): HTMLImageElement | null {
+  return imageCache.get(imageCacheKey(assetId)) ?? null;
+}

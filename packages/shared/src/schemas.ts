@@ -44,6 +44,13 @@ export const BackgroundSchema = z.discriminatedUnion('type', [
     variant: z.enum(['sunset', 'electric', 'acid-signal']),
     decoration: z.enum(['blob', 'grain', 'none']).optional(),
   }),
+  z.object({
+    type: z.literal('image'),
+    // 'custom' only for now — no curated image library planned, but the
+    // discriminator mirrors 'video' so one could be added cheaply later.
+    source: z.literal('custom'),
+    assetId: z.string().min(1),
+  }),
 ]);
 
 export type Background = z.infer<typeof BackgroundSchema>;

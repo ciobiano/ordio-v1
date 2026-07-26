@@ -26,7 +26,7 @@ export {
 } from './media';
 
 export { loadFont, loadGraphic, getGraphic } from './loaders';
-export { loadCuratedBackground, loadCustomBackground } from './loaders/backgroundLoader';
+export { loadCuratedBackground, loadCustomBackground, loadCustomBackgroundImage } from './loaders/backgroundLoader';
 
 export { drawPillBars, drawCircleWaveform, drawSpectrogram } from './waveforms';
 

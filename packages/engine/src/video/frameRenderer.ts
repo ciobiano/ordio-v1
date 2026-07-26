@@ -26,10 +26,11 @@ export interface FrameOptions {
   captionGroups?: CaptionGroup[];
   captionTransform?: CaptionTransform;
   /**
-   * Decoded video background frame for this output frame (VideoFrame or
-   * HTMLVideoElement). Caller owns decode/looping/lifecycle; renderFrame
-   * only composites. Cover-fit + a fixed dark scrim keeps captions legible
-   * over real-life footage.
+   * Decoded background frame for this output frame — a video frame
+   * (VideoFrame or HTMLVideoElement) or a static custom-uploaded image
+   * (HTMLImageElement). Caller owns decode/lifecycle; renderFrame only
+   * composites. Cover-fit + a fixed dark scrim keeps captions legible over
+   * busy footage or photos either way.
    */
   backgroundFrame?: CanvasImageSource & { width?: number; height?: number };
 }

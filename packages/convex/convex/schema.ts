@@ -38,9 +38,12 @@ export default defineSchema({
 
   backgroundAssets: defineTable({
     userId: v.string(),          // Clerk user ID (tokenIdentifier)
-    storageId: v.id("_storage"), // transcoded loop in Convex storage
+    storageId: v.id("_storage"), // transcoded loop or image in Convex storage
     label: v.optional(v.string()),
-    durationSec: v.number(),
+    // Optional for backward compat with rows created before images shipped —
+    // absent means "video" (every pre-existing row is a transcoded loop).
+    mediaType: v.optional(v.union(v.literal("video"), v.literal("image"))),
+    durationSec: v.optional(v.number()), // video only — images have no duration
     sizeBytes: v.number(),
     createdAt: v.number(),
   })

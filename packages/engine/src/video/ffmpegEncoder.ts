@@ -26,6 +26,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     captionTransform,
     onProgress,
     signal,
+    backgroundImage,
   } = options;
 
   // Lazy-load @ffmpeg/ffmpeg — only bundled if this path is reached
@@ -76,7 +77,7 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
       throw new DOMException('Export cancelled', 'AbortError');
     }
 
-    renderFrame(ctx, i, totalFrames, frameOptions);
+    renderFrame(ctx, i, totalFrames, { ...frameOptions, backgroundFrame: backgroundImage });
 
     const jpeg = await new Promise<Blob>((resolve) => {
       canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.85);

@@ -15,6 +15,7 @@ import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
 import { BackgroundVideoPicker } from './BackgroundVideoPicker';
+import { BackgroundImagePicker } from './BackgroundImagePicker';
 import { GradientBackgroundPicker } from './GradientBackgroundPicker';
 
 const FONTS: StyleConfig['fontFamily'][] = [
@@ -202,6 +203,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
           <ColorRow label="Text" value={style.textColor} onChange={(v) => setStyle({ textColor: v })} />
           <GradientBackgroundPicker />
           <BackgroundVideoPicker onLocked={onLocked} />
+          <BackgroundImagePicker onLocked={onLocked} />
 
           {/* Morphs based on the active caption style — stroke/glow controls only
               appear for styles whose preset actually uses them (bold-outline,

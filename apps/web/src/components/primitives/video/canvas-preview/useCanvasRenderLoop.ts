@@ -24,7 +24,8 @@ interface UseCanvasRenderLoopArgs {
   graphicStyle?: GraphicStyleId;
   captionGroups: CaptionGroup[];
   captionTransform: CaptionTransform;
-  bgVideo: HTMLVideoElement | null;
+  /** Decoded video frame or custom image background — whichever is active, or null for solid/gradient. */
+  backgroundFrame: HTMLVideoElement | HTMLImageElement | null;
   /** Unused directly — forces a redraw once the selected font finishes loading. */
   fontLoaded: boolean;
 }
@@ -62,7 +63,7 @@ export function useCanvasRenderLoop({
   graphicStyle,
   captionGroups,
   captionTransform,
-  bgVideo,
+  backgroundFrame: bgFrame,
   fontLoaded,
 }: UseCanvasRenderLoopArgs) {
   const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
@@ -93,7 +94,7 @@ export function useCanvasRenderLoop({
       graphicStyle,
       captionGroups,
       captionTransform,
-      backgroundFrame: bgVideo ?? undefined,
+      backgroundFrame: bgFrame ?? undefined,
     };
 
     renderFrame(ctx, Math.max(0, frameIndex), totalFrames, frameOptions);
@@ -112,7 +113,7 @@ export function useCanvasRenderLoop({
     });
     setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, canvasLayout, showWatermark, graphicStyle, captionGroups, captionTransform, fontLoaded, bgVideo]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, canvasLayout, showWatermark, graphicStyle, captionGroups, captionTransform, fontLoaded, bgFrame]);
 
   useEffect(() => {
     if (playback.isPlaying) {
