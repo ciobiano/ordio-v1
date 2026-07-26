@@ -153,7 +153,7 @@ export function StudioDesk() {
       { id: 'wave-bars', label: 'Set waveform → Bars', icon: '‖', run: () => setWaveformStyle('bars') },
       { id: 'wave-circle', label: 'Set waveform → Circle', icon: '◯', run: () => setWaveformStyle('circle') },
     ],
-    [flow, edits, setCaptionMode, setFormat, setWaveformStyle]
+    [flow, edits, setStyle, setFormat, setWaveformStyle]
   );
 
   return (
