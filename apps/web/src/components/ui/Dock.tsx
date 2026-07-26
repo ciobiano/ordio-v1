@@ -7,7 +7,7 @@ import type { IconSvgElement } from '@hugeicons/react'
   
   
 
-export type DockItem = {
+type DockItem = {
   id: string
   label: string
   icon: IconSvgElement

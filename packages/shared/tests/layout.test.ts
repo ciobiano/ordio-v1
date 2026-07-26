@@ -12,7 +12,8 @@ describe('Layout Engine', () => {
     fontSize: 20,
     waveColor: '#ff0000',
     characterSpacing: 0,
-    lineHeight: 1.4
+    lineHeight: 1.4,
+    captionStyleId: 'minimal-lower-third'
   };
 
   it('should split long text into multiple lines', () => {

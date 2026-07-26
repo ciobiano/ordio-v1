@@ -5,8 +5,6 @@ import { Play, Pause } from 'griddy-icons';
 import { cn } from '@/lib/utils';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
-export type { UsePlaybackReturn };
-
 interface PlaybackControlsProps {
   playback: UsePlaybackReturn;
   className?: string;

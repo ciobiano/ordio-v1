@@ -8,9 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dock } from '@/components/ui/Dock'
 import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
+import { DirectorSheet } from '@/components/soul/captions/DirectorSheet'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import FormatToggle from '@/components/soul/shared/FormatToggle'
-import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon } from '@hugeicons/core-free-icons'
+import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon, AiMagicIcon } from '@hugeicons/core-free-icons'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback'
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer'
@@ -29,6 +30,7 @@ interface ExportControlsProps {
 }
 
 const DOCK_ITEMS = [
+  { id: 'director', label: 'Direct it', icon: AiMagicIcon },
   { id: 'captions', label: 'Captions', icon: SubtitleIcon },
   { id: 'style',    label: 'Edit Style', icon: PaintBoardIcon },
   { id: 'trim',     label: 'Trim',     icon: ScissorIcon },
@@ -49,8 +51,13 @@ export function ExportControls({
   const [desktopPanel, setDesktopPanel] = useState<ToolbarPanel>('captions')
   const [mobilePanel, setMobilePanel] = useState<ToolbarPanel>('captions')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [directorOpen, setDirectorOpen] = useState(false)
 
   const handleDockItemClick = useCallback((id: string) => {
+    if (id === 'director') {
+      setDirectorOpen(true)
+      return
+    }
     const panelId = id as ToolbarPanel
     // Tapping the already-active item collapses the panel back into the dock.
     if (drawerOpen && panelId === mobilePanel) {
@@ -161,6 +168,12 @@ export function ExportControls({
           />
         </div>
       </div>
+
+      <DirectorSheet
+        isOpen={directorOpen}
+        onClose={() => setDirectorOpen(false)}
+        onLocked={onLocked}
+      />
     </>
   )
 }

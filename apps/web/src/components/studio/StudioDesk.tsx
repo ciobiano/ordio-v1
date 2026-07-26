@@ -47,7 +47,7 @@ export function StudioDesk() {
 
   const upgradeTarget = useUIStore((s) => s.upgradeTarget);
   const setUpgradeTarget = useUIStore((s) => s.setUpgradeTarget);
-  const setCaptionMode = useUIStore((s) => s.setCaptionMode);
+  const setStyle = useUIStore((s) => s.setStyle);
   const setFormat = useUIStore((s) => s.setFormat);
   const setWaveformStyle = useUIStore((s) => s.setWaveformStyle);
   const { startCheckout } = useCheckout();
@@ -144,9 +144,9 @@ export function StudioDesk() {
       { id: 'apply-cuts', label: 'Apply pending cuts', icon: '✂', run: edits.commit },
       { id: 'undo-cuts', label: 'Undo last edit', icon: '⎌', run: edits.undo },
       { id: 'redo-cuts', label: 'Redo last edit', icon: '⎌', run: edits.redo },
-      { id: 'cap-karaoke', label: 'Set caption style → Karaoke', icon: 'A', run: () => setCaptionMode('karaoke') },
-      { id: 'cap-phrase', label: 'Set caption style → Phrase', icon: 'A', run: () => setCaptionMode('phrase') },
-      { id: 'cap-stack', label: 'Set caption style → Stack', icon: 'A', run: () => setCaptionMode('stack') },
+      { id: 'cap-karaoke', label: 'Set caption style → Karaoke', icon: 'A', run: () => setStyle({ captionStyleId: 'karaoke-chip' }) },
+      { id: 'cap-phrase', label: 'Set caption style → Minimal', icon: 'A', run: () => setStyle({ captionStyleId: 'minimal-lower-third' }) },
+      { id: 'cap-stack', label: 'Set caption style → Word Pop', icon: 'A', run: () => setStyle({ captionStyleId: 'word-pop' }) },
       { id: 'fmt-vertical', label: 'Set format → 9:16 Reels', icon: '▯', run: () => setFormat('vertical') },
       { id: 'fmt-square', label: 'Set format → 1:1 Square', icon: '□', run: () => setFormat('square') },
       { id: 'fmt-horizontal', label: 'Set format → 16:9 YouTube', icon: '▭', run: () => setFormat('horizontal') },

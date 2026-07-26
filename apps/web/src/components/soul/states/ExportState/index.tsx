@@ -12,7 +12,6 @@ import { DiscardDialog } from './DiscardDialog';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type {
   WaveformVariant,
-  CaptionMode,
   CanvasLayout,
   FormatVariant,
   GraphicStyleId,
@@ -40,7 +39,6 @@ interface ExportStateProps {
   exporter: UseVideoExporterShape;
   format: FormatVariant;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
   canvasLayout?: CanvasLayout;
   graphicStyle?: GraphicStyleId;
   showWatermark?: boolean;
@@ -67,7 +65,6 @@ export default function ExportState({
   exporter,
   format,
   waveformStyle,
-  captionMode,
   canvasLayout,
   graphicStyle,
   showWatermark = false,
@@ -143,11 +140,14 @@ export default function ExportState({
   const handleExport = useCallback(async () => {
     if (!audioBuffer || !transcript) return;
 
-    const style = useUIStore.getState().style;
-
-    // Video backgrounds preview free, but export is creator-gated.
-    if (style.background?.type === 'video' && isLocked('background_video')) {
+    // Video/gradient backgrounds preview free, but export is creator-gated
+    const currentStyle = useUIStore.getState().style;
+    if (currentStyle.background?.type === 'video' && isLocked('background_video')) {
       onLocked('background_video');
+      return;
+    }
+    if (currentStyle.background?.type === 'gradient' && isLocked('background_gradient')) {
+      onLocked('background_gradient');
       return;
     }
 
@@ -166,7 +166,7 @@ export default function ExportState({
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = style.backgroundColor ?? '#000000';
+      ctx.fillStyle = currentStyle.backgroundColor ?? '#000000';
       ctx.fillRect(0, 0, width, height);
     }
 
@@ -198,7 +198,6 @@ export default function ExportState({
           playback={playback}
           format={format}
           waveformStyle={waveformStyle}
-          captionMode={captionMode}
           canvasLayout={canvasLayout}
           graphicStyle={graphicStyle}
           showWatermark={showWatermark}

@@ -9,6 +9,10 @@ vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
 }));
 
+vi.mock('convex/react', () => ({
+  useQuery: () => undefined,
+}));
+
 const renderFrameMock = vi.fn().mockImplementation(() => {
   throw new Error('boom');
 });
@@ -65,8 +69,8 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        captionStyleId: 'minimal-lower-third',
       },
-      captionAnimation: 'none',
       captionTransform: { visible: true, scale: 1, rotationDeg: 0, offsetXRatio: 0, offsetYRatio: 0 },
     });
     useProcessingStore.setState({ transcript: [], captionGroups: [] });
@@ -80,7 +84,6 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
           playback={buildPlayback()}
           format="square"
           waveformStyle="bars"
-          captionMode="phrase"
         />
       )
     ).not.toThrow();
@@ -94,7 +97,6 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
         playback={buildPlayback()}
         format="square"
         waveformStyle="bars"
-        captionMode="phrase"
       />
     );
 
@@ -111,7 +113,6 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
         playback={buildPlayback()}
         format="square"
         waveformStyle="bars"
-        captionMode="phrase"
       />
     );
 

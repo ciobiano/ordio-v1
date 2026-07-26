@@ -31,10 +31,11 @@ function featureLabel(feature: FeatureKey): string {
     format_horizontal: '16:9 Horizontal',
     format_instagram: '4:5 Instagram',
     layout_flipped: 'Flipped Layout',
-    caption_karaoke: 'Karaoke Mode',
     unlimited_exports: 'Unlimited Exports',
     background_video: 'Video Backgrounds',
     background_upload: 'Custom Backgrounds',
+    background_gradient: 'Gradient Backgrounds',
+    director_reroll: 'More Director Looks',
   }
   return labels[feature]
 }

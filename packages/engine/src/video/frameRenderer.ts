@@ -1,21 +1,24 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
-import type { WaveformVariant, CaptionMode, CaptionAnimation, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
+import type { WaveformVariant, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
 import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '../waveforms';
 import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '../waveforms/constants';
 import { getGraphic } from '../loaders/graphicLoader';
 import { drawGraphic } from '../graphic';
-import { drawCaptions, drawSpotlightCaptions, drawStackCaptions } from '../processing/captions';
-import { drawKaraokeCaptions } from './karaoke';
+import {
+  drawWordSwapCaptions,
+  drawPhraseCutCaptions,
+  drawStaticHighlightCaptions,
+} from '../processing/captions';
+import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
+import { drawGradientBackground } from '../backgrounds/gradientBackground';
 
 export interface FrameOptions {
   waveformData: number[];
   transcript: Word[];
   style: StyleConfig;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
-  captionAnimation?: CaptionAnimation;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
@@ -23,10 +26,11 @@ export interface FrameOptions {
   captionGroups?: CaptionGroup[];
   captionTransform?: CaptionTransform;
   /**
-   * Decoded video background frame for this output frame (VideoFrame or
-   * HTMLVideoElement). Caller owns decode/looping/lifecycle; renderFrame
-   * only composites. Cover-fit + a fixed dark scrim keeps captions legible
-   * over real-life footage.
+   * Decoded background frame for this output frame — a video frame
+   * (VideoFrame or HTMLVideoElement) or a static custom-uploaded image
+   * (HTMLImageElement). Caller owns decode/lifecycle; renderFrame only
+   * composites. Cover-fit + a fixed dark scrim keeps captions legible over
+   * busy footage or photos either way.
    */
   backgroundFrame?: CanvasImageSource & { width?: number; height?: number };
 }
@@ -45,6 +49,29 @@ export function coverFit(
   const dw = srcW * scale;
   const dh = srcH * scale;
   return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh };
+}
+
+/**
+ * Canvas-preset artwork idles with the design system's `ord-shape-drift`
+ * motion — a 9s loop rotating ±4deg and scaling ±3% (see tokens/motion.css
+ * in the Ordio Canvas Presets design system: `ease-ripple`, `dur 9s`).
+ * A sine wave approximates that cubic-bezier closely enough at this
+ * subtlety, and — unlike a CSS animation — is a pure function of
+ * currentTime, so preview and export land on the identical frame.
+ */
+const PRESET_DRIFT_PERIOD_SEC = 9;
+const PRESET_DRIFT_MAX_ROTATE_DEG = 4;
+const PRESET_DRIFT_MAX_SCALE = 0.03;
+/** Overscan so the drifted (rotated) art never reveals a canvas-color corner. */
+const PRESET_DRIFT_OVERSCAN = 1.12;
+
+function presetDriftTransform(currentTime: number): { rotate: number; scale: number } {
+  const phase = ((currentTime % PRESET_DRIFT_PERIOD_SEC) / PRESET_DRIFT_PERIOD_SEC) * Math.PI * 2;
+  const wave = Math.sin(phase);
+  return {
+    rotate: (PRESET_DRIFT_MAX_ROTATE_DEG * wave * Math.PI) / 180,
+    scale: 1 + PRESET_DRIFT_MAX_SCALE * wave,
+  };
 }
 
 function sourceDimensions(
@@ -74,8 +101,6 @@ export function renderFrame(
     transcript,
     style,
     waveformStyle,
-    captionMode,
-    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -87,27 +112,46 @@ export function renderFrame(
   const duration = totalFrames / FPS;
   const layout = canvasLayout ?? 'top';
   const flipped = layout === 'flipped';
+  const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
 
-  // 1. Background — video frame (cover-fit + scrim) or solid color
+  // 1. Background — video frame (cover-fit + scrim), gradient, or solid color
   const { backgroundFrame } = options;
   if (backgroundFrame) {
     const { w: srcW, h: srcH } = sourceDimensions(backgroundFrame);
     if (srcW > 0 && srcH > 0) {
-      const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
-      ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+      const isPreset = style.background?.type === 'image' && style.background.source === 'preset';
+      if (isPreset) {
+        const { dx, dy, dw, dh } = coverFit(srcW, srcH, width * PRESET_DRIFT_OVERSCAN, height * PRESET_DRIFT_OVERSCAN);
+        const { rotate, scale } = presetDriftTransform(currentTime);
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(rotate);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        ctx.drawImage(backgroundFrame, dx - (width * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dy - (height * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dw, dh);
+        ctx.restore();
+      } else {
+        const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
+        ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+      }
       ctx.fillStyle = `rgba(0, 0, 0, ${BACKGROUND_SCRIM_ALPHA})`;
       ctx.fillRect(0, 0, width, height);
     } else {
       ctx.fillStyle = style.backgroundColor;
       ctx.fillRect(0, 0, width, height);
     }
+  } else if (style.background?.type === 'gradient') {
+    drawGradientBackground(ctx, style.background.variant, style.background.decoration, width, height);
   } else {
     ctx.fillStyle = style.backgroundColor;
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Visual zone
-  if (captionMode !== 'karaoke') {
+  // 2. Visual zone — static-highlight's multi-line block takes the same
+  // full-screen precedence the old karaoke mode had; other mechanics share
+  // the screen with the waveform/graphic zone as phrase mode always did.
+  const takesFullScreen = mechanic === 'static-highlight';
+  if (!takesFullScreen) {
     if (graphicStyle) {
       const img = getGraphic(graphicStyle);
       if (img) drawGraphic(ctx, img, graphicStyle, style, flipped);
@@ -117,37 +161,13 @@ export function renderFrame(
   }
 
   // 3. Captions
-  const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
-  switch (captionMode) {
-    case 'karaoke':
-      // Karaoke canvas timing is word-scoped; ignore style-panel motion preset here.
-      drawKaraokeCaptions(
-        ctx,
-        currentTime,
-        transcript,
-        style,
-        captionGroups,
-        'sweep-pulse',
-        captionTransform
-      );
+  const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
+  switch (mechanic) {
+    case 'static-highlight':
+      drawStaticHighlightCaptions(ctx, currentTime, transcript, style, captionTransform, captionGroups);
       break;
-    case 'stack':
-      drawStackCaptions(ctx, currentTime, transcript, style, captionGroups, captionTransform);
-      break;
-    case 'spotlight':
-      drawSpotlightCaptions(
-        ctx,
-        currentTime,
-        transcript,
-        style,
-        layout,
-        hasVisualZone,
-        captionGroups,
-        captionTransform
-      );
-      break;
-    case 'phrase':
-      drawCaptions(
+    case 'word-swap':
+      drawWordSwapCaptions(
         ctx,
         currentTime,
         transcript,
@@ -156,7 +176,19 @@ export function renderFrame(
         hasVisualZone,
         flipped,
         captionGroups,
-        captionAnimation,
+        captionTransform
+      );
+      break;
+    case 'phrase-cut':
+      drawPhraseCutCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        layout,
+        hasVisualZone,
+        flipped,
+        captionGroups,
         captionTransform
       );
       break;

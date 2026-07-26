@@ -14,10 +14,11 @@ export type FeatureKey =
   | 'format_horizontal'
   | 'format_instagram'
   | 'layout_flipped'
-  | 'caption_karaoke'
   | 'unlimited_exports'
   | 'background_video'
-  | 'background_upload';
+  | 'background_upload'
+  | 'background_gradient'
+  | 'director_reroll';
 
 const TIER_RANK: Record<UserTier, number> = {
   free: 0,
@@ -39,10 +40,11 @@ export const FEATURE_GATES: Record<FeatureKey, UserTier> = {
   format_horizontal: 'creator',
   format_instagram: 'creator',
   layout_flipped: 'creator',
-  caption_karaoke: 'creator',
   unlimited_exports: 'creator',
   background_video: 'creator', // export with a video background (preview is free)
   background_upload: 'creator', // uploading custom backgrounds (gated at the action)
+  background_gradient: 'creator', // export with a gradient background (preview is free)
+  director_reroll: 'creator', // Director's looks 2-3 and the reroll button; look 1 is free
 };
 
 export function tierHasAccess(userTier: UserTier, required: UserTier): boolean {

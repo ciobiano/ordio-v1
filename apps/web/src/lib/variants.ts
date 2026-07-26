@@ -11,14 +11,6 @@ export const primaryBtn =
   'shadow-[0_8px_32px_rgba(255,255,255,0.08)]';
 
 /**
- * Ghost text button — muted label that brightens on hover.
- * Minimal 2px padding; slim inline shape.
- */
-export const ghostBtn =
-  'text-muted-foreground text-xs hover:text-white/85 transition-colors duration-150 ' +
-  'cursor-pointer py-px px-1 rounded';
-
-/**
  * Option/toggle button — single source of truth for all selectable option buttons.
  * Used in every radio group: caption style, video format, font selector.
  *
@@ -60,51 +52,6 @@ export const optionBtn = cva(
       { active: true, tone: 'subtle', class: 'bg-accent border-border text-foreground' },
     ],
     defaultVariants: { shape: 'bordered', active: false, tone: 'subtle' },
-  }
-);
-
-/**
- * Circular icon button — single source of truth for all icon-only circular buttons.
- *
- *   intent: 'idle'     → mic orb (64px, surface bg)
- *           'pause'    → pause recording (48px, surface bg)
- *           'settings' → gear button (48px, surface bg)
- *           'stop'     → stop recording (64px, rose destructive ring)
- *           'play'     → playback play (small, white fill)
- *           'nav'      → small navigation button (40px, surface bg)
- */
-export const roundIconBtn = cva(
-  'flex items-center justify-center rounded-full transition-all duration-150',
-  {
-    variants: {
-      intent: {
-        idle:     'w-16 h-16 bg-muted text-foreground hover:bg-muted',
-        pause:    'w-12 h-12 bg-white/8 text-white/60 hover:bg-white/12',
-        settings: 'w-12 h-12 bg-white/8 text-white/60 hover:bg-white/12',
-        stop:     'w-20 h-20 bg-destructive/15 border-2 border-destructive/60 text-destructive hover:bg-destructive/25',
-        play:     'w-16 h-16 shrink-0 bg-primary text-primary-foreground border border-primary hover:bg-white/90',
-        nav:      'w-10 h-10 bg-muted text-muted-foreground hover:bg-muted hover:text-foreground',
-      },
-    },
-    defaultVariants: { intent: 'idle' },
-  }
-);
-
-/**
- * Proceed / CTA button — full-width warm-white pill used after stopping a recording.
- * Colors are baked into CVA base (never inline styles per project rule).
- */
-export const proceedBtn = cva(
-  'w-full rounded-2xl font-bold tracking-tight transition-all duration-150 bg-white text-black active:scale-[0.98]',
-  {
-    variants: {
-      size: {
-        default: 'h-14 text-sm',
-      },
-    },
-    defaultVariants: {
-      size: 'default',
-    },
   }
 );
 
@@ -396,6 +343,21 @@ export const shareCardHeadline = cva('font-acid-display font-semibold', {
     },
   },
   defaultVariants: { variant: 'acid' },
+});
+
+/**
+ * Gradient background picker swatch — same gradient values as shareCard's
+ * sunset/electric variants (reused, not a new palette), plus acid-signal
+ * (the app's own lime->cyan accent gradient token).
+ */
+export const gradientSwatch = cva('relative overflow-hidden rounded-xl', {
+  variants: {
+    variant: {
+      sunset: 'bg-[linear-gradient(155deg,#FF8A4A_0%,#FF2E7E_55%,#B0165C_100%)]',
+      electric: 'bg-[linear-gradient(155deg,#3A2BFF_0%,#4D7CFF_45%,#00D4FF_100%)]',
+      'acid-signal': 'bg-[image:var(--acid-signal)]',
+    },
+  },
 });
 
 /**

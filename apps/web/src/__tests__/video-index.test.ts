@@ -14,24 +14,28 @@ describe('lib/video: exports', () => {
     expect(typeof video.renderFrame).toBe('function');
   });
 
-  it('should export drawKaraokeCaptions function', () => {
-    expect(typeof video.drawKaraokeCaptions).toBe('function');
+  it('should export drawWordSwapCaptions function', () => {
+    expect(typeof video.drawWordSwapCaptions).toBe('function');
   });
 
-  it('should export measureKaraokeCaptionBlock function', () => {
-    expect(typeof video.measureKaraokeCaptionBlock).toBe('function');
+  it('should export drawPhraseCutCaptions function', () => {
+    expect(typeof video.drawPhraseCutCaptions).toBe('function');
   });
 
-  it('should export karaokeNonActiveFills function', () => {
-    expect(typeof video.karaokeNonActiveFills).toBe('function');
+  it('should export drawStaticHighlightCaptions function', () => {
+    expect(typeof video.drawStaticHighlightCaptions).toBe('function');
   });
 
-  it('should export drawStackCaptions function', () => {
-    expect(typeof video.drawStackCaptions).toBe('function');
+  it('should export measureWordSwapCaptionBlock function', () => {
+    expect(typeof video.measureWordSwapCaptionBlock).toBe('function');
   });
 
-  it('should export drawSpotlightCaptions function', () => {
-    expect(typeof video.drawSpotlightCaptions).toBe('function');
+  it('should export measurePhraseCutCaptionBlock function', () => {
+    expect(typeof video.measurePhraseCutCaptionBlock).toBe('function');
+  });
+
+  it('should export measureStaticHighlightCaptionBlock function', () => {
+    expect(typeof video.measureStaticHighlightCaptionBlock).toBe('function');
   });
 
   it('should export hasWebCodecsSupport function', () => {

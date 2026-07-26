@@ -5,12 +5,13 @@ import { useUIStore, useProcessingStore, useCaptureStore, getCanvasDimensions } 
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { loadFont } from '@Ordio/engine/loaders';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
-import type { WaveformVariant, CaptionMode, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
+import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import { loadGraphic } from '@Ordio/engine/loaders';
 import { cn } from '@/lib/utils';
 import { canvasPreviewFrame, canvasGridOverlay } from '@/lib/variants';
 import { CanvasCaptionTransformOverlay } from './canvas-preview/CanvasCaptionTransformOverlay';
 import { useBackgroundVideo } from './canvas-preview/useBackgroundVideo';
+import { useBackgroundImage } from './canvas-preview/useBackgroundImage';
 import { useCaptionGesture } from './canvas-preview/useCaptionGesture';
 import { useCanvasRenderLoop } from './canvas-preview/useCanvasRenderLoop';
 
@@ -18,7 +19,6 @@ interface CanvasPreviewProps {
   playback: UsePlaybackReturn;
   format: FormatVariant;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
@@ -50,7 +50,6 @@ export default function CanvasPreview({
   playback,
   format,
   waveformStyle,
-  captionMode,
   canvasLayout,
   showWatermark = false,
   graphicStyle,
@@ -67,7 +66,6 @@ export default function CanvasPreview({
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const style = useUIStore((s) => s.style);
-  const captionAnimation = useUIStore((s) => s.captionAnimation);
   const captionTransform = useUIStore((s) => s.captionTransform);
   const setCaptionTransform = useUIStore((s) => s.setCaptionTransform);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
@@ -79,6 +77,8 @@ export default function CanvasPreview({
   }, [style.fontFamily]);
 
   const { bgVideo, bgLoading } = useBackgroundVideo(style.background, playback.isPlaying);
+  const { bgImage, bgImageLoading } = useBackgroundImage(style.background);
+  const backgroundFrame = bgVideo ?? bgImage ?? null;
 
   // Pre-load graphic asset when graphic style changes
   useEffect(() => {
@@ -121,14 +121,12 @@ export default function CanvasPreview({
     canvasWidth,
     canvasHeight,
     waveformStyle,
-    captionMode,
     canvasLayout,
     showWatermark,
     graphicStyle,
     captionGroups,
-    captionAnimation,
     captionTransform,
-    bgVideo,
+    backgroundFrame,
     fontLoaded,
   });
 
@@ -246,9 +244,9 @@ export default function CanvasPreview({
           style={{ '--grid-size': `${gridSize}px` } as CSSProperties}
         />
       )}
-      {/* Background video loading — shown while a newly selected background is
-          being fetched/decoded, before it appears in the preview */}
-      {bgLoading && (
+      {/* Background loading — shown while a newly selected video or image
+          background is being fetched/decoded, before it appears in the preview */}
+      {(bgLoading || bgImageLoading) && (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           role="status"

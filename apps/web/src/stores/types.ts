@@ -2,8 +2,7 @@ export type {
   WaveformVariant,
   GraphicStyleId,
   CanvasLayout,
-  CaptionMode,
-  CaptionAnimation,
+  CaptionStyleId,
   CaptionTransform,
   CaptionGroup,
 } from '@Ordio/engine/types';

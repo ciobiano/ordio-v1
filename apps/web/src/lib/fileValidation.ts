@@ -47,7 +47,7 @@ function getExtension(filename: string): string | undefined {
   return filename.split('.').pop()?.toLowerCase();
 }
 
-export function isAcceptedFileType(file: File): boolean {
+function isAcceptedFileType(file: File): boolean {
   if (ACCEPTED_MIME_TYPES.has(file.type)) return true;
   // Fallback: check extension when MIME is empty or generic (e.g. application/octet-stream)
   const ext = getExtension(file.name);
@@ -75,3 +75,15 @@ export const FILE_ERROR_MESSAGES: Record<FileValidationError, string> = {
   unsupported_format: 'Unsupported format — try MP3, M4A, WAV, WEBM, OGG, FLAC, or MP4',
   episode_too_large: 'Episode is too large — maximum is 250 MB',
 };
+
+/**
+ * The <input type="file accept="..."> string, derived from the same sets
+ * validateFile() checks — a hand-maintained duplicate of this list is what
+ * caused mp3/m4a uploads to be filtered out of the OS file picker despite
+ * validateFile() already accepting them (the wildcard `audio/*` isn't
+ * reliably matched by every browser/OS file dialog).
+ */
+export const FILE_ACCEPT_ATTRIBUTE = [
+  ...Array.from(ACCEPTED_MIME_TYPES),
+  ...Array.from(ACCEPTED_EXTENSIONS, (ext) => `.${ext}`),
+].join(',');

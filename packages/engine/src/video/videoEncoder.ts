@@ -5,7 +5,7 @@ import { renderFrame, type FrameOptions } from './frameRenderer';
 import { createBackgroundFrameStream } from './backgroundFrameStream';
 import { loadFont, loadGraphic } from '../loaders';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { WaveformVariant, CaptionMode, CaptionAnimation, CanvasLayout, GraphicStyleId, CaptionTransform, CaptionGroup } from '../types';
+import type { WaveformVariant, CanvasLayout, GraphicStyleId, CaptionTransform, CaptionGroup } from '../types';
 
 export interface EncodeVideoOptions {
   /** Canvas element to render frames onto */
@@ -20,12 +20,8 @@ export interface EncodeVideoOptions {
   style: StyleConfig;
   /** Waveform variant */
   waveformStyle: WaveformVariant;
-  /** Caption render mode */
-  captionMode: CaptionMode;
   /** Canvas composition layout */
   canvasLayout?: CanvasLayout;
-  /** Caption animation style */
-  captionAnimation?: CaptionAnimation;
   /** Show "Made with Ordio" watermark — true for free tier */
   showWatermark?: boolean;
   /** Graphic style to render — null or undefined = use waveform */
@@ -43,6 +39,12 @@ export interface EncodeVideoOptions {
    * renderFrame path, streamed one frame at a time.
    */
   backgroundVideo?: Blob;
+  /**
+   * Custom image background, pre-loaded by the caller. Unlike
+   * backgroundVideo, this is a single decoded frame reused for every output
+   * frame — no per-frame streaming decode needed.
+   */
+  backgroundImage?: HTMLImageElement;
 }
 
 export interface EncodeResult {
@@ -68,8 +70,6 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     captionGroups,
     style,
     waveformStyle,
-    captionMode,
-    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -77,6 +77,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     onProgress,
     signal,
     backgroundVideo,
+    backgroundImage,
   } = options;
 
   // Load font before rendering
@@ -132,8 +133,6 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
     captionGroups,
     style,
     waveformStyle,
-    captionMode,
-    captionAnimation,
     canvasLayout,
     showWatermark,
     graphicStyle,
@@ -159,7 +158,7 @@ export async function encodeVideo(options: EncodeVideoOptions): Promise<EncodeRe
         // so preview == export holds)
         renderFrame(ctx, i, totalFrames, {
           ...frameOptions,
-          backgroundFrame: bgFrame?.image,
+          backgroundFrame: bgFrame?.image ?? backgroundImage,
         });
       } finally {
         bgFrame?.close();

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useProcessingStore } from '@/stores';
+import { useProcessingStore, useUIStore } from '@/stores';
+import { getCaptionStylePreset } from '@Ordio/engine';
 import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer';
 import { CaptionEditorHeader } from './editor/CaptionEditorHeader';
 import { CaptionEditorRow } from './editor/CaptionEditorRow';
@@ -28,6 +29,9 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
   const clearSelection = useProcessingStore((state) => state.clearSelection);
   const undoCaptions = useProcessingStore((state) => state.undoCaptions);
   const redoCaptions = useProcessingStore((state) => state.redoCaptions);
+  const toggleAccentWord = useProcessingStore((state) => state.toggleAccentWord);
+  const captionStyleId = useUIStore((state) => state.style.captionStyleId);
+  const supportsAccent = getCaptionStylePreset(captionStyleId).fontTreatment === 'accent-swap';
 
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const groupRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -104,14 +108,16 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
         isSelected={isSelected}
         transcript={transcript}
         cursorPosition={cursorPosition}
+        supportsAccent={supportsAccent}
         onSelect={handleSelectGroup}
         onToggleCursor={(positionInGroup) => {
           setCursorPosition((prev) => (prev === positionInGroup ? null : positionInGroup));
         }}
+        onToggleAccent={(positionInGroup) => toggleAccentWord(groupIndex, positionInGroup)}
         setGroupRef={setGroupRef}
       />
     );
-  }), [captionGroups, currentTime, cursorPosition, handleSelectGroup, selectedGroupIdx, setGroupRef, transcript]);
+  }), [captionGroups, currentTime, cursorPosition, handleSelectGroup, selectedGroupIdx, setGroupRef, supportsAccent, toggleAccentWord, transcript]);
 
   if (isTranscribing) {
     return (

@@ -17,7 +17,6 @@ interface StudioExportBodyProps {
 export function StudioExportBody({ playback }: StudioExportBodyProps) {
   const format = useUIStore((s) => s.format);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
-  const captionMode = useUIStore((s) => s.captionMode);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const graphicStyle = useUIStore((s) => s.graphicStyle);
   const setUpgradeTarget = useUIStore((s) => s.setUpgradeTarget);
@@ -76,7 +75,6 @@ export function StudioExportBody({ playback }: StudioExportBodyProps) {
           playback={playback}
           format={format}
           waveformStyle={waveformStyle}
-          captionMode={captionMode}
           canvasLayout={canvasLayout}
           graphicStyle={graphicStyle ?? undefined}
           showWatermark={showWatermark}

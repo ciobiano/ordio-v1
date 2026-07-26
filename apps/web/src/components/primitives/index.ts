@@ -1,12 +1,1 @@
-export { default as CanvasPreview } from './video/CanvasPreview';
 export { default as CapabilityBanner } from './overlay/CapabilityBanner';
-export { default as LockBadge } from '@/components/ui/LockBadge';
-export { default as ToggleRow } from '@/components/ui/ToggleRow';
-export { default as LiveCaption } from './overlay/LiveCaption';
-export { default as PlaybackControls } from './video/PlaybackControls';
-export { default as ProcessingStep } from './status/ProcessingStep';
-export { default as ProgressRing } from './status/ProgressRing';
-export { default as RecordingTimer } from './status/RecordingTimer';
-export { default as WaveformDisplay } from './waveform/WaveformDisplay';
-export { default as BarsWaveform } from './waveform/BarsWaveform';
-export { default as CircleWaveform } from './waveform/CircleWaveform';

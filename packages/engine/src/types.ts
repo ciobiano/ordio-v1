@@ -4,9 +4,21 @@ export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 /** How the canvas is composed: where the visual sits and where captions sit */
 export type CanvasLayout = 'top' | 'compact' | 'flipped';
 
-/** How captions are revealed frame-by-frame */
-export type CaptionMode = 'phrase' | 'karaoke' | 'stack' | 'spotlight';
-export type CaptionAnimation = 'none' | 'sweep' | 'pulse' | 'sweep-pulse';
+/**
+ * Which caption style is active. Replaces the old CaptionMode
+ * (phrase/karaoke/stack/spotlight) — see
+ * docs/superpowers/specs/2026-07-25-caption-style-redesign-design.md.
+ * Each style is driven by one of three shared reveal mechanics
+ * (word-swap, phrase-cut, static-highlight) via CAPTION_STYLE_PRESETS.
+ */
+export type CaptionStyleId =
+  | 'word-pop'
+  | 'bold-outline'
+  | 'karaoke-chip'
+  | 'minimal-lower-third'
+  | 'big-statement'
+  | 'script-accent';
+
 export interface CaptionTransform {
   offsetXRatio: number;
   offsetYRatio: number;
@@ -33,4 +45,18 @@ export interface CaptionGroup {
   start: number;
   /** Block end time (seconds) — independently owned, not necessarily last word's end */
   end: number;
+  /**
+   * Indices into wordIndices (not transcript indices) marking words rendered
+   * with the active caption style's accent treatment (e.g. script-accent's
+   * italic+glow swap). Manually toggled in the caption editor. Absent/empty
+   * means no accent words in this group.
+   */
+  accentWordIndices?: number[];
+  /**
+   * Marks this group for the Hook Card scale boost (Ordio Director). At most
+   * one group per session should carry 'hook' — applyLook in directorStore
+   * clears it from every group before setting a new one. Absent/'body'
+   * renders at normal scale.
+   */
+  role?: 'hook' | 'body';
 }

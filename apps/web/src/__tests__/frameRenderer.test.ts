@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
+import type { CaptionGroup } from '@Ordio/engine/types';
 
 // Minimal canvas context mock
 function createMockCtx(): CanvasRenderingContext2D {
@@ -36,6 +37,7 @@ const defaultStyle: StyleConfig = {
   waveColor: '#3B82F6',
   characterSpacing: 0,
   lineHeight: 1.4,
+  captionStyleId: 'minimal-lower-third',
 };
 
 const sampleTranscript: Word[] = [
@@ -49,13 +51,19 @@ const sampleTranscript: Word[] = [
 
 const sampleWaveform = Array.from({ length: 100 }, (_, i) => Math.abs(Math.sin(i * 0.1)));
 
+// phrase-cut (the default caption style's mechanic) requires captionGroups —
+// always populated post-transcription in the real app; this mirrors that.
+const sampleCaptionGroups: CaptionGroup[] = [
+  { text: 'Hello world this is a test', start: 0, end: 2.5, wordIndices: [0, 1, 2, 3, 4, 5] },
+];
+
 function makeOptions(overrides?: Partial<FrameOptions>): FrameOptions {
   return {
     waveformData: sampleWaveform,
     transcript: sampleTranscript,
     style: defaultStyle,
     waveformStyle: 'bars',
-    captionMode: 'phrase',
+    captionGroups: sampleCaptionGroups,
     ...overrides,
   };
 }
@@ -76,6 +84,63 @@ describe('renderFrame', () => {
     expect(firstFillRect?.args).toEqual([0, 0, 1080, 1920]);
   });
 
+  it('applies the shape-drift transform for a preset-image background but not a custom one', () => {
+    // Caption mechanics (wordSwap/phraseCut/staticHighlight) also call ctx.rotate() for their
+    // own word-tilt effect, so a bare "was rotate called" assertion can't isolate the
+    // background-drift transform — compare call counts between preset and custom instead,
+    // holding everything else (captions, layout, time) identical.
+    const runWithSource = (source: 'preset' | 'custom') => {
+      const ctx = createMockCtx();
+      const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+        .__calls;
+      const fakeImage = { width: 1227, height: 1228 } as unknown as HTMLImageElement;
+      renderFrame(
+        ctx,
+        30,
+        90,
+        makeOptions({
+          style: {
+            ...defaultStyle,
+            background:
+              source === 'preset'
+                ? { type: 'image', source: 'preset', assetId: 'bow' }
+                : { type: 'image', source: 'custom', assetId: 'abc123' },
+          },
+          backgroundFrame: fakeImage,
+        })
+      );
+      return calls.filter((c) => c.method === 'rotate').length;
+    };
+
+    const presetRotateCount = runWithSource('preset');
+    const customRotateCount = runWithSource('custom');
+
+    expect(presetRotateCount).toBe(customRotateCount + 1);
+  });
+
+  it('wraps the preset drift transform in save/restore', () => {
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
+    const fakeImage = { width: 1227, height: 1228 } as unknown as HTMLImageElement;
+
+    renderFrame(
+      ctx,
+      30,
+      90,
+      makeOptions({
+        style: {
+          ...defaultStyle,
+          background: { type: 'image', source: 'preset', assetId: 'bow' },
+        },
+        backgroundFrame: fakeImage,
+      })
+    );
+
+    expect(calls.some((c) => c.method === 'save')).toBe(true);
+    expect(calls.some((c) => c.method === 'restore')).toBe(true);
+  });
+
   it('renders without crashing for all waveform variants', () => {
     const variants = ['bars', 'spectrogram', 'circle'] as const;
     for (const variant of variants) {
@@ -92,20 +157,34 @@ describe('renderFrame', () => {
     }
   });
 
-  it('renders without crashing for all caption modes', () => {
-    const modes = ['phrase', 'karaoke', 'stack', 'spotlight'] as const;
-    for (const mode of modes) {
+  it('renders without crashing for all caption styles', () => {
+    const styleIds = [
+      'word-pop',
+      'bold-outline',
+      'karaoke-chip',
+      'minimal-lower-third',
+      'big-statement',
+      'script-accent',
+    ] as const;
+    for (const captionStyleId of styleIds) {
       const ctx = createMockCtx();
-      expect(() => renderFrame(ctx, 15, 90, makeOptions({ captionMode: mode }))).not.toThrow();
+      expect(() =>
+        renderFrame(ctx, 15, 90, makeOptions({ style: { ...defaultStyle, captionStyleId } }))
+      ).not.toThrow();
     }
   });
 
-  it('does not draw waveform geometry in karaoke mode', () => {
+  it('does not draw waveform geometry in a static-highlight (full-screen) caption style', () => {
     const ctx = createMockCtx();
     const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
       .__calls;
 
-    renderFrame(ctx, 15, 90, makeOptions({ captionMode: 'karaoke', waveformStyle: 'bars' }));
+    renderFrame(
+      ctx,
+      15,
+      90,
+      makeOptions({ style: { ...defaultStyle, captionStyleId: 'karaoke-chip' }, waveformStyle: 'bars' })
+    );
 
     expect(calls.some((c) => c.method === 'arcTo')).toBe(false);
   });

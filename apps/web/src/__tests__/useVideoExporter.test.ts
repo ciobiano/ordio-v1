@@ -32,9 +32,9 @@ describe('hooks/video: useVideoExporter', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        captionStyleId: 'minimal-lower-third',
       },
       waveformStyle: 'bars',
-      captionMode: 'phrase',
       canvasLayout: 'compact',
       graphicStyle: null,
     });

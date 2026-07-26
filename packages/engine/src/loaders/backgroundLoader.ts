@@ -7,6 +7,7 @@
  * passes the URL down — this module stays hook-free).
  */
 import { getCuratedBackground } from '../backgrounds/backgroundLibrary';
+import { getCanvasPreset } from '../backgrounds/canvasPresets';
 
 const cache = new Map<string, HTMLVideoElement>();
 
@@ -54,4 +55,51 @@ export function getLoadedBackground(
   assetId: string
 ): HTMLVideoElement | null {
   return cache.get(cacheKey(source, assetId)) ?? null;
+}
+
+// --- Image backgrounds: 'preset' (bundled canvas artwork) or 'custom' (user upload). ---
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+function imageCacheKey(source: 'preset' | 'custom', assetId: string): string {
+  return `image:${source}:${assetId}`;
+}
+
+async function loadImage(key: string, url: string): Promise<HTMLImageElement> {
+  const cached = imageCache.get(key);
+  if (cached) return cached;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = url;
+
+  await new Promise<void>((res, rej) => {
+    img.onload = () => res();
+    img.onerror = () => rej(new Error(`Failed to load background image: ${key}`));
+  });
+
+  imageCache.set(key, img);
+  return img;
+}
+
+/** Bundled canvas-preset artwork: static path, no signed URL or Convex round trip needed. */
+export async function loadPresetBackgroundImage(assetId: string): Promise<HTMLImageElement> {
+  const preset = getCanvasPreset(assetId);
+  if (!preset) throw new Error(`Unknown canvas preset: ${assetId}`);
+  return loadImage(imageCacheKey('preset', assetId), preset.imagePath);
+}
+
+/** Custom image uploads: caller resolves the signed Convex URL first, same as loadCustomBackground. */
+export async function loadCustomBackgroundImage(
+  assetId: string,
+  url: string
+): Promise<HTMLImageElement> {
+  return loadImage(imageCacheKey('custom', assetId), url);
+}
+
+export function getLoadedBackgroundImage(
+  source: 'preset' | 'custom',
+  assetId: string
+): HTMLImageElement | null {
+  return imageCache.get(imageCacheKey(source, assetId)) ?? null;
 }

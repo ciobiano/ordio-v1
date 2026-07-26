@@ -6,6 +6,7 @@ import type { PanInfo } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, RefObject } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
+import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import type { FeatureKey } from '@/lib/featureGates';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
@@ -265,7 +266,7 @@ export function CaptureScreen({
         <input
           ref={fileInputRef}
           type="file"
-          accept="audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a"
+          accept={FILE_ACCEPT_ATTRIBUTE}
           className="hidden"
           onChange={onFileUpload}
         />

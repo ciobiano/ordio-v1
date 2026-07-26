@@ -1,11 +1,11 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CanvasLayout, CaptionGroup, CaptionTransform, CaptionMode } from '@/stores';
+import type { CanvasLayout, CaptionGroup, CaptionTransform } from '@/stores';
 import {
-  measureActivePhraseCaption,
-  measureSpotlightCaptionBlock,
-  measureStackCaptionBlock,
+  measureWordSwapCaptionBlock,
+  measurePhraseCutCaptionBlock,
+  measureStaticHighlightCaptionBlock,
 } from '@Ordio/engine/processing/captions';
-import { measureKaraokeCaptionBlock } from '@Ordio/engine/video/karaoke';
+import { getCaptionStylePreset } from '@Ordio/engine';
 
 const MIN_TOUCH_TARGET_PX = 44;
 /** Extra padding around measured caption bounds so the transform frame does not hug glyphs. */
@@ -36,132 +36,76 @@ export interface CaptionTransformGeometryOptions {
   hasVisualZone: boolean;
   flipped: boolean;
   transform: CaptionTransform;
-  captionMode: CaptionMode;
+}
+
+function boxFromCenter(
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  rotationDeg: number,
+  canvasWidth: number,
+  canvasHeight: number
+): CaptionTransformBox {
+  return {
+    centerX,
+    centerY,
+    width,
+    height,
+    rotationDeg,
+    style: {
+      left: `${(centerX / canvasWidth) * 100}%`,
+      top: `${(centerY / canvasHeight) * 100}%`,
+      width: `${(width / canvasWidth) * 100}%`,
+      height: `${(height / canvasHeight) * 100}%`,
+      transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+    },
+  };
 }
 
 export function measureCaptionTransformBox(
   options: CaptionTransformGeometryOptions
 ): CaptionTransformBox | null {
-  const {
-    ctx,
-    currentTime,
-    transcript,
-    captionGroups,
-    style,
-    layout,
-    hasVisualZone,
-    flipped,
-    transform,
-    captionMode,
-  } = options;
+  const { ctx, currentTime, transcript, captionGroups, style, layout, hasVisualZone, flipped, transform } = options;
 
   if (!transform.visible) return null;
 
-  if (captionMode === 'karaoke') {
-    const km = measureKaraokeCaptionBlock(ctx, currentTime, transcript, style, captionGroups);
-    if (!km) return null;
+  const scale = Math.max(0.4, Math.min(3, transform.scale));
+  const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
 
-    const scale = Math.max(0.4, Math.min(3, transform.scale));
-    const width = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      km.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
-    const height = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      km.blockHeight * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
-    const centerX = km.centerX + transform.offsetXRatio * style.width;
-    const centerY = km.blockCenterY + transform.offsetYRatio * style.height;
-
-    return {
-      centerX,
-      centerY,
-      width,
-      height,
-      rotationDeg: transform.rotationDeg,
-      style: {
-        left: `${(centerX / style.width) * 100}%`,
-        top: `${(centerY / style.height) * 100}%`,
-        width: `${(width / style.width) * 100}%`,
-        height: `${(height / style.height) * 100}%`,
-        transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
-      },
-    };
-  }
-
-  if (captionMode === 'stack') {
-    const metrics = measureStackCaptionBlock(ctx, currentTime, transcript, style, captionGroups);
+  if (mechanic === 'static-highlight') {
+    const metrics = measureStaticHighlightCaptionBlock(ctx, currentTime, transcript, style, captionGroups);
     if (!metrics) return null;
 
-    const scale = Math.max(0.4, Math.min(3, transform.scale));
-    const width = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      metrics.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
-    const height = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      metrics.blockHeight * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
-    const centerX = metrics.blockCenterX + transform.offsetXRatio * style.width;
+    const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX);
+    const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * scale + CAPTION_TRANSFORM_BREATHING_PX);
+    const centerX = metrics.centerX + transform.offsetXRatio * style.width;
     const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
-
-    return {
-      centerX,
-      centerY,
-      width,
-      height,
-      rotationDeg: transform.rotationDeg,
-      style: {
-        left: `${(centerX / style.width) * 100}%`,
-        top: `${(centerY / style.height) * 100}%`,
-        width: `${(width / style.width) * 100}%`,
-        height: `${(height / style.height) * 100}%`,
-        transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
-      },
-    };
+    return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
   }
 
-  if (captionMode === 'spotlight') {
-    const metrics = measureSpotlightCaptionBlock(
+  if (mechanic === 'word-swap') {
+    const metrics = measureWordSwapCaptionBlock(
       ctx,
       currentTime,
       transcript,
       style,
       layout,
       hasVisualZone,
+      flipped,
       captionGroups
     );
     if (!metrics) return null;
 
-    const scale = Math.max(0.4, Math.min(3, transform.scale));
-    const width = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      metrics.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
-    const height = Math.max(
-      MIN_TOUCH_TARGET_PX,
-      metrics.blockHeight * scale + CAPTION_TRANSFORM_BREATHING_PX
-    );
+    const renderedScale = metrics.fitScale * scale;
+    const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
+    const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
     const centerX = metrics.centerX + transform.offsetXRatio * style.width;
     const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
-
-    return {
-      centerX,
-      centerY,
-      width,
-      height,
-      rotationDeg: transform.rotationDeg,
-      style: {
-        left: `${(centerX / style.width) * 100}%`,
-        top: `${(centerY / style.height) * 100}%`,
-        width: `${(width / style.width) * 100}%`,
-        height: `${(height / style.height) * 100}%`,
-        transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
-      },
-    };
+    return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
   }
 
-  const metrics = measureActivePhraseCaption(
+  const metrics = measurePhraseCutCaptionBlock(
     ctx,
     currentTime,
     transcript,
@@ -173,31 +117,10 @@ export function measureCaptionTransformBox(
   );
   if (!metrics) return null;
 
-  const scale = Math.max(0.4, Math.min(3, transform.scale));
   const renderedScale = metrics.fitScale * scale;
-  const width = Math.max(
-    MIN_TOUCH_TARGET_PX,
-    metrics.blockWidth * renderedScale + CAPTION_TRANSFORM_BREATHING_PX
-  );
-  const height = Math.max(
-    MIN_TOUCH_TARGET_PX,
-    metrics.blockHeight * renderedScale + CAPTION_TRANSFORM_BREATHING_PX
-  );
+  const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
+  const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
   const centerX = metrics.centerX + transform.offsetXRatio * style.width;
   const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
-
-  return {
-    centerX,
-    centerY,
-    width,
-    height,
-    rotationDeg: transform.rotationDeg,
-    style: {
-      left: `${(centerX / style.width) * 100}%`,
-      top: `${(centerY / style.height) * 100}%`,
-      width: `${(width / style.width) * 100}%`,
-      height: `${(height / style.height) * 100}%`,
-      transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
-    },
-  };
+  return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
 }

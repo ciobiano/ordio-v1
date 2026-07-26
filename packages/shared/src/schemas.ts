@@ -39,6 +39,19 @@ export const BackgroundSchema = z.discriminatedUnion('type', [
     source: z.enum(['curated', 'custom']),
     assetId: z.string().min(1),
   }),
+  z.object({
+    type: z.literal('gradient'),
+    variant: z.enum(['sunset', 'electric', 'acid-signal']),
+    decoration: z.enum(['blob', 'grain', 'none']).optional(),
+  }),
+  z.object({
+    type: z.literal('image'),
+    // 'preset' resolves from CANVAS_PRESETS (packages/engine) — bundled
+    // artwork, no Convex round trip. 'custom' resolves from a Convex
+    // backgroundAssets id, same as video.
+    source: z.enum(['custom', 'preset']),
+    assetId: z.string().min(1),
+  }),
 ]);
 
 export type Background = z.infer<typeof BackgroundSchema>;
@@ -64,6 +77,25 @@ export const StyleConfigSchema = z.object({
   characterSpacing: z.number().min(-12).max(12).default(0),
   /** Line height multiplier. Values below 1 tighten the spacing between lines. */
   lineHeight: z.number().min(0.4).max(3).default(1.4),
+  /** Which caption style is active — see CAPTION_STYLE_PRESETS in @Ordio/engine. */
+  captionStyleId: z
+    .enum([
+      'word-pop',
+      'bold-outline',
+      'karaoke-chip',
+      'minimal-lower-third',
+      'big-statement',
+      'script-accent',
+    ])
+    .default('minimal-lower-third'),
+  /** Text stroke — used by styles whose preset declares a `stroke` default (e.g. bold-outline). */
+  strokeWidth: z.number().min(0).max(8).optional(),
+  strokeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /** Text glow — used by styles whose preset declares a `glow` default (e.g. script-accent). */
+  glowIntensity: z.number().min(0).max(1).optional(),
+  glowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /** Accent-word color override — used by styles whose preset declares an `accentColor` default (word-pop, big-statement). */
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;
@@ -80,3 +112,49 @@ export const ClipCandidateSchema = z.object({
 });
 
 export type ClipCandidate = z.infer<typeof ClipCandidateSchema>;
+
+/**
+ * Ordio Director's curated look-preset ids — the single source of truth,
+ * since both the LLM response schema (here) and the preset table
+ * (LOOK_PRESETS in @Ordio/engine) need the exact same id list. Engine
+ * imports this type rather than declaring its own, so a mismatched preset
+ * key fails to compile instead of silently drifting from what the schema
+ * accepts.
+ */
+export const LOOK_PRESET_IDS = [
+  'neon-pop',
+  'street-bold',
+  'sunset-karaoke',
+  'clean-minimal',
+  'bold-statement',
+  'editorial-script',
+  'warm-pop',
+  'electric-outline',
+] as const;
+export type LookPresetId = (typeof LOOK_PRESET_IDS)[number];
+
+/**
+ * Structured-output contract for /api/direct. Constrains the LLM to picking
+ * a preset id (mostly enum selection) plus small bounded overrides, rather
+ * than generating a full StyleConfig — keeps hallucination risk low while
+ * still letting each look feel tailored to the transcript. See
+ * docs/superpowers/specs/2026-07-25-ordio-director-design.md.
+ */
+export const DirectorLookResponseSchema = z.object({
+  presetId: z.enum(LOOK_PRESET_IDS),
+  overrides: z
+    .object({
+      accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    })
+    .optional(),
+  /** Index into the session's captionGroups — Director's chosen hook phrase. */
+  hookGroupIndex: z.number().int().min(0),
+});
+
+export const DirectorResponseSchema = z.object({
+  looks: z.array(DirectorLookResponseSchema).length(3),
+});
+
+export type DirectorLookResponse = z.infer<typeof DirectorLookResponseSchema>;
+export type DirectorResponse = z.infer<typeof DirectorResponseSchema>;

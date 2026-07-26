@@ -30,7 +30,6 @@ const LIVE_CAPTION_WORDS = 12;
 export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPalette }: CenterStageProps) {
   const format = useUIStore((s) => s.format);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
-  const captionMode = useUIStore((s) => s.captionMode);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const graphicStyle = useUIStore((s) => s.graphicStyle);
 
@@ -142,7 +141,6 @@ export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPal
               playback={playback}
               format={format}
               waveformStyle={waveformStyle}
-              captionMode={captionMode}
               canvasLayout={canvasLayout}
               graphicStyle={graphicStyle ?? undefined}
             />

@@ -10,11 +10,20 @@ import type {
   WaveformVariant,
   GraphicStyleId,
   CanvasLayout,
-  CaptionMode,
-  CaptionAnimation,
+  CaptionStyleId,
   FormatVariant,
   CaptionTransform,
 } from './types';
+
+/** Old CaptionMode -> new CaptionStyleId, applied once to localStorage state
+ * persisted before the caption-style redesign. See
+ * docs/superpowers/specs/2026-07-25-caption-style-redesign-design.md. */
+export const LEGACY_CAPTION_MODE_MIGRATION: Record<string, CaptionStyleId> = {
+  phrase: 'minimal-lower-third',
+  karaoke: 'karaoke-chip',
+  spotlight: 'big-statement',
+  stack: 'word-pop',
+};
 
 interface UIState {
   // Configurable / Persisted Settings
@@ -23,8 +32,6 @@ interface UIState {
   waveformStyle: WaveformVariant;
   graphicStyle: GraphicStyleId;
   canvasLayout: CanvasLayout;
-  captionMode: CaptionMode;
-  captionAnimation: CaptionAnimation;
   format: FormatVariant;
   captionTransform: CaptionTransform;
 
@@ -38,8 +45,6 @@ interface UIState {
   setWaveformStyle: (style: WaveformVariant) => void;
   setGraphicStyle: (id: GraphicStyleId) => void;
   setCanvasLayout: (layout: CanvasLayout) => void;
-  setCaptionMode: (mode: CaptionMode) => void;
-  setCaptionAnimation: (animation: CaptionAnimation) => void;
   setFormat: (format: FormatVariant) => void;
   setCaptionTransform: (transform: Partial<CaptionTransform>) => void;
   resetCaptionTransform: () => void;
@@ -60,12 +65,11 @@ const initialPersisted = {
     waveColor: '#ffffff',
     characterSpacing: 0,
     lineHeight: 1.4,
+    captionStyleId: 'minimal-lower-third' as CaptionStyleId,
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,
   canvasLayout: 'top' as CanvasLayout,
-  captionMode: 'phrase' as CaptionMode,
-  captionAnimation: 'sweep-pulse' as CaptionAnimation,
   format: 'square' as FormatVariant,
   captionTransform: {
     offsetXRatio: 0,
@@ -92,8 +96,6 @@ export const useUIStore = create<UIState>()(
       setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
       setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
       setCanvasLayout: (canvasLayout) => set({ canvasLayout }),
-      setCaptionMode: (captionMode) => set({ captionMode }),
-      setCaptionAnimation: (captionAnimation) => set({ captionAnimation }),
       setCaptionTransform: (transform) =>
         set((state) => ({
           captionTransform: {
@@ -129,15 +131,29 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'ordio-ui-preferences',
-      version: 1,
-      // v1: the 'compact' stage preset was retired (captions are freely
+      version: 2,
+      // v1: captionMode/captionAnimation replaced by style.captionStyleId (caption-style redesign).
+      // v2: the 'compact' stage preset was retired (captions are freely
       // draggable, so upper/lower cover it) — remap persisted values.
-      migrate: (persisted) => {
-        const state = persisted as { canvasLayout?: CanvasLayout } | undefined;
-        if (state?.canvasLayout === 'compact') {
-          return { ...state, canvasLayout: 'top' as CanvasLayout };
+      migrate: (persistedState, version) => {
+        let state = persistedState as Record<string, unknown> & {
+          style?: StyleConfig;
+          captionMode?: string;
+          canvasLayout?: CanvasLayout;
+        };
+
+        if (version < 1) {
+          const captionStyleId =
+            (state.captionMode && LEGACY_CAPTION_MODE_MIGRATION[state.captionMode]) ||
+            initialPersisted.style.captionStyleId;
+          state = { ...state, style: { ...(state.style ?? initialPersisted.style), captionStyleId } };
         }
-        return persisted;
+
+        if (state.canvasLayout === 'compact') {
+          state = { ...state, canvasLayout: 'top' as CanvasLayout };
+        }
+
+        return state as unknown as UIState;
       },
       partialize: (state) => ({
         theme: state.theme,
@@ -145,8 +161,6 @@ export const useUIStore = create<UIState>()(
         waveformStyle: state.waveformStyle,
         graphicStyle: state.graphicStyle,
         canvasLayout: state.canvasLayout,
-        captionMode: state.captionMode,
-        captionAnimation: state.captionAnimation,
         format: state.format,
         captionTransform: state.captionTransform,
       }),

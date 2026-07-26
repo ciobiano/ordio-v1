@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
 import type { FeatureKey } from '@/lib/featureGates'
-import type { CaptionMode, GraphicStyleId, WaveformVariant } from '@/stores'
+import type { CaptionStyleId, GraphicStyleId, WaveformVariant } from '@/stores'
+import { getCaptionStylePreset } from '@Ordio/engine'
 
 const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
@@ -25,11 +26,13 @@ const GRAPHICS_OPTIONS: { value: Exclude<GraphicStyleId, null>; label: string }[
   { value: 'graphic-frame2', label: 'Frame 2' },
 ]
 
-const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Pop' },
-  { value: 'karaoke', label: 'Lyrics', gate: 'caption_karaoke' },
-  { value: 'stack', label: 'Stack' },
-  { value: 'spotlight', label: 'Spotlight' },
+const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[] = [
+  { value: 'word-pop', label: 'Pop' },
+  { value: 'bold-outline', label: 'Outline' },
+  { value: 'karaoke-chip', label: 'Karaoke' },
+  { value: 'minimal-lower-third', label: 'Minimal' },
+  { value: 'big-statement', label: 'Statement' },
+  { value: 'script-accent', label: 'Script' },
 ]
 
 
@@ -42,14 +45,14 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
   const setWaveformStyle = useUIStore((s) => s.setWaveformStyle)
   const graphicStyle = useUIStore((s) => s.graphicStyle)
   const setGraphicStyle = useUIStore((s) => s.setGraphicStyle)
-  const captionMode = useUIStore((s) => s.captionMode)
-  const setCaptionMode = useUIStore((s) => s.setCaptionMode)
+  const captionStyleId = useUIStore((s) => s.style.captionStyleId)
+  const setStyle = useUIStore((s) => s.setStyle)
   const canvasLayout = useUIStore((s) => s.canvasLayout)
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout)
   const { isLocked } = useFeatureGates()
   const [displayOpen, setDisplayOpen] = useState(false)
   const [graphicsExpanded, setGraphicsExpanded] = useState(false)
-  const lyricsOwnsStage = captionMode === 'karaoke'
+  const lyricsOwnsStage = getCaptionStylePreset(captionStyleId).mechanic === 'static-highlight'
 
   useEffect(() => {
     if (!displayOpen) {
@@ -176,7 +179,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
         </PopoverContent>
       </Popover>
 
-      <Select value={captionMode} onValueChange={(value) => setCaptionMode(value as CaptionMode)}>
+      <Select value={captionStyleId} onValueChange={(value) => setStyle({ captionStyleId: value as CaptionStyleId })}>
         <SelectTrigger
           size="sm"
           className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"

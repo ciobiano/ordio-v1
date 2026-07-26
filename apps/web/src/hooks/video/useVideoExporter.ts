@@ -10,6 +10,7 @@ import { useUIStore, useProcessingStore } from '@/stores';
 import { encodeVideo, hasWebCodecsSupport } from '@Ordio/engine/video';
 import { encodeVideoFFmpeg } from '@Ordio/engine/video';
 import { getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
+import { loadCustomBackgroundImage, loadPresetBackgroundImage } from '@Ordio/engine/loaders/backgroundLoader';
 
 /**
  * Fetch the selected video background as a Blob for export compositing.
@@ -36,6 +37,31 @@ async function resolveBackgroundBlob(
     return await res.blob();
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    return undefined;
+  }
+}
+
+/**
+ * Load the selected image background for export compositing — a bundled
+ * canvas preset (static path) or a user's custom upload (signed Convex
+ * URL). Any failure returns undefined — export falls back to the solid
+ * color, never a broken export, same contract as resolveBackgroundBlob.
+ */
+async function resolveBackgroundImage(
+  background: Background | undefined,
+  convex: ConvexReactClient
+): Promise<HTMLImageElement | undefined> {
+  if (background?.type !== 'image') return undefined;
+  try {
+    if (background.source === 'preset') {
+      return await loadPresetBackgroundImage(background.assetId);
+    }
+    const url = await convex.query(api.backgrounds.getBackgroundUrl, {
+      assetId: background.assetId as GenericId<'backgroundAssets'>,
+    });
+    if (!url) return undefined;
+    return await loadCustomBackgroundImage(background.assetId, url);
+  } catch {
     return undefined;
   }
 }
@@ -83,13 +109,12 @@ export function useVideoExporter(): UseVideoExporterReturn {
 
         // Read current style/variant state from store
         const { transcript, captionGroups } = useProcessingStore.getState();
-        const { style, waveformStyle, captionMode, captionAnimation, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
+        const { style, waveformStyle, canvasLayout, graphicStyle, captionTransform } = useUIStore.getState();
 
-        const backgroundVideo = await resolveBackgroundBlob(
-          style.background,
-          convex,
-          abortController.signal
-        );
+        const [backgroundVideo, backgroundImage] = await Promise.all([
+          resolveBackgroundBlob(style.background, convex, abortController.signal),
+          resolveBackgroundImage(style.background, convex),
+        ]);
 
         const encode = hasWebCodecsSupport() ? encodeVideo : encodeVideoFFmpeg;
         const result = await encode({
@@ -99,13 +124,12 @@ export function useVideoExporter(): UseVideoExporterReturn {
           captionGroups,
           style,
           waveformStyle,
-          captionMode,
-          captionAnimation,
           canvasLayout,
           showWatermark,
           graphicStyle,
           captionTransform,
           backgroundVideo,
+          backgroundImage,
           onProgress: (progress) => setExportProgress(progress * 100),
           signal: abortController.signal,
         });

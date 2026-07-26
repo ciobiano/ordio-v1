@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { toast } from 'sonner';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
+import { getCaptionStylePreset } from '@Ordio/engine';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
-import type { WaveformVariant, CaptionMode, CanvasLayout, GraphicStyleId, CaptionGroup, CaptionTransform } from '@/stores';
+import type { WaveformVariant, CanvasLayout, GraphicStyleId, CaptionGroup, CaptionTransform } from '@/stores';
 import {
   measureCaptionTransformBox,
   type CaptionTransformBox,
@@ -19,14 +20,13 @@ interface UseCanvasRenderLoopArgs {
   canvasWidth: number;
   canvasHeight: number;
   waveformStyle: WaveformVariant;
-  captionMode: CaptionMode;
   canvasLayout?: CanvasLayout;
   showWatermark?: boolean;
   graphicStyle?: GraphicStyleId;
   captionGroups: CaptionGroup[];
-  captionAnimation: FrameOptions['captionAnimation'];
   captionTransform: CaptionTransform;
-  bgVideo: HTMLVideoElement | null;
+  /** Decoded video frame or custom image background — whichever is active, or null for solid/gradient. */
+  backgroundFrame: HTMLVideoElement | HTMLImageElement | null;
   /** Unused directly — forces a redraw once the selected font finishes loading. */
   fontLoaded: boolean;
 }
@@ -59,14 +59,12 @@ export function useCanvasRenderLoop({
   canvasWidth,
   canvasHeight,
   waveformStyle,
-  captionMode,
   canvasLayout,
   showWatermark,
   graphicStyle,
   captionGroups,
-  captionAnimation,
   captionTransform,
-  bgVideo,
+  backgroundFrame: bgFrame,
   fontLoaded,
 }: UseCanvasRenderLoopArgs) {
   const [captionBox, setCaptionBox] = useState<CaptionTransformBox | null>(null);
@@ -112,18 +110,17 @@ export function useCanvasRenderLoop({
         transcript,
         style: renderStyle,
         waveformStyle,
-        captionMode,
         canvasLayout,
         showWatermark,
         graphicStyle,
         captionGroups,
-        captionAnimation,
         captionTransform,
-        backgroundFrame: bgVideo ?? undefined,
+        backgroundFrame: bgFrame ?? undefined,
       };
 
       renderFrame(bufferCtx, Math.max(0, frameIndex), totalFrames, frameOptions);
-      const hasVisualZone = captionMode !== 'karaoke' && (waveformStyle !== 'none' || !!graphicStyle);
+      const takesFullScreen = getCaptionStylePreset(renderStyle.captionStyleId).mechanic === 'static-highlight';
+      const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
       const nextCaptionBox = measureCaptionTransformBox({
         ctx: bufferCtx,
         currentTime: currentTimeRef.current,
@@ -134,7 +131,6 @@ export function useCanvasRenderLoop({
         hasVisualZone,
         flipped: canvasLayout === 'flipped',
         transform: captionTransform,
-        captionMode,
       });
       setCaptionBox((prev) => (areCaptionBoxesEqual(prev, nextCaptionBox) ? prev : nextCaptionBox));
 
@@ -152,7 +148,7 @@ export function useCanvasRenderLoop({
       // canvas keeps showing whatever the last successful blit painted.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, captionMode, canvasLayout, showWatermark, graphicStyle, captionGroups, captionAnimation, captionTransform, fontLoaded, bgVideo]);
+  }, [playback.duration, transcript, style, canvasWidth, canvasHeight, waveformStyle, canvasLayout, showWatermark, graphicStyle, captionGroups, captionTransform, fontLoaded, bgFrame]);
 
   useEffect(() => {
     if (playback.isPlaying) {

@@ -12,10 +12,11 @@ import type { FeatureKey } from '@/lib/featureGates';
 import type {
   WaveformVariant,
   CanvasLayout,
-  CaptionMode,
+  CaptionStyleId,
   EnhanceTier,
   GraphicStyleId,
 } from '@/stores';
+import { getCaptionStylePreset } from '@Ordio/engine';
 
 interface RecordingSettingsSheetProps {
   isOpen: boolean;
@@ -43,11 +44,13 @@ const LAYOUT_OPTIONS: { value: CanvasLayout; label: string; gate?: FeatureKey }[
   { value: 'flipped', label: 'Lower', gate: 'layout_flipped' },
 ];
 
-const MODE_OPTIONS: { value: CaptionMode; label: string; gate?: FeatureKey }[] = [
-  { value: 'phrase', label: 'Pop' },
-  { value: 'karaoke', label: 'Lyrics', gate: 'caption_karaoke' },
-  { value: 'stack', label: 'Stack' },
-  { value: 'spotlight', label: 'Spotlight' },
+const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[] = [
+  { value: 'word-pop', label: 'Pop' },
+  { value: 'bold-outline', label: 'Outline' },
+  { value: 'karaoke-chip', label: 'Karaoke' },
+  { value: 'minimal-lower-third', label: 'Minimal' },
+  { value: 'big-statement', label: 'Statement' },
+  { value: 'script-accent', label: 'Script' },
 ];
 
 const ENHANCE_OPTIONS: { value: EnhanceTier; label: string; desc: string; gate?: FeatureKey }[] = [
@@ -116,12 +119,12 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
   const setGraphicStyle = useUIStore((s) => s.setGraphicStyle);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const setCanvasLayout = useUIStore((s) => s.setCanvasLayout);
-  const captionMode = useUIStore((s) => s.captionMode);
-  const setCaptionMode = useUIStore((s) => s.setCaptionMode);
+  const captionStyleId = useUIStore((s) => s.style.captionStyleId);
+  const setStyle = useUIStore((s) => s.setStyle);
   const enhanceTier = useProcessingStore((s) => s.enhanceTier);
   const setEnhanceTier = useProcessingStore((s) => s.setEnhanceTier);
   const { isLocked } = useFeatureGates();
-  const lyricsOwnsStage = captionMode === 'karaoke';
+  const lyricsOwnsStage = getCaptionStylePreset(captionStyleId).mechanic === 'static-highlight';
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -210,8 +213,8 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
               <p className="text-xs text-muted-foreground mt-3 mb-2">Caption</p>
               <SegmentedControl
                 options={MODE_OPTIONS}
-                value={captionMode}
-                onChange={setCaptionMode}
+                value={captionStyleId}
+                onChange={(v) => setStyle({ captionStyleId: v })}
                 onLocked={onLocked}
               />
             </section>
