@@ -7,7 +7,7 @@ import { GRADIENT_BACKGROUND_OPTIONS } from '@Ordio/engine';
 import type { GradientVariant } from '@Ordio/engine';
 
 const TILE_CLASS =
-  'relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
+  'relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
 
 /**
  * Thumbnail strip for colorful gradient backgrounds — the "Wrapped for your
@@ -33,7 +33,11 @@ export function GradientBackgroundPicker() {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-muted-foreground text-xs">Gradient background</span>
-      <div className="flex gap-2 overflow-x-auto pb-1" role="listbox" aria-label="Gradient backgrounds">
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Gradient backgrounds"
+      >
         {GRADIENT_BACKGROUND_OPTIONS.map((option) => {
           const isSelected = selected?.variant === option.variant;
           return (

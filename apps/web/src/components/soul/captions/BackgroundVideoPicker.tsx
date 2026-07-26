@@ -20,7 +20,7 @@ interface BackgroundVideoPickerProps {
 }
 
 const TILE_CLASS =
-  'relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
+  'relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
 
 /**
  * Thumbnail strip for video backgrounds: curated loops, the user's custom
@@ -111,7 +111,11 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
           <span className="text-[10px] text-white/40">Not supported on this browser</span>
         )}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1" role="listbox" aria-label="Video backgrounds">
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Video backgrounds"
+      >
         {BACKGROUND_LIBRARY.map((asset) => {
           const isSelected = selected?.source === 'curated' && selected.assetId === asset.id;
           return (

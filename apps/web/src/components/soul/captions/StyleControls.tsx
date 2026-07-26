@@ -17,6 +17,7 @@ import type { FeatureKey } from '@/lib/featureGates';
 import { BackgroundVideoPicker } from './BackgroundVideoPicker';
 import { BackgroundImagePicker } from './BackgroundImagePicker';
 import { GradientBackgroundPicker } from './GradientBackgroundPicker';
+import { CanvasPresetPicker } from './CanvasPresetPicker';
 
 const FONTS: StyleConfig['fontFamily'][] = [
   'Inter', 'Roboto', 'Outfit',
@@ -201,6 +202,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
             }
           />
           <ColorRow label="Text" value={style.textColor} onChange={(v) => setStyle({ textColor: v })} />
+          <CanvasPresetPicker />
           <GradientBackgroundPicker />
           <BackgroundVideoPicker onLocked={onLocked} />
           <BackgroundImagePicker onLocked={onLocked} />
@@ -361,7 +363,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
         </TabsTrigger>
       </TabsList>
       <div
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-0.5 pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]"
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-0.5 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tabpanel"
         aria-label={`${activeTab} style controls`}
       >

@@ -47,7 +47,7 @@ export {
 export { buildSmartSegments } from './captions/segmentation';
 
 export { BACKGROUND_LIBRARY, getCuratedBackground } from './backgrounds/backgroundLibrary';
-export { CANVAS_PRESETS, getCanvasPreset } from './backgrounds/canvasPresets';
+export { CANVAS_PRESETS, getCanvasPreset, rgbStringToHex } from './backgrounds/canvasPresets';
 export { drawGradientBackground } from './backgrounds/gradientBackground';
 export type { GradientVariant, GradientDecoration } from './backgrounds/gradientBackground';
 export {

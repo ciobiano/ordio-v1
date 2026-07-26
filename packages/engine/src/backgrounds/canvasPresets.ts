@@ -42,3 +42,18 @@ export const CANVAS_PRESETS: CanvasPreset[] = [
 export function getCanvasPreset(id: string): CanvasPreset | null {
   return CANVAS_PRESETS.find((p) => p.id === id) ?? null;
 }
+
+/** CanvasPreset.accentColor ships as 'rgb(r,g,b)' from the Figma export, but
+ * StyleConfig.accentColor requires hex — bridges the two when a preset is applied. */
+export function rgbStringToHex(rgb: string): string {
+  const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return '#FFFFFF';
+  const [, r, g, b] = match;
+  return (
+    '#' +
+    [r, g, b]
+      .map((n) => Number(n).toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+  );
+}

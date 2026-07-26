@@ -16,7 +16,7 @@ interface BackgroundImagePickerProps {
 }
 
 const TILE_CLASS =
-  'relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
+  'relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-colors duration-150';
 
 // No transcode step (unlike video) — cap matches the server's stored-size ceiling directly.
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -101,7 +101,11 @@ export function BackgroundImagePicker({ onLocked }: BackgroundImagePickerProps) 
   return (
     <div className="flex flex-col gap-2">
       <span className="text-muted-foreground text-xs">Image background</span>
-      <div className="flex gap-2 overflow-x-auto pb-1" role="listbox" aria-label="Image backgrounds">
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Image backgrounds"
+      >
         {myImages.map((asset) => {
           const isSelected = selected?.assetId === asset._id;
           return (
