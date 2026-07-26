@@ -75,9 +75,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             'line most likely to grab attention in the first half-second — usually the opener, ' +
             'but not always).\n\nPreset library:\n' +
             LOOK_PRESET_DESCRIPTIONS +
-            '\n\nOptionally override accentColor/textColor (hex) per look if the transcript ' +
-            'suggests a specific mood the preset\'s default colors don\'t capture — leave them ' +
-            'out otherwise.',
+            '\n\nEach look has an "overrides" object with accentColor and textColor (hex). ' +
+            'Set either to a hex color only if the transcript suggests a specific mood the ' +
+            'preset\'s default colors don\'t capture — otherwise set it to null.',
         },
         {
           role: 'user',
@@ -110,6 +110,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Never forward raw SDK/API error text to the client — it can include
+    // internal schema details or provider doc URLs. Full message is logged above.
+    return NextResponse.json({ error: 'Director could not generate looks right now.' }, { status: 500 });
   }
 }

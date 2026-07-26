@@ -139,7 +139,10 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
                 sizes="96px"
                 className="object-cover"
               />
-              <span className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-[9px] text-white/80 truncate">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-[9px] text-white/80 truncate"
+              >
                 {asset.label}
               </span>
             </button>

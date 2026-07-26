@@ -152,7 +152,10 @@ export function getLookPreset(id: LookPresetId): LookPreset {
 export function resolveLookStyle(
   baseStyle: StyleConfig,
   presetId: LookPresetId,
-  overrides?: { accentColor?: string; textColor?: string }
+  overrides?: { accentColor?: string | null; textColor?: string | null }
 ): StyleConfig {
-  return { ...baseStyle, ...LOOK_PRESETS[presetId].style, ...overrides };
+  const style = { ...baseStyle, ...LOOK_PRESETS[presetId].style };
+  if (overrides?.accentColor) style.accentColor = overrides.accentColor;
+  if (overrides?.textColor) style.textColor = overrides.textColor;
+  return style;
 }

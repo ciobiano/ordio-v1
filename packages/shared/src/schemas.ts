@@ -142,12 +142,15 @@ export type LookPresetId = (typeof LOOK_PRESET_IDS)[number];
  */
 export const DirectorLookResponseSchema = z.object({
   presetId: z.enum(LOOK_PRESET_IDS),
-  overrides: z
-    .object({
-      accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-      textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-    })
-    .optional(),
+  // OpenAI Structured Outputs requires every field to be present in `required`;
+  // optionality has to be expressed as `.nullable()` on each leaf, not
+  // `.optional()` on the wrapping object (nested optionals aren't supported —
+  // see https://platform.openai.com/docs/guides/structured-outputs). The model
+  // always returns this object, using null for "no override".
+  overrides: z.object({
+    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable(),
+    textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable(),
+  }),
   /** Index into the session's captionGroups — Director's chosen hook phrase. */
   hookGroupIndex: z.number().int().min(0),
 });

@@ -136,7 +136,12 @@ describe('StyleConfigSchema captionStyleId', () => {
 });
 
 function validLook(overrides: Partial<Record<string, unknown>> = {}) {
-  return { presetId: 'neon-pop', hookGroupIndex: 0, ...overrides };
+  return {
+    presetId: 'neon-pop',
+    hookGroupIndex: 0,
+    overrides: { accentColor: null, textColor: null },
+    ...overrides,
+  };
 }
 
 describe('DirectorResponseSchema', () => {
@@ -179,7 +184,7 @@ describe('DirectorResponseSchema', () => {
   it('rejects a malformed override color', () => {
     const result = DirectorResponseSchema.safeParse({
       looks: [
-        validLook({ overrides: { accentColor: 'not-a-hex-color' } }),
+        validLook({ overrides: { accentColor: 'not-a-hex-color', textColor: null } }),
         validLook({ presetId: 'street-bold' }),
         validLook({ presetId: 'warm-pop' }),
       ],

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { captureSheetSurface } from '@/lib/variants';
@@ -60,6 +60,9 @@ export function DirectorSheet({ isOpen, onClose, onLocked }: DirectorSheetProps)
         className={cn(captureSheetSurface, 'p-0 flex flex-col max-h-[70vh] overflow-hidden sm:left-1/2 sm:-translate-x-1/2 sm:max-w-[420px]')}
       >
         <DrawerTitle className="sr-only">Ordio Director</DrawerTitle>
+        <DrawerDescription className="sr-only">
+          AI-generated caption looks based on your transcript
+        </DrawerDescription>
 
         <div className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-[color:var(--sheet-bg)]">
           <div className="w-10 h-[5px] rounded-full bg-white/[0.28]" />
