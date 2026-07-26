@@ -66,3 +66,15 @@ export const FILE_ERROR_MESSAGES: Record<FileValidationError, string> = {
   too_large: 'File is too large — maximum is 50 MB',
   unsupported_format: 'Unsupported format — try MP3, M4A, WAV, WEBM, OGG, FLAC, or MP4',
 };
+
+/**
+ * The <input type="file accept="..."> string, derived from the same sets
+ * validateFile() checks — a hand-maintained duplicate of this list is what
+ * caused mp3/m4a uploads to be filtered out of the OS file picker despite
+ * validateFile() already accepting them (the wildcard `audio/*` isn't
+ * reliably matched by every browser/OS file dialog).
+ */
+export const FILE_ACCEPT_ATTRIBUTE = [
+  ...Array.from(ACCEPTED_MIME_TYPES),
+  ...Array.from(ACCEPTED_EXTENSIONS, (ext) => `.${ext}`),
+].join(',');
