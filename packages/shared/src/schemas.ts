@@ -46,9 +46,10 @@ export const BackgroundSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('image'),
-    // 'custom' only for now — no curated image library planned, but the
-    // discriminator mirrors 'video' so one could be added cheaply later.
-    source: z.literal('custom'),
+    // 'preset' resolves from CANVAS_PRESETS (packages/engine) — bundled
+    // artwork, no Convex round trip. 'custom' resolves from a Convex
+    // backgroundAssets id, same as video.
+    source: z.enum(['custom', 'preset']),
     assetId: z.string().min(1),
   }),
 ]);

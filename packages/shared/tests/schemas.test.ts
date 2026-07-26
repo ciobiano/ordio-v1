@@ -46,7 +46,16 @@ describe('BackgroundSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects an image background with a non-custom source (no curated library exists)', () => {
+  it('accepts a curated canvas-preset image background', () => {
+    const result = BackgroundSchema.safeParse({
+      type: 'image',
+      source: 'preset',
+      assetId: 'bow',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an image background with an unrecognized source', () => {
     const result = BackgroundSchema.safeParse({
       type: 'image',
       source: 'curated',

@@ -26,7 +26,13 @@ export {
 } from './media';
 
 export { loadFont, loadGraphic, getGraphic } from './loaders';
-export { loadCuratedBackground, loadCustomBackground, loadCustomBackgroundImage } from './loaders/backgroundLoader';
+export {
+  loadCuratedBackground,
+  loadCustomBackground,
+  loadCustomBackgroundImage,
+  loadPresetBackgroundImage,
+  getLoadedBackgroundImage,
+} from './loaders/backgroundLoader';
 
 export { drawPillBars, drawCircleWaveform, drawSpectrogram } from './waveforms';
 
@@ -41,6 +47,7 @@ export {
 export { buildSmartSegments } from './captions/segmentation';
 
 export { BACKGROUND_LIBRARY, getCuratedBackground } from './backgrounds/backgroundLibrary';
+export { CANVAS_PRESETS, getCanvasPreset } from './backgrounds/canvasPresets';
 export { drawGradientBackground } from './backgrounds/gradientBackground';
 export type { GradientVariant, GradientDecoration } from './backgrounds/gradientBackground';
 export {

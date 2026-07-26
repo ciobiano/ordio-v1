@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderFrame } from '@Ordio/engine/video';
 import { loadFont } from '@Ordio/engine/loaders';
+import { loadPresetBackgroundImage } from '@Ordio/engine/loaders/backgroundLoader';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS, timeToFrame } from '@Ordio/shared/time';
 import { cn } from '@/lib/utils';
@@ -31,11 +32,33 @@ export function DirectorLookCard({ look, label, isSelected, onSelect }: Director
   const waveformStyle = useUIStore((s) => s.waveformStyle);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
   const [fontLoaded, setFontLoaded] = useState(false);
+  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     setFontLoaded(false);
     void loadFont(look.style.fontFamily).then(() => setFontLoaded(true));
   }, [look.style.fontFamily]);
+
+  // Looks with a canvas-preset background carry their own artwork — renderFrame
+  // only composites a backgroundFrame it's handed, it never resolves one itself.
+  useEffect(() => {
+    const background = look.style.background;
+    if (background?.type !== 'image' || background.source !== 'preset') {
+      setBgImage(null);
+      return;
+    }
+    let cancelled = false;
+    loadPresetBackgroundImage(background.assetId)
+      .then((img) => {
+        if (!cancelled) setBgImage(img);
+      })
+      .catch(() => {
+        if (!cancelled) setBgImage(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [look.style.background]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,8 +86,9 @@ export function DirectorLookCard({ look, label, isSelected, onSelect }: Director
       waveformStyle,
       canvasLayout,
       captionGroups,
+      backgroundFrame: bgImage ?? undefined,
     });
-  }, [look, fontLoaded, transcript, captionGroups, audioBuffer, waveformStyle, canvasLayout]);
+  }, [look, fontLoaded, bgImage, transcript, captionGroups, audioBuffer, waveformStyle, canvasLayout]);
 
   return (
     <button

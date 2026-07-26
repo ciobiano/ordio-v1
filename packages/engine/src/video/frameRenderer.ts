@@ -51,6 +51,29 @@ export function coverFit(
   return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh };
 }
 
+/**
+ * Canvas-preset artwork idles with the design system's `ord-shape-drift`
+ * motion — a 9s loop rotating ±4deg and scaling ±3% (see tokens/motion.css
+ * in the Ordio Canvas Presets design system: `ease-ripple`, `dur 9s`).
+ * A sine wave approximates that cubic-bezier closely enough at this
+ * subtlety, and — unlike a CSS animation — is a pure function of
+ * currentTime, so preview and export land on the identical frame.
+ */
+const PRESET_DRIFT_PERIOD_SEC = 9;
+const PRESET_DRIFT_MAX_ROTATE_DEG = 4;
+const PRESET_DRIFT_MAX_SCALE = 0.03;
+/** Overscan so the drifted (rotated) art never reveals a canvas-color corner. */
+const PRESET_DRIFT_OVERSCAN = 1.12;
+
+function presetDriftTransform(currentTime: number): { rotate: number; scale: number } {
+  const phase = ((currentTime % PRESET_DRIFT_PERIOD_SEC) / PRESET_DRIFT_PERIOD_SEC) * Math.PI * 2;
+  const wave = Math.sin(phase);
+  return {
+    rotate: (PRESET_DRIFT_MAX_ROTATE_DEG * wave * Math.PI) / 180,
+    scale: 1 + PRESET_DRIFT_MAX_SCALE * wave,
+  };
+}
+
 function sourceDimensions(
   frame: CanvasImageSource & { width?: number; height?: number }
 ): { w: number; h: number } {
@@ -96,8 +119,21 @@ export function renderFrame(
   if (backgroundFrame) {
     const { w: srcW, h: srcH } = sourceDimensions(backgroundFrame);
     if (srcW > 0 && srcH > 0) {
-      const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
-      ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+      const isPreset = style.background?.type === 'image' && style.background.source === 'preset';
+      if (isPreset) {
+        const { dx, dy, dw, dh } = coverFit(srcW, srcH, width * PRESET_DRIFT_OVERSCAN, height * PRESET_DRIFT_OVERSCAN);
+        const { rotate, scale } = presetDriftTransform(currentTime);
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(rotate);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        ctx.drawImage(backgroundFrame, dx - (width * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dy - (height * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dw, dh);
+        ctx.restore();
+      } else {
+        const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
+        ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+      }
       ctx.fillStyle = `rgba(0, 0, 0, ${BACKGROUND_SCRIM_ALPHA})`;
       ctx.fillRect(0, 0, width, height);
     } else {

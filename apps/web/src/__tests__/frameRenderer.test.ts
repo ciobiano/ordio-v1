@@ -84,6 +84,63 @@ describe('renderFrame', () => {
     expect(firstFillRect?.args).toEqual([0, 0, 1080, 1920]);
   });
 
+  it('applies the shape-drift transform for a preset-image background but not a custom one', () => {
+    // Caption mechanics (wordSwap/phraseCut/staticHighlight) also call ctx.rotate() for their
+    // own word-tilt effect, so a bare "was rotate called" assertion can't isolate the
+    // background-drift transform — compare call counts between preset and custom instead,
+    // holding everything else (captions, layout, time) identical.
+    const runWithSource = (source: 'preset' | 'custom') => {
+      const ctx = createMockCtx();
+      const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+        .__calls;
+      const fakeImage = { width: 1227, height: 1228 } as unknown as HTMLImageElement;
+      renderFrame(
+        ctx,
+        30,
+        90,
+        makeOptions({
+          style: {
+            ...defaultStyle,
+            background:
+              source === 'preset'
+                ? { type: 'image', source: 'preset', assetId: 'bow' }
+                : { type: 'image', source: 'custom', assetId: 'abc123' },
+          },
+          backgroundFrame: fakeImage,
+        })
+      );
+      return calls.filter((c) => c.method === 'rotate').length;
+    };
+
+    const presetRotateCount = runWithSource('preset');
+    const customRotateCount = runWithSource('custom');
+
+    expect(presetRotateCount).toBe(customRotateCount + 1);
+  });
+
+  it('wraps the preset drift transform in save/restore', () => {
+    const ctx = createMockCtx();
+    const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+      .__calls;
+    const fakeImage = { width: 1227, height: 1228 } as unknown as HTMLImageElement;
+
+    renderFrame(
+      ctx,
+      30,
+      90,
+      makeOptions({
+        style: {
+          ...defaultStyle,
+          background: { type: 'image', source: 'preset', assetId: 'bow' },
+        },
+        backgroundFrame: fakeImage,
+      })
+    );
+
+    expect(calls.some((c) => c.method === 'save')).toBe(true);
+    expect(calls.some((c) => c.method === 'restore')).toBe(true);
+  });
+
   it('renders without crashing for all waveform variants', () => {
     const variants = ['bars', 'spectrogram', 'circle'] as const;
     for (const variant of variants) {

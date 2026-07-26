@@ -10,7 +10,7 @@ import { useUIStore, useProcessingStore } from '@/stores';
 import { encodeVideo, hasWebCodecsSupport } from '@Ordio/engine/video';
 import { encodeVideoFFmpeg } from '@Ordio/engine/video';
 import { getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
-import { loadCustomBackgroundImage } from '@Ordio/engine/loaders/backgroundLoader';
+import { loadCustomBackgroundImage, loadPresetBackgroundImage } from '@Ordio/engine/loaders/backgroundLoader';
 
 /**
  * Fetch the selected video background as a Blob for export compositing.
@@ -42,10 +42,10 @@ async function resolveBackgroundBlob(
 }
 
 /**
- * Load the selected custom image background for export compositing. No
- * curated image library exists, so 'custom' is the only source. Any failure
- * returns undefined — export falls back to the solid color, never a broken
- * export, same contract as resolveBackgroundBlob.
+ * Load the selected image background for export compositing — a bundled
+ * canvas preset (static path) or a user's custom upload (signed Convex
+ * URL). Any failure returns undefined — export falls back to the solid
+ * color, never a broken export, same contract as resolveBackgroundBlob.
  */
 async function resolveBackgroundImage(
   background: Background | undefined,
@@ -53,6 +53,9 @@ async function resolveBackgroundImage(
 ): Promise<HTMLImageElement | undefined> {
   if (background?.type !== 'image') return undefined;
   try {
+    if (background.source === 'preset') {
+      return await loadPresetBackgroundImage(background.assetId);
+    }
     const url = await convex.query(api.backgrounds.getBackgroundUrl, {
       assetId: background.assetId as GenericId<'backgroundAssets'>,
     });

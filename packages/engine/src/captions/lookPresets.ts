@@ -1,6 +1,35 @@
 import type { StyleConfig, LookPresetId } from '@Ordio/shared/schemas';
+import { CANVAS_PRESETS } from '../backgrounds/canvasPresets';
 
 export type { LookPresetId };
+
+/**
+ * Maps each non-solid look to one of the 20 canvas-preset artworks (see
+ * packages/engine/src/backgrounds/canvasPresets.ts). This is a taste call —
+ * which flat geometric composition reads as "neon", "sunset", "electric" —
+ * not a mechanical one. First pass below picks by matching each look's own
+ * waveColor accent to a preset's palette; swap any of these for a different
+ * preset id freely, nothing else depends on which one is chosen.
+ */
+const LOOK_CANVAS_PRESET: Record<
+  'neon-pop' | 'sunset-karaoke' | 'bold-statement' | 'warm-pop' | 'electric-outline',
+  string
+> = {
+  'neon-pop': 'bow', // pale acid-yellow rainbow — matches waveColor #c6ff3d
+  'sunset-karaoke': 'rise', // bright orange — matches waveColor #FF8A4A
+  'bold-statement': 'reveal', // cobalt blue — matches waveColor #4D7CFF
+  'warm-pop': 'zip', // magenta — matches waveColor #FF2E7E
+  'electric-outline': 'tamber', // cyan/teal — matches waveColor #00D4FF
+};
+
+for (const [look, presetId] of Object.entries(LOOK_CANVAS_PRESET)) {
+  if (!presetId) {
+    throw new Error(`LOOK_CANVAS_PRESET['${look}'] is unset — pick a canvas preset id in lookPresets.ts`);
+  }
+  if (!CANVAS_PRESETS.some((p) => p.id === presetId)) {
+    throw new Error(`LOOK_CANVAS_PRESET['${look}'] references unknown preset id "${presetId}"`);
+  }
+}
 
 /**
  * Ordio Director's curated look library — 8 hand-tuned StyleConfig bundles,
@@ -29,7 +58,7 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       textColor: '#ffffff',
       waveColor: '#c6ff3d',
       backgroundColor: '#0a0b0a',
-      background: { type: 'gradient', variant: 'acid-signal', decoration: 'grain' },
+      background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['neon-pop'] },
     },
   },
   'street-bold': {
@@ -51,7 +80,7 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       textColor: '#ffffff',
       waveColor: '#FF8A4A',
       backgroundColor: '#1a0a12',
-      background: { type: 'gradient', variant: 'sunset', decoration: 'blob' },
+      background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['sunset-karaoke'] },
     },
   },
   'clean-minimal': {
@@ -73,7 +102,7 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       textColor: '#ffffff',
       waveColor: '#4D7CFF',
       backgroundColor: '#05060f',
-      background: { type: 'gradient', variant: 'electric', decoration: 'blob' },
+      background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['bold-statement'] },
     },
   },
   'editorial-script': {
@@ -95,7 +124,7 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       textColor: '#ffffff',
       waveColor: '#FF2E7E',
       backgroundColor: '#1a0a12',
-      background: { type: 'gradient', variant: 'sunset', decoration: 'grain' },
+      background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['warm-pop'] },
     },
   },
   'electric-outline': {
@@ -106,7 +135,7 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       textColor: '#ffffff',
       waveColor: '#00D4FF',
       backgroundColor: '#05060f',
-      background: { type: 'gradient', variant: 'electric', decoration: 'grain' },
+      background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['electric-outline'] },
     },
   },
 };
