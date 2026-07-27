@@ -308,8 +308,11 @@ export const acidCta = cva(
  */
 /**
  * Onboarding auth tray buttons (mobile sign-up screen + desktop auth modal).
- * `apple` gets Apple's mandated light pill per HIG; the rest sit on the acid
+ * `apple` gets Apple's mandated light pill per HIG; `google` sits on the acid
  * dark surface system so the tray matches the desktop studio's palette.
+ * These are the only two full-weight buttons — email sign-up/login is a
+ * single tertiary link (see `authTrayLink`) so the tray reads as "one
+ * decision, two ways" instead of a four-item menu.
  */
 export const authTrayBtn = cva(
   'h-15.5 rounded-2xl flex items-center justify-center font-black text-[17px] ' +
@@ -319,13 +322,22 @@ export const authTrayBtn = cva(
       variant: {
         apple: 'bg-white text-acid-bg-base',
         google: 'bg-acid-surface-3 text-acid-text-1',
-        signup: 'bg-acid-surface-3 text-acid-text-1',
-        login: 'bg-transparent border border-acid-border-default text-acid-text-1',
       },
     },
-    defaultVariants: { variant: 'signup' },
+    defaultVariants: { variant: 'google' },
   }
 );
+
+/**
+ * Tertiary "continue with email" link beneath the auth tray buttons —
+ * opens the same Clerk sign-up modal, which already offers its own
+ * "already have an account? Sign in" link, so this single entry point
+ * covers both new and returning users.
+ */
+export const authTrayLink =
+  'h-11 flex items-center justify-center font-acid-body font-medium ' +
+  'text-acid-label text-acid-text-2 cursor-pointer transition-colors ' +
+  'duration-[var(--acid-duration-micro)] hover:text-acid-text-1';
 
 export const acidPill = cva(
   'flex-1 text-center font-acid-body font-medium ' +

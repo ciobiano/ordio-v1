@@ -23,16 +23,10 @@ describe('OnboardingAuthTray', () => {
     vi.clearAllMocks();
   });
 
-  it('calls openSignUp for Sign up', () => {
+  it('calls openSignUp for Continue with email', () => {
     const { getByRole } = render(<OnboardingAuthTray redirectUrlComplete="/create" />);
-    fireEvent.click(getByRole('button', { name: 'Sign up' }));
+    fireEvent.click(getByRole('button', { name: 'Continue with email' }));
     expect(openSignUp).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls openSignIn for Log in', () => {
-    const { getByRole } = render(<OnboardingAuthTray redirectUrlComplete="/create" />);
-    fireEvent.click(getByRole('button', { name: 'Log in' }));
-    expect(openSignIn).toHaveBeenCalledTimes(1);
   });
 
   it('starts an Apple OAuth redirect with the given completion URL', () => {

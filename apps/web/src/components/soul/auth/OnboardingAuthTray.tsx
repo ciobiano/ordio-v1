@@ -7,7 +7,7 @@ import { useClerk } from '@clerk/nextjs';
 // authenticateWithRedirect the way this custom flow needs.
 import { useSignUp } from '@clerk/nextjs/legacy';
 import { toast } from 'sonner';
-import { authTrayBtn } from '@/lib/variants';
+import { authTrayBtn, authTrayLink } from '@/lib/variants';
 
 type OAuthStrategy = 'oauth_apple' | 'oauth_google';
 
@@ -18,12 +18,14 @@ interface OnboardingAuthTrayProps {
 }
 
 /**
- * The four sign-up entry points from the onboarding design (Apple, Google,
- * email sign-up, log in) — shared by the mobile onboarding screen and the
- * desktop studio auth modal so both stay wired identically.
+ * The onboarding entry points (Apple, Google, email) — shared by the mobile
+ * onboarding screen and the desktop studio auth modal so both stay wired
+ * identically. Email sign-up and log-in collapse into one "Continue with
+ * email" link since Clerk's sign-up modal already offers a way to switch to
+ * signing in.
  */
 export function OnboardingAuthTray({ redirectUrlComplete, className }: OnboardingAuthTrayProps) {
-  const { openSignUp, openSignIn } = useClerk();
+  const { openSignUp } = useClerk();
   const { isLoaded, signUp } = useSignUp();
 
   const handleOAuth = useCallback(
@@ -50,11 +52,8 @@ export function OnboardingAuthTray({ redirectUrlComplete, className }: Onboardin
       <button type="button" className={authTrayBtn({ variant: 'google' })} onClick={() => handleOAuth('oauth_google')}>
         Continue with Google
       </button>
-      <button type="button" className={authTrayBtn({ variant: 'signup' })} onClick={() => openSignUp()}>
-        Sign up
-      </button>
-      <button type="button" className={authTrayBtn({ variant: 'login' })} onClick={() => openSignIn()}>
-        Log in
+      <button type="button" className={authTrayLink} onClick={() => openSignUp()}>
+        Continue with email
       </button>
     </div>
   );
