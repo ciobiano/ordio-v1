@@ -14,18 +14,16 @@ import { useTypewriter } from '@/hooks/useTypewriter';
 import type { Mock } from 'vitest';
 
 describe('OnboardingScreen', () => {
-  it('renders the currently typed phrase without the audio icon mid-type', () => {
+  it('renders the currently typed phrase', () => {
     (useTypewriter as Mock).mockReturnValue({ text: "Let's rec", isPhraseComplete: false });
-    const { getByText, container } = render(<OnboardingScreen />);
+    const { getByText } = render(<OnboardingScreen />);
     expect(getByText("Let's rec")).toBeInTheDocument();
-    // Audio icon only reveals once the phrase finishes typing
-    expect(container.querySelector('.audio-orb-icon')).not.toBeInTheDocument();
   });
 
-  it('reveals the audio orb icon once the phrase finishes typing', () => {
-    (useTypewriter as Mock).mockReturnValue({ text: "Let's record", isPhraseComplete: true });
-    const { container } = render(<OnboardingScreen />);
-    expect(container.querySelector('.audio-orb-icon')).toBeInTheDocument();
+  it('keeps the pitch eyebrow visible while the headline cycles', () => {
+    (useTypewriter as Mock).mockReturnValue({ text: 'Post your voice', isPhraseComplete: true });
+    const { getByText } = render(<OnboardingScreen />);
+    expect(getByText(/record\. transcribe\. share\./i)).toBeInTheDocument();
   });
 
   it('renders the auth tray', () => {

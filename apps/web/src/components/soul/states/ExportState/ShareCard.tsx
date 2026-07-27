@@ -51,17 +51,17 @@ export function ShareCard({ headline, durationSeconds, waveformData, variant, us
     <div className={shareCard({ variant })}>
       <div className="relative z-10 flex h-full flex-col justify-between p-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 font-acid-display font-semibold text-[15px] tracking-[-0.01em]">
+          <div className="flex items-center gap-2 font-acid-display font-semibold text-card-title">
             <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[7px] bg-black/22">
               <span className="block h-[9px] w-[9px] rounded-[3px] bg-current" />
             </span>
             Ordio
           </div>
-          <span className="rounded-full bg-black/22 px-3.5 py-2 text-[12px] font-bold">Share ↗</span>
+          <span className="rounded-full bg-black/22 px-3.5 py-2 text-card-meta font-bold">Share ↗</span>
         </div>
 
         <div className="flex flex-col gap-5">
-          <p className={`${shareCardHeadline({ variant })} text-[34px] leading-[1.02] tracking-[-0.025em]`}>
+          <p className={`${shareCardHeadline({ variant })} text-card-headline`}>
             {headline}
           </p>
           <div className="flex h-16 items-center gap-[3px]" role="img" aria-label="Waveform preview">
@@ -77,12 +77,12 @@ export function ShareCard({ headline, durationSeconds, waveformData, variant, us
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/25 font-acid-display font-semibold text-[16px]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/25 font-acid-display font-semibold text-card-title">
               {(username ?? 'you').charAt(0).toUpperCase()}
             </span>
             <div>
-              <div className="font-acid-body font-bold text-[15px] leading-[1.1]">@{username ?? 'you'}</div>
-              <div className="font-acid-body text-[12px] opacity-70 tabular-nums">
+              <div className="font-acid-body font-bold text-card-title">@{username ?? 'you'}</div>
+              <div className="font-acid-body text-card-meta opacity-70 tabular-nums">
                 {formatDuration(durationSeconds)} · Voice note
               </div>
             </div>

@@ -29,7 +29,92 @@ No purple gradients. No blue-to-purple color schemes. No decorative shadows.
 
 ## Typography
 
-Tailwind scale used throughout — do not use arbitrary `text-[Npx]` values.
+**Acid system (bold-consumer UI, e.g. Share Card): Nunito, one family for display + body.**
+Loaded via `next/font/google` in `layout.tsx` as `--font-acid-nunito` (weights 400–900),
+wired to `--acid-font-display` / `--acid-font-body` in `globals.css`. Weight carries the
+display/body distinction (`font-semibold`/`font-black` for hero type, `font-medium`/`font-normal`
+for body) rather than a second family.
+
+*Why Nunito:* the brand target is "Spotify Wrapped energy, Duolingo confidence" (see
+`memory/feedback_ordio_bold_consumer_aesthetic.md`). Neither Spotify Circular nor Duolingo
+Feather Bold is licensable — both are bespoke, commissioned faces. Duolingo's own brand
+guidelines name **Nunito** as the substitute font for anyone without access to Feather Bold,
+so this is a documented register match, not a guess. Tradeoff: it's also the most-used
+rounded Google Font of the last decade — reads as "friendly Google Font" before it reads as
+"Ordio." Decided 2026-07-27, see `memory/project_typography_review_2026-07.md` for the full
+comparison (Cabinet Grotesk, Plus Jakarta Sans, Fraunces, PP Right Grotesk were the other
+candidates considered).
+
+Retired: Clash Grotesk + Satoshi (previous Acid pairing — well-executed but became the most
+commonly cloned "trendy startup" font of 2023–2025, cutting against the no-slop rule).
+HelveticaNeueCyr and TrendSansOne were also removed — verified zero consumers in the codebase.
+
+**Caption/export engine is a separate system and unaffected.** `packages/engine/src/loaders/fontLoader.ts`
+loads caption fonts (Geist, Inter, Roboto, Outfit, Poppins, Montserrat, Space Grotesk, DM Sans,
+Playfair Display, Lora) dynamically from Google Fonts or `/fonts/Geist-Regular.woff2` at render
+time — it never touched the removed font files.
+
+### The scale — size, leading and tracking are one triple
+
+Every role binds all three. They are defined in `globals.css` and exposed through
+Tailwind v4's `--text-{name}--line-height` / `--letter-spacing` modifiers, so a single
+`text-acid-*` class applies the whole triple. **Never add a separate `leading-*` or
+`tracking-*` next to one** — that decouples the pair and is what the old system did wrong.
+
+Tracking follows the **inverse-size rule**: large type reads loose at default spacing,
+small type reads cramped. Reference anchor is M3/Roboto (−0.025em at 57px display, 0 at
+body, +0.05em at 12px label), then calibrated for Nunito — its rounded terminals carry more
+optical whitespace than a flat-terminal grotesque, so display roles run ~0.01em tighter than
+the Roboto reference; its large x-height (~0.49em) also tolerates tighter leading.
+
+| Role | Size | Leading | Tracking | Use |
+|------|------|---------|----------|-----|
+| `text-acid-stat` | 48→88px | 0.95 | −0.02em | Wrapped-style numerals |
+| `text-acid-display` | 40→72px | 1.0 | −0.035em | One hero line per screen |
+| `text-acid-title` | 28→40px | 1.08 | −0.025em | Section openers |
+| `text-acid-headline` | 22→26px | 1.25 | −0.015em | Card / group headers |
+| `text-acid-body` | 15→17px | 1.55 | 0 | Reading default |
+| `text-acid-label` | 13→14px | 1.4 | +0.005em | Controls, pills, buttons |
+| `text-acid-caption` | 12→13px | 1.45 | +0.01em | Meta, timestamps |
+| `text-acid-footnote` | 11→12px | 1.4 | +0.02em | Smallest role |
+| `text-acid-eyebrow` | 13→14px | 1.2 | +0.14em | All-caps micro-label |
+
+Two roles break the size-driven curve on purpose:
+- **Eyebrow** — all-caps has no ascender/descender variation to separate glyphs, so its
+  tracking is driven by *casing*, not size (general rule is 0.05–0.1em; 0.14em here is a
+  deliberate brand choice, louder than default).
+- **Stat** — digits are uniform-width with none of the awkward pairs that drive negative
+  tracking in text, so numerals run looser than a letter role at the same size.
+
+### Card scale — fixed-composition artifacts
+
+The Share Card is a locked 9:16 export whose internal proportions must survive rendering at
+any display size, so it uses **fixed px, not `clamp()`** — viewport-relative type would let
+the composition drift. Same tracking curve, anchored to the card instead of the viewport.
+
+| Role | Size | Leading | Tracking |
+|------|------|---------|----------|
+| `text-card-headline` | 34px | 1.02 | −0.025em |
+| `text-card-title` | 15px | 1.2 | −0.01em |
+| `text-card-meta` | 12px | 1.35 | +0.01em |
+
+### Kerning
+
+`font-kerning: normal` is set on `body`. Browsers disable a font's own kern pairs at small
+sizes under the default `auto`; forcing `normal` applies them at every size, which is what
+fixes gappy pairs (Va, To, Ay, LT). `font-variant-ligatures: common-ligatures contextual`
+is set alongside it.
+
+Deliberately **not** using `text-rendering: optimizeLegibility` — it buys the same kerning
+at the cost of known layout-jank and dropped-text bugs on long documents.
+
+### Units
+
+- **Tracking in `em`** — stays proportional across each `clamp()` range. Never `px`.
+- **Leading unitless** — nested elements inherit a *ratio*; a `px` value would lock children
+  to the parent's line box.
+
+Tailwind scale used throughout for non-Acid chrome — do not use arbitrary `text-[Npx]` values.
 
 | Role       | Class             | Usage                          |
 |------------|-------------------|--------------------------------|
@@ -57,11 +142,6 @@ Target a clean, Apple-app like look for iOS devices.
   - Border radii: 14-20px for surfaces
   - CTA: white background, black text, radius 14px
 - Motion: subtle, no parallax; prefer fade/slide with quick durations (200-300ms)
-- Fonts: Use two fonts from Designer Pack: Poppins for headings and HelveticaNeueCyr for body. Copy the actual font files to assets/fonts and register with @font-face. Then update typography tokens:
-- Heading font-family: 'Poppins', ui-sans-serif, system-ui
-- Body font-family: 'HelveticaNeueCyr', ui-sans-serif, system-ui
-- Ensure font files are loaded locally and included in the build.
-- If you can't provide the actual font files yet, wire the CSS tokens now and drop the real font files later.
 - Accessibility: ensure accessible contrast, large tap targets, proper focus ring
 
 ---

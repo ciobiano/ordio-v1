@@ -198,40 +198,72 @@ export const brandBorder = cva('', {
  * ───────────────────────────────────────────────────────────── */
 
 /**
- * Acid heading — Clash Grotesk display scale. Expressive hero type.
+ * Acid heading — Nunito display scale. Expressive hero type.
+ *
+ * Each `text-acid-*` token carries its own leading and tracking (defined in
+ * globals.css via Tailwind v4's `--text-*--line-height` / `--letter-spacing`),
+ * so size/leading/tracking always move together as one triple. Never add a
+ * separate `leading-*` or `tracking-*` next to these — it decouples the pair.
  */
 export const acidHeading = cva('font-acid-display font-semibold', {
   variants: {
     level: {
-      display: 'text-[length:var(--acid-text-display)] leading-[0.98] tracking-[-0.03em]',
-      title: 'text-[length:var(--acid-text-title)] leading-[1.02] tracking-[-0.02em]',
-      headline: 'text-[length:var(--acid-text-headline)] leading-[1.15] tracking-[-0.01em]',
+      display: 'text-acid-display',
+      title: 'text-acid-title',
+      headline: 'text-acid-headline',
     },
   },
   defaultVariants: { level: 'title' },
 });
 
 /**
- * Acid body — Satoshi. Friendly, readable, used for descriptions/controls.
+ * Acid body — Nunito. Friendly, readable, used for descriptions/controls.
  */
-export const acidBody = cva('font-acid-body leading-[1.5]', {
+export const acidBody = cva('font-acid-body', {
   variants: {
     size: {
-      lg: 'text-[length:var(--acid-text-body)] font-medium',
-      default: 'text-[length:var(--acid-text-body)]',
-      caption: 'text-[length:var(--acid-text-caption)]',
-      footnote: 'text-[length:var(--acid-text-footnote)] tabular-nums',
+      lg: 'text-acid-body font-medium',
+      default: 'text-acid-body',
+      caption: 'text-acid-caption',
+      footnote: 'text-acid-footnote tabular-nums',
     },
   },
   defaultVariants: { size: 'default' },
 });
 
 /**
+ * Acid stat — the big Wrapped-style numeral ("12,483 clips exported").
+ *
+ * The size/leading/tracking triple already comes from `text-acid-stat`
+ * (globals.css). What's left is the typographic treatment of the digits
+ * themselves, which is a separate decision from the scale.
+ */
+export const acidStat = cva('font-acid-display text-acid-stat tabular-nums', {
+  variants: {
+    /**
+     * `tabular-nums` is on the base, not a variant: these figures count up
+     * on reveal, and proportional digits re-flow the line on every tick.
+     * The spacing cost (a lone `1` sitting in a wide box) is worth not
+     * having the layout jitter.
+     */
+    context: {
+      /** Hero recap figure — the one big number on a screen. */
+      hero: 'font-black',
+      /** Inline card metric — sits next to other content, not alone. */
+      inline: 'font-extrabold',
+    },
+  },
+  defaultVariants: { context: 'hero' },
+});
+
+/**
  * Acid eyebrow — punchy uppercase label, replaces the old monospace eyebrow.
+ * Uses the label size but the eyebrow's own tracking: all-caps has no
+ * ascender/descender variation to separate glyphs, so its spacing is driven
+ * by casing rather than size.
  */
 export const acidEyebrow =
-  'font-acid-body font-black text-[length:var(--acid-text-label)] ' +
-  'tracking-[0.14em] uppercase text-acid-text-3';
+  'font-acid-body font-black text-acid-eyebrow uppercase text-acid-text-3';
 
 /**
  * Acid surface — elevation-ladder card/panel container.
@@ -263,8 +295,8 @@ export const acidCta = cva(
   {
     variants: {
       size: {
-        default: 'h-14 px-8 text-[length:var(--acid-text-body)]',
-        sm: 'h-11 px-5 text-[length:var(--acid-text-label)]',
+        default: 'h-14 px-8 text-acid-body',
+        sm: 'h-11 px-5 text-acid-label',
       },
     },
     defaultVariants: { size: 'default' },
@@ -297,7 +329,7 @@ export const authTrayBtn = cva(
 
 export const acidPill = cva(
   'flex-1 text-center font-acid-body font-medium ' +
-  'text-[length:var(--acid-text-label)] rounded-acid-md py-2.5 ' +
+  'text-acid-label rounded-acid-md py-2.5 ' +
   'transition-colors duration-[var(--acid-duration-micro)] cursor-pointer select-none',
   {
     variants: {
