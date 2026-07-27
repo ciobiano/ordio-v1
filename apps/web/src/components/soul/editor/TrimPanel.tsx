@@ -211,8 +211,7 @@ export function TrimPanel({
                       : 'bg-muted text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  {formatTimestamp(region.start)}–{formatTimestamp(region.end)} ·{' '}
-                  {region.duration.toFixed(1)}s
+                  {formatTimestamp(region.start)} · {region.duration.toFixed(1)}s
                 </Button>
               );
             })}

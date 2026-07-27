@@ -48,13 +48,19 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
 
   useCaptionEditorShortcuts({ clearSelection, undoCaptions, redoCaptions });
 
+  const activeGroupIndex = useMemo(
+    () => captionGroups.findIndex((group) => currentTime >= group.start && currentTime < group.end),
+    [captionGroups, currentTime]
+  );
+
+  // Depend on the resolved index, not `captionGroups`/`currentTime` directly —
+  // those can get a new reference/value on incidental re-renders without the
+  // active caption actually changing, which was re-firing scrollIntoView and
+  // yanking the list back to the playhead out from under a manual scroll.
   useEffect(() => {
-    const activeIndex = captionGroups.findIndex(
-      (group) => currentTime >= group.start && currentTime < group.end
-    );
-    if (activeIndex < 0) return;
-    groupRefs.current.get(activeIndex)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [captionGroups, currentTime]);
+    if (activeGroupIndex < 0) return;
+    groupRefs.current.get(activeGroupIndex)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeGroupIndex]);
 
   useEffect(() => {
     setCursorPosition(null);
