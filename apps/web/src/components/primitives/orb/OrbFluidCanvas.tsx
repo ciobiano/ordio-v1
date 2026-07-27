@@ -129,6 +129,15 @@ function targetIntensityForPhase(phase: OrbPhase) {
   return 0.85; // speaking
 }
 
+// How much faster the smoke's internal clock runs per phase, on top of the
+// existing intensity-driven speed. Idle reads 2x faster, speaking 3x faster;
+// listening/thinking are untouched (1x) unless asked to tune separately.
+function speedMultiplierForPhase(phase: OrbPhase) {
+  if (phase === 'idle') return 2;
+  if (phase === 'speaking') return 3;
+  return 1;
+}
+
 export default function OrbFluidCanvas({ phase, intensity, isSpeaking }: OrbFluidCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -154,6 +163,7 @@ export default function OrbFluidCanvas({ phase, intensity, isSpeaking }: OrbFlui
     startRef.current = performance.now();
 
     const vel = [0, 0];
+    const currentSpeedMul = { current: 1 };
 
     const paint = (t: number, intensityNow: number) => {
       const imgData = imgDataRef.current;
@@ -246,7 +256,9 @@ export default function OrbFluidCanvas({ phase, intensity, isSpeaking }: OrbFlui
       const target =
         Math.max(targetIntensityForPhase(phaseRef.current) * 0.4, intensityRef.current) + speakingBoost;
       currentIntensity.current += (target - currentIntensity.current) * 0.06;
-      paint(t * (0.35 + currentIntensity.current * 0.5), currentIntensity.current);
+      currentSpeedMul.current +=
+        (speedMultiplierForPhase(phaseRef.current) - currentSpeedMul.current) * 0.06;
+      paint(t * currentSpeedMul.current * (0.35 + currentIntensity.current * 0.5), currentIntensity.current);
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);

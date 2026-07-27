@@ -8,6 +8,16 @@ import type { ChangeEvent, RefObject } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import type { FeatureKey } from '@/lib/featureGates';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
 import { CaptureDock } from './CaptureDock';
@@ -81,6 +91,11 @@ export function CaptureScreen({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
+  // Restart and cancel both discard whatever's been captured so far — gated behind
+  // a confirm (matching CaptureSidebar's delete-recording flow) instead of firing
+  // on a single tap. Lives here, not in CaptureDock, so the header's back arrow
+  // (a second entry point to the same cancel action) goes through the same gate.
+  const [pendingAction, setPendingAction] = useState<'restart' | 'cancel' | null>(null);
   const { trigger } = useHaptics();
 
   const pressActiveRef = useRef(false);
@@ -156,9 +171,14 @@ export function CaptureScreen({
     onCancel();
   }, [onCancel, trigger]);
 
-  const handleBack = useCallback(() => {
-    handleCancel();
-  }, [handleCancel]);
+  const requestRestart = useCallback(() => setPendingAction('restart'), []);
+  const requestCancel = useCallback(() => setPendingAction('cancel'), []);
+
+  const confirmPendingAction = useCallback(() => {
+    if (pendingAction === 'restart') handleRestart();
+    else if (pendingAction === 'cancel') handleCancel();
+    setPendingAction(null);
+  }, [pendingAction, handleRestart, handleCancel]);
 
   const closeFiles = useCallback(() => setFilesOpen(false), []);
 
@@ -186,7 +206,6 @@ export function CaptureScreen({
       <div className="absolute inset-y-0 left-0 z-1 bg-[color:var(--sheet-bg)]" style={{ width: revealPx }}>
         <CaptureSidebar
           onOpenUpload={() => setUploadOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
           onClose={closeFiles}
         />
       </div>
@@ -230,13 +249,14 @@ export function CaptureScreen({
           />
         )}
 
-        <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={handleBack} />
+        <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={requestCancel} />
 
         <CaptureStage
           phase={phase}
           audioLevel={audioLevel}
           isSpeaking={isSpeaking}
-          liveCaptionText={[...committedCaptionLines, interimCaptionText].join(' ').trim()}
+          committedCaptionLines={committedCaptionLines}
+          interimCaptionText={interimCaptionText}
           // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
           // itself is a no-op here since pointerdown/pointerup already handle start/finish.
           onOrbClick={() => {}}
@@ -255,13 +275,39 @@ export function CaptureScreen({
           onProcess={handleProcess}
           onPause={handlePause}
           onResume={handleResume}
-          onRestart={handleRestart}
-          onCancel={handleCancel}
+          onRestart={requestRestart}
+          onCancel={requestCancel}
         />
 
         <UploadActionSheet isOpen={uploadOpen} onClose={() => setUploadOpen(false)} fileInputRef={fileInputRef} />
 
         <RecordingSettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLocked={onLocked} />
+
+        <AlertDialog open={pendingAction !== null} onOpenChange={(open) => !open && setPendingAction(null)}>
+          <AlertDialogContent className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white">
+            <AlertDialogHeader className="place-items-start text-left">
+              <AlertDialogTitle className="text-white">
+                {pendingAction === 'restart' ? 'Restart recording?' : 'Discard recording?'}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-white/55">
+                {pendingAction === 'restart'
+                  ? 'This take will be discarded and you’ll start over.'
+                  : 'This recording will be lost.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmPendingAction}
+                className="rounded-2xl bg-[#ff453a] text-white hover:bg-[#ff453a]/90"
+              >
+                {pendingAction === 'restart' ? 'Restart' : 'Discard'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <input
           ref={fileInputRef}

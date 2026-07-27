@@ -110,12 +110,9 @@ export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-c
     tone: {
       neutral: `${captureGlossyBtn}`,
       primary: 'border-none cursor-pointer text-acid-on-accent bg-acid-accent',
-      warning:
-        'border-none cursor-pointer text-acid-warning bg-acid-warning/16 border border-acid-warning/50',
-      success:
-        'border-none cursor-pointer text-acid-success bg-acid-success/16 border border-acid-success/50',
-      danger:
-        'border-none cursor-pointer text-acid-error bg-acid-error/16 border border-acid-error/50',
+      warning: 'cursor-pointer text-acid-warning bg-acid-warning/16 border border-acid-warning/50',
+      success: 'cursor-pointer text-acid-success bg-acid-success/16 border border-acid-success/50',
+      danger: 'cursor-pointer text-acid-error bg-acid-error/16 border border-acid-error/50',
     },
   },
   defaultVariants: { tone: 'neutral' },

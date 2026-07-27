@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Search, Plus, Settings, Trash } from 'griddy-icons';
@@ -19,6 +20,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuGroup,
+} from '@/components/ui/dropdown-menu';
 
 const PAGE_SIZE = 8;
 
@@ -48,13 +58,16 @@ function formatRecentMeta(durationMs: number, createdAt: number): string {
 
 interface CaptureSidebarProps {
   onOpenUpload: () => void;
-  onOpenSettings: () => void;
   onClose: () => void;
 }
 
-export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: CaptureSidebarProps) {
+export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
   const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
+  const { user } = useUser();
+  const { signOut, openUserProfile } = useClerk();
+  const displayName = user?.firstName ?? user?.username ?? 'Account';
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
 
   const { results: sessions } = usePaginatedQuery(
     api.sessions.listMySessionsPaginated,
@@ -210,15 +223,36 @@ export function CaptureSidebar({ onOpenUpload, onOpenSettings, onClose }: Captur
       </div>
 
       <div className="flex items-center justify-start px-4 py-3.5 border-t border-white/8">
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className={captureGlossyBtn}
-          style={{ width: 44, height: 44 }}
-          aria-label="Settings"
-        >
-          <Settings size={18} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={captureGlossyBtn}
+            style={{ width: 44, height: 44 }}
+            aria-label="Account options"
+          >
+            <Settings size={18} />
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" side="top" className="w-56 p-2">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="px-3 py-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
+                  {email && <span className="text-xs text-muted-foreground truncate">{email}</span>}
+                </div>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
+                Manage account
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => signOut()} variant="destructive" className="cursor-pointer">
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <AlertDialog

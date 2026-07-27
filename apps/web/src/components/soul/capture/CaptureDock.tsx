@@ -16,7 +16,9 @@ interface CaptureDockProps {
   onProcess: () => void;
   onPause: () => void;
   onResume: () => void;
+  /** Caller is expected to confirm before this fires — it discards the current take. */
   onRestart: () => void;
+  /** Caller is expected to confirm before this fires — it discards the current take. */
   onCancel: () => void;
 }
 
@@ -89,15 +91,20 @@ export function CaptureDock({
 
   return (
     <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
-      <div className="flex items-center gap-3 w-full min-h-15">
-        <button
-          type="button"
-          onClick={isRecPaused ? onGoReady : onOpenSettings}
-          className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
-          aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
-        >
-          {isRecPaused ? <Stop size={20} /> : <Settings size={20} />}
-        </button>
+      <div className="flex items-end gap-3 w-full min-h-15">
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            onClick={isRecPaused ? onGoReady : onOpenSettings}
+            className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
+            aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
+          >
+            {isRecPaused ? <Stop size={20} /> : <Settings size={20} />}
+          </button>
+          <span className="text-[11px] text-white/40" aria-hidden="true">
+            {isRecPaused ? 'Stop' : 'Settings'}
+          </span>
+        </div>
 
         <button
           type="button"
@@ -136,23 +143,36 @@ export function CaptureDock({
         </button>
 
         {!isProcessing && (
-          <button
-            type="button"
-            onClick={phase === 'recording' ? onPause : phase === 'paused' ? onResume : onRestart}
-            className={captureRoundBtn({
-              tone: phase === 'recording' ? 'warning' : phase === 'paused' ? 'success' : 'danger',
-            })}
-            aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
-          >
-            {phase === 'recording' && <Pause size={18} />}
-            {phase === 'paused' && <Play size={18} />}
-            {isReady && <Refresh size={18} />}
-          </button>
+          <div className="flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              onClick={phase === 'recording' ? onPause : phase === 'paused' ? onResume : onRestart}
+              className={captureRoundBtn({
+                tone: phase === 'recording' ? 'warning' : phase === 'paused' ? 'success' : 'danger',
+              })}
+              aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
+            >
+              {phase === 'recording' && <Pause size={18} />}
+              {phase === 'paused' && <Play size={18} />}
+              {isReady && <Refresh size={18} />}
+            </button>
+            <span className="text-[11px] text-white/40" aria-hidden="true">
+              {phase === 'recording' ? 'Pause' : phase === 'paused' ? 'Resume' : 'Restart'}
+            </span>
+          </div>
         )}
 
-        <button type="button" onClick={onCancel} className={captureRoundBtn({ tone: 'neutral' })} aria-label="Cancel">
-          <Close size={18} />
-        </button>
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className={captureRoundBtn({ tone: 'neutral' })}
+            aria-label="Cancel"
+          >
+            <Close size={18} />
+          </button>
+          <span className="text-[11px] text-white/40" aria-hidden="true">Cancel</span>
+        </div>
       </div>
     </div>
   );

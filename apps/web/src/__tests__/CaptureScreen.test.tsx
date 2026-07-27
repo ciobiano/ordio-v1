@@ -29,6 +29,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock('@clerk/nextjs', () => ({
+  useUser: () => ({ user: null }),
+  useClerk: () => ({ signOut: vi.fn(), openUserProfile: vi.fn() }),
+}));
+
 const baseProps = {
   currentState: 'idle' as const,
   audioLevel: 0,
