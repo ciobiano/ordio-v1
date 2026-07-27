@@ -1,33 +1,5 @@
 @import 'tailwindcss';
 /* Local premium fonts for the app shell. Export fonts are loaded by fontLoader. */
-@font-face {
-  font-family: 'HelveticaNeueCyr';
-  src: url('/fonts/HelveticaNeueCyr-Light.otf') format('opentype');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'HelveticaNeueCyr';
-  src: url('/fonts/HelveticaNeueCyr-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'HelveticaNeueCyr';
-  src: url('/fonts/HelveticaNeueCyr-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'TrendSansOne';
-  src: url('/fonts/TrendSansOne.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 /* Main app UI chrome — variable font, 400–700 in one file. Replaces named
    "SF Pro Text"/"SF Pro Display" references (Apple-licensed, not for use
    outside Apple platforms) — Inter is the licensed-safe visual match used
@@ -39,42 +11,8 @@
   font-style: normal;
   font-display: swap;
 }
-/* Acid design system — display + body faces (self-hosted, see DESIGN.md) */
-@font-face {
-  font-family: 'Clash Grotesk';
-  src: url('/fonts/ClashGrotesk-Semibold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Clash Grotesk';
-  src: url('/fonts/ClashGrotesk-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Black.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* Acid design system — display + body, both Nunito (see DESIGN.md), loaded
+   via next/font/google as --font-acid-nunito in layout.tsx. */
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
@@ -174,17 +112,98 @@
   --acid-info: #6be0ff;
 
   /* ─── Fonts ─── */
-  --acid-font-display: 'Clash Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --acid-font-body: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  --acid-font-display: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
+  --acid-font-body: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
 
-  /* ─── Expressive type scale (bigger than the old restrained scale) ─── */
+  /* ─── Expressive type scale ───────────────────────────────────
+     Size / leading / tracking are ONE triple per role, never mixed
+     across roles. Tracking follows the inverse-size rule (reference:
+     M3/Roboto ships -0.025em at 57px display, 0 at body, +0.05em at
+     12px label) — large type reads loose at default spacing, small
+     type reads cramped.
+
+     Calibrated for Nunito, not copied from the generic table:
+     rounded terminals carry more optical whitespace than a flat-
+     terminal grotesque at the same nominal spacing, so display roles
+     run ~0.01em tighter than the Roboto reference. Nunito's large
+     x-height (~0.49em) also tolerates tighter leading than average.
+
+     Units are load-bearing: tracking in `em` stays proportional
+     across each clamp() range; leading unitless so nested elements
+     inherit a ratio instead of a locked px value. */
+
+  /* Display — the one hero line per screen */
   --acid-text-display: clamp(2.5rem, 6vw, 4.5rem); /* 40px → 72px */
+  --acid-leading-display: 1;
+  --acid-tracking-display: -0.035em;
+
+  /* Title — section openers */
   --acid-text-title: clamp(1.75rem, 4vw, 2.5rem); /* 28px → 40px */
+  --acid-leading-title: 1.08;
+  --acid-tracking-title: -0.025em;
+
+  /* Headline — card and group headers */
   --acid-text-headline: clamp(1.375rem, 2.5vw, 1.625rem); /* 22px → 26px */
+  --acid-leading-headline: 1.25;
+  --acid-tracking-headline: -0.015em;
+
+  /* Body — reading default. Tracking 0: the face is already spaced
+     for reading at this size, anything else fights the designer. */
   --acid-text-body: clamp(0.9375rem, 1.2vw, 1.0625rem); /* 15px → 17px */
+  --acid-leading-body: 1.55;
+  --acid-tracking-body: 0em;
+
+  /* Label — controls, pills, buttons. Short strings, tighter leading. */
   --acid-text-label: clamp(0.8125rem, 1vw, 0.875rem); /* 13px → 14px */
+  --acid-leading-label: 1.4;
+  --acid-tracking-label: 0.005em;
+
+  /* Caption — meta, timestamps */
   --acid-text-caption: clamp(0.75rem, 0.9vw, 0.8125rem); /* 12px → 13px */
+  --acid-leading-caption: 1.45;
+  --acid-tracking-caption: 0.01em;
+
+  /* Footnote — smallest role, so the most positive tracking */
   --acid-text-footnote: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11px → 12px */
+  --acid-leading-footnote: 1.4;
+  --acid-tracking-footnote: 0.02em;
+
+  /* Eyebrow — all-caps micro-label. Caps have no ascender/descender
+     variation to separate them, so they need far more tracking than
+     the size alone implies (general rule 0.05–0.1em; 0.14em here is
+     a deliberate brand choice, louder than the default). */
+  --acid-leading-eyebrow: 1.2;
+  --acid-tracking-eyebrow: 0.14em;
+
+  /* Stat — the big Wrapped-style numeral ("12,483 clips exported").
+     Digits are uniform-width and have none of the awkward pairs that
+     drive negative tracking in text, so this runs looser than a
+     letter role at the same size would (-0.02em vs -0.035em display).
+     Leading is tighter than any text role: numerals have no
+     descenders, so the box can close right up under them. */
+  --acid-text-stat: clamp(3rem, 8vw, 5.5rem); /* 48px → 88px */
+  --acid-leading-stat: 0.95;
+  --acid-tracking-stat: -0.02em;
+
+  /* ─── Card scale — fixed-composition artifacts (Share Card) ───
+     Deliberately FIXED px, not clamp(). The share card is a locked
+     9:16 export whose internal proportions must survive being
+     rendered at any display size; viewport-relative type would let
+     the composition drift. Same inverse-tracking curve as above,
+     just anchored to the card instead of the viewport. */
+  --acid-card-headline: 34px;
+  --acid-card-headline-leading: 1.02;
+  --acid-card-headline-tracking: -0.025em;
+
+  /* Wordmark, username — the card's bold 15px tier */
+  --acid-card-title: 15px;
+  --acid-card-title-leading: 1.2;
+  --acid-card-title-tracking: -0.01em;
+
+  /* Share pill, duration meta */
+  --acid-card-meta: 12px;
+  --acid-card-meta-leading: 1.35;
+  --acid-card-meta-tracking: 0.01em;
 
   /* ─── Radius — chunky/consumer ─── */
   --acid-radius-sm: 12px;
@@ -386,6 +405,63 @@
   --color-acid-info: var(--acid-info);
   --font-acid-display: var(--acid-font-display);
   --font-acid-body: var(--acid-font-body);
+
+  /* ── Type scale as Tailwind utilities ──
+     Each `text-acid-*` carries its OWN leading + tracking via v4's
+     `--text-{name}--line-height` / `--letter-spacing` modifiers. One
+     class applies the whole triple, so a display size can no longer
+     be paired with body tracking by accident. Kills every
+     `text-[length:...] leading-[...] tracking-[...]` arbitrary value. */
+  --text-acid-display: var(--acid-text-display);
+  --text-acid-display--line-height: var(--acid-leading-display);
+  --text-acid-display--letter-spacing: var(--acid-tracking-display);
+
+  --text-acid-title: var(--acid-text-title);
+  --text-acid-title--line-height: var(--acid-leading-title);
+  --text-acid-title--letter-spacing: var(--acid-tracking-title);
+
+  --text-acid-headline: var(--acid-text-headline);
+  --text-acid-headline--line-height: var(--acid-leading-headline);
+  --text-acid-headline--letter-spacing: var(--acid-tracking-headline);
+
+  --text-acid-body: var(--acid-text-body);
+  --text-acid-body--line-height: var(--acid-leading-body);
+  --text-acid-body--letter-spacing: var(--acid-tracking-body);
+
+  --text-acid-label: var(--acid-text-label);
+  --text-acid-label--line-height: var(--acid-leading-label);
+  --text-acid-label--letter-spacing: var(--acid-tracking-label);
+
+  --text-acid-caption: var(--acid-text-caption);
+  --text-acid-caption--line-height: var(--acid-leading-caption);
+  --text-acid-caption--letter-spacing: var(--acid-tracking-caption);
+
+  --text-acid-footnote: var(--acid-text-footnote);
+  --text-acid-footnote--line-height: var(--acid-leading-footnote);
+  --text-acid-footnote--letter-spacing: var(--acid-tracking-footnote);
+
+  /* Eyebrow reuses the label SIZE but overrides the pair — all-caps
+     is the one case where tracking is driven by casing, not size. */
+  --text-acid-eyebrow: var(--acid-text-label);
+  --text-acid-eyebrow--line-height: var(--acid-leading-eyebrow);
+  --text-acid-eyebrow--letter-spacing: var(--acid-tracking-eyebrow);
+
+  --text-acid-stat: var(--acid-text-stat);
+  --text-acid-stat--line-height: var(--acid-leading-stat);
+  --text-acid-stat--letter-spacing: var(--acid-tracking-stat);
+
+  /* Card scale — fixed px, for the locked 9:16 share card */
+  --text-card-headline: var(--acid-card-headline);
+  --text-card-headline--line-height: var(--acid-card-headline-leading);
+  --text-card-headline--letter-spacing: var(--acid-card-headline-tracking);
+
+  --text-card-title: var(--acid-card-title);
+  --text-card-title--line-height: var(--acid-card-title-leading);
+  --text-card-title--letter-spacing: var(--acid-card-title-tracking);
+
+  --text-card-meta: var(--acid-card-meta);
+  --text-card-meta--line-height: var(--acid-card-meta-leading);
+  --text-card-meta--letter-spacing: var(--acid-card-meta-tracking);
   --radius-acid-sm: var(--acid-radius-sm);
   --radius-acid-md: var(--acid-radius-md);
   --radius-acid-lg: var(--acid-radius-lg);
@@ -481,6 +557,15 @@ body {
   line-height: 1.6;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+
+  /* Kerning: browsers disable the font's own kern pairs at small sizes
+     by default (font-kerning: auto). `normal` forces them on at every
+     size, which is what fixes the gappy pairs — Va, To, Ay, LT.
+     Deliberately NOT using `text-rendering: optimizeLegibility`: it
+     buys the same kerning at the cost of known layout-jank and
+     dropped-text bugs on long documents. */
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
 }
 
 /* Headings use the Apple-friendly heading font */
