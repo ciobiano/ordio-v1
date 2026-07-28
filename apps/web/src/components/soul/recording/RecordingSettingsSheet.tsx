@@ -73,7 +73,7 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
               <h3 className="text-xs font-semibold text-white/48 uppercase tracking-[0.13em] mb-3">
                 Audio Enhancement
               </h3>
-              <div>
+              <div className="rounded-acid-lg overflow-hidden border border-white/8">
                 {ENHANCE_OPTIONS.map((opt, i) => {
                   const isActive = enhanceTier === opt.value;
                   return (
@@ -82,9 +82,8 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                       type="button"
                       variant="ghost"
                       className={cn(
-                        'relative w-full flex items-center gap-3 py-3 text-left transition-colors duration-150 h-auto justify-start',
+                        'relative w-full flex items-center gap-acid-md px-acid-lg py-acid-md text-left transition-colors duration-150 h-auto min-h-[52px] justify-start rounded-none',
                         i < ENHANCE_OPTIONS.length - 1 && 'border-b border-white/8',
-                        'rounded-lg px-2',
                         isActive ? 'bg-accent hover:bg-accent' : 'hover:bg-muted',
                         opt.gate && isLocked(opt.gate) && 'opacity-40'
                       )}
@@ -104,16 +103,16 @@ export function RecordingSettingsSheet({ isOpen, onClose, onLocked }: RecordingS
                           <div className="w-1.5 h-1.5 rounded-full bg-[color:var(--sheet-bg)]" />
                         )}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div
                           className={cn(
-                            'text-sm font-medium transition-colors duration-150',
+                            'text-acid-label font-medium transition-colors duration-150',
                             isActive ? 'text-foreground' : 'text-muted-foreground'
                           )}
                         >
                           {opt.label}
                         </div>
-                        <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                        <div className="text-acid-caption text-muted-foreground">{opt.desc}</div>
                       </div>
                       {opt.gate && isLocked(opt.gate) && (
                         <LockBadge

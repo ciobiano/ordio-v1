@@ -54,7 +54,7 @@ export function CaptureDock({
             >
               <Upload size={18} />
             </button>
-            <span className="text-[11px] text-white/40" aria-hidden="true">Upload</span>
+            <span className="text-acid-footnote text-white/40" aria-hidden="true">Upload</span>
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <button
@@ -67,7 +67,7 @@ export function CaptureDock({
             >
               <Microphone size={26} />
             </button>
-            <span className="text-[11px] text-white/60" aria-hidden="true">Record</span>
+            <span className="text-acid-footnote text-white/60" aria-hidden="true">Record</span>
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <button
@@ -78,7 +78,7 @@ export function CaptureDock({
             >
               <Settings size={18} />
             </button>
-            <span className="text-[11px] text-white/40" aria-hidden="true">Settings</span>
+            <span className="text-acid-footnote text-white/40" aria-hidden="true">Settings</span>
           </div>
         </div>
       </div>
@@ -99,48 +99,55 @@ export function CaptureDock({
             className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
             aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
           >
-            {isRecPaused ? <Stop size={20} /> : <Settings size={20} />}
+            {isRecPaused ? <Stop size={20} className="[&>path]:fill-current" /> : <Settings size={20} />}
           </button>
-          <span className="text-[11px] text-white/40" aria-hidden="true">
+          <span className="text-acid-footnote text-white/40" aria-hidden="true">
             {isRecPaused ? 'Stop' : 'Settings'}
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={isReady ? onProcess : undefined}
-          className={cn(
-            captureCenterSlot({ phase: isRecPaused ? 'recordPaused' : isReady ? 'ready' : 'processing' })
-          )}
-          aria-label={isReady ? 'Process recording' : undefined}
-          disabled={!isReady}
-        >
-          {isRecPaused && (
-            <div className="flex items-center justify-center gap-1.5 w-full h-full">
-              {WAVE_HEIGHTS.map((h, i) => (
-                <span
-                  key={i}
-                  className="w-1 rounded-[3px] bg-[#1c1c1e]"
-                  style={{
-                    height: `${18 + h * 24}px`,
-                    transform: phase === 'paused' ? `scaleY(${0.4 + h * 0.4})` : undefined,
-                    animation:
-                      phase === 'recording'
-                        ? `waveEq ${700 + i * 90}ms ease-in-out ${i * 90}ms infinite`
-                        : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {isReady && <span className="text-black font-semibold text-base whitespace-nowrap">Process recording</span>}
-          {isProcessing && (
-            <span
-              className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-[width] duration-120 ease-linear"
-              style={{ width: `${Math.round(progress)}%` }}
-            />
-          )}
-        </button>
+        {/* Matches the flanking columns' button+label two-tier height (via an
+            invisible spacer) so `items-end` bottom-aligns this button with its
+            siblings' buttons instead of with their label baseline. */}
+        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={isReady ? onProcess : undefined}
+            className={cn(
+              captureCenterSlot({ phase: isRecPaused ? 'recordPaused' : isReady ? 'ready' : 'processing' }),
+              'w-full flex-none'
+            )}
+            aria-label={isReady ? 'Process recording' : undefined}
+            disabled={!isReady}
+          >
+            {isRecPaused && (
+              <div className="flex items-center justify-center gap-1.5 w-full h-full">
+                {WAVE_HEIGHTS.map((h, i) => (
+                  <span
+                    key={i}
+                    className="w-1 rounded-[3px] bg-[#1c1c1e]"
+                    style={{
+                      height: `${18 + h * 24}px`,
+                      transform: phase === 'paused' ? `scaleY(${0.4 + h * 0.4})` : undefined,
+                      animation:
+                        phase === 'recording'
+                          ? `waveEq ${700 + i * 90}ms ease-in-out ${i * 90}ms infinite`
+                          : undefined,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            {isReady && <span className="text-black font-semibold text-base whitespace-nowrap">Process recording</span>}
+            {isProcessing && (
+              <span
+                className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-[width] duration-120 ease-linear"
+                style={{ width: `${Math.round(progress)}%` }}
+              />
+            )}
+          </button>
+          <span className="text-acid-footnote text-transparent select-none" aria-hidden="true">·</span>
+        </div>
 
         {!isProcessing && (
           <div className="flex flex-col items-center gap-1.5">
@@ -152,11 +159,11 @@ export function CaptureDock({
               })}
               aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
             >
-              {phase === 'recording' && <Pause size={18} />}
+              {phase === 'recording' && <Pause size={18} className="[&>path]:fill-current" />}
               {phase === 'paused' && <Play size={18} />}
               {isReady && <Refresh size={18} />}
             </button>
-            <span className="text-[11px] text-white/40" aria-hidden="true">
+            <span className="text-acid-footnote text-white/40" aria-hidden="true">
               {phase === 'recording' ? 'Pause' : phase === 'paused' ? 'Resume' : 'Restart'}
             </span>
           </div>
@@ -171,7 +178,7 @@ export function CaptureDock({
           >
             <Close size={18} />
           </button>
-          <span className="text-[11px] text-white/40" aria-hidden="true">Cancel</span>
+          <span className="text-acid-footnote text-white/40" aria-hidden="true">Cancel</span>
         </div>
       </div>
     </div>
