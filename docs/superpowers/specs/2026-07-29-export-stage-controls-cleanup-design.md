@@ -43,11 +43,22 @@ is real, user-confirmed inconsistency, addressed below alongside the other fixes
 
 ## Decisions made
 
-- **New home for Visual/Caption/Stage controls:** a 6th dock item, `Display`, added to
-  the existing mobile dock (`Direct it / Captions / Edit Style / Trim / Reframe`),
-  reusing the exact panel-grow mechanism already used by the other five. Chosen over a
-  novel floating/expanding button because it introduces zero new interaction pattern
-  and automatically inherits the drag-to-dismiss fix in item 5.
+- **Visual style + Caption preset merge into `StyleControls` as new tabs — no new
+  dock item.** Revised after a pressure-test pass (see below): putting Caption preset
+  in a separate `Display` panel would have split one decision ("how do my captions
+  look") across two dock items, since `StyleControls`'s existing Colors/Font/Spacing
+  tabs already fine-tune caption color/font/spacing. Dock stays at **5 items**
+  (`Direct it / Captions / Edit Style / Trim / Reframe`) — nothing added.
+- **Stage flip becomes a direct one-tap icon anchored to the canvas, not a panel.**
+  It's a binary layout toggle (Upper/Lower), not a style choice, and doesn't warrant
+  opening a sheet for one on/off decision. Placing it on/near the canvas itself (not
+  the dock) also fits its role as a canvas-layout property rather than a content or
+  style control, and cleanly resolves the original complaint — this control moves
+  fully off the below-canvas row instead of relocating into another crowded surface.
+- **Background pickers consolidate into one segmented section; Gradient is removed
+  entirely.** Confirmed with the user despite Gradient being a paid (Creator-tier)
+  feature — this is a deliberate call to cut that surface, not just a presentation
+  fix. See section 3 below.
 - **Desktop is out of scope.** `StageControlBar` continues to render unchanged on
   desktop (`hidden md:flex`); the user's complaints are specifically about the mobile
   export flow and desktop isn't broken.
@@ -57,27 +68,75 @@ is real, user-confirmed inconsistency, addressed below alongside the other fixes
   `hugeicons` equivalents (table below). This subsumes fix #3 — instead of patching
   `PlaybackControls`'s Play/Pause with `fill-current`, it migrates to
   `PlayIcon`/`PauseIcon` from `hugeicons` directly, which needs no such patch.
-- **Scope: all six fixes ship together** (dock consolidation, pinned canvas, icon
-  migration, sheet close-button inset, drag-to-dismiss). Confirmed with the user —
-  they touch overlapping files and are more coherent as one pass than staggered.
+- **Scope: all fixes ship together** (control relocation, pinned canvas, icon
+  migration, sheet close-button inset, drag-to-dismiss, panel sizing, background
+  consolidation). Confirmed with the user — they touch overlapping files and are more
+  coherent as one pass than staggered.
+
+## Pressure-test findings (background pickers + panel sizing)
+
+Two things surfaced after the initial design was drafted, both from re-examining the
+actual component tree rather than taking the first pass at face value:
+
+**Panel height is fixed regardless of content density.** The dock-grown panel
+(`ExportControls.tsx`) is `h-[46vh]` for every panel. `Captions` and `Edit Style` are
+dense enough to use that space; `Reframe` (`FormatToggle`, 4 aspect-ratio pills) leaves
+a large dead empty area below its content. Recommendation (product-manager
+evaluation): **two fixed height tiers, not continuous morph-to-content.** Continuous
+morphing would need a `ResizeObserver` + measured-height animation, and would make
+`StyleControls`'s own internal tab-switching (Colors/Font/Spacing, now also
+Preset/Visual) visibly resize the sheet on every tab tap — worse than the current
+problem. Two discrete tiers (compact ~24–28vh for `Reframe`; full 46vh, unchanged, for
+`Captions`/`Edit Style`/`Trim`) mirrors how native iOS sheets use a small fixed set of
+detents rather than per-pixel sizing, needs no new animation system (same
+`grid-rows` swap, just a different target height per panel id), and as a side benefit
+puts short option lists closer to the thumb.
+
+**The "Colors" tab in `StyleControls` is overloaded with four near-identical
+background pickers.** Under solid Waveform/Background/Text color rows, it stacks
+`CanvasPresetPicker`, `GradientBackgroundPicker`, `BackgroundVideoPicker`, and
+`BackgroundImagePicker` — four separately-labeled horizontal-scroll thumbnail strips
+(each ~64px tiles), all under a tab literally called "Colors" even though three of
+the four aren't colors at all. Confirmed: even the tile CSS class (`TILE_CLASS`) is
+copy-pasted identically across all four files. User confirmed removing Gradient
+entirely (it's currently `background_gradient`-gated, Creator-tier) and consolidating
+the rest.
 
 ## Design
 
-### 1. Dock consolidation — new "Display" panel
+### 1. Control relocation — no new dock item
 
-- Add `{ id: 'display', label: 'Display', icon: <hugeicons equivalent, TBD at build
-  time — Settings01Icon or similar, picked to visually match the other 5 dock icons> }`
-  to `DOCK_ITEMS` in `ExportControls.tsx`.
-- Extract the three controls currently in `StageControlBar.tsx` (Visual style popover,
-  Caption preset select, Stage flip toggle) into a new `DisplayControls.tsx`,
-  restyled as full-width vertical rows (matching `StyleControls.tsx`'s row layout)
-  instead of horizontally-scrolling pills, since it now renders inside the existing
-  `h-[46vh]` scrollable dock panel instead of a below-canvas strip.
-- `mobilePanel` state type (`ToolbarPanel`) gains `'display'`; render
-  `<DisplayControls onLocked={onLocked} />` when `mobilePanel === 'display'`.
-- In `ExportCanvas.tsx`, wrap the existing `<StageControlBar onLocked={onLocked} />`
-  render with `hidden md:flex` so desktop is untouched and mobile no longer shows the
-  below-canvas row at all.
+- `StyleControls.tsx` gains two new tabs, extending `STYLE_TABS` from
+  `['colors', 'font', 'spacing']` to `['preset', 'colors', 'font', 'spacing',
+  'visual']`. `preset` goes first — the caption preset (`CaptionStyleId`) already
+  determines whether the `colors` tab shows Stroke/Glow rows
+  (`activeStylePreset.stroke`/`.glow`), so picking the overall look before refining
+  colors is the correct sequence, not an arbitrary one.
+  - **Preset tab:** the `MODE_OPTIONS` list (Pop/Outline/Karaoke/Minimal/
+    Statement/Script) currently in `StageControlBar`'s `Select`, rendered as full-width
+    rows matching `FontRow`'s selected/locked visual treatment.
+  - **Visual tab:** the `DISPLAY_OPTIONS` list (Bars/Orbit/Spectrum/Clean/Frames) from
+    `StageControlBar`'s `Popover`, including the nested Frame1/Frame2 expand-in-place
+    behavior — same `grid-template-rows` expand pattern, relocated as-is (content
+    duplicated into the new tab, not moved — see next bullet for why the original
+    stays intact).
+- `StageControlBar.tsx` itself is **not deleted** — consistent with "Desktop is out
+  of scope" above, it keeps rendering unchanged on desktop. In `ExportCanvas.tsx`,
+  its wrapper gets `hidden md:flex` so mobile stops rendering the row entirely (this
+  alone fixes the horizontal-overflow bug there) while desktop is untouched.
+- **Stage flip**, on mobile, becomes a small icon button anchored to the canvas
+  itself (e.g. top corner, clear of the Export button in the header), not a
+  dock/panel control. Tap flips `canvasLayout` immediately — same `handleFlipStage`
+  logic `StageControlBar` already has, no sheet opens. Exact anchor position is a
+  build-time visual call; must not overlap canvas content or header controls at any
+  of the 4 export aspect ratios. Desktop keeps using `StageControlBar`'s existing
+  Stage toggle, unchanged.
+- Desktop bonus: `StyleControls` already renders there via the sidebar `IconToolbar`
+  (`desktopPanel === 'style'`), so the two new tabs (Preset, Visual) appear on
+  desktop automatically — meaning desktop temporarily has the Visual/Caption-preset
+  choice in two places (new tabs + the untouched `StageControlBar` row). Acceptable
+  since desktop is explicitly out of scope for this pass; worth a follow-up to remove
+  the duplication there later, not now.
 
 ### 2. Pinned canvas, internally-scrolling content
 
@@ -135,8 +194,37 @@ Full verified mapping (each `hugeicons` name confirmed to exist in the installed
   scrollable content inside (`TrimPanel`, `StyleControls` both scroll internally).
 - `onDragEnd`: if dragged down past a threshold, call the same `setDrawerOpen(false)`
   the tap-handle already uses — no new close path, just a second way to trigger it.
-- This fixes it once for all six dock panels (five existing + the new Display panel),
-  since they all share this one growing-panel container.
+- This fixes it once for all five dock panels, since they all share this one
+  growing-panel container.
+
+### 6. Two-tier panel height
+
+- `ExportControls.tsx`'s growing panel gets a per-panel height lookup instead of a
+  hardcoded `h-[46vh]`: `reframe` → compact (~24–28vh, exact value a build-time visual
+  call), everything else (`captions`, `style`, `trim`) → full (46vh, unchanged).
+- Implementation stays inside the existing `grid-template-rows` mechanism — just a
+  different `h-*`/max-height class picked by `mobilePanel` id, no `ResizeObserver`,
+  no measured-height animation.
+
+### 7. Background picker consolidation
+
+- `GradientBackgroundPicker.tsx` is deleted. Its `background_gradient` feature gate
+  (`featureGates.ts`) and the `isLocked('background_gradient')` check in
+  `ExportState/index.tsx`'s `handleExport` are removed along with it — this is a
+  monetization-surface removal, not just a UI change, per the decision above.
+- `CanvasPresetPicker`, `BackgroundVideoPicker`, and `BackgroundImagePicker` merge
+  under one "Background" section in the `colors` tab, switched by a small segmented
+  control (`Preset | Video | Image`) instead of three permanently-stacked labeled
+  strips — same pattern `StyleControls` already uses for its own top-level tabs, so
+  no new UI primitive. Each option's existing tile-strip content (and its
+  duplicated `TILE_CLASS`) can consolidate into one shared row component at
+  implementation time, since the three are now siblings under one switcher rather
+  than three independently-coded sections.
+- Net effect on the `colors` tab: Waveform/Background/Text solid-color rows, then one
+  "Background" segmented section (3 options instead of 4 stacked strips), then the
+  conditional Stroke/Glow rows — meaningfully shorter and no longer mislabeled (three
+  of four background sources living under a tab called "Colors" was the original
+  complaint).
 
 ## Out of scope
 
@@ -155,11 +243,15 @@ Full verified mapping (each `hugeicons` name confirmed to exist in the installed
 
 - Manual mobile QA (real device or `/browse` at mobile viewport) after implementation:
   export screen at each of the 4 aspect ratios (1:1, 9:16, 16:9, 4:5), confirming no
-  page-level scroll/bounce and the Display panel is reachable without overflow.
+  page-level scroll/bounce, the new Preset/Visual tabs work in `StyleControls`, and
+  the canvas-anchored Stage-flip icon doesn't overlap anything at any ratio.
   Auth blocked headless testing this session (Clerk dev keys mismatched, unrelated to
   this work) — flag if still blocked when this is implemented.
+- Confirm the Gradient removal doesn't leave orphaned state: existing projects with
+  `style.background.type === 'gradient'` already saved need a sane fallback (e.g.
+  revert to solid) rather than rendering nothing.
 - Visual check of every migrated icon at its actual render size against its actual
   background, given the outline-vs-fill weight change noted above.
-- Confirm drag-to-dismiss works on the Display panel and at least one existing panel
-  (e.g. Reframe), and that it doesn't accidentally trigger while scrolling
+- Confirm drag-to-dismiss works on both a compact panel (Reframe) and a full panel
+  (Edit Style), and that it doesn't accidentally trigger while scrolling
   `TrimPanel`/`StyleControls` content.
