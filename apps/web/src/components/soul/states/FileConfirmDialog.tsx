@@ -39,13 +39,13 @@ export function FileConfirmDialog({ file, onConfirm, onCancel }: FileConfirmDial
         <AlertDialogHeader className="place-items-start text-left">
           <AlertDialogTitle className="text-white">Process this file?</AlertDialogTitle>
           <AlertDialogDescription className="text-white/55">
-            Confirm the audio you'd like to process.
+            Confirm the audio you&apos;d like to process.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {file && (
           <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-semibold text-white/70">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10 text-xs font-semibold text-white/70">
               {formatMediaType(file)}
             </div>
             <div className="min-w-0 flex-1">

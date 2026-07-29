@@ -43,7 +43,6 @@ export function CanvasPresetPicker() {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-muted-foreground text-xs">Preset background</span>
       <div
         className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="listbox"

@@ -34,7 +34,6 @@ function featureLabel(feature: FeatureKey): string {
     unlimited_exports: 'Unlimited Exports',
     background_video: 'Video Backgrounds',
     background_upload: 'Custom Backgrounds',
-    background_gradient: 'Gradient Backgrounds',
     director_reroll: 'More Director Looks',
   }
   return labels[feature]

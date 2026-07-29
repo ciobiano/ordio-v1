@@ -105,12 +105,9 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-xs">Background video</span>
-        {!webCodecsOk && (
-          <span className="text-[10px] text-white/40">Not supported on this browser</span>
-        )}
-      </div>
+      {!webCodecsOk && (
+        <span className="text-[10px] text-white/40">Not supported on this browser</span>
+      )}
       <div
         className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="listbox"

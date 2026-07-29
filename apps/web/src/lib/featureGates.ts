@@ -17,7 +17,6 @@ export type FeatureKey =
   | 'unlimited_exports'
   | 'background_video'
   | 'background_upload'
-  | 'background_gradient'
   | 'director_reroll';
 
 const TIER_RANK: Record<UserTier, number> = {
@@ -43,7 +42,6 @@ export const FEATURE_GATES: Record<FeatureKey, UserTier> = {
   unlimited_exports: 'creator',
   background_video: 'creator', // export with a video background (preview is free)
   background_upload: 'creator', // uploading custom backgrounds (gated at the action)
-  background_gradient: 'creator', // export with a gradient background (preview is free)
   director_reroll: 'creator', // Director's looks 2-3 and the reroll button; look 1 is free
 };
 

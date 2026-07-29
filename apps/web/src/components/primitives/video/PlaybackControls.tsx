@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useEffect, useCallback } from 'react';
-import { Play, Pause } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { PlayIcon, PauseIcon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
@@ -85,7 +86,11 @@ export default function PlaybackControls({ playback, className }: PlaybackContro
         aria-label={playback.isPlaying ? 'Pause' : 'Play'}
         className="shrink-0 w-9 h-9 -my-1 rounded-full flex items-center justify-center bg-white/8 text-white hover:bg-white/14 disabled:opacity-40 disabled:cursor-default cursor-pointer transition-colors"
       >
-        {playback.isPlaying ? <Pause size={16} /> : <Play size={16} />}
+        {playback.isPlaying ? (
+          <HugeiconsIcon icon={PauseIcon} size={16} strokeWidth={2} />
+        ) : (
+          <HugeiconsIcon icon={PlayIcon} size={16} strokeWidth={2} />
+        )}
       </button>
       <span
         ref={timeDisplayRef}

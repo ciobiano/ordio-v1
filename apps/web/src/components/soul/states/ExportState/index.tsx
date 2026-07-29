@@ -140,14 +140,10 @@ export default function ExportState({
   const handleExport = useCallback(async () => {
     if (!audioBuffer || !transcript) return;
 
-    // Video/gradient backgrounds preview free, but export is creator-gated
+    // Video backgrounds preview free, but export is creator-gated
     const currentStyle = useUIStore.getState().style;
     if (currentStyle.background?.type === 'video' && isLocked('background_video')) {
       onLocked('background_video');
-      return;
-    }
-    if (currentStyle.background?.type === 'gradient' && isLocked('background_gradient')) {
-      onLocked('background_gradient');
       return;
     }
 
@@ -185,7 +181,7 @@ export default function ExportState({
   const primaryLabel = hasRender ? 'Save' : exporter.error ? 'Retry export' : 'Export';
 
   return (
-    <div className="flex flex-col w-full  min-h-dvh animate-fadeIn">
+    <div className="flex flex-col w-full h-dvh overflow-hidden md:h-auto md:min-h-dvh md:overflow-visible animate-fadeIn">
       <ExportHeader
         primaryLabel={primaryLabel}
         primaryDisabled={exportDisabled && !hasRender}
@@ -193,7 +189,12 @@ export default function ExportState({
         onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
       />
 
-        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row md:items-start md:gap-6 md:px-6">
+      {/* Mobile: this is the only region that scrolls (header is fixed, dock
+          is fixed) — keeps both pinned in place instead of the whole page
+          scrolling, which is what caused the iOS rubber-band bounce fighting
+          the user. pb-24 clears the fixed bottom dock. Desktop is unaffected
+          (no fixed dock there, side-by-side layout, natural page growth). */}
+      <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-24 md:flex-row md:items-start md:gap-6 md:overflow-visible md:px-6 md:py-4">
         <ExportCanvas
           playback={playback}
           format={format}

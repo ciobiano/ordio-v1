@@ -1,6 +1,16 @@
 'use client';
 
-import { Upload, Settings, Stop, Pause, Play, Refresh, Close, Microphone } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Upload01Icon,
+  Settings01Icon,
+  StopIcon,
+  PauseIcon,
+  PlayIcon,
+  RefreshIcon,
+  Cancel01Icon,
+  Mic01Icon,
+} from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { captureCenterSlot, captureRecordHero, captureRoundBtn } from '@/lib/variants';
 import type { CapturePhase } from './types';
@@ -52,7 +62,7 @@ export function CaptureDock({
               className={captureRoundBtn({ tone: 'neutral' })}
               aria-label="Upload audio or video"
             >
-              <Upload size={18} />
+              <HugeiconsIcon icon={Upload01Icon} size={18} strokeWidth={2} />
             </button>
             <span className="text-acid-footnote text-white/40" aria-hidden="true">Upload</span>
           </div>
@@ -65,7 +75,7 @@ export function CaptureDock({
               className={captureRecordHero}
               aria-label="Press to record"
             >
-              <Microphone size={26} />
+              <HugeiconsIcon icon={Mic01Icon} size={26} strokeWidth={2} />
             </button>
             <span className="text-acid-footnote text-white/60" aria-hidden="true">Record</span>
           </div>
@@ -76,7 +86,7 @@ export function CaptureDock({
               className={captureRoundBtn({ tone: 'neutral' })}
               aria-label="Settings"
             >
-              <Settings size={18} />
+              <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={2} />
             </button>
             <span className="text-acid-footnote text-white/40" aria-hidden="true">Settings</span>
           </div>
@@ -99,7 +109,11 @@ export function CaptureDock({
             className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
             aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
           >
-            {isRecPaused ? <Stop size={20} className="[&>path]:fill-current" /> : <Settings size={20} />}
+            {isRecPaused ? (
+              <HugeiconsIcon icon={StopIcon} size={20} strokeWidth={2} />
+            ) : (
+              <HugeiconsIcon icon={Settings01Icon} size={20} strokeWidth={2} />
+            )}
           </button>
           <span className="text-acid-footnote text-white/40" aria-hidden="true">
             {isRecPaused ? 'Stop' : 'Settings'}
@@ -159,9 +173,9 @@ export function CaptureDock({
               })}
               aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
             >
-              {phase === 'recording' && <Pause size={18} className="[&>path]:fill-current" />}
-              {phase === 'paused' && <Play size={18} />}
-              {isReady && <Refresh size={18} />}
+              {phase === 'recording' && <HugeiconsIcon icon={PauseIcon} size={18} strokeWidth={2} />}
+              {phase === 'paused' && <HugeiconsIcon icon={PlayIcon} size={18} strokeWidth={2} />}
+              {isReady && <HugeiconsIcon icon={RefreshIcon} size={18} strokeWidth={2} />}
             </button>
             <span className="text-acid-footnote text-white/40" aria-hidden="true">
               {phase === 'recording' ? 'Pause' : phase === 'paused' ? 'Resume' : 'Restart'}
@@ -176,7 +190,7 @@ export function CaptureDock({
             className={captureRoundBtn({ tone: 'neutral' })}
             aria-label="Cancel"
           >
-            <Close size={18} />
+            <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
           </button>
           <span className="text-acid-footnote text-white/40" aria-hidden="true">Cancel</span>
         </div>

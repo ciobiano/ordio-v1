@@ -11,6 +11,8 @@ vi.mock('sonner', () => ({
 
 vi.mock('convex/react', () => ({
   useQuery: () => undefined,
+  useConvexAuth: () => ({ isAuthenticated: false, isLoading: false }),
+  useMutation: () => vi.fn().mockResolvedValue(undefined),
 }));
 
 const renderFrameMock = vi.fn().mockImplementation(() => {

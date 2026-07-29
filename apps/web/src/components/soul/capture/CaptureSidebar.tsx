@@ -6,7 +6,8 @@ import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Search, Plus, Settings, Trash } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Search01Icon, PlusSignIcon, Settings01Icon, Delete01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
 import { captureGlossyBtn } from '@/lib/variants';
 import { formatDuration } from '@/components/saved-audio/formatters';
@@ -135,7 +136,7 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
       <div className="flex items-center justify-between px-5 pt-5.5 pb-4">
         <span className="text-2xl font-bold text-white">Recordings</span>
         <button type="button" className={captureGlossyBtn} style={{ width: 34, height: 34 }} aria-label="Search">
-          <Search size={18} />
+          <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={2} />
         </button>
       </div>
 
@@ -149,7 +150,7 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
           className="flex items-center gap-4 w-full text-left border-none bg-transparent px-2 py-3 rounded-xl cursor-pointer hover:bg-white/5"
         >
           <span className="w-5.5 flex items-center justify-center shrink-0">
-            <Plus size={18} />
+            <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
           </span>
           <span className="text-[17px] text-white">Upload audio or video</span>
         </button>
@@ -167,7 +168,7 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
               aria-label={`Delete ${session.name}`}
               className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-[#ff453a] text-white"
             >
-              <Trash size={18} />
+              <HugeiconsIcon icon={Delete01Icon} size={18} strokeWidth={2} />
             </button>
             <motion.div
               drag="x"
@@ -229,7 +230,7 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
             style={{ width: 44, height: 44 }}
             aria-label="Account options"
           >
-            <Settings size={18} />
+            <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={2} />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="start" side="top" className="w-56 p-2">

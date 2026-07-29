@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Menu, ArrowLeft } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Menu01Icon, ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 import { captureNavBtn } from '@/lib/variants';
 import type { CapturePhase } from './types';
 
@@ -27,7 +28,11 @@ export function CaptureHeader({ phase, onOpenFiles, onBack }: CaptureHeaderProps
         className={captureNavBtn}
         aria-label={isIdle ? 'Your recordings' : 'Cancel and return to idle'}
       >
-        {isIdle ? <Menu size={16} /> : <ArrowLeft size={15} />}
+        {isIdle ? (
+          <HugeiconsIcon icon={Menu01Icon} size={16} strokeWidth={2} />
+        ) : (
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={15} strokeWidth={2} />
+        )}
       </button>
 
       <div

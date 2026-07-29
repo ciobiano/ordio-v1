@@ -1,9 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-import { useCallback } from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import CanvasPreview from '@/components/primitives/video/CanvasPreview'
 import PlaybackControls from '@/components/primitives/video/PlaybackControls'
 import { StageControlBar } from './StageControlBar'
@@ -30,11 +26,6 @@ export function ExportCanvas({
   showWatermark,
   onLocked,
 }: ExportCanvasProps) {
-  const handlePlayToggle = useCallback(() => {
-    if (playback.isPlaying) playback.pause()
-    else playback.play()
-  }, [playback])
-
   return (
     <div className="flex flex-col flex-1 min-w-0 pt-[env(safe-area-inset-top)] mt-16">
       <div className="flex justify-center shrink-0 px-4 sm:px-6">
@@ -46,11 +37,17 @@ export function ExportCanvas({
             canvasLayout={canvasLayout}
             graphicStyle={graphicStyle}
             showWatermark={showWatermark}
+            onLocked={onLocked}
           />
 
-          <div className="h-4" />
+          <div className="hidden md:block h-4" />
 
-          <StageControlBar onLocked={onLocked} />
+          {/* Visual style, Caption preset, and Stage flip live in StyleControls'
+              tabs and a canvas-anchored icon on mobile — this row is desktop-only
+              to avoid the horizontal-overflow bug it had at narrow widths. */}
+          <div className="hidden md:flex">
+            <StageControlBar onLocked={onLocked} />
+          </div>
         </div>
       </div>
 

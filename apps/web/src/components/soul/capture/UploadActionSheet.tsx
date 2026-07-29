@@ -1,7 +1,8 @@
 'use client';
 
 import type { RefObject } from 'react';
-import { Image as ImageIcon, VideoCamera, File as FileIcon } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Image01Icon, Video01Icon, File01Icon } from '@hugeicons/core-free-icons';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
@@ -16,10 +17,17 @@ const ACCEPT_AUDIO_VIDEO =
 
 // Row layout follows the ChatGPT iOS Design System's "Attach menu" component: left icon,
 // stacked title (18px/600) + subtitle (15px, secondary gray #8E8E93), 12px vertical padding.
+//
+// Known platform limitation (not fixable in code): 'Photo Library' and
+// 'Choose File' both omit `capture`, so on iOS Safari tapping either always
+// surfaces a second, native OS chooser (Take Photo or Video / Photo Library /
+// Browse) — WebKit has no accept/capture combination that means "library or
+// files only, skip the camera option." Only 'Take Video' (capture:
+// 'environment') goes straight to the camera with no second sheet.
 const ROWS = [
-  { label: 'Photo Library', sub: 'Choose from your library', Icon: ImageIcon, accept: 'video/*,image/*' as const },
-  { label: 'Take Video', sub: 'Record a new video', Icon: VideoCamera, accept: 'video/*' as const, capture: 'environment' },
-  { label: 'Choose File', sub: 'Browse audio or video files', Icon: FileIcon, accept: ACCEPT_AUDIO_VIDEO },
+  { label: 'Photo Library', sub: 'Choose from your library', icon: Image01Icon, accept: 'video/*,image/*' as const },
+  { label: 'Take Video', sub: 'Record a new video', icon: Video01Icon, accept: 'video/*' as const, capture: 'environment' },
+  { label: 'Choose File', sub: 'Browse audio or video files', icon: File01Icon, accept: ACCEPT_AUDIO_VIDEO },
 ];
 
 export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActionSheetProps) {
@@ -46,7 +54,7 @@ export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActio
         )}
       >
         <div className="rounded-[28px] overflow-hidden bg-[#0d0d10]">
-          {ROWS.map(({ label, sub, Icon, accept, capture }, i) => (
+          {ROWS.map(({ label, sub, icon, accept, capture }, i) => (
             <button
               key={label}
               type="button"
@@ -56,7 +64,7 @@ export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActio
                 i < ROWS.length - 1 && 'border-b border-white/10'
               )}
             >
-              <Icon size={26} className="shrink-0" />
+              <HugeiconsIcon icon={icon} size={26} strokeWidth={2} className="shrink-0" />
               <span className="flex flex-col">
                 <span className="text-lg font-semibold">{label}</span>
                 <span className="text-[15px] text-white/45">{sub}</span>

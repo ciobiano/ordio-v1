@@ -3,7 +3,8 @@
 import { useCallback, useState } from 'react';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { toast } from 'sonner';
-import { Trash } from 'griddy-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Delete01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
 import CaptionEditor from '@/components/soul/captions/CaptionEditor';
 import { formatDuration } from '@/components/saved-audio/formatters';
@@ -106,7 +107,7 @@ function LibraryPane({
               }}
               className="flex-none w-7 h-7 rounded-md flex items-center justify-center text-acid-text-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-acid-error hover:bg-acid-surface-2 transition-opacity"
             >
-              <Trash size={14} />
+              <HugeiconsIcon icon={Delete01Icon} size={14} strokeWidth={2} />
             </button>
           </div>
         ))}

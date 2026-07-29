@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { motion, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { panelCard } from '@/lib/variants'
 import { IconToolbar } from '@/components/ui/IconToolbar'
@@ -37,6 +38,17 @@ const DOCK_ITEMS = [
   { id: 'format',   label: 'Reframe',   icon: CropIcon },
 ]
 
+// Sparse panels (few options, no internal scrolling need) get a shorter sheet
+// instead of the same fixed height as dense ones — avoids the dead empty
+// space a short option list left in a tall sheet.
+const COMPACT_PANELS = new Set<ToolbarPanel>(['format'])
+function panelHeightClass(panel: ToolbarPanel): string {
+  return COMPACT_PANELS.has(panel) ? 'h-[26vh]' : 'h-[46vh]'
+}
+
+const DRAG_CLOSE_OFFSET = 80
+const DRAG_CLOSE_VELOCITY = 600
+
 export function ExportControls({
   playback,
   trimmer,
@@ -52,6 +64,7 @@ export function ExportControls({
   const [mobilePanel, setMobilePanel] = useState<ToolbarPanel>('captions')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [directorOpen, setDirectorOpen] = useState(false)
+  const dragControls = useDragControls()
 
   const handleDockItemClick = useCallback((id: string) => {
     if (id === 'director') {
@@ -119,27 +132,39 @@ export function ExportControls({
               drawerOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
             )}
           >
-            <div className="min-h-0 overflow-hidden">
+            <motion.div
+              className="min-h-0 overflow-hidden"
+              drag="y"
+              dragControls={dragControls}
+              dragListener={false}
+              dragSnapToOrigin
+              onDragEnd={(_, info) => {
+                if (info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY) {
+                  setDrawerOpen(false)
+                }
+              }}
+            >
               <button
                 type="button"
                 aria-label="Close panel"
                 onClick={() => setDrawerOpen(false)}
-                className="flex w-full cursor-pointer justify-center pt-2 pb-1"
+                onPointerDown={(e) => dragControls.start(e)}
+                className="flex w-full cursor-pointer justify-center pt-2 pb-1 touch-none"
               >
                 <span className="h-1.5 w-12 rounded-full bg-white/20" />
               </button>
 
               {/* Panel Content (no TabBar - Dock is the tab bar) */}
               {mobilePanel === 'captions' ? (
-                <div className="h-[46vh] min-h-0 px-4 pt-3 pb-4">
+                <div className={cn(panelHeightClass(mobilePanel), 'min-h-0 px-4 pt-3 pb-4')}>
                   <CaptionEditor currentTime={playback.currentTime} onSeek={playback.seek} />
                 </div>
               ) : mobilePanel === 'style' ? (
-                <div className="h-[46vh] min-h-0 overflow-hidden px-4 pt-3 pb-4">
+                <div className={cn(panelHeightClass(mobilePanel), 'min-h-0 overflow-hidden px-4 pt-3 pb-4')}>
                   <StyleControls onLocked={onLocked} />
                 </div>
               ) : (
-                <ScrollArea className="h-[46vh] pb-4">
+                <ScrollArea className={cn(panelHeightClass(mobilePanel), 'pb-4')}>
                   <div className="px-4 pt-3">
                     {mobilePanel === 'trim' && (
                       <TrimPanel
@@ -157,7 +182,7 @@ export function ExportControls({
                   </div>
                 </ScrollArea>
               )}
-            </div>
+            </motion.div>
           </div>
 
           <Dock

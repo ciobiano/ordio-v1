@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import Image from 'next/image';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -72,10 +73,10 @@ export function DirectorSheet({ isOpen, onClose, onLocked }: DirectorSheetProps)
             size="icon"
             aria-label="Close Director"
             onClick={onClose}
-            className="absolute right-0 top-0 min-w-[44px] min-h-[44px] rounded-full hover:bg-transparent"
+            className="absolute right-1 top-1 min-w-[44px] min-h-[44px] rounded-full hover:bg-transparent"
           >
             <span className="w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-colors duration-150">
-              <Image src="/icons/close.svg" width={12} height={12} alt="" aria-hidden="true" className="invert opacity-55" />
+              <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2} className="opacity-55" />
             </span>
           </Button>
         </div>
