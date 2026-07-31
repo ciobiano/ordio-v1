@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
+import { auth } from '@clerk/nextjs/server';
 import type { Word } from '@Ordio/shared/schemas';
 import { DirectorResponseSchema } from '@Ordio/shared/schemas';
+import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -20,6 +22,12 @@ function getClient(): OpenAI {
 // Small/cheap chat model — matches the cost-consciousness of the existing
 // whisper-1 transcription choice. Swap here if a cheaper/better option ships.
 const DIRECTOR_MODEL = 'gpt-4o-mini';
+
+// Fires once per sheet-open plus once per reroll, so more frequent than
+// find-clips but each call is a single short completion (no corrective
+// retry) — same order of magnitude, in-memory-per-instance limiter.
+const DIRECT_PER_HOUR = 15;
+const HOUR_MS = 60 * 60 * 1000;
 
 const LOOK_PRESET_DESCRIPTIONS = `
 - neon-pop: word-pop captions (one bold word at a time), acid-green/cyan gradient background — energetic, internet-native
@@ -52,6 +60,18 @@ function isValidBody(body: unknown): body is DirectRequestBody {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!consumeRateLimit(userId, DIRECT_PER_HOUR, HOUR_MS)) {
+      return NextResponse.json(
+        { error: 'Too many Director requests — try again later' },
+        { status: 429 }
+      );
+    }
+
     const body: unknown = await request.json();
     if (!isValidBody(body)) {
       return NextResponse.json({ error: 'Missing transcript, captionGroupTexts, or format' }, { status: 400 });

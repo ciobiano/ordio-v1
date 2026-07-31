@@ -7,11 +7,11 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { captureSheetSurface } from '@/lib/variants';
-import { useUIStore, useDirectorStore } from '@/stores';
+import { useDirectorStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
-import { LOOK_PRESETS, resolveLookStyle, type LookPresetId } from '@Ordio/engine';
+import { LOOK_PRESETS } from '@Ordio/engine';
 import { DirectorLookCard } from './DirectorLookCard';
 
 interface DirectorSheetProps {
@@ -22,8 +22,6 @@ interface DirectorSheetProps {
 
 export function DirectorSheet({ isOpen, onClose, onLocked }: DirectorSheetProps) {
   const { looks, isGenerating, error, generateLooks, reroll, applyLook } = useDirectorStore();
-  const style = useUIStore((s) => s.style);
-  const setStyle = useUIStore((s) => s.setStyle);
   const { isLocked } = useFeatureGates();
   const rerollLocked = isLocked('director_reroll');
 
@@ -39,11 +37,6 @@ export function DirectorSheet({ isOpen, onClose, onLocked }: DirectorSheetProps)
       return;
     }
     applyLook(index);
-    onClose();
-  };
-
-  const handleSelectPreset = (presetId: LookPresetId) => {
-    setStyle(resolveLookStyle(style, presetId));
     onClose();
   };
 
@@ -126,18 +119,6 @@ export function DirectorSheet({ isOpen, onClose, onLocked }: DirectorSheetProps)
                     </div>
                   );
                 })}
-
-                <div className="flex w-px shrink-0 self-stretch bg-white/10" aria-hidden="true" />
-
-                {(Object.keys(LOOK_PRESETS) as LookPresetId[]).map((presetId) => (
-                  <DirectorLookCard
-                    key={presetId}
-                    look={{ presetId, style: resolveLookStyle(style, presetId), hookGroupIndex: -1 }}
-                    label={LOOK_PRESETS[presetId].label}
-                    isSelected={style.captionStyleId === LOOK_PRESETS[presetId].style.captionStyleId}
-                    onSelect={() => handleSelectPreset(presetId)}
-                  />
-                ))}
               </div>
             )}
 
