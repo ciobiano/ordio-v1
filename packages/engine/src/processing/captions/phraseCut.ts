@@ -6,11 +6,18 @@ import {
   calculatePhraseTextY,
   DEFAULT_STROKE_COLOR,
   DEFAULT_STROKE_WIDTH_RATIO,
+  DEFAULT_TEXT_ALIGN,
+  DEFAULT_VERTICAL_ALIGN,
   FONT_WEIGHT,
   getActiveCaptionGroup,
+  getCaptionSideMargin,
   getMaxCaptionTextWidth,
   HOOK_SCALE_MULTIPLIER,
   isGlobalWordIndexAccented,
+  PHRASE_TOP_RATIO,
+  resolveBlockTopForAlign,
+  resolveLineX,
+  resolveScalePivotX,
   type PhraseCaptionMetrics,
 } from './shared';
 
@@ -166,25 +173,32 @@ export function drawPhraseCutCaptions(
   const { width, height, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4, fontSize } = style;
   const lineHeight = fontSize * lineHeightMultiplier;
   const maxTextWidth = getMaxCaptionTextWidth(width);
-  const textY = calculatePhraseTextY(height, layout, hasVisualZone, flipped, lineHeight);
-  const centerX = width / 2;
+  const safeMargin = getCaptionSideMargin(width);
+  const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
+  const textY =
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, height, lineHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(height, layout, hasVisualZone, flipped, lineHeight);
 
   ctx.textBaseline = 'middle';
   const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing);
   const hookBoost = group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1;
   const fitScale = (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) * hookBoost;
+  // Both draw paths center on this point, so aligning the line is a matter of
+  // moving its center rather than branching the drawing code.
+  const centerX = resolveLineX(align, chunk.totalWidth, width, safeMargin) + chunk.totalWidth / 2;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
   const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
   const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
   const blockCenterY = textY + lineHeight / 2;
+  const pivotX = resolveScalePivotX(align, width, safeMargin);
 
   ctx.save();
-  ctx.translate(centerX + offsetX, blockCenterY + offsetY);
+  ctx.translate(pivotX + offsetX, blockCenterY + offsetY);
   ctx.rotate(rotationRad);
   ctx.scale(fitScale * manualScale, fitScale * manualScale);
-  ctx.translate(-centerX, -blockCenterY);
+  ctx.translate(-pivotX, -blockCenterY);
   ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
   ctx.shadowBlur = Math.max(8, fontSize * 0.12);
   drawChunk(ctx, chunk, style, preset, centerX, textY + lineHeight / 2, characterSpacing);
@@ -211,20 +225,31 @@ export function measurePhraseCutCaptionBlock(
   ctx.textBaseline = 'middle';
 
   const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const safeMargin = getCaptionSideMargin(style.width);
+  const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const characterSpacing = style.characterSpacing ?? 0;
   const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
-  const textY = calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, lineHeight);
+  const textY =
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, style.height, lineHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, lineHeight);
   const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing);
+  const fitScale =
+    (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) *
+    (group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1);
+  const pivotX = resolveScalePivotX(align, style.width, safeMargin);
+  const centerX = resolveLineX(align, chunk.totalWidth, style.width, safeMargin) + chunk.totalWidth / 2;
 
   return {
     text: chunk.text,
     lines: [chunk.text],
-    centerX: style.width / 2,
+    // Reported pre-scale; the caller applies fitScale about pivotX.
+    centerX,
     textY,
     lineHeight,
     blockWidth: chunk.totalWidth,
     blockHeight: lineHeight,
     blockCenterY: textY + lineHeight / 2,
-    fitScale: (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) * (group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1),
+    fitScale,
+    pivotX,
   };
 }

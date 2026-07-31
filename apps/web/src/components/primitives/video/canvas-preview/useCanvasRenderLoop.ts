@@ -119,7 +119,7 @@ export function useCanvasRenderLoop({
       };
 
       renderFrame(bufferCtx, Math.max(0, frameIndex), totalFrames, frameOptions);
-      const takesFullScreen = getCaptionStylePreset(renderStyle.captionStyleId).mechanic === 'static-highlight';
+      const takesFullScreen = getCaptionStylePreset(renderStyle.captionStyleId).ownsStage;
       const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
       const nextCaptionBox = measureCaptionTransformBox({
         ctx: bufferCtx,

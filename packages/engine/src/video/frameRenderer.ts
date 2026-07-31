@@ -1,17 +1,19 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import { FPS } from '@Ordio/shared/time';
 import type { WaveformVariant, GraphicStyleId, CanvasLayout, CaptionTransform, CaptionGroup } from '../types';
-import { drawPillBars, drawCircleWaveform, drawSpectrogram } from '../waveforms';
-import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED } from '../waveforms/constants';
+import { drawPillBars, drawCircleWaveform, drawSpectrogram, drawOrbWaveform, drawBaselineWaveform } from '../waveforms';
+import { WAVEFORM_CENTER_Y_FLIPPED, CIRCLE_CENTER_Y_FLIPPED, ORB_CENTER_Y_FLIPPED } from '../waveforms/constants';
 import { getGraphic } from '../loaders/graphicLoader';
 import { drawGraphic } from '../graphic';
 import {
   drawWordSwapCaptions,
   drawPhraseCutCaptions,
   drawStaticHighlightCaptions,
+  drawProgressiveRevealCaptions,
 } from '../processing/captions';
 import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
+import { drawLookChrome } from './lookChrome';
 import { drawGradientBackground } from '../backgrounds/gradientBackground';
 
 export interface FrameOptions {
@@ -112,7 +114,8 @@ export function renderFrame(
   const duration = totalFrames / FPS;
   const layout = canvasLayout ?? 'top';
   const flipped = layout === 'flipped';
-  const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
+  const captionPreset = getCaptionStylePreset(style.captionStyleId);
+  const mechanic = captionPreset.mechanic;
 
   // 1. Background — video frame (cover-fit + scrim), gradient, or solid color
   const { backgroundFrame } = options;
@@ -147,10 +150,9 @@ export function renderFrame(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Visual zone — static-highlight's multi-line block takes the same
-  // full-screen precedence the old karaoke mode had; other mechanics share
-  // the screen with the waveform/graphic zone as phrase mode always did.
-  const takesFullScreen = mechanic === 'static-highlight';
+  // 2. Visual zone — styles that own the stage (karaoke lyrics) suppress the
+  // waveform/graphic entirely; every other style shares the frame with it.
+  const takesFullScreen = captionPreset.ownsStage;
   if (!takesFullScreen) {
     if (graphicStyle) {
       const img = getGraphic(graphicStyle);
@@ -192,9 +194,25 @@ export function renderFrame(
         captionTransform
       );
       break;
+    case 'progressive-reveal':
+      drawProgressiveRevealCaptions(
+        ctx,
+        currentTime,
+        transcript,
+        style,
+        layout,
+        hasVisualZone,
+        flipped,
+        captionGroups,
+        captionTransform
+      );
+      break;
   }
 
-  // 4. Watermark — drawn last so it sits on top
+  // 4. Look chrome — the fixed marks a look's own composition includes.
+  drawLookChrome(ctx, currentTime, style, waveformStyle);
+
+  // 5. Watermark — drawn last so it sits on top
   if (showWatermark) {
     drawWatermark(ctx);
   }
@@ -209,7 +227,15 @@ function drawWaveform(
   variant: WaveformVariant,
   flipped = false
 ): void {
-  if (waveformData.length === 0 || variant === 'none') return;
+  if (variant === 'none') return;
+  // The orb runs on its own clock rather than the audio, so it still draws
+  // when there are no samples — every amplitude-driven variant bails.
+  if (variant === 'orb') {
+    drawOrbWaveform(ctx, currentTime, style, flipped ? ORB_CENTER_Y_FLIPPED : undefined);
+    return;
+  }
+  if (waveformData.length === 0) return;
+
   const centerY = flipped ? WAVEFORM_CENTER_Y_FLIPPED : undefined;
   const circleCY = flipped ? CIRCLE_CENTER_Y_FLIPPED : undefined;
   switch (variant) {
@@ -218,6 +244,9 @@ function drawWaveform(
       break;
     case 'spectrogram':
       drawSpectrogram(ctx, currentTime, duration, waveformData, style, centerY);
+      break;
+    case 'baseline':
+      drawBaselineWaveform(ctx, currentTime, duration, waveformData, style, flipped);
       break;
     case 'bars':
       drawPillBars(ctx, currentTime, duration, waveformData, style, centerY);

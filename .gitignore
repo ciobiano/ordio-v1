@@ -99,3 +99,6 @@ pnpm-debug.log*
 
 # ── Local design scratch (screenshots, review snapshots) ──────
 design/
+
+# Obsidian per-user vault state (pane layout, local paths)
+.obsidian/

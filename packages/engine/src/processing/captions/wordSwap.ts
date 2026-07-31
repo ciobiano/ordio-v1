@@ -6,12 +6,19 @@ import {
   calculatePhraseTextY,
   DEFAULT_STROKE_COLOR,
   DEFAULT_STROKE_WIDTH_RATIO,
+  DEFAULT_TEXT_ALIGN,
+  DEFAULT_VERTICAL_ALIGN,
   findActiveWordIndex,
   FONT_WEIGHT,
   getActiveCaptionGroup,
+  getCaptionSideMargin,
   getMaxCaptionTextWidth,
   HOOK_SCALE_MULTIPLIER,
   isGlobalWordIndexAccented,
+  PHRASE_TOP_RATIO,
+  resolveBlockTopForAlign,
+  resolveLineX,
+  resolveScalePivotX,
   type PhraseCaptionMetrics,
 } from './shared';
 
@@ -75,25 +82,30 @@ export function drawWordSwapCaptions(
   ctx.textAlign = 'center';
 
   const maxTextWidth = getMaxCaptionTextWidth(width);
+  const safeMargin = getCaptionSideMargin(width);
+  const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const lineHeight = fontSize * lineHeightMultiplier;
-  const textY = calculatePhraseTextY(height, layout, hasVisualZone, flipped, lineHeight);
-  const centerX = width / 2;
+  const textY =
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, height, lineHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(height, layout, hasVisualZone, flipped, lineHeight);
 
   const measuredWidth = measureTextWidth(ctx, scene.text, characterSpacing);
   const hookBoost = scene.isHook ? HOOK_SCALE_MULTIPLIER : 1;
   const fitScale = (measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1) * hookBoost;
+  const centerX = resolveLineX(align, measuredWidth, width, safeMargin) + measuredWidth / 2;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
   const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
   const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
   const blockCenterY = textY + lineHeight / 2;
+  const pivotX = resolveScalePivotX(align, width, safeMargin);
 
   ctx.save();
-  ctx.translate(centerX + offsetX, blockCenterY + offsetY);
+  ctx.translate(pivotX + offsetX, blockCenterY + offsetY);
   ctx.rotate(rotationRad);
   ctx.scale(fitScale * manualScale, fitScale * manualScale);
-  ctx.translate(-centerX, -blockCenterY);
+  ctx.translate(-pivotX, -blockCenterY);
 
   ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
   ctx.shadowBlur = Math.max(8, fontSize * 0.12);
@@ -128,20 +140,26 @@ export function measureWordSwapCaptionBlock(
   ctx.textBaseline = 'middle';
 
   const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const safeMargin = getCaptionSideMargin(style.width);
+  const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const characterSpacing = style.characterSpacing ?? 0;
   const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
-  const textY = calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, lineHeight);
+  const textY =
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, style.height, lineHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, lineHeight);
   const blockWidth = measureTextWidth(ctx, scene.text, characterSpacing);
 
   return {
     text: scene.text,
     lines: [scene.text],
-    centerX: style.width / 2,
+    // Reported pre-scale; the caller applies fitScale about pivotX.
+    centerX: resolveLineX(align, blockWidth, style.width, safeMargin) + blockWidth / 2,
     textY,
     lineHeight,
     blockWidth,
     blockHeight: lineHeight,
     blockCenterY: textY + lineHeight / 2,
     fitScale: blockWidth > 0 ? Math.min(1, maxTextWidth / blockWidth) : 1,
+    pivotX: resolveScalePivotX(align, style.width, safeMargin),
   };
 }

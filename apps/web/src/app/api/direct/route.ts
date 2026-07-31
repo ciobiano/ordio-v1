@@ -38,6 +38,10 @@ const LOOK_PRESET_DESCRIPTIONS = `
 - editorial-script: italic serif accent word with glow, solid black background — elegant, thoughtful
 - warm-pop: one bold word at a time, warm pink gradient — playful, upbeat
 - electric-outline: thick-outline captions, cobalt gradient — bold, modern
+- centered-block: a whole sentence held on screen in large serif, each word lighting up as it is spoken, on void black — cinematic, premium, quote-like
+- urban-phrase: the same word-by-word serif reveal over a warm grained gradient — moody, editorial, suits spoken essays and street commentary
+- orb-phrase: word-by-word reveal under a slowly spinning wireframe orb on black — calm, futuristic, made for reflective or technical talk
+- cream-block: warm cream card, maroon type, the active word filling with a solid maroon block — soft, bookish, personal-brand quotes
 `.trim();
 
 interface DirectRequestBody {

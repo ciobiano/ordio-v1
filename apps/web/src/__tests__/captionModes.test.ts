@@ -56,6 +56,8 @@ const style: StyleConfig = {
   waveColor: '#3B82F6',
   characterSpacing: 0,
   lineHeight: 1.3,
+  textAlign: 'center',
+  verticalAlign: 'auto',
   captionStyleId: 'minimal-lower-third',
 };
 

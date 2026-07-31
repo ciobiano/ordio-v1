@@ -37,6 +37,8 @@ const defaultStyle: StyleConfig = {
   waveColor: '#3B82F6',
   characterSpacing: 0,
   lineHeight: 1.4,
+  textAlign: 'center',
+  verticalAlign: 'auto',
   captionStyleId: 'minimal-lower-third',
 };
 

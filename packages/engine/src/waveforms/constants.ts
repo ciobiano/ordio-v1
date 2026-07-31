@@ -16,6 +16,62 @@ export const CIRCLE_CENTER_Y = 0.62;
 export const CIRCLE_CENTER_Y_FLIPPED = 1 - CIRCLE_CENTER_Y; // 0.38
 export const CIRCLE_INNER_RADIUS = 0.08;
 export const CIRCLE_MAX_BAR_LEN = 0.12;
+// Orb — wireframe sphere ported from the caption-presets design study. Every
+// value below is the design's own: periods are its CSS animation durations,
+// alphas its rgba() stops, and the geometry ratios come from its 176px box
+// (1.5px stroke on an 88px radius; crosshair spanning 128% of the box).
+// Footprint matches the circle variant so captions clear it the same way.
+// Baseline bars — the cream-block panel's waveform. Not the pill bars: 60 thin
+// bars growing UP from a baseline just off the bottom edge, never mirrored.
+// Ratios come from the study's 360x640 frame (horizontal off width, vertical
+// off height, matching how its fixed-px CSS behaves).
+export const BASELINE_BAR_COUNT = 60;
+export const BASELINE_SIDE_PAD_RATIO = 10 / 360;
+export const BASELINE_GAP_RATIO = 2 / 360;
+export const BASELINE_RADIUS_RATIO = 1 / 360;
+export const BASELINE_BOTTOM_PAD_RATIO = 10 / 640;
+export const BASELINE_MIN_H_RATIO = 3 / 640;
+export const BASELINE_RANGE_H_RATIO = 26 / 640;
+
+// The study's orb sits in a centered column above its phrase, which puts its
+// center at ~42% rather than down in the waveform strip.
+export const ORB_CENTER_Y = 0.42;
+export const ORB_CENTER_Y_FLIPPED = 1 - ORB_CENTER_Y;
+export const ORB_RADIUS_RATIO = CIRCLE_INNER_RADIUS + CIRCLE_MAX_BAR_LEN; // 0.20
+export const ORB_STROKE_RATIO = 1.5 / 88;
+export const ORB_CROSSHAIR_OVERSHOOT = 1.28;
+
+export const ORB_SPIN_PERIOD = 42;
+export const ORB_BREATHE_PERIOD = 6;
+export const ORB_BREATHE_FROM = 1;
+export const ORB_BREATHE_TO = 1.035;
+
+export const ORB_RING_A_PERIOD = 9;
+export const ORB_RING_A_FROM = 1;
+export const ORB_RING_A_TO = 0.12;
+export const ORB_RING_B_PERIOD = 13;
+export const ORB_RING_B_FROM = 0.14;
+export const ORB_RING_B_TO = 1;
+
+// The tag riding top-right of the orb composition. Ratios are of canvas
+// width, taken from the study's 360px-wide frame.
+export const ORB_TAG_TEXT = 'ordio.ai/presets';
+export const ORB_TAG_INSET_RATIO = 22 / 360;
+export const ORB_TAG_FONT_RATIO = 10 / 360;
+export const ORB_TAG_TRACKING_EM = 0.04;
+export const ORB_TAG_ALPHA = 0.72;
+export const ORB_TAG_GAP_RATIO = 6 / 360;
+export const ORB_TAG_CARET_W_RATIO = 2 / 360;
+export const ORB_TAG_CARET_H_RATIO = 11 / 360;
+export const ORB_TAG_CARET_COLOR = '#D81E0B';
+export const ORB_TAG_CARET_PERIOD = 1;
+
+export const ORB_SHELL_ALPHA = 0.9;
+export const ORB_RING_A_ALPHA = 0.55;
+export const ORB_RING_B_ALPHA = 0.4;
+export const ORB_CROSSHAIR_X_ALPHA = 0.32;
+export const ORB_CROSSHAIR_Y_ALPHA = 0.18;
+
 export const MIN_AMPLITUDE = 0.04;
 export const MIN_BAR_HEIGHT = 4;
 export const GLOW_THRESHOLD = 0.35;

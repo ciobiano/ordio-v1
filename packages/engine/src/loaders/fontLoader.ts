@@ -21,6 +21,10 @@ const FONT_CONFIG: Record<string, string> = {
   'DM Sans': 'DM+Sans:wght@300;400;600;700',
   'Playfair Display': 'Playfair+Display:wght@300;400;600;700',
   Lora: 'Lora:wght@400;500;600;700',
+  // Instrument Serif ships regular + italic only — no weight axis. Captions
+  // ask for 400 via resolveFontWeight so canvas never faux-bolds it.
+  'Instrument Serif': 'Instrument+Serif:ital@0;1',
+  'Instrument Sans': 'Instrument+Sans:wght@400;500;600;700',
 };
 
 const loaded = new Set<string>();

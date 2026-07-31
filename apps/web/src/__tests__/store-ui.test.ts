@@ -16,6 +16,8 @@ describe('store: uiStore', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        textAlign: 'center',
+        verticalAlign: 'auto',
         captionStyleId: 'minimal-lower-third' as const,
       },
       waveformStyle: 'bars',

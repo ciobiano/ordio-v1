@@ -2,7 +2,8 @@
 
 import { create } from 'zustand';
 import type { StyleConfig, DirectorResponse } from '@Ordio/shared/schemas';
-import { resolveLookStyle, type LookPresetId } from '@Ordio/engine';
+import { LOOK_PRESETS, resolveLookStyle, type LookPresetId } from '@Ordio/engine';
+import type { WaveformVariant } from '@Ordio/engine/types';
 import { useUIStore } from './uiStore';
 import { useProcessingStore } from './processingStore';
 
@@ -10,6 +11,8 @@ export interface DirectorLook {
   presetId: LookPresetId;
   style: StyleConfig;
   hookGroupIndex: number;
+  /** Undefined means the look is caption-only and keeps whatever visual the session already has. */
+  waveformStyle?: WaveformVariant;
 }
 
 interface DirectorState {
@@ -49,6 +52,7 @@ async function fetchLooks(): Promise<DirectorLook[]> {
     presetId: look.presetId,
     style: resolveLookStyle(style, look.presetId, look.overrides),
     hookGroupIndex: look.hookGroupIndex,
+    waveformStyle: LOOK_PRESETS[look.presetId].waveformStyle,
   }));
 }
 
@@ -79,6 +83,9 @@ export const useDirectorStore = create<DirectorState>((set, get) => ({
     if (!look) return;
 
     useUIStore.getState().setStyle(look.style);
+    if (look.waveformStyle) {
+      useUIStore.getState().setWaveformStyle(look.waveformStyle);
+    }
 
     const { captionGroups } = useProcessingStore.getState();
     const nextGroups = captionGroups.map((group, i) => ({

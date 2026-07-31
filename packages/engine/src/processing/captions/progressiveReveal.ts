@@ -1,23 +1,23 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
-import type { CaptionGroup, CaptionTransform } from '../../types';
+import type { CanvasLayout, CaptionGroup, CaptionTransform } from '../../types';
 import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
-import { getCaptionStylePreset } from '../../captions/presets';
 import { buildSentenceSegments, findActiveDisplaySegment } from '../../captions/display';
 import {
+  calculatePhraseTextY,
   CAPTION_VERTICAL_SAFE_RATIO,
-  CHIP_PADDING_X_RATIO,
-  CHIP_PADDING_Y_RATIO,
-  CHIP_RADIUS_RATIO,
   DEFAULT_TEXT_ALIGN,
   DEFAULT_VERTICAL_ALIGN,
-  FONT_WEIGHT,
+  dimColor,
   getActiveCaptionGroup,
+  getCaptionSideMargin,
   HIGHLIGHT_LINE_HEIGHT_RATIO,
-  HIGHLIGHT_TEXT_WIDTH_RATIO,
-  HIGHLIGHT_TOP_RATIO,
   HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
+  PROGRESSIVE_REVEAL_DIM_OPACITY,
+  PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO,
+  PROGRESSIVE_REVEAL_TOP_RATIO,
   resolveBlockTopForAlign,
+  resolveFontWeight,
   resolveLineX,
   resolveScalePivotX,
   scaleAboutPivot,
@@ -25,22 +25,15 @@ import {
   type LayoutWord,
   type LineLayout,
   type TextAlign,
+  type VerticalAlign,
 } from './shared';
 
-const CAPTION_SIDE_MARGIN_PX = 2;
-
-/** Rendered width of one wrapped line, including the spaces between its words. */
-function lineWidth(line: LayoutWord[], spaceWidth: number): number {
-  if (line.length === 0) return 0;
-  return line.reduce((sum, word) => sum + word.wordWidth, 0) + spaceWidth * (line.length - 1);
-}
-
-interface PreparedHighlightScene {
+interface PreparedRevealScene {
   width: number;
   height: number;
   textColor: string;
-  fontFamily: string;
-  fontSize: number;
+  dimTextColor: string;
+  font: string;
   characterSpacing: number;
   lineHeight: number;
   lines: LayoutWord[][];
@@ -48,18 +41,44 @@ interface PreparedHighlightScene {
   align: TextAlign;
   safeMargin: number;
   spaceWidth: number;
+  blockTop: number;
   blockCenterY: number;
-  topPad: number;
   hookBoost: number;
 }
 
-function prepareHighlightScene(
+/**
+ * Vertical anchor. With no waveform or graphic sharing the frame the block
+ * sits at optical center (the design's composition); otherwise it defers to
+ * the same above-the-waveform placement every other mechanic uses.
+ */
+function resolveBlockTop(
+  vAlign: VerticalAlign,
+  height: number,
+  blockHeight: number,
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped: boolean
+): number {
+  const anchored = resolveBlockTopForAlign(vAlign, height, blockHeight, PROGRESSIVE_REVEAL_TOP_RATIO);
+  if (anchored !== null) return anchored;
+
+  if (hasVisualZone) {
+    return calculatePhraseTextY(height, layout, hasVisualZone, flipped, blockHeight);
+  }
+  const safePad = height * CAPTION_VERTICAL_SAFE_RATIO;
+  return Math.max(safePad, (height - blockHeight) / 2);
+}
+
+function prepareRevealScene(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped: boolean,
   groups?: CaptionGroup[]
-): PreparedHighlightScene | null {
+): PreparedRevealScene | null {
   if (transcript.length === 0) return null;
 
   const {
@@ -71,16 +90,18 @@ function prepareHighlightScene(
     characterSpacing = 0,
     lineHeight: lineHeightMultiplier = HIGHLIGHT_LINE_HEIGHT_RATIO,
   } = style;
-  const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
-  const maxWidth = Math.min(width - padding * 2, width * HIGHLIGHT_TEXT_WIDTH_RATIO);
 
   const scene = findActiveDisplaySegment(buildSentenceSegments(transcript), currentTime)?.words ?? [];
   if (scene.length === 0) return null;
 
-  ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
+  const font = `${resolveFontWeight(fontFamily)} ${fontSize}px "${fontFamily}", serif`;
+
+  ctx.font = font;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
 
+  const safeMargin = getCaptionSideMargin(width);
+  const maxWidth = Math.min(width - safeMargin * 2, width * PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO);
   const spaceWidth = measureTextWidth(ctx, ' ', characterSpacing);
   const lineHeight = fontSize * lineHeightMultiplier;
 
@@ -96,48 +117,57 @@ function prepareHighlightScene(
   }
 
   const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth);
-  const lines = wrapLayout.lines;
-  const blockHeight = lines.length * lineHeight;
-  const topPad =
-    resolveBlockTopForAlign(
-      style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN,
-      height,
-      blockHeight,
-      HIGHLIGHT_TOP_RATIO
-    ) ?? Math.max(height * CAPTION_VERTICAL_SAFE_RATIO, height * HIGHLIGHT_TOP_RATIO);
+  const blockHeight = wrapLayout.lines.length * lineHeight;
+  const blockTop = resolveBlockTop(
+    style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN,
+    height,
+    blockHeight,
+    layout,
+    hasVisualZone,
+    flipped
+  );
   const activeGroup = getActiveCaptionGroup(groups ?? [], currentTime);
 
   return {
     width,
     height,
     textColor,
-    fontFamily,
-    fontSize,
+    dimTextColor: dimColor(textColor, PROGRESSIVE_REVEAL_DIM_OPACITY),
+    font,
     characterSpacing,
     lineHeight,
-    lines,
+    lines: wrapLayout.lines,
     layout: wrapLayout,
     align: style.textAlign ?? DEFAULT_TEXT_ALIGN,
-    safeMargin: padding,
+    safeMargin,
     spaceWidth,
-    blockCenterY: topPad + blockHeight / 2,
-    topPad,
+    blockTop,
+    blockCenterY: blockTop + blockHeight / 2,
     hookBoost: activeGroup?.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1,
   };
 }
 
-export function measureStaticHighlightCaptionBlock(
+/** Rendered width of one wrapped line, including the spaces between its words. */
+function lineWidth(line: LayoutWord[], spaceWidth: number): number {
+  if (line.length === 0) return 0;
+  return line.reduce((sum, word) => sum + word.wordWidth, 0) + spaceWidth * (line.length - 1);
+}
+
+export function measureProgressiveRevealCaptionBlock(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped = false,
   groups?: CaptionGroup[]
 ): HighlightCaptionMetrics | null {
-  const prep = prepareHighlightScene(ctx, currentTime, transcript, style, groups);
+  const prep = prepareRevealScene(ctx, currentTime, transcript, style, layout, hasVisualZone, flipped, groups);
   if (!prep) return null;
 
-  const { width, lines, layout, blockCenterY, lineHeight, hookBoost, align, safeMargin, spaceWidth } = prep;
-  const scale = layout.scale * hookBoost;
+  const { width, lines, spaceWidth, align, safeMargin, layout: wrap, lineHeight, blockCenterY, hookBoost } = prep;
+  const scale = wrap.scale * hookBoost;
   const pivotX = resolveScalePivotX(align, width, safeMargin);
 
   // Aligned lines can each start somewhere different, so the block's bounds
@@ -163,32 +193,45 @@ export function measureStaticHighlightCaptionBlock(
 }
 
 /**
- * Static-highlight mechanic: the whole line/block stays on screen and only
- * a chip background moves from word to word in sync with playback — no
- * word ever fades in/out. Used by the karaoke-chip caption style.
+ * Progressive-reveal mechanic: a whole sentence holds on screen while each
+ * word flips from dim to full color the moment its own timestamp arrives,
+ * then the block hard-cuts to the next sentence. Used by editorial-reveal.
  */
-export function drawStaticHighlightCaptions(
+export function drawProgressiveRevealCaptions(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
   transcript: Word[],
   style: StyleConfig,
-  captionTransform?: CaptionTransform,
-  groups?: CaptionGroup[]
+  layout: CanvasLayout,
+  hasVisualZone: boolean,
+  flipped = false,
+  groups?: CaptionGroup[],
+  captionTransform?: CaptionTransform
 ): void {
   if (captionTransform && !captionTransform.visible) return;
 
-  const prep = prepareHighlightScene(ctx, currentTime, transcript, style, groups);
+  const prep = prepareRevealScene(ctx, currentTime, transcript, style, layout, hasVisualZone, flipped, groups);
   if (!prep) return;
 
-  const { width, height, textColor, fontFamily, fontSize, characterSpacing, lineHeight, lines, layout, align, safeMargin, spaceWidth, blockCenterY, topPad, hookBoost } = prep;
-  const preset = getCaptionStylePreset(style.captionStyleId);
-  const chipColor = preset.chipColor ?? '#22D3EE';
-  const chipTextColor = preset.chipTextColor ?? '#111111';
-  // A drop shadow behind idle words reads as a smudge on a light surface —
-  // only styles that invert their chip (cream-block) sit on one.
-  const idleWordShadow = preset.chipTextColor === undefined;
+  const {
+    width,
+    height,
+    textColor,
+    dimTextColor,
+    font,
+    characterSpacing,
+    lineHeight,
+    lines,
+    layout: wrap,
+    align,
+    safeMargin,
+    spaceWidth,
+    blockTop,
+    blockCenterY,
+    hookBoost,
+  } = prep;
 
-  ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
+  ctx.font = font;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
 
@@ -196,7 +239,7 @@ export function drawStaticHighlightCaptions(
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
   const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
   const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
-  const combinedScale = manualScale * layout.scale * hookBoost;
+  const combinedScale = manualScale * wrap.scale * hookBoost;
   const pivotX = resolveScalePivotX(align, width, safeMargin);
 
   ctx.save();
@@ -205,44 +248,17 @@ export function drawStaticHighlightCaptions(
   ctx.scale(combinedScale, combinedScale);
   ctx.translate(-pivotX, -blockCenterY);
 
-  const chipPadX = fontSize * (preset.chipPaddingXRatio ?? CHIP_PADDING_X_RATIO);
-  const chipPadY = fontSize * CHIP_PADDING_Y_RATIO;
-  const chipRadius = fontSize * (preset.chipRadiusRatio ?? CHIP_RADIUS_RATIO);
-
   for (let li = 0; li < lines.length; li++) {
     const line = lines[li];
-    const lineY = topPad + li * lineHeight + lineHeight / 2;
+    const lineY = blockTop + li * lineHeight + lineHeight / 2;
     let x = resolveLineX(align, lineWidth(line, spaceWidth), width, safeMargin);
 
     for (const word of line) {
-      const isActive = currentTime >= word.start && currentTime < word.end;
-      const wordX = x;
+      // Hard state flip on the word's own start — no easing, matching the
+      // design's "nothing moves, only value changes" rule.
+      ctx.fillStyle = currentTime >= word.start ? textColor : dimTextColor;
+      drawSpacedText(ctx, word.text, x, lineY, { textAlign: 'left', characterSpacing });
       x += word.wordWidth + spaceWidth;
-
-      ctx.save();
-      if (isActive) {
-        const chipX = wordX - chipPadX;
-        const chipY = lineY - lineHeight / 2 + chipPadY / 2;
-        const chipW = word.wordWidth + chipPadX * 2;
-        const chipH = lineHeight - chipPadY;
-        ctx.fillStyle = chipColor;
-        if (typeof ctx.roundRect === 'function') {
-          ctx.beginPath();
-          ctx.roundRect(chipX, chipY, chipW, chipH, chipRadius);
-          ctx.fill();
-        } else {
-          ctx.fillRect(chipX, chipY, chipW, chipH);
-        }
-        ctx.fillStyle = chipTextColor;
-      } else {
-        if (idleWordShadow) {
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-          ctx.shadowBlur = Math.max(6, fontSize * 0.08);
-        }
-        ctx.fillStyle = textColor;
-      }
-      drawSpacedText(ctx, word.text, wordX, lineY, { characterSpacing });
-      ctx.restore();
     }
   }
 

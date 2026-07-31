@@ -1,4 +1,4 @@
-import type { Word } from '@Ordio/shared/schemas';
+import type { StyleConfig, Word } from '@Ordio/shared/schemas';
 import type { CanvasLayout, CaptionGroup } from '../../types';
 import {
   GAP_ABOVE_WAVEFORM,
@@ -7,11 +7,61 @@ import {
   WAVEFORM_MAX_AMP,
 } from '../../waveforms/constants';
 
+/** Horizontal caption alignment. Older persisted styles predate the field, so renderers read it defensively. */
+export type TextAlign = NonNullable<StyleConfig['textAlign']>;
+export const DEFAULT_TEXT_ALIGN: TextAlign = 'center';
+
+export type VerticalAlign = NonNullable<StyleConfig['verticalAlign']>;
+export const DEFAULT_VERTICAL_ALIGN: VerticalAlign = 'auto';
+
+/**
+ * How far above the bottom edge a 'bottom'-anchored caption block sits. The
+ * design study's own "22% from base" — high enough to clear a phone's UI
+ * chrome, low enough to leave the frame's subject visible.
+ */
+export const CAPTION_BOTTOM_ANCHOR_RATIO = 0.22;
+
+/**
+ * Top edge of a caption block under an explicit vertical anchor. Returns null
+ * for 'auto' so each mechanic falls through to the waveform-aware placement it
+ * has always used — that's what keeps every pre-existing look pixel-identical.
+ */
+export function resolveBlockTopForAlign(
+  vAlign: VerticalAlign,
+  height: number,
+  blockHeight: number,
+  topRatio: number
+): number | null {
+  if (vAlign === 'auto') return null;
+
+  const safePad = height * CAPTION_VERTICAL_SAFE_RATIO;
+  const maxTop = Math.max(safePad, height - safePad - blockHeight);
+
+  if (vAlign === 'top') return Math.min(Math.max(safePad, height * topRatio), maxTop);
+  if (vAlign === 'bottom') {
+    return Math.min(Math.max(safePad, height * (1 - CAPTION_BOTTOM_ANCHOR_RATIO) - blockHeight), maxTop);
+  }
+  return Math.min(Math.max(safePad, (height - blockHeight) / 2), maxTop);
+}
+
 export const CAPTION_SIDE_MARGIN_PX = 2;
 /** Phrase captions keep a real safe margin so text never runs edge-to-edge. */
 export const CAPTION_SIDE_MARGIN_RATIO = 0.06;
 export const CAPTION_VERTICAL_SAFE_RATIO = 0.08;
 export const FONT_WEIGHT = '600';
+
+/**
+ * Families that ship a single weight. Asking canvas for a heavier one renders
+ * a synthesized faux-bold instead of the real face, which is exactly the
+ * smeared look Instrument Serif's thin strokes fall apart into.
+ */
+const SINGLE_WEIGHT_FONTS: Record<string, string> = {
+  'Instrument Serif': '400',
+};
+
+export function resolveFontWeight(fontFamily: string, desired: string = FONT_WEIGHT): string {
+  return SINGLE_WEIGHT_FONTS[fontFamily] ?? desired;
+}
 export const MIN_CAPTION_SAFE_ZONE = 0.02;
 export const PHRASE_FADE_DURATION = 0.15;
 export const PHRASE_TOP_RATIO = 0.18;
@@ -46,12 +96,37 @@ export const CHIP_PADDING_X_RATIO = 0.28;
 export const CHIP_PADDING_Y_RATIO = 0.18;
 export const CHIP_RADIUS_RATIO = 0.22;
 
+/** Progressive-reveal: opacity an unspoken word sits at before its timestamp arrives. */
+export const PROGRESSIVE_REVEAL_DIM_OPACITY = 0.32;
+/** The study's 44px gutters on a 360px frame — wider than the other mechanics use. */
+export const PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO = 0.76;
+export const PROGRESSIVE_REVEAL_TOP_RATIO = 0.18;
+
+/**
+ * Fades a #rrggbb color to an rgba() string. Canvas has no per-fill opacity
+ * that survives shadows, so the dim state has to live in the color itself.
+ * Falls back to the input untouched if it isn't parseable hex.
+ */
+export function dimColor(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  if (normalized.length !== 6) return hex;
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return hex;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export interface HighlightCaptionMetrics {
   centerX: number;
   blockCenterY: number;
   blockWidth: number;
   blockHeight: number;
   layoutScale: number;
+  /** X the block scales about — the user's manual scale pivots here too, so hit-testing must account for it. */
+  pivotX: number;
 }
 
 export type LayoutWord = { text: string; start: number; end: number; wordWidth: number; pauseToNext: number };
@@ -149,6 +224,8 @@ export interface PhraseCaptionMetrics {
   blockHeight: number;
   blockCenterY: number;
   fitScale: number;
+  /** X the block scales about — the user's manual scale pivots here too, so hit-testing must account for it. */
+  pivotX: number;
 }
 
 export interface StackCaptionMetrics {
@@ -171,12 +248,58 @@ export interface SpotlightCaptionMetrics {
 }
 
 
+/** The horizontal safe margin captions never cross. Single source for both width-fitting and start/end alignment. */
+export function getCaptionSideMargin(width: number): number {
+  return Math.min(Math.max(CAPTION_SIDE_MARGIN_PX, width * CAPTION_SIDE_MARGIN_RATIO), width / 2);
+}
+
 export function getMaxCaptionTextWidth(width: number): number {
-  const padding = Math.min(
-    Math.max(CAPTION_SIDE_MARGIN_PX, width * CAPTION_SIDE_MARGIN_RATIO),
-    width / 2
-  );
-  return width - padding * 2;
+  return width - getCaptionSideMargin(width) * 2;
+}
+
+/**
+ * Left edge of one line of text under the active alignment. Multi-line
+ * mechanics call this per line (so each line aligns independently, the way
+ * every editor treats alignment); single-line mechanics call it once.
+ */
+export function resolveLineX(
+  align: TextAlign,
+  lineWidth: number,
+  canvasWidth: number,
+  safeMargin: number
+): number {
+  if (align === 'start') return safeMargin;
+  if (align === 'end') return canvasWidth - safeMargin - lineWidth;
+  return (canvasWidth - lineWidth) / 2;
+}
+
+/**
+ * X the caption block is scaled/rotated around. Captions scale by
+ * fitScale x hookBoost x the user's manual scale, and whatever point this
+ * returns is the one thing that stays put while they do.
+ *
+ * The pivot sits on whichever edge the alignment anchors to, so scaling grows
+ * the text inward and the anchored edge stays welded to its margin. Pivoting
+ * at the canvas center instead would let a hook-boosted start-aligned caption
+ * slide left past the safe margin — off-frame on the very line meant to be
+ * the most readable.
+ *
+ * Mirrors resolveLineX's margin convention exactly; the two disagreeing is
+ * what would make text drift off the edge it is anchored to.
+ */
+export function resolveScalePivotX(
+  align: TextAlign,
+  canvasWidth: number,
+  safeMargin: number
+): number {
+  if (align === 'start') return safeMargin;
+  if (align === 'end') return canvasWidth - safeMargin;
+  return canvasWidth / 2;
+}
+
+/** Where a point lands after the canvas is scaled about `pivot`. Keeps hit-test boxes on top of the drawn text. */
+export function scaleAboutPivot(value: number, pivot: number, scale: number): number {
+  return pivot + (value - pivot) * scale;
 }
 
 export function calculatePhraseTextY(

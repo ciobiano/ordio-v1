@@ -4,6 +4,8 @@ import {
   measureWordSwapCaptionBlock,
   measurePhraseCutCaptionBlock,
   measureStaticHighlightCaptionBlock,
+  measureProgressiveRevealCaptionBlock,
+  scaleAboutPivot,
 } from '@Ordio/engine/processing/captions';
 import { getCaptionStylePreset } from '@Ordio/engine';
 
@@ -73,13 +75,28 @@ export function measureCaptionTransformBox(
   const scale = Math.max(0.4, Math.min(3, transform.scale));
   const mechanic = getCaptionStylePreset(style.captionStyleId).mechanic;
 
-  if (mechanic === 'static-highlight') {
-    const metrics = measureStaticHighlightCaptionBlock(ctx, currentTime, transcript, style, captionGroups);
+  if (mechanic === 'static-highlight' || mechanic === 'progressive-reveal') {
+    const metrics =
+      mechanic === 'static-highlight'
+        ? measureStaticHighlightCaptionBlock(ctx, currentTime, transcript, style, captionGroups)
+        : measureProgressiveRevealCaptionBlock(
+            ctx,
+            currentTime,
+            transcript,
+            style,
+            layout,
+            hasVisualZone,
+            flipped,
+            captionGroups
+          );
     if (!metrics) return null;
 
     const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * scale + CAPTION_TRANSFORM_BREATHING_PX);
     const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * scale + CAPTION_TRANSFORM_BREATHING_PX);
-    const centerX = metrics.centerX + transform.offsetXRatio * style.width;
+    // The block scales about pivotX, so a start/end-aligned caption's center
+    // moves under manual scale — following it keeps the drag box on the text.
+    const centerX =
+      scaleAboutPivot(metrics.centerX, metrics.pivotX, scale) + transform.offsetXRatio * style.width;
     const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
     return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
   }
@@ -100,7 +117,8 @@ export function measureCaptionTransformBox(
     const renderedScale = metrics.fitScale * scale;
     const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
     const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
-    const centerX = metrics.centerX + transform.offsetXRatio * style.width;
+    const centerX =
+      scaleAboutPivot(metrics.centerX, metrics.pivotX, renderedScale) + transform.offsetXRatio * style.width;
     const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
     return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
   }
@@ -120,7 +138,8 @@ export function measureCaptionTransformBox(
   const renderedScale = metrics.fitScale * scale;
   const width = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockWidth * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
   const height = Math.max(MIN_TOUCH_TARGET_PX, metrics.blockHeight * renderedScale + CAPTION_TRANSFORM_BREATHING_PX);
-  const centerX = metrics.centerX + transform.offsetXRatio * style.width;
+  const centerX =
+    scaleAboutPivot(metrics.centerX, metrics.pivotX, renderedScale) + transform.offsetXRatio * style.width;
   const centerY = metrics.blockCenterY + transform.offsetYRatio * style.height;
   return boxFromCenter(centerX, centerY, width, height, transform.rotationDeg, style.width, style.height);
 }

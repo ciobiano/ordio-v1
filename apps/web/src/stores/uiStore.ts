@@ -65,6 +65,8 @@ const initialPersisted = {
     waveColor: '#ffffff',
     characterSpacing: 0,
     lineHeight: 1.4,
+    textAlign: 'center' as const,
+    verticalAlign: 'auto' as const,
     captionStyleId: 'minimal-lower-third' as CaptionStyleId,
   },
   waveformStyle: 'bars' as WaveformVariant,

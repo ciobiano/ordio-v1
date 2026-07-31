@@ -17,6 +17,8 @@ const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gat
   { value: 'bars', label: 'Bars' },
   { value: 'circle', label: 'Orbit', gate: 'waveform_circle' },
   { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' },
+  { value: 'orb', label: 'Orb' },
+  { value: 'baseline', label: 'Baseline' },
   { value: 'none', label: 'Clean' },
   { value: 'graphics', label: 'Frames' },
 ]
@@ -33,6 +35,8 @@ const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[
   { value: 'minimal-lower-third', label: 'Minimal' },
   { value: 'big-statement', label: 'Statement' },
   { value: 'script-accent', label: 'Script' },
+  { value: 'editorial-reveal', label: 'Reveal' },
+  { value: 'cream-block', label: 'Block' },
 ]
 
 
@@ -52,7 +56,7 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
   const { isLocked } = useFeatureGates()
   const [displayOpen, setDisplayOpen] = useState(false)
   const [graphicsExpanded, setGraphicsExpanded] = useState(false)
-  const lyricsOwnsStage = getCaptionStylePreset(captionStyleId).mechanic === 'static-highlight'
+  const lyricsOwnsStage = getCaptionStylePreset(captionStyleId).ownsStage
 
   useEffect(() => {
     if (!displayOpen) {

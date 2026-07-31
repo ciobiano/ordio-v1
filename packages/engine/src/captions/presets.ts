@@ -1,16 +1,28 @@
 import type { CaptionStyleId } from '../types';
 
-export type CaptionMechanic = 'word-swap' | 'phrase-cut' | 'static-highlight';
+export type CaptionMechanic = 'word-swap' | 'phrase-cut' | 'static-highlight' | 'progressive-reveal';
 
 export interface CaptionStylePreset {
   mechanic: CaptionMechanic;
   /** 'accent-swap' styles honor CaptionGroup.accentWordIndices; 'plain' ignores it. */
   fontTreatment: 'plain' | 'accent-swap';
+  /**
+   * True when the caption block claims the whole frame and the waveform/graphic
+   * zone is suppressed. Per style, not per mechanic: karaoke-chip fills the
+   * screen with lyrics, but cream-block runs the same mechanic *with* a
+   * waveform under it (the design pairs the two).
+   */
+  ownsStage: boolean;
   /** How the accented word is set apart, when fontTreatment is 'accent-swap'. */
   accentStyle?: 'color' | 'italic-glow';
   stroke?: { defaultWidth: number; defaultColor: string };
   glow?: { defaultIntensity: number; defaultColor: string };
   chipColor?: string;
+  /** Text color drawn on top of the active-word chip. Defaults to near-black; light-surface styles invert it. */
+  chipTextColor?: string;
+  /** Chip padding/corner as ratios of fontSize. Omitted styles use the karaoke defaults. */
+  chipPaddingXRatio?: number;
+  chipRadiusRatio?: number;
   accentColor?: string;
   /** Font family swapped in for the accented word when accentStyle is 'italic-glow'. Must be one of StyleConfig's font enum values so it's guaranteed preloaded. */
   accentFontFamily?: string;
@@ -25,35 +37,61 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
   'word-pop': {
     mechanic: 'word-swap',
     fontTreatment: 'accent-swap',
+    ownsStage: false,
     accentStyle: 'color',
     accentColor: '#FFE14D',
   },
   'bold-outline': {
     mechanic: 'phrase-cut',
     fontTreatment: 'plain',
+    ownsStage: false,
     stroke: { defaultWidth: 0.09, defaultColor: '#000000' },
   },
   'karaoke-chip': {
     mechanic: 'static-highlight',
     fontTreatment: 'plain',
+    ownsStage: true,
     chipColor: '#22D3EE',
   },
   'minimal-lower-third': {
     mechanic: 'phrase-cut',
     fontTreatment: 'plain',
+    ownsStage: false,
   },
   'big-statement': {
     mechanic: 'phrase-cut',
     fontTreatment: 'accent-swap',
+    ownsStage: false,
     accentStyle: 'color',
     accentColor: '#FF5A5F',
   },
   'script-accent': {
     mechanic: 'phrase-cut',
     fontTreatment: 'accent-swap',
+    ownsStage: false,
     accentStyle: 'italic-glow',
     glow: { defaultIntensity: 0.6, defaultColor: '#FFFFFF' },
     accentFontFamily: 'Playfair Display',
+  },
+  // Ordio caption-presets design study (2026-07-31). The reveal holds a whole
+  // sentence and lights each word at its own timestamp — it shares the frame
+  // with the visual zone rather than claiming it, so 'Orb + Phrase' can pair
+  // this caption with the orb visual the way the design composes them.
+  'editorial-reveal': {
+    mechanic: 'progressive-reveal',
+    fontTreatment: 'plain',
+    ownsStage: false,
+  },
+  'cream-block': {
+    mechanic: 'static-highlight',
+    fontTreatment: 'plain',
+    ownsStage: false,
+    chipColor: '#690C05',
+    chipTextColor: '#FAF7EE',
+    // The study hugs the word far tighter than karaoke's pill: 3px padding
+    // and a 4px corner at 29px type.
+    chipPaddingXRatio: 3 / 29,
+    chipRadiusRatio: 4 / 29,
   },
 };
 

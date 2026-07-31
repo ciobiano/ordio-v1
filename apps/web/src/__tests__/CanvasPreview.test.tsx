@@ -71,6 +71,8 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        textAlign: 'center',
+        verticalAlign: 'auto',
         captionStyleId: 'minimal-lower-third',
       },
       captionTransform: { visible: true, scale: 1, rotationDeg: 0, offsetXRatio: 0, offsetYRatio: 0 },

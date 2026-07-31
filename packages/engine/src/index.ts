@@ -34,7 +34,7 @@ export {
   getLoadedBackgroundImage,
 } from './loaders/backgroundLoader';
 
-export { drawPillBars, drawCircleWaveform, drawSpectrogram } from './waveforms';
+export { drawPillBars, drawCircleWaveform, drawSpectrogram, drawOrbWaveform, drawBaselineWaveform } from './waveforms';
 
 export {
   findActiveDisplaySegment,

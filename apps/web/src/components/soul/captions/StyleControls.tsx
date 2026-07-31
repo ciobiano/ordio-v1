@@ -22,6 +22,7 @@ import { CanvasPresetPicker } from './CanvasPresetPicker';
 const FONTS: StyleConfig['fontFamily'][] = [
   'Inter', 'Roboto', 'Outfit',
   'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora',
+  'Instrument Serif', 'Instrument Sans',
 ];
 
 const FONT_LABELS: Record<StyleConfig['fontFamily'], string> = {
@@ -34,6 +35,8 @@ const FONT_LABELS: Record<StyleConfig['fontFamily'], string> = {
   'DM Sans': 'Soft',
   'Playfair Display': 'Display',
   Lora: 'Serif',
+  'Instrument Serif': 'Cinematic',
+  'Instrument Sans': 'Grotesk',
 };
 
 const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
@@ -51,12 +54,31 @@ const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[
   { value: 'minimal-lower-third', label: 'Minimal' },
   { value: 'big-statement', label: 'Statement' },
   { value: 'script-accent', label: 'Script' },
+  { value: 'editorial-reveal', label: 'Reveal' },
+  { value: 'cream-block', label: 'Block' },
+];
+
+const ALIGN_OPTIONS: { value: NonNullable<StyleConfig['textAlign']>; label: string }[] = [
+  { value: 'start', label: 'Start' },
+  { value: 'center', label: 'Center' },
+  { value: 'end', label: 'End' },
+];
+
+// 'Auto' keeps each caption style's own waveform-aware placement — the
+// behaviour every look had before vertical anchoring existed.
+const VERTICAL_ALIGN_OPTIONS: { value: NonNullable<StyleConfig['verticalAlign']>; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'top', label: 'Top' },
+  { value: 'center', label: 'Middle' },
+  { value: 'bottom', label: 'Bottom' },
 ];
 
 const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
   { value: 'circle', label: 'Orbit', gate: 'waveform_circle' },
   { value: 'spectrogram', label: 'Spectrum', gate: 'waveform_spectrogram' },
+  { value: 'orb', label: 'Orb' },
+  { value: 'baseline', label: 'Baseline' },
   { value: 'none', label: 'Clean' },
   { value: 'graphics', label: 'Frames' },
 ];
@@ -209,7 +231,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
   const activeStylePreset = getCaptionStylePreset(style.captionStyleId);
   // "Full-stage" lyric presets own the whole canvas, so a separate waveform
   // visual doesn't apply — same rule StageControlBar's Visual picker used.
-  const lyricsOwnsStage = activeStylePreset.mechanic === 'static-highlight';
+  const lyricsOwnsStage = activeStylePreset.ownsStage;
   const slideDirection = useMemo(() => {
     return STYLE_TABS.indexOf(activeTab) >= STYLE_TABS.indexOf(previousTab) ? 1 : -1;
   }, [activeTab, previousTab]);
@@ -413,6 +435,50 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
     if (activeTab === 'spacing') {
       return (
         <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] text-white/74">Alignment</span>
+            <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1" role="group" aria-label="Text alignment">
+              {ALIGN_OPTIONS.map((option) => {
+                const isSelected = (style.textAlign ?? 'center') === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setStyle({ textAlign: option.value })}
+                    className={cn(
+                      'min-h-11 flex-1 rounded-lg py-1.5 text-[13px] transition-colors duration-150',
+                      isSelected ? 'bg-white/[0.12] text-white' : 'text-white/50 hover:text-white/75'
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] text-white/74">Position</span>
+            <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1" role="group" aria-label="Vertical position">
+              {VERTICAL_ALIGN_OPTIONS.map((option) => {
+                const isSelected = (style.verticalAlign ?? 'auto') === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setStyle({ verticalAlign: option.value })}
+                    className={cn(
+                      'min-h-11 flex-1 rounded-lg py-1.5 text-[13px] transition-colors duration-150',
+                      isSelected ? 'bg-white/[0.12] text-white' : 'text-white/50 hover:text-white/75'
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <SliderRow
             label="Line spacing"
             valueLabel={lineSpacing.toFixed(2)}

@@ -1,4 +1,5 @@
 import type { StyleConfig, LookPresetId } from '@Ordio/shared/schemas';
+import type { WaveformVariant } from '../types';
 import { CANVAS_PRESETS } from '../backgrounds/canvasPresets';
 
 export type { LookPresetId };
@@ -47,6 +48,12 @@ export interface LookPreset {
   label: string;
   /** Merged onto the session's existing StyleConfig — only overrides the fields listed here (width/height/fontSize etc. stay whatever the session already has). */
   style: Partial<StyleConfig>;
+  /**
+   * The visual this look is composed against. Lives outside StyleConfig
+   * because waveformStyle is its own store field — but a look that couldn't
+   * set it would be incomplete ('Orb + Phrase' would render bars).
+   */
+  waveformStyle?: WaveformVariant;
 }
 
 export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
@@ -137,6 +144,71 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       backgroundColor: '#05060f',
       background: { type: 'image', source: 'preset', assetId: LOOK_CANVAS_PRESET['electric-outline'] },
     },
+  },
+
+  // --- Ordio caption-presets design study (2026-07-31) ---
+  // Each of these four is a whole frame composition, not just a caption
+  // treatment, so they pin waveformStyle and both alignments rather than
+  // inheriting whatever the session happened to be set to. Only cream-block
+  // carries a waveform in the study; the other three are deliberately bare.
+  'centered-block': {
+    label: 'Centered Block',
+    style: {
+      captionStyleId: 'editorial-reveal',
+      fontFamily: 'Instrument Serif',
+      textAlign: 'center',
+      verticalAlign: 'center',
+      textColor: '#FFFFFF',
+      waveColor: '#FFFFFF',
+      backgroundColor: '#000000',
+      background: { type: 'solid', color: '#000000' },
+    },
+    waveformStyle: 'none',
+  },
+  // Built to sit over the creator's own footage: black until they add one, and
+  // anchored low so the frame's subject stays visible above the type.
+  'urban-phrase': {
+    label: 'Urban Phrase',
+    style: {
+      captionStyleId: 'editorial-reveal',
+      fontFamily: 'Instrument Serif',
+      textAlign: 'center',
+      verticalAlign: 'bottom',
+      textColor: '#FDFCF7',
+      waveColor: '#FDFCF7',
+      backgroundColor: '#000000',
+      background: { type: 'solid', color: '#000000' },
+    },
+    waveformStyle: 'none',
+  },
+  // The orb takes the visual slot and sits high; the phrase reads under it.
+  'orb-phrase': {
+    label: 'Orb + Phrase',
+    style: {
+      captionStyleId: 'editorial-reveal',
+      fontFamily: 'Instrument Sans',
+      textAlign: 'center',
+      verticalAlign: 'bottom',
+      textColor: '#FFFFFF',
+      waveColor: '#FFFFFF',
+      backgroundColor: '#000000',
+      background: { type: 'solid', color: '#000000' },
+    },
+    waveformStyle: 'orb',
+  },
+  'cream-block': {
+    label: 'Cream Block',
+    style: {
+      captionStyleId: 'cream-block',
+      fontFamily: 'Instrument Sans',
+      textAlign: 'center',
+      verticalAlign: 'top',
+      textColor: '#690C05',
+      waveColor: '#5E6B75',
+      backgroundColor: '#F2ECDC',
+      background: { type: 'solid', color: '#F2ECDC' },
+    },
+    waveformStyle: 'baseline',
   },
 };
 

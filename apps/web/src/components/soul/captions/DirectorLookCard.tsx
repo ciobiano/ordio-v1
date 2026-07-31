@@ -29,8 +29,11 @@ export function DirectorLookCard({ look, label, isSelected, onSelect }: Director
   const transcript = useProcessingStore((s) => s.transcript);
   const captionGroups = useProcessingStore((s) => s.captionGroups);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
-  const waveformStyle = useUIStore((s) => s.waveformStyle);
+  const sessionWaveformStyle = useUIStore((s) => s.waveformStyle);
   const canvasLayout = useUIStore((s) => s.canvasLayout);
+  // Preview the visual the look will actually apply, not the session's current
+  // one — otherwise the card misrepresents what tapping it does.
+  const waveformStyle = look.waveformStyle ?? sessionWaveformStyle;
   const [fontLoaded, setFontLoaded] = useState(false);
   const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
 

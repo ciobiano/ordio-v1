@@ -1,4 +1,4 @@
-export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'none';
+export type WaveformVariant = 'bars' | 'circle' | 'spectrogram' | 'orb' | 'baseline' | 'none';
 export type GraphicStyleId = 'graphic-frame1' | 'graphic-frame2' | null;
 
 /** How the canvas is composed: where the visual sits and where captions sit */
@@ -17,7 +17,9 @@ export type CaptionStyleId =
   | 'karaoke-chip'
   | 'minimal-lower-third'
   | 'big-statement'
-  | 'script-accent';
+  | 'script-accent'
+  | 'editorial-reveal'
+  | 'cream-block';
 
 export interface CaptionTransform {
   offsetXRatio: number;

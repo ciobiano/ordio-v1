@@ -14,6 +14,10 @@ const ALL_PRESET_IDS: LookPresetId[] = [
   'editorial-script',
   'warm-pop',
   'electric-outline',
+  'centered-block',
+  'urban-phrase',
+  'orb-phrase',
+  'cream-block',
 ];
 
 const baseStyle: StyleConfig = {
@@ -26,12 +30,14 @@ const baseStyle: StyleConfig = {
   waveColor: '#ffffff',
   characterSpacing: 0,
   lineHeight: 1.4,
+  textAlign: 'center',
+  verticalAlign: 'auto',
   captionStyleId: 'minimal-lower-third',
 };
 
 describe('LOOK_PRESETS', () => {
-  it('has exactly 8 presets', () => {
-    expect(Object.keys(LOOK_PRESETS)).toHaveLength(8);
+  it('has exactly 12 presets', () => {
+    expect(Object.keys(LOOK_PRESETS)).toHaveLength(12);
     expect(Object.keys(LOOK_PRESETS).sort()).toEqual([...ALL_PRESET_IDS].sort());
   });
 

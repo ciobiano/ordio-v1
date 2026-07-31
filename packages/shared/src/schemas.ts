@@ -70,13 +70,17 @@ export const StyleConfigSchema = z.object({
    */
   background: BackgroundSchema.optional(),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora']),
+  fontFamily: z.enum(['Inter', 'Roboto', 'Outfit', 'Poppins', 'Montserrat', 'Space Grotesk', 'DM Sans', 'Playfair Display', 'Lora', 'Instrument Serif', 'Instrument Sans']),
   fontSize: z.number().positive(),
   waveColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   /** Additional spacing between characters (pixels) */
   characterSpacing: z.number().min(-12).max(12).default(0),
   /** Line height multiplier. Values below 1 tighten the spacing between lines. */
   lineHeight: z.number().min(0.4).max(3).default(1.4),
+  /** Horizontal caption alignment. 'center' matches historical behavior. */
+  textAlign: z.enum(['start', 'center', 'end']).default('center'),
+  /** Vertical caption anchor. 'auto' keeps the waveform-aware placement each mechanic has always used. */
+  verticalAlign: z.enum(['auto', 'top', 'center', 'bottom']).default('auto'),
   /** Which caption style is active — see CAPTION_STYLE_PRESETS in @Ordio/engine. */
   captionStyleId: z
     .enum([
@@ -86,6 +90,8 @@ export const StyleConfigSchema = z.object({
       'minimal-lower-third',
       'big-statement',
       'script-accent',
+      'editorial-reveal',
+      'cream-block',
     ])
     .default('minimal-lower-third'),
   /** Text stroke — used by styles whose preset declares a `stroke` default (e.g. bold-outline). */
@@ -130,6 +136,10 @@ export const LOOK_PRESET_IDS = [
   'editorial-script',
   'warm-pop',
   'electric-outline',
+  'centered-block',
+  'urban-phrase',
+  'cream-block',
+  'orb-phrase',
 ] as const;
 export type LookPresetId = (typeof LOOK_PRESET_IDS)[number];
 

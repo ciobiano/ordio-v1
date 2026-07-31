@@ -39,6 +39,8 @@ const style: StyleConfig = {
   waveColor: '#ffffff',
   characterSpacing: 0,
   lineHeight: 1.4,
+  textAlign: 'center',
+  verticalAlign: 'auto',
   captionStyleId: 'word-pop',
 };
 

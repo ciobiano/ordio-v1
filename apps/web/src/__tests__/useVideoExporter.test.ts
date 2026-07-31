@@ -32,6 +32,8 @@ describe('hooks/video: useVideoExporter', () => {
         waveColor: '#ffffff',
         characterSpacing: 0,
         lineHeight: 1.4,
+        textAlign: 'center',
+        verticalAlign: 'auto',
         captionStyleId: 'minimal-lower-third',
       },
       waveformStyle: 'bars',
