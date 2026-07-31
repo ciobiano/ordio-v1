@@ -29,6 +29,12 @@ interface SplashShellProps {
   action: React.ReactNode;
   /** Lets a tall action (the 4-button auth tray) shrink the Orb rather than overflow. */
   orbClassName?: string;
+  /**
+   * Identifies which splash state is mounted. Set per state rather than on the
+   * shell itself — both states render this same shell, so a fixed id here
+   * would match either one.
+   */
+  testId?: string;
 }
 
 /**
@@ -46,11 +52,11 @@ interface SplashShellProps {
  * was itself pushed down by safe-area padding, so on any notched device the
  * two could never be concentric.
  */
-export function SplashShell({ children, action, orbClassName }: SplashShellProps) {
+export function SplashShell({ children, action, orbClassName, testId }: SplashShellProps) {
   const reducedMotion = useReducedMotion();
 
   return (
-    <main className="flex min-h-dvh flex-col bg-acid-bg-base safe-pt safe-pb">
+    <main data-testid={testId} className="flex min-h-dvh flex-col bg-acid-bg-base safe-pt safe-pb">
       <header className="px-6 pt-5">
         <Logo />
       </header>

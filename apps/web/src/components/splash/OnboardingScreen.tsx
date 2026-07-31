@@ -10,6 +10,7 @@ import { SplashShell } from './SplashShell';
 export function OnboardingScreen() {
   return (
     <SplashShell
+      testId="onboarding-screen"
       orbClassName="scale-75"
       action={
         <OnboardingAuthTray redirectUrlComplete="/create" className="flex flex-col gap-3" />
