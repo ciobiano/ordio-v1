@@ -156,8 +156,6 @@ export interface HighlightCaptionMetrics {
 export type LayoutWord = { text: string; start: number; end: number; wordWidth: number; pauseToNext: number };
 export interface LineLayout { lines: LayoutWord[][]; scale: number; logicalMaxWidth: number }
 
-const LINE_FIT_SCALE_CANDIDATES = [1, 0.94, 0.88, 0.82, 0.76, HIGHLIGHT_MIN_SCALE];
-
 function greedyLineWidth(words: LayoutWord[], spaceWidth: number): number {
   if (words.length === 0) return 0;
   return words.reduce((sum, word) => sum + word.wordWidth, 0) + spaceWidth * (words.length - 1);
@@ -179,13 +177,17 @@ function buildGreedyLines(
     const needed = line.length === 0 ? word.wordWidth : lineWidth + spaceWidth + word.wordWidth;
     const prevPauseToNext = line.length > 0 ? line[line.length - 1].pauseToNext : 0;
     const prevHasNaturalPause = prevPauseToNext >= linePauseBreak;
-    const widthOverflow = line.length >= minWordsPerLine && needed > maxWidth;
+    // Width breaks are unconditional. Gating them on minWordsPerLine let a
+    // line overrun, which used to be absorbed by shrinking the whole block —
+    // the thing that made caption size jump between phrases.
+    const widthOverflow = needed > maxWidth;
+    const pauseBreak = prevHasNaturalPause && line.length >= minWordsPerLine;
 
     // "a", "is", "to" stranded at the head of a line reads as a typo, so a
     // short word stays with the words it belongs to even if that overruns.
     const wouldOrphan = orphanMaxChars > 0 && isOrphanWord(word.text, orphanMaxChars);
 
-    if (line.length > 0 && !wouldOrphan && (prevHasNaturalPause || widthOverflow)) {
+    if (line.length > 0 && !wouldOrphan && (pauseBreak || widthOverflow)) {
       lines.push(line);
       line = [word];
       lineWidth = word.wordWidth;
@@ -233,21 +235,24 @@ export function layoutWrappedLines(
   const linePauseBreak = options.linePauseBreak ?? 0.24;
   const orphanMaxChars = options.orphanMaxChars ?? 0;
 
-  for (const scale of LINE_FIT_SCALE_CANDIDATES) {
-    const logicalMaxWidth = maxWidth / scale;
-    const lines = buildGreedyLines(words, spaceWidth, logicalMaxWidth, minWordsPerLine, linePauseBreak, orphanMaxChars);
-    const widestLine = Math.max(1, ...lines.map((line) => greedyLineWidth(line, spaceWidth)));
-    if (lines.length <= maxLines && widestLine <= logicalMaxWidth) {
-      return { lines, scale, logicalMaxWidth };
-    }
+  // Wrap once, at the size the user chose. Text that needs more room gets
+  // more lines, never smaller type — a caption that resizes per phrase reads
+  // as glitchy, and every pro editor holds the size and wraps instead.
+  const lines = buildGreedyLines(words, spaceWidth, maxWidth, minWordsPerLine, linePauseBreak, orphanMaxChars);
+  const widestLine = Math.max(1, ...lines.map((line) => greedyLineWidth(line, spaceWidth)));
+
+  // Two things wrapping genuinely cannot solve: a single word wider than the
+  // frame, and a block so tall it would run off it. Only those clamp.
+  if (widestLine <= maxWidth && lines.length <= maxLines) {
+    return { lines, scale: 1, logicalMaxWidth: maxWidth };
   }
 
-  const lines = packWordsIntoLineCount(words, maxLines);
-  const widestLine = Math.max(1, ...lines.map((line) => greedyLineWidth(line, spaceWidth)));
-  const nextScale = Math.min(1, maxWidth / widestLine);
-  const scale = Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1;
+  const packed = lines.length > maxLines ? packWordsIntoLineCount(words, maxLines) : lines;
+  const packedWidest = Math.max(1, ...packed.map((line) => greedyLineWidth(line, spaceWidth)));
+  const nextScale = Math.min(1, maxWidth / packedWidest);
+  const scale = Number.isFinite(nextScale) && nextScale > 0 ? Math.max(HIGHLIGHT_MIN_SCALE, nextScale) : 1;
 
-  return { lines, scale, logicalMaxWidth: maxWidth / scale };
+  return { lines: packed, scale, logicalMaxWidth: maxWidth / scale };
 }
 
 export interface PhraseCaptionMetrics {

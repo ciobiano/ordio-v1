@@ -14,25 +14,27 @@ import {
   getMaxCaptionTextWidth,
   HOOK_SCALE_MULTIPLIER,
   isGlobalWordIndexAccented,
+  layoutWrappedLines,
   PHRASE_TOP_RATIO,
   resolveBlockTopForAlign,
   resolveLineX,
   resolveScalePivotX,
+  type LayoutWord,
+  type LineLayout,
   type PhraseCaptionMetrics,
+  type TextAlign,
 } from './shared';
 
-interface ChunkWordLayout {
-  word: Word;
-  x: number;
-  width: number;
-  isAccented: boolean;
-}
+/** A measured word plus whether this style should set it apart. */
+type PhraseWord = LayoutWord & { isAccented: boolean };
 
-interface ChunkLayout {
+interface PhraseLayout {
   text: string;
-  words: ChunkWordLayout[];
-  totalWidth: number;
+  lines: PhraseWord[][];
+  wrap: LineLayout;
   spaceWidth: number;
+  align: TextAlign;
+  safeMargin: number;
 }
 
 function accentFont(style: StyleConfig, preset: CaptionStylePreset): string {
@@ -44,11 +46,19 @@ function baseFont(style: StyleConfig): string {
   return `${FONT_WEIGHT} ${style.fontSize}px "${style.fontFamily}", sans-serif`;
 }
 
+/** Rendered width of one wrapped line, including the spaces between its words. */
+function lineWidth(line: PhraseWord[], spaceWidth: number): number {
+  if (line.length === 0) return 0;
+  return line.reduce((sum, word) => sum + word.wordWidth, 0) + spaceWidth * (line.length - 1);
+}
+
 /**
- * Lays out one chunk's words left-to-right, computing centering width. The
- * 'plain' fast path treats the chunk as a single string (cheaper, no reason
- * to split words that all render identically); 'accent-swap' styles need
- * per-word layout since the accented word may use a different font/color.
+ * Measures the active chunk word by word and wraps it at the style's own font
+ * size. Every word is measured individually — including with the accent face
+ * where the style swaps it — because the wrap has to know real widths.
+ *
+ * Notably this does NOT shrink long chunks to fit one line, which is what it
+ * used to do: that made the caption a different size on every phrase.
  */
 function layoutChunk(
   ctx: CanvasRenderingContext2D,
@@ -56,99 +66,99 @@ function layoutChunk(
   transcript: Word[],
   style: StyleConfig,
   preset: CaptionStylePreset,
-  characterSpacing: number
-): ChunkLayout {
-  if (preset.fontTreatment !== 'accent-swap') {
-    ctx.font = baseFont(style);
-    return {
-      text: group.text,
-      words: [],
-      totalWidth: measureTextWidth(ctx, group.text, characterSpacing),
-      spaceWidth: 0,
-    };
-  }
+  characterSpacing: number,
+  maxTextWidth: number
+): PhraseLayout {
+  const isAccentSwap = preset.fontTreatment === 'accent-swap';
+  const accentFontStr = accentFont(style, preset);
 
   ctx.font = baseFont(style);
   const spaceWidth = measureTextWidth(ctx, ' ', characterSpacing);
-  const accentFontStr = accentFont(style, preset);
 
-  let cursor = 0;
-  const words: ChunkWordLayout[] = group.wordIndices.map((globalIdx) => {
+  const words: PhraseWord[] = group.wordIndices.map((globalIdx, i) => {
     const word = transcript[globalIdx];
-    const isAccented = isGlobalWordIndexAccented(group, globalIdx);
+    const isAccented = isAccentSwap && isGlobalWordIndexAccented(group, globalIdx);
     ctx.font = isAccented && preset.accentStyle === 'italic-glow' ? accentFontStr : baseFont(style);
-    const width = measureTextWidth(ctx, word.text, characterSpacing);
-    const x = cursor;
-    cursor += width + spaceWidth;
-    return { word, x, width, isAccented };
+    const next = transcript[group.wordIndices[i + 1]];
+    return {
+      text: word.text,
+      start: word.start,
+      end: word.end,
+      wordWidth: measureTextWidth(ctx, word.text, characterSpacing),
+      pauseToNext: next ? Math.max(0, next.start - word.end) : 0,
+      isAccented,
+    };
   });
 
-  return { text: group.text, words, totalWidth: Math.max(0, cursor - spaceWidth), spaceWidth };
+  const wrap = layoutWrappedLines(words, spaceWidth, maxTextWidth);
+
+  return {
+    text: group.text,
+    lines: wrap.lines as PhraseWord[][],
+    wrap,
+    spaceWidth,
+    align: style.textAlign ?? DEFAULT_TEXT_ALIGN,
+    safeMargin: getCaptionSideMargin(style.width),
+  };
 }
 
-function drawChunk(
+function drawWord(
   ctx: CanvasRenderingContext2D,
-  layout: ChunkLayout,
+  word: PhraseWord,
   style: StyleConfig,
   preset: CaptionStylePreset,
-  centerX: number,
+  x: number,
   lineY: number,
   characterSpacing: number
 ): void {
   const { textColor, fontSize } = style;
   const strokeWidthPx = (style.strokeWidth ?? preset.stroke?.defaultWidth ?? DEFAULT_STROKE_WIDTH_RATIO) * fontSize;
   const strokeColor = style.strokeColor ?? preset.stroke?.defaultColor ?? DEFAULT_STROKE_COLOR;
+  const isItalicGlow = word.isAccented && preset.accentStyle === 'italic-glow';
 
-  if (layout.words.length === 0) {
-    ctx.font = baseFont(style);
-    ctx.textAlign = 'center';
-    ctx.lineJoin = 'round';
+  ctx.font = isItalicGlow ? accentFont(style, preset) : baseFont(style);
+  ctx.lineJoin = 'round';
+
+  if (!isItalicGlow) {
     ctx.lineWidth = strokeWidthPx;
     ctx.strokeStyle = strokeColor;
-    drawSpacedText(ctx, layout.text, centerX, lineY, { textAlign: 'center', mode: 'stroke', characterSpacing });
+    drawSpacedText(ctx, word.text, x, lineY, { textAlign: 'left', mode: 'stroke', characterSpacing });
+  }
+
+  if (isItalicGlow) {
+    ctx.save();
+    ctx.shadowColor = style.glowColor ?? preset.glow?.defaultColor ?? '#FFFFFF';
+    ctx.shadowBlur = (style.glowIntensity ?? preset.glow?.defaultIntensity ?? 0.6) * fontSize * 0.6;
     ctx.fillStyle = textColor;
-    drawSpacedText(ctx, layout.text, centerX, lineY, { textAlign: 'center', mode: 'fill', characterSpacing });
+    drawSpacedText(ctx, word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
+    ctx.restore();
     return;
   }
 
-  ctx.textAlign = 'left';
-  ctx.lineJoin = 'round';
-  let x = centerX - layout.totalWidth / 2;
-  const accentFontStr = accentFont(style, preset);
+  ctx.fillStyle =
+    word.isAccented && preset.accentStyle === 'color'
+      ? style.accentColor ?? preset.accentColor ?? textColor
+      : textColor;
+  drawSpacedText(ctx, word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
+}
 
-  for (const w of layout.words) {
-    const isItalicGlow = w.isAccented && preset.accentStyle === 'italic-glow';
-    ctx.font = isItalicGlow ? accentFontStr : baseFont(style);
-
-    if (!isItalicGlow) {
-      ctx.lineWidth = strokeWidthPx;
-      ctx.strokeStyle = strokeColor;
-      drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'stroke', characterSpacing });
-    }
-
-    if (isItalicGlow) {
-      ctx.save();
-      ctx.shadowColor = style.glowColor ?? preset.glow?.defaultColor ?? '#FFFFFF';
-      ctx.shadowBlur = (style.glowIntensity ?? preset.glow?.defaultIntensity ?? 0.6) * fontSize * 0.6;
-      ctx.fillStyle = textColor;
-      drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
-      ctx.restore();
-    } else if (w.isAccented && preset.accentStyle === 'color') {
-      ctx.fillStyle = style.accentColor ?? preset.accentColor ?? textColor;
-      drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
-    } else {
-      ctx.fillStyle = textColor;
-      drawSpacedText(ctx, w.word.text, x, lineY, { textAlign: 'left', mode: 'fill', characterSpacing });
-    }
-
-    x += w.width + layout.spaceWidth;
+/** Union of the aligned lines — the block's real bounds once each line is placed. */
+function blockBounds(layout: PhraseLayout, canvasWidth: number): { left: number; right: number } {
+  let left = Infinity;
+  let right = -Infinity;
+  for (const line of layout.lines) {
+    const lw = lineWidth(line, layout.spaceWidth);
+    const x = resolveLineX(layout.align, lw, canvasWidth, layout.safeMargin);
+    left = Math.min(left, x);
+    right = Math.max(right, x + lw);
   }
+  return Number.isFinite(left) ? { left, right } : { left: 0, right: 0 };
 }
 
 /**
- * Phrase-cut mechanic: a 2-3 word CaptionGroup chunk holds for its full
- * start/end window, then hard-cuts to the next group — no cross-fade. Used
- * by bold-outline, minimal-lower-third, big-statement, and script-accent.
+ * Phrase-cut mechanic: a CaptionGroup chunk holds for its full start/end
+ * window, then hard-cuts to the next group — no cross-fade. Used by
+ * bold-outline, minimal-lower-third, big-statement, and script-accent.
  * Requires captionGroups (always populated post-transcription in this app);
  * with none, there is nothing to render.
  */
@@ -175,33 +185,47 @@ export function drawPhraseCutCaptions(
   const maxTextWidth = getMaxCaptionTextWidth(width);
   const safeMargin = getCaptionSideMargin(width);
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
-  const textY =
-    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, height, lineHeight, PHRASE_TOP_RATIO) ??
-    calculatePhraseTextY(height, layout, hasVisualZone, flipped, lineHeight);
 
   ctx.textBaseline = 'middle';
-  const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing);
+  ctx.textAlign = 'left';
+  const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing, maxTextWidth);
+
+  const blockHeight = chunk.lines.length * lineHeight;
+  const textY =
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, height, blockHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(height, layout, hasVisualZone, flipped, blockHeight);
+
   const hookBoost = group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1;
-  const fitScale = (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) * hookBoost;
-  // Both draw paths center on this point, so aligning the line is a matter of
-  // moving its center rather than branching the drawing code.
-  const centerX = resolveLineX(align, chunk.totalWidth, width, safeMargin) + chunk.totalWidth / 2;
+  // chunk.wrap.scale is 1 unless a single word is wider than the frame, so
+  // the rendered size no longer changes from one phrase to the next.
+  const renderScale = chunk.wrap.scale * hookBoost;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;
   const manualScale = Math.max(0.4, Math.min(3, captionTransform?.scale ?? 1));
   const rotationRad = ((captionTransform?.rotationDeg ?? 0) * Math.PI) / 180;
-  const blockCenterY = textY + lineHeight / 2;
+  const blockCenterY = textY + blockHeight / 2;
   const pivotX = resolveScalePivotX(align, width, safeMargin);
 
   ctx.save();
   ctx.translate(pivotX + offsetX, blockCenterY + offsetY);
   ctx.rotate(rotationRad);
-  ctx.scale(fitScale * manualScale, fitScale * manualScale);
+  ctx.scale(renderScale * manualScale, renderScale * manualScale);
   ctx.translate(-pivotX, -blockCenterY);
   ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
   ctx.shadowBlur = Math.max(8, fontSize * 0.12);
-  drawChunk(ctx, chunk, style, preset, centerX, textY + lineHeight / 2, characterSpacing);
+
+  for (let li = 0; li < chunk.lines.length; li++) {
+    const line = chunk.lines[li];
+    const lineY = textY + li * lineHeight + lineHeight / 2;
+    let x = resolveLineX(align, lineWidth(line, chunk.spaceWidth), width, safeMargin);
+
+    for (const word of line) {
+      drawWord(ctx, word, style, preset, x, lineY, characterSpacing);
+      x += word.wordWidth + chunk.spaceWidth;
+    }
+  }
+
   ctx.restore();
 }
 
@@ -229,27 +253,26 @@ export function measurePhraseCutCaptionBlock(
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const characterSpacing = style.characterSpacing ?? 0;
   const lineHeight = style.fontSize * (style.lineHeight ?? 1.4);
+  const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing, maxTextWidth);
+
+  const blockHeight = chunk.lines.length * lineHeight;
   const textY =
-    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, style.height, lineHeight, PHRASE_TOP_RATIO) ??
-    calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, lineHeight);
-  const chunk = layoutChunk(ctx, group, transcript, style, preset, characterSpacing);
-  const fitScale =
-    (chunk.totalWidth > 0 ? Math.min(1, maxTextWidth / chunk.totalWidth) : 1) *
-    (group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1);
-  const pivotX = resolveScalePivotX(align, style.width, safeMargin);
-  const centerX = resolveLineX(align, chunk.totalWidth, style.width, safeMargin) + chunk.totalWidth / 2;
+    resolveBlockTopForAlign(style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN, style.height, blockHeight, PHRASE_TOP_RATIO) ??
+    calculatePhraseTextY(style.height, layout, hasVisualZone, flipped, blockHeight);
+
+  const { left, right } = blockBounds(chunk, style.width);
 
   return {
     text: chunk.text,
-    lines: [chunk.text],
+    lines: chunk.lines.map((line) => line.map((w) => w.text).join(' ')),
     // Reported pre-scale; the caller applies fitScale about pivotX.
-    centerX,
+    centerX: (left + right) / 2,
     textY,
     lineHeight,
-    blockWidth: chunk.totalWidth,
-    blockHeight: lineHeight,
-    blockCenterY: textY + lineHeight / 2,
-    fitScale,
-    pivotX,
+    blockWidth: right - left,
+    blockHeight,
+    blockCenterY: textY + blockHeight / 2,
+    fitScale: chunk.wrap.scale * (group.role === 'hook' ? HOOK_SCALE_MULTIPLIER : 1),
+    pivotX: resolveScalePivotX(align, style.width, safeMargin),
   };
 }
