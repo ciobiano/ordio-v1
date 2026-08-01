@@ -88,8 +88,14 @@ export const HOOK_SCALE_MULTIPLIER = 1.4;
 export const DEFAULT_STROKE_WIDTH_RATIO = 0.022;
 export const DEFAULT_STROKE_COLOR = 'rgba(0, 0, 0, 0.28)';
 export const HIGHLIGHT_TOP_RATIO = 0.15;
+/**
+ * How wide a caption block may get, as a fraction of canvas width. Text wraps
+ * on reaching it — it never shrinks to stay on one line. Styles may go
+ * narrower (the design study's panels do); none may exceed the side margin.
+ */
+export const CAPTION_MAX_WIDTH_RATIO = 0.88;
 export const HIGHLIGHT_TEXT_WIDTH_RATIO = 0.84;
-export const HIGHLIGHT_MAX_LINES = 4;
+/** Floor for the one unavoidable clamp: a single word wider than the max width. */
 export const HIGHLIGHT_MIN_SCALE = 0.7;
 export const HIGHLIGHT_MIN_WORDS_PER_LINE = 3;
 export const HIGHLIGHT_LINE_HEIGHT_RATIO = 1.0;
@@ -201,17 +207,6 @@ function buildGreedyLines(
   return lines;
 }
 
-function packWordsIntoLineCount(words: LayoutWord[], maxLines: number): LayoutWord[][] {
-  const lines: LayoutWord[][] = [];
-  const wordsPerLine = Math.ceil(words.length / maxLines);
-
-  for (let index = 0; index < words.length; index += wordsPerLine) {
-    lines.push(words.slice(index, index + wordsPerLine));
-  }
-
-  return lines.slice(0, maxLines);
-}
-
 /**
  * Greedy multi-line word wrap with scale-fitting, breaking early on natural
  * speech pauses. Shared by any mechanic that lays out a full line/block of
@@ -223,14 +218,12 @@ export function layoutWrappedLines(
   spaceWidth: number,
   maxWidth: number,
   options: {
-    maxLines?: number;
     minWordsPerLine?: number;
     linePauseBreak?: number;
     /** 0 disables orphan control, preserving the pre-existing wrap exactly. */
     orphanMaxChars?: number;
   } = {}
 ): LineLayout {
-  const maxLines = options.maxLines ?? HIGHLIGHT_MAX_LINES;
   const minWordsPerLine = options.minWordsPerLine ?? HIGHLIGHT_MIN_WORDS_PER_LINE;
   const linePauseBreak = options.linePauseBreak ?? 0.24;
   const orphanMaxChars = options.orphanMaxChars ?? 0;
@@ -241,18 +234,18 @@ export function layoutWrappedLines(
   const lines = buildGreedyLines(words, spaceWidth, maxWidth, minWordsPerLine, linePauseBreak, orphanMaxChars);
   const widestLine = Math.max(1, ...lines.map((line) => greedyLineWidth(line, spaceWidth)));
 
-  // Two things wrapping genuinely cannot solve: a single word wider than the
-  // frame, and a block so tall it would run off it. Only those clamp.
-  if (widestLine <= maxWidth && lines.length <= maxLines) {
+  // A block needing more room gets more lines. There is no line cap and no
+  // height-based shrink: capping lines and squashing the overflow was the last
+  // remaining source of per-phrase size jumps.
+  if (widestLine <= maxWidth) {
     return { lines, scale: 1, logicalMaxWidth: maxWidth };
   }
 
-  const packed = lines.length > maxLines ? packWordsIntoLineCount(words, maxLines) : lines;
-  const packedWidest = Math.max(1, ...packed.map((line) => greedyLineWidth(line, spaceWidth)));
-  const nextScale = Math.min(1, maxWidth / packedWidest);
+  // The single case wrapping cannot fix: one word wider than the max width.
+  // Nothing to break, so that word alone decides the clamp.
+  const nextScale = Math.min(1, maxWidth / widestLine);
   const scale = Number.isFinite(nextScale) && nextScale > 0 ? Math.max(HIGHLIGHT_MIN_SCALE, nextScale) : 1;
-
-  return { lines: packed, scale, logicalMaxWidth: maxWidth / scale };
+  return { lines, scale, logicalMaxWidth: maxWidth / scale };
 }
 
 export interface PhraseCaptionMetrics {
@@ -294,8 +287,13 @@ export function getCaptionSideMargin(width: number): number {
   return Math.min(Math.max(CAPTION_SIDE_MARGIN_PX, width * CAPTION_SIDE_MARGIN_RATIO), width / 2);
 }
 
-export function getMaxCaptionTextWidth(width: number): number {
-  return width - getCaptionSideMargin(width) * 2;
+/**
+ * The caption block's maximum width. Every mechanic measures against this one
+ * value so a phrase wraps at the same place whichever style is active. The
+ * side margin is a hard floor; a style's own ratio may narrow it further.
+ */
+export function getMaxCaptionTextWidth(width: number, ratio = CAPTION_MAX_WIDTH_RATIO): number {
+  return Math.min(width - getCaptionSideMargin(width) * 2, width * ratio);
 }
 
 /**

@@ -81,7 +81,7 @@ export function drawWordSwapCaptions(
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
 
-  const maxTextWidth = getMaxCaptionTextWidth(width);
+  const maxTextWidth = getMaxCaptionTextWidth(width, preset.textWidthRatio);
   const safeMargin = getCaptionSideMargin(width);
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const lineHeight = fontSize * lineHeightMultiplier;
@@ -139,7 +139,8 @@ export function measureWordSwapCaptionBlock(
   ctx.font = `${FONT_WEIGHT} ${style.fontSize}px "${style.fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
 
-  const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const preset = getCaptionStylePreset(style.captionStyleId);
+  const maxTextWidth = getMaxCaptionTextWidth(style.width, preset.textWidthRatio);
   const safeMargin = getCaptionSideMargin(style.width);
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const characterSpacing = style.characterSpacing ?? 0;

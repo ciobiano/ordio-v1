@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionGroup } from '../src/types';
+import { getMaxCaptionTextWidth } from '../src/processing/captions/shared';
 import { drawPhraseCutCaptions } from '../src/processing/captions/phraseCut';
 import { drawProgressiveRevealCaptions } from '../src/processing/captions/progressiveReveal';
 import { drawStaticHighlightCaptions } from '../src/processing/captions/staticHighlight';
@@ -166,6 +167,52 @@ describe('caption size stability', () => {
       return renderedScale(ctx);
     });
     expect(new Set(scales).size).toBe(1);
+  });
+
+  it('wraps past the old four-line cap instead of squashing and shrinking', () => {
+    // Long enough that the previous maxLines=4 cap would have packed it into
+    // four lines and scaled the whole block down.
+    const long = Array.from({ length: 40 }, (_, i) => `word${i}`).join(' ');
+    const { transcript, groups } = buildGroups([long]);
+
+    const ctx = createMockCtx();
+    drawPhraseCutCaptions(ctx, 1, transcript, style, 'top', false, false, groups);
+
+    expect(lineCount(ctx)).toBeGreaterThan(4);
+    expect(renderedScale(ctx)).toBe(1);
+  });
+
+  it('keeps every rendered line inside the max width', () => {
+    const long = Array.from({ length: 40 }, (_, i) => `word${i}`).join(' ');
+    const { transcript, groups } = buildGroups([long]);
+
+    const ctx = createMockCtx();
+    drawPhraseCutCaptions(ctx, 1, transcript, style, 'top', false, false, groups);
+
+    // measureText in the mock is 20px per character.
+    const maxWidth = getMaxCaptionTextWidth(style.width);
+    const perLine = new Map<number, number>();
+    for (const call of calls(ctx)) {
+      if (call.method !== 'fillText') continue;
+      const y = Number(call.args[2]);
+      const right = Number(call.args[1]) + String(call.args[0]).length * 20;
+      perLine.set(y, Math.max(perLine.get(y) ?? 0, right));
+    }
+    const left = Math.min(...[...calls(ctx)].filter((c) => c.method === 'fillText').map((c) => Number(c.args[1])));
+    for (const right of perLine.values()) {
+      expect(right - left).toBeLessThanOrEqual(maxWidth + 1);
+    }
+  });
+
+  it('clamps only for a single word too wide to wrap', () => {
+    // One 60-character token is 1200px in the mock — wider than the max width,
+    // and there is no break opportunity inside it.
+    const { transcript, groups } = buildGroups(['x'.repeat(60)]);
+
+    const ctx = createMockCtx();
+    drawPhraseCutCaptions(ctx, 0.2, transcript, style, 'top', false, false, groups);
+
+    expect(renderedScale(ctx)).toBeLessThan(1);
   });
 
   it('still boosts a hook group — that scale change is intentional', () => {

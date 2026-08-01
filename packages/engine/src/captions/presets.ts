@@ -26,6 +26,8 @@ export interface CaptionStylePreset {
   chipRadiusRatio?: number;
   /** Where a 'top'-anchored block sits, as a fraction of height. Defaults to the karaoke ratio. */
   topRatio?: number;
+  /** Max block width as a fraction of canvas width. Narrower than the default where the design calls for wider gutters. */
+  textWidthRatio?: number;
   /**
    * Words held on screen per block when StyleConfig doesn't override it.
    * Unset means content-aware sentence segmentation, which is unbounded (up
@@ -62,6 +64,7 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
     fontTreatment: 'plain',
     ownsStage: true,
     chipColor: '#22D3EE',
+    textWidthRatio: 0.84,
   },
   'minimal-lower-third': {
     mechanic: 'phrase-cut',
@@ -92,6 +95,8 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
     fontTreatment: 'plain',
     ownsStage: false,
     defaultChunkWords: 6,
+    // The study's 44px gutters on its 360px frame.
+    textWidthRatio: 0.76,
   },
   'cream-block': {
     mechanic: 'static-highlight',
@@ -105,6 +110,7 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
     chipPaddingYRatio: 1 / 29,
     chipRadiusRatio: 4 / 29,
     topRatio: 112 / 640,
+    textWidthRatio: 0.84,
     defaultChunkWords: 6,
   },
 };

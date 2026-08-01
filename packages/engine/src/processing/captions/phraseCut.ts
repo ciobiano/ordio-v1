@@ -182,7 +182,7 @@ export function drawPhraseCutCaptions(
   const preset = getCaptionStylePreset(style.captionStyleId);
   const { width, height, characterSpacing = 0, lineHeight: lineHeightMultiplier = 1.4, fontSize } = style;
   const lineHeight = fontSize * lineHeightMultiplier;
-  const maxTextWidth = getMaxCaptionTextWidth(width);
+  const maxTextWidth = getMaxCaptionTextWidth(width, preset.textWidthRatio);
   const safeMargin = getCaptionSideMargin(width);
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
 
@@ -248,7 +248,7 @@ export function measurePhraseCutCaptionBlock(
   ctx.font = baseFont(style);
   ctx.textBaseline = 'middle';
 
-  const maxTextWidth = getMaxCaptionTextWidth(style.width);
+  const maxTextWidth = getMaxCaptionTextWidth(style.width, preset.textWidthRatio);
   const safeMargin = getCaptionSideMargin(style.width);
   const align = style.textAlign ?? DEFAULT_TEXT_ALIGN;
   const characterSpacing = style.characterSpacing ?? 0;

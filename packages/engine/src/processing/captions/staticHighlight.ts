@@ -12,8 +12,9 @@ import {
   DEFAULT_VERTICAL_ALIGN,
   FONT_WEIGHT,
   getActiveCaptionGroup,
+  getCaptionSideMargin,
+  getMaxCaptionTextWidth,
   HIGHLIGHT_LINE_HEIGHT_RATIO,
-  HIGHLIGHT_TEXT_WIDTH_RATIO,
   HIGHLIGHT_TOP_RATIO,
   HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
@@ -27,8 +28,6 @@ import {
   type LineLayout,
   type TextAlign,
 } from './shared';
-
-const CAPTION_SIDE_MARGIN_PX = 2;
 
 /** Rendered width of one wrapped line, including the spaces between its words. */
 function lineWidth(line: LayoutWord[], spaceWidth: number): number {
@@ -72,10 +71,10 @@ function prepareHighlightScene(
     characterSpacing = 0,
     lineHeight: lineHeightMultiplier = HIGHLIGHT_LINE_HEIGHT_RATIO,
   } = style;
-  const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
-  const maxWidth = Math.min(width - padding * 2, width * HIGHLIGHT_TEXT_WIDTH_RATIO);
-
   const preset = getCaptionStylePreset(style.captionStyleId);
+  const padding = getCaptionSideMargin(width);
+  const maxWidth = getMaxCaptionTextWidth(width, preset.textWidthRatio);
+
   const chunkWords = style.chunkWords ?? preset.defaultChunkWords;
   const scene = buildCaptionScene(transcript, currentTime, chunkWords);
   if (scene.length === 0) return null;

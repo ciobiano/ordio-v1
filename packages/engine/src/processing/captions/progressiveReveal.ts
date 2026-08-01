@@ -10,13 +10,13 @@ import {
   dimColor,
   getActiveCaptionGroup,
   getCaptionSideMargin,
+  getMaxCaptionTextWidth,
   HIGHLIGHT_LINE_HEIGHT_RATIO,
   HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
   ORPHAN_MAX_CHARS,
   buildCaptionScene,
   PROGRESSIVE_REVEAL_DIM_OPACITY,
-  PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO,
   PROGRESSIVE_REVEAL_TOP_RATIO,
   resolveBlockTopForAlign,
   resolveFontWeight,
@@ -104,7 +104,7 @@ function prepareRevealScene(
   ctx.textAlign = 'left';
 
   const safeMargin = getCaptionSideMargin(width);
-  const maxWidth = Math.min(width - safeMargin * 2, width * PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO);
+  const maxWidth = getMaxCaptionTextWidth(width, preset.textWidthRatio);
   const spaceWidth = measureTextWidth(ctx, ' ', characterSpacing);
   const lineHeight = fontSize * lineHeightMultiplier;
 
