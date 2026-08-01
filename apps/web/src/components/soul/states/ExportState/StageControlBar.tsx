@@ -12,6 +12,7 @@ import { UnfoldMoreIcon } from '@hugeicons/core-free-icons'
 import type { FeatureKey } from '@/lib/featureGates'
 import type { CaptionStyleId, GraphicStyleId, WaveformVariant } from '@/stores'
 import { getCaptionStylePreset } from '@Ordio/engine'
+import { CAPTION_ANIMATIONS, findAnimationForStyle } from '@/lib/captionAnimations'
 
 const DISPLAY_OPTIONS: { value: WaveformVariant | 'graphics'; label: string; gate?: FeatureKey }[] = [
   { value: 'bars', label: 'Bars' },
@@ -28,16 +29,6 @@ const GRAPHICS_OPTIONS: { value: Exclude<GraphicStyleId, null>; label: string }[
   { value: 'graphic-frame2', label: 'Frame 2' },
 ]
 
-const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[] = [
-  { value: 'word-pop', label: 'Pop' },
-  { value: 'bold-outline', label: 'Outline' },
-  { value: 'karaoke-chip', label: 'Karaoke' },
-  { value: 'minimal-lower-third', label: 'Minimal' },
-  { value: 'big-statement', label: 'Statement' },
-  { value: 'script-accent', label: 'Script' },
-  { value: 'editorial-reveal', label: 'Reveal' },
-  { value: 'cream-block', label: 'Block' },
-]
 
 
 interface StageControlBarProps {
@@ -183,21 +174,24 @@ export function StageControlBar({ onLocked }: StageControlBarProps) {
         </PopoverContent>
       </Popover>
 
-      <Select value={captionStyleId} onValueChange={(value) => setStyle({ captionStyleId: value as CaptionStyleId })}>
+      <Select
+        value={findAnimationForStyle(captionStyleId)?.styleId}
+        onValueChange={(value) => setStyle({ captionStyleId: value as CaptionStyleId })}
+      >
         <SelectTrigger
           size="sm"
           className="h-11 rounded-xl border-0 bg-white/[0.04] px-3 text-[length:var(--text-callout)] text-white/70 hover:bg-white/8"
         >
-          <span className="text-white/40">Caption</span>
+          <span className="text-white/40">Animation</span>
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top" className="border-white/8 bg-[color:var(--sheet-bg)]">
-          {MODE_OPTIONS.map((option) => {
+          {CAPTION_ANIMATIONS.map((option) => {
             const locked = option.gate ? isLocked(option.gate) : false
             return (
               <SelectItem
-                key={option.value}
-                value={option.value}
+                key={option.mechanic}
+                value={option.styleId}
                 disabled={locked}
                 className="text-[length:var(--text-callout)] text-white/70 focus:bg-white/10 focus:text-white"
               >

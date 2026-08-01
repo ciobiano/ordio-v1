@@ -75,8 +75,18 @@ export function DirectorLookCard({ look, label, isSelected, onSelect }: Director
       width: CARD_WIDTH,
       height: Math.round(CARD_WIDTH * aspectRatio),
     };
-    canvas.width = previewStyle.width;
-    canvas.height = previewStyle.height;
+
+    // The backing store has to carry the device's real pixels or the card is a
+    // 1x bitmap stretched across a 2-3x display — every glyph edge soft. Draw
+    // in CSS pixels (renderFrame lays out from previewStyle) and let the
+    // transform rasterise at native density. Capped at 3x: past that the
+    // memory cost climbs with no visible gain.
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(previewStyle.width * dpr);
+    canvas.height = Math.round(previewStyle.height * dpr);
+    canvas.style.width = `${previewStyle.width}px`;
+    canvas.style.height = `${previewStyle.height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const waveformData = audioBuffer ? waveformSampler(audioBuffer, 200) : [];
     const previewTime = captionGroups[look.hookGroupIndex]?.start ?? 0;
@@ -104,7 +114,9 @@ export function DirectorLookCard({ look, label, isSelected, onSelect }: Director
         isSelected ? 'border-white' : 'border-white/15 hover:border-white/40'
       )}
     >
-      <canvas ref={canvasRef} className="block h-auto w-40" />
+      {/* Display size is set alongside the backing store in the effect, so the
+          two can never disagree about how many pixels a CSS pixel is. */}
+      <canvas ref={canvasRef} className="block" />
       <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 text-xs text-white">
         {label}
       </span>

@@ -12,6 +12,7 @@ import { useUIStore } from '@/stores';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionStyleId, GraphicStyleId, WaveformVariant } from '@/stores';
 import { getCaptionStylePreset } from '@Ordio/engine';
+import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
@@ -46,17 +47,6 @@ const fontFeatureKey: Partial<Record<StyleConfig['fontFamily'], FeatureKey>> = {
   'DM Sans': 'font_dm_sans',
   'Playfair Display': 'font_playfair',
 };
-
-const MODE_OPTIONS: { value: CaptionStyleId; label: string; gate?: FeatureKey }[] = [
-  { value: 'word-pop', label: 'Pop' },
-  { value: 'bold-outline', label: 'Outline' },
-  { value: 'karaoke-chip', label: 'Karaoke' },
-  { value: 'minimal-lower-third', label: 'Minimal' },
-  { value: 'big-statement', label: 'Statement' },
-  { value: 'script-accent', label: 'Script' },
-  { value: 'editorial-reveal', label: 'Reveal' },
-  { value: 'cream-block', label: 'Block' },
-];
 
 const ALIGN_OPTIONS: { value: NonNullable<StyleConfig['textAlign']>; label: string }[] = [
   { value: 'start', label: 'Start' },
@@ -97,7 +87,7 @@ const MIN_STROKE_WIDTH = 0;
 const MAX_STROKE_WIDTH = 8;
 const MIN_GLOW_INTENSITY = 0;
 const MAX_GLOW_INTENSITY = 1;
-const STYLE_TABS = ['preset', 'colors', 'font', 'spacing', 'visual'] as const;
+const STYLE_TABS = ['animation', 'colors', 'font', 'spacing', 'visual'] as const;
 
 type StyleTab = (typeof STYLE_TABS)[number];
 
@@ -209,8 +199,8 @@ function FontRow({ font, selected, locked, featureKey, onSelect, onLocked }: Fon
 }
 
 export default function StyleControls({ onLocked }: StyleControlsProps) {
-  const [activeTab, setActiveTab] = useState<StyleTab>('preset');
-  const [previousTab, setPreviousTab] = useState<StyleTab>('preset');
+  const [activeTab, setActiveTab] = useState<StyleTab>('animation');
+  const [previousTab, setPreviousTab] = useState<StyleTab>('animation');
   const style = useUIStore((s) => s.style);
   const setStyle = useUIStore((s) => s.setStyle);
   const waveformStyle = useUIStore((s) => s.waveformStyle);
@@ -252,28 +242,33 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
   };
 
   const renderActiveTab = () => {
-    if (activeTab === 'preset') {
+    if (activeTab === 'animation') {
       return (
         <div className="flex flex-col gap-1.5">
-          {MODE_OPTIONS.map((option) => {
+          {CAPTION_ANIMATIONS.map((option) => {
             const locked = option.gate ? isLocked(option.gate) : false;
-            const isSelected = style.captionStyleId === option.value;
+            // Matched on mechanic, not style id, so a Director look running a
+            // specialised bundle still shows its animation as the active one.
+            const isSelected = activeStylePreset.mechanic === option.mechanic;
             return (
-              <div key={option.value} className="relative">
+              <div key={option.mechanic} className="relative">
                 <button
                   type="button"
                   disabled={locked}
                   aria-pressed={isSelected}
-                  onClick={() => !locked && setStyle({ captionStyleId: option.value })}
+                  onClick={() => !locked && setStyle({ captionStyleId: option.styleId })}
                   className={cn(
-                    'flex min-h-11 w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-[15px] transition-colors duration-150',
+                    'flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors duration-150',
                     isSelected
                       ? 'border-white/16 bg-white/[0.1] text-white'
                       : 'border-white/[0.08] bg-white/[0.03] text-white/74 hover:bg-white/[0.06] hover:text-white/90',
                     locked && 'opacity-50'
                   )}
                 >
-                  <span>{option.label}</span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-[15px] leading-none">{option.label}</span>
+                    <span className="truncate text-[11px] leading-tight text-white/42">{option.hint}</span>
+                  </span>
                   <span
                     className={cn(
                       'flex size-5 shrink-0 items-center justify-center rounded-full transition-opacity duration-150',
@@ -299,7 +294,7 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
         <div className="flex flex-col gap-2.5">
           <ColorRow label="Waveform" value={style.waveColor} onChange={(v) => setStyle({ waveColor: v })} />
           <ColorRow
-            label="Background"
+            label="Background color"
             value={style.backgroundColor}
             onChange={(v) =>
               // Picking a color also reverts a video background to solid
@@ -308,11 +303,11 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
           />
           <ColorRow label="Text" value={style.textColor} onChange={(v) => setStyle({ textColor: v })} />
           <div className="flex flex-col gap-2">
-            <span className="text-muted-foreground text-xs">Background</span>
+            <span className="text-muted-foreground text-xs">Backdrop</span>
             <div className="flex gap-1 rounded-xl bg-white/[0.04] p-1">
               {(
                 [
-                  { id: 'preset', label: 'Preset' },
+                  { id: 'preset', label: 'Artwork' },
                   { id: 'video', label: 'Video' },
                   { id: 'image', label: 'Image' },
                 ] as const
@@ -632,8 +627,8 @@ export default function StyleControls({ onLocked }: StyleControlsProps) {
       className="flex h-full min-h-0 flex-col gap-3 overflow-hidden"
     >
       <TabsList variant="default" className="h-9 w-full shrink-0">
-        <TabsTrigger value="preset" className="text-xs flex-1">
-          Preset
+        <TabsTrigger value="animation" className="text-xs flex-1">
+          Animation
         </TabsTrigger>
         <TabsTrigger value="colors" className="text-xs flex-1">
           Colors
