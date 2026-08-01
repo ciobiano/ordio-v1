@@ -78,12 +78,13 @@ describe('caption mechanics', () => {
 
     drawPhraseCutCaptions(ctx, 0.8, transcript, style, 'top', false, false, groups);
 
-    const rendered = getFillTextCalls(ctx);
-    expect(rendered).toContain('Second phrase');
-    expect(rendered).not.toContain('First phrase');
+    // Drawn word by word now that phrase-cut wraps, so join before asserting.
+    const rendered = getFillTextCalls(ctx).join(' ');
+    expect(rendered).toBe('Second phrase');
+    expect(rendered).not.toContain('First');
   });
 
-  it('phrase-cut mode keeps an oversized chunk\'s fit-scale within the max caption width', () => {
+  it('phrase-cut clamps only a single word too wide to wrap', () => {
     const ctx = createMockCtx();
     const phraseStyle: StyleConfig = { ...style, width: 360, height: 640, fontSize: 40 };
     const transcript: Word[] = [{ text: 'Hyperdimensionalcaption', start: 0, end: 0.6 }];
@@ -111,7 +112,7 @@ describe('caption mechanics', () => {
     expect(metrics?.text).toBe('stub');
   });
 
-  it('static-highlight mode scales down when a line would exceed frame max width', () => {
+  it('static-highlight wraps a too-wide line instead of scaling it down', () => {
     const ctx = createMockCtx();
     const highlightStyle: StyleConfig = { ...style, width: 300, height: 500, fontSize: 36 };
     const transcript: Word[] = [
@@ -122,11 +123,16 @@ describe('caption mechanics', () => {
 
     drawStaticHighlightCaptions(ctx, 0.1, transcript, highlightStyle);
 
-    const maxWidth = Math.min(highlightStyle.width - 4, highlightStyle.width * 0.84);
-    const lineWidth = transcript.reduce((sum, word) => sum + word.text.length * 20, 0) + 2 * 20;
-    const maxAllowedScale = maxWidth / lineWidth;
+    // Three words that cannot share one line get three lines at full size —
+    // shrinking them was what made caption type jump between phrases.
     const [layoutScale = 0] = getScaleCalls(ctx);
-    expect(layoutScale).toBeLessThanOrEqual(maxAllowedScale + 1e-6);
+    expect(layoutScale).toBe(1);
+    const lineYs = new Set(
+      (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls
+        .filter((c) => c.method === 'fillText')
+        .map((c) => Number(c.args[2]))
+    );
+    expect(lineYs.size).toBeGreaterThan(1);
   });
 
   it('static-highlight mode keeps every word in the line visible — only the highlight moves, nothing fades', () => {

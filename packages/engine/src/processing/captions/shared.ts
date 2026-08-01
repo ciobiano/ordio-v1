@@ -95,8 +95,6 @@ export const HIGHLIGHT_TOP_RATIO = 0.15;
  */
 export const CAPTION_MAX_WIDTH_RATIO = 0.88;
 export const HIGHLIGHT_TEXT_WIDTH_RATIO = 0.84;
-/** Floor for the one unavoidable clamp: a single word wider than the max width. */
-export const HIGHLIGHT_MIN_SCALE = 0.7;
 export const HIGHLIGHT_MIN_WORDS_PER_LINE = 3;
 export const HIGHLIGHT_LINE_HEIGHT_RATIO = 1.0;
 export const CHIP_PADDING_X_RATIO = 0.28;
@@ -242,9 +240,12 @@ export function layoutWrappedLines(
   }
 
   // The single case wrapping cannot fix: one word wider than the max width.
-  // Nothing to break, so that word alone decides the clamp.
+  // Nothing to break, so that word alone decides the clamp — and no floor,
+  // because a floor here would leave the word hanging off the frame, which is
+  // worse than small type. It is one word on one caption, not a size that
+  // varies from phrase to phrase.
   const nextScale = Math.min(1, maxWidth / widestLine);
-  const scale = Number.isFinite(nextScale) && nextScale > 0 ? Math.max(HIGHLIGHT_MIN_SCALE, nextScale) : 1;
+  const scale = Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1;
   return { lines, scale, logicalMaxWidth: maxWidth / scale };
 }
 
