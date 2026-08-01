@@ -63,6 +63,7 @@ const baseStyle: StyleConfig = {
   lineHeight: 1.2,
   textAlign: 'center',
   verticalAlign: 'auto',
+  backgroundScrim: 'flat',
   captionStyleId: 'editorial-reveal',
 };
 
@@ -210,6 +211,95 @@ describe('progressive-reveal mechanic', () => {
     );
     const firstX = calls(start).find((c) => c.method === 'fillText')?.args[1] as number;
     expect(firstX).toBeCloseTo(getCaptionSideMargin(WIDTH), 5);
+  });
+});
+
+describe('fixed word chunking', () => {
+  // 11 words: long enough that sentence segmentation would keep them together.
+  const longLine: Word[] = 'one two three four five six seven eight nine ten eleven'
+    .split(' ')
+    .map((text, i) => ({ text, start: i, end: i + 1 }));
+
+  it('holds exactly chunkWords on screen instead of a whole sentence', () => {
+    const ctx = createMockCtx();
+    drawProgressiveRevealCaptions(
+      ctx,
+      1.5,
+      longLine,
+      { ...baseStyle, chunkWords: 6 },
+      'top',
+      false,
+      false,
+      []
+    );
+    expect(drawnWords(ctx).map((w) => w.text)).toEqual(['one', 'two', 'three', 'four', 'five', 'six']);
+  });
+
+  it('hard-cuts to the next chunk at the boundary, never blending the two', () => {
+    const ctx = createMockCtx();
+    // t=7 falls in the second chunk (words seven..eleven).
+    drawProgressiveRevealCaptions(
+      ctx,
+      7.5,
+      longLine,
+      { ...baseStyle, chunkWords: 6 },
+      'top',
+      false,
+      false,
+      []
+    );
+    const shown = drawnWords(ctx).map((w) => w.text);
+    expect(shown).toEqual(['seven', 'eight', 'nine', 'ten', 'eleven']);
+    expect(shown).not.toContain('six');
+  });
+
+  it('lets a look pin a shorter chunk than the style default', () => {
+    const ctx = createMockCtx();
+    drawProgressiveRevealCaptions(
+      ctx,
+      1.5,
+      longLine,
+      { ...baseStyle, chunkWords: 3 },
+      'top',
+      false,
+      false,
+      []
+    );
+    expect(drawnWords(ctx)).toHaveLength(3);
+  });
+});
+
+describe('orphan control', () => {
+  it('never starts a wrapped line with a short word', () => {
+    // Narrow frame forces wrapping; mock measureText is 20px per character.
+    const words: Word[] = ['strategies', 'requiring', 'a', 'considerable', 'investment']
+      .map((text, i) => ({ text, start: i, end: i + 1 }));
+
+    const ctx = createMockCtx();
+    drawProgressiveRevealCaptions(
+      ctx,
+      4.5,
+      words,
+      { ...baseStyle, width: 700, chunkWords: 5 },
+      'top',
+      false,
+      false,
+      []
+    );
+
+    // Group the drawn words into lines by their y coordinate.
+    const byLine = new Map<number, string[]>();
+    for (const call of calls(ctx)) {
+      if (call.method !== 'fillText') continue;
+      const y = Number(call.args[2]);
+      byLine.set(y, [...(byLine.get(y) ?? []), String(call.args[0])]);
+    }
+
+    const lines = [...byLine.entries()].sort((a, b) => a[0] - b[0]).map(([, w]) => w);
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines.slice(1)) {
+      expect(line[0].replace(/[^A-Za-z0-9']/g, '').length).toBeGreaterThan(4);
+    }
   });
 });
 

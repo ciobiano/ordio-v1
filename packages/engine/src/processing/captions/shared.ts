@@ -1,5 +1,6 @@
 import type { StyleConfig, Word } from '@Ordio/shared/schemas';
 import type { CanvasLayout, CaptionGroup } from '../../types';
+import { buildFixedWordChunks, buildSentenceSegments, findActiveDisplaySegment } from '../../captions/display';
 import {
   GAP_ABOVE_WAVEFORM,
   WAVEFORM_CENTER_Y,
@@ -101,6 +102,29 @@ export const PROGRESSIVE_REVEAL_DIM_OPACITY = 0.32;
 /** The study's 44px gutters on a 360px frame — wider than the other mechanics use. */
 export const PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO = 0.76;
 export const PROGRESSIVE_REVEAL_TOP_RATIO = 0.18;
+/**
+ * A word whose alphanumeric core is this short never starts a wrapped line.
+ * The study binds them to the previous word with a non-breaking space; here
+ * the break is suppressed instead, because each word still has to be drawn
+ * (and coloured) separately for the reveal.
+ */
+export const ORPHAN_MAX_CHARS = 4;
+
+/**
+ * The word block on screen. Fixed-size chunking (the design study's grouping)
+ * when either the style or the session asks for it, else the content-aware
+ * sentence segmentation the lyric styles have always used.
+ */
+export function buildCaptionScene(transcript: Word[], currentTime: number, chunkWords?: number): Word[] {
+  const segments = chunkWords
+    ? buildFixedWordChunks(transcript, chunkWords)
+    : buildSentenceSegments(transcript);
+  return findActiveDisplaySegment(segments, currentTime)?.words ?? [];
+}
+
+function isOrphanWord(text: string, orphanMaxChars: number): boolean {
+  return text.replace(/[^A-Za-z0-9']/g, '').length <= orphanMaxChars;
+}
 
 /**
  * Fades a #rrggbb color to an rgba() string. Canvas has no per-fill opacity
@@ -144,7 +168,8 @@ function buildGreedyLines(
   spaceWidth: number,
   maxWidth: number,
   minWordsPerLine: number,
-  linePauseBreak: number
+  linePauseBreak: number,
+  orphanMaxChars: number
 ): LayoutWord[][] {
   const lines: LayoutWord[][] = [];
   let line: LayoutWord[] = [];
@@ -156,7 +181,11 @@ function buildGreedyLines(
     const prevHasNaturalPause = prevPauseToNext >= linePauseBreak;
     const widthOverflow = line.length >= minWordsPerLine && needed > maxWidth;
 
-    if (line.length > 0 && (prevHasNaturalPause || widthOverflow)) {
+    // "a", "is", "to" stranded at the head of a line reads as a typo, so a
+    // short word stays with the words it belongs to even if that overruns.
+    const wouldOrphan = orphanMaxChars > 0 && isOrphanWord(word.text, orphanMaxChars);
+
+    if (line.length > 0 && !wouldOrphan && (prevHasNaturalPause || widthOverflow)) {
       lines.push(line);
       line = [word];
       lineWidth = word.wordWidth;
@@ -191,15 +220,22 @@ export function layoutWrappedLines(
   words: LayoutWord[],
   spaceWidth: number,
   maxWidth: number,
-  options: { maxLines?: number; minWordsPerLine?: number; linePauseBreak?: number } = {}
+  options: {
+    maxLines?: number;
+    minWordsPerLine?: number;
+    linePauseBreak?: number;
+    /** 0 disables orphan control, preserving the pre-existing wrap exactly. */
+    orphanMaxChars?: number;
+  } = {}
 ): LineLayout {
   const maxLines = options.maxLines ?? HIGHLIGHT_MAX_LINES;
   const minWordsPerLine = options.minWordsPerLine ?? HIGHLIGHT_MIN_WORDS_PER_LINE;
   const linePauseBreak = options.linePauseBreak ?? 0.24;
+  const orphanMaxChars = options.orphanMaxChars ?? 0;
 
   for (const scale of LINE_FIT_SCALE_CANDIDATES) {
     const logicalMaxWidth = maxWidth / scale;
-    const lines = buildGreedyLines(words, spaceWidth, logicalMaxWidth, minWordsPerLine, linePauseBreak);
+    const lines = buildGreedyLines(words, spaceWidth, logicalMaxWidth, minWordsPerLine, linePauseBreak, orphanMaxChars);
     const widestLine = Math.max(1, ...lines.map((line) => greedyLineWidth(line, spaceWidth)));
     if (lines.length <= maxLines && widestLine <= logicalMaxWidth) {
       return { lines, scale, logicalMaxWidth };

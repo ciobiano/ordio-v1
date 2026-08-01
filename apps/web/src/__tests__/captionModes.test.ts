@@ -58,6 +58,7 @@ const style: StyleConfig = {
   lineHeight: 1.3,
   textAlign: 'center',
   verticalAlign: 'auto',
+  backgroundScrim: 'flat',
   captionStyleId: 'minimal-lower-third',
 };
 

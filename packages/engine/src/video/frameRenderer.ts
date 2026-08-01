@@ -39,6 +39,32 @@ export interface FrameOptions {
 
 /** Scrim over video backgrounds so captions stay legible on busy footage. */
 export const BACKGROUND_SCRIM_ALPHA = 0.35;
+/** Bottom-anchored scrim, from the design study: 44% of frame height, 0.55 -> transparent. */
+export const BOTTOM_SCRIM_HEIGHT_RATIO = 0.44;
+export const BOTTOM_SCRIM_ALPHA = 0.55;
+
+/** Darkens a photo/video background so captions stay readable over it. */
+function drawBackgroundScrim(
+  ctx: CanvasRenderingContext2D,
+  mode: NonNullable<StyleConfig['backgroundScrim']>,
+  width: number,
+  height: number
+): void {
+  if (mode === 'none') return;
+
+  if (mode === 'bottom') {
+    const top = height * (1 - BOTTOM_SCRIM_HEIGHT_RATIO);
+    const gradient = ctx.createLinearGradient(0, height, 0, top);
+    gradient.addColorStop(0, `rgba(0, 0, 0, ${BOTTOM_SCRIM_ALPHA})`);
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, top, width, height - top);
+    return;
+  }
+
+  ctx.fillStyle = `rgba(0, 0, 0, ${BACKGROUND_SCRIM_ALPHA})`;
+  ctx.fillRect(0, 0, width, height);
+}
 
 /** Cover-fit source dimensions onto a target canvas. Pure — unit-testable. */
 export function coverFit(
@@ -137,8 +163,7 @@ export function renderFrame(
         const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
         ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
       }
-      ctx.fillStyle = `rgba(0, 0, 0, ${BACKGROUND_SCRIM_ALPHA})`;
-      ctx.fillRect(0, 0, width, height);
+      drawBackgroundScrim(ctx, style.backgroundScrim ?? 'flat', width, height);
     } else {
       ctx.fillStyle = style.backgroundColor;
       ctx.fillRect(0, 0, width, height);

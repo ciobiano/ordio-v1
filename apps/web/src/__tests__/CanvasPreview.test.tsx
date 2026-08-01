@@ -73,6 +73,7 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
         lineHeight: 1.4,
         textAlign: 'center',
         verticalAlign: 'auto',
+        backgroundScrim: 'flat',
         captionStyleId: 'minimal-lower-third',
       },
       captionTransform: { visible: true, scale: 1, rotationDeg: 0, offsetXRatio: 0, offsetYRatio: 0 },

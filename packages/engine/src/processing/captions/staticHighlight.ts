@@ -2,8 +2,8 @@ import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CaptionGroup, CaptionTransform } from '../../types';
 import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
 import { getCaptionStylePreset } from '../../captions/presets';
-import { buildSentenceSegments, findActiveDisplaySegment } from '../../captions/display';
 import {
+  buildCaptionScene,
   CAPTION_VERTICAL_SAFE_RATIO,
   CHIP_PADDING_X_RATIO,
   CHIP_PADDING_Y_RATIO,
@@ -17,6 +17,7 @@ import {
   HIGHLIGHT_TOP_RATIO,
   HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
+  ORPHAN_MAX_CHARS,
   resolveBlockTopForAlign,
   resolveLineX,
   resolveScalePivotX,
@@ -74,7 +75,9 @@ function prepareHighlightScene(
   const padding = Math.min(CAPTION_SIDE_MARGIN_PX, width / 2);
   const maxWidth = Math.min(width - padding * 2, width * HIGHLIGHT_TEXT_WIDTH_RATIO);
 
-  const scene = findActiveDisplaySegment(buildSentenceSegments(transcript), currentTime)?.words ?? [];
+  const preset = getCaptionStylePreset(style.captionStyleId);
+  const chunkWords = style.chunkWords ?? preset.defaultChunkWords;
+  const scene = buildCaptionScene(transcript, currentTime, chunkWords);
   if (scene.length === 0) return null;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
@@ -95,7 +98,11 @@ function prepareHighlightScene(
     measured[i].pauseToNext = Math.max(0, measured[i + 1].start - measured[i].end);
   }
 
-  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth);
+  // Orphan control only where the study's fixed chunking is in play, so
+  // karaoke-chip's long-standing wrap is untouched.
+  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth, {
+    orphanMaxChars: chunkWords ? ORPHAN_MAX_CHARS : 0,
+  });
   const lines = wrapLayout.lines;
   const blockHeight = lines.length * lineHeight;
   const topPad =
@@ -103,7 +110,7 @@ function prepareHighlightScene(
       style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN,
       height,
       blockHeight,
-      HIGHLIGHT_TOP_RATIO
+      preset.topRatio ?? HIGHLIGHT_TOP_RATIO
     ) ?? Math.max(height * CAPTION_VERTICAL_SAFE_RATIO, height * HIGHLIGHT_TOP_RATIO);
   const activeGroup = getActiveCaptionGroup(groups ?? [], currentTime);
 
@@ -206,7 +213,7 @@ export function drawStaticHighlightCaptions(
   ctx.translate(-pivotX, -blockCenterY);
 
   const chipPadX = fontSize * (preset.chipPaddingXRatio ?? CHIP_PADDING_X_RATIO);
-  const chipPadY = fontSize * CHIP_PADDING_Y_RATIO;
+  const chipPadY = fontSize * (preset.chipPaddingYRatio ?? CHIP_PADDING_Y_RATIO);
   const chipRadius = fontSize * (preset.chipRadiusRatio ?? CHIP_RADIUS_RATIO);
 
   for (let li = 0; li < lines.length; li++) {

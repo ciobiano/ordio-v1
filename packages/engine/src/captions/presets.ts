@@ -22,7 +22,17 @@ export interface CaptionStylePreset {
   chipTextColor?: string;
   /** Chip padding/corner as ratios of fontSize. Omitted styles use the karaoke defaults. */
   chipPaddingXRatio?: number;
+  chipPaddingYRatio?: number;
   chipRadiusRatio?: number;
+  /** Where a 'top'-anchored block sits, as a fraction of height. Defaults to the karaoke ratio. */
+  topRatio?: number;
+  /**
+   * Words held on screen per block when StyleConfig doesn't override it.
+   * Unset means content-aware sentence segmentation, which is unbounded (up
+   * to 34 words) — right for lyrics, wrong for the design study's tight
+   * fixed-weight blocks where every chunk should carry the same visual mass.
+   */
+  defaultChunkWords?: number;
   accentColor?: string;
   /** Font family swapped in for the accented word when accentStyle is 'italic-glow'. Must be one of StyleConfig's font enum values so it's guaranteed preloaded. */
   accentFontFamily?: string;
@@ -81,6 +91,7 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
     mechanic: 'progressive-reveal',
     fontTreatment: 'plain',
     ownsStage: false,
+    defaultChunkWords: 6,
   },
   'cream-block': {
     mechanic: 'static-highlight',
@@ -91,7 +102,10 @@ export const CAPTION_STYLE_PRESETS: Record<CaptionStyleId, CaptionStylePreset> =
     // The study hugs the word far tighter than karaoke's pill: 3px padding
     // and a 4px corner at 29px type.
     chipPaddingXRatio: 3 / 29,
+    chipPaddingYRatio: 1 / 29,
     chipRadiusRatio: 4 / 29,
+    topRatio: 112 / 640,
+    defaultChunkWords: 6,
   },
 };
 

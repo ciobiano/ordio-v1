@@ -1,7 +1,7 @@
 import type { Word, StyleConfig } from '@Ordio/shared/schemas';
 import type { CanvasLayout, CaptionGroup, CaptionTransform } from '../../types';
 import { drawSpacedText, measureTextWidth } from '../../video/textLayout';
-import { buildSentenceSegments, findActiveDisplaySegment } from '../../captions/display';
+import { getCaptionStylePreset } from '../../captions/presets';
 import {
   calculatePhraseTextY,
   CAPTION_VERTICAL_SAFE_RATIO,
@@ -13,6 +13,8 @@ import {
   HIGHLIGHT_LINE_HEIGHT_RATIO,
   HOOK_SCALE_MULTIPLIER,
   layoutWrappedLines,
+  ORPHAN_MAX_CHARS,
+  buildCaptionScene,
   PROGRESSIVE_REVEAL_DIM_OPACITY,
   PROGRESSIVE_REVEAL_TEXT_WIDTH_RATIO,
   PROGRESSIVE_REVEAL_TOP_RATIO,
@@ -91,7 +93,8 @@ function prepareRevealScene(
     lineHeight: lineHeightMultiplier = HIGHLIGHT_LINE_HEIGHT_RATIO,
   } = style;
 
-  const scene = findActiveDisplaySegment(buildSentenceSegments(transcript), currentTime)?.words ?? [];
+  const preset = getCaptionStylePreset(style.captionStyleId);
+  const scene = buildCaptionScene(transcript, currentTime, style.chunkWords ?? preset.defaultChunkWords);
   if (scene.length === 0) return null;
 
   const font = `${resolveFontWeight(fontFamily)} ${fontSize}px "${fontFamily}", serif`;
@@ -116,7 +119,7 @@ function prepareRevealScene(
     measured[i].pauseToNext = Math.max(0, measured[i + 1].start - measured[i].end);
   }
 
-  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth);
+  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth, { orphanMaxChars: ORPHAN_MAX_CHARS });
   const blockHeight = wrapLayout.lines.length * lineHeight;
   const blockTop = resolveBlockTop(
     style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN,
@@ -234,6 +237,11 @@ export function drawProgressiveRevealCaptions(
   ctx.font = font;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
+  // 0 1px 8px rgba(0,0,0,0.7) from the study — invisible on its black panels,
+  // and doing the real work on the one meant to sit over footage.
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+  ctx.shadowBlur = Math.max(4, lineHeight * 0.14);
+  ctx.shadowOffsetY = Math.max(1, lineHeight * 0.018);
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
   const offsetY = (captionTransform?.offsetYRatio ?? 0) * height;

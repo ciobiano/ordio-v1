@@ -54,6 +54,16 @@ export interface LookPreset {
    * set it would be incomplete ('Orb + Phrase' would render bars).
    */
   waveformStyle?: WaveformVariant;
+  /**
+   * Type size as a fraction of canvas width, not absolute pixels. The design
+   * study's sizes are only meaningful against its own 360px frame (33px there
+   * is 9.2% of the width); pinning the px value would make the look correct
+   * at one export format and wrong at every other. Resolved on apply, after
+   * which it is an ordinary fontSize the user can still drag.
+   */
+  fontSizeRatio?: number;
+  /** Letter-spacing in em, resolved against the font size above. */
+  characterSpacingEm?: number;
 }
 
 export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
@@ -158,12 +168,16 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       fontFamily: 'Instrument Serif',
       textAlign: 'center',
       verticalAlign: 'center',
+      chunkWords: 6,
+      lineHeight: 1.18,
       textColor: '#FFFFFF',
       waveColor: '#FFFFFF',
       backgroundColor: '#000000',
       background: { type: 'solid', color: '#000000' },
     },
     waveformStyle: 'none',
+    fontSizeRatio: 33 / 360,
+    characterSpacingEm: 0.002,
   },
   // Built to sit over the creator's own footage: black until they add one, and
   // anchored low so the frame's subject stays visible above the type.
@@ -174,12 +188,16 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       fontFamily: 'Instrument Serif',
       textAlign: 'center',
       verticalAlign: 'bottom',
+      chunkWords: 5,
+      lineHeight: 1.3,
+      backgroundScrim: 'bottom',
       textColor: '#FDFCF7',
       waveColor: '#FDFCF7',
       backgroundColor: '#000000',
       background: { type: 'solid', color: '#000000' },
     },
     waveformStyle: 'none',
+    fontSizeRatio: 19 / 360,
   },
   // The orb takes the visual slot and sits high; the phrase reads under it.
   'orb-phrase': {
@@ -189,12 +207,18 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       fontFamily: 'Instrument Sans',
       textAlign: 'center',
       verticalAlign: 'bottom',
+      // The study hardcodes 3 here regardless of the global chunk size —
+      // "phrase pace", so the line under the orb stays short.
+      chunkWords: 3,
+      lineHeight: 1.35,
       textColor: '#FFFFFF',
       waveColor: '#FFFFFF',
       backgroundColor: '#000000',
       background: { type: 'solid', color: '#000000' },
     },
     waveformStyle: 'orb',
+    fontSizeRatio: 16 / 360,
+    characterSpacingEm: -0.005,
   },
   'cream-block': {
     label: 'Cream Block',
@@ -203,12 +227,16 @@ export const LOOK_PRESETS: Record<LookPresetId, LookPreset> = {
       fontFamily: 'Instrument Sans',
       textAlign: 'center',
       verticalAlign: 'top',
+      chunkWords: 6,
+      lineHeight: 1.34,
       textColor: '#690C05',
       waveColor: '#5E6B75',
       backgroundColor: '#F2ECDC',
       background: { type: 'solid', color: '#F2ECDC' },
     },
     waveformStyle: 'baseline',
+    fontSizeRatio: 29 / 360,
+    characterSpacingEm: -0.02,
   },
 };
 
@@ -226,7 +254,22 @@ export function resolveLookStyle(
   presetId: LookPresetId,
   overrides?: { accentColor?: string | null; textColor?: string | null }
 ): StyleConfig {
-  const style = { ...baseStyle, ...LOOK_PRESETS[presetId].style };
+  const preset = LOOK_PRESETS[presetId];
+  const style = { ...baseStyle, ...preset.style };
+
+  if (preset.fontSizeRatio) {
+    // Clamped so a very small canvas (the Director preview card) can't resolve
+    // to sub-pixel type, and StyleConfig's positive-number contract holds.
+    style.fontSize = Math.max(8, Math.round(baseStyle.width * preset.fontSizeRatio));
+
+    // A look that pins its type size owns the whole typographic setting, so
+    // tracking resolves too — including back to normal when the study spells
+    // no letter-spacing. Leaving it alone would let a value the user dialled
+    // in for some other look ride along into this one.
+    const em = preset.characterSpacingEm ?? 0;
+    style.characterSpacing = Number((style.fontSize * em).toFixed(2));
+  }
+
   if (overrides?.accentColor) style.accentColor = overrides.accentColor;
   if (overrides?.textColor) style.textColor = overrides.textColor;
   return style;

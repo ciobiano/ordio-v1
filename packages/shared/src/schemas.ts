@@ -81,6 +81,18 @@ export const StyleConfigSchema = z.object({
   textAlign: z.enum(['start', 'center', 'end']).default('center'),
   /** Vertical caption anchor. 'auto' keeps the waveform-aware placement each mechanic has always used. */
   verticalAlign: z.enum(['auto', 'top', 'center', 'bottom']).default('auto'),
+  /**
+   * Words held on screen per caption block. Overrides the active style's own
+   * default; unset on both means content-aware sentence segmentation.
+   */
+  chunkWords: z.number().int().min(2).max(12).optional(),
+  /**
+   * How a photo/video background is darkened for caption legibility.
+   * 'flat' (default) is the even full-frame wash; 'bottom' is a gradient
+   * rising from the base, which keeps the top of the frame — usually the
+   * subject — untouched.
+   */
+  backgroundScrim: z.enum(['flat', 'bottom', 'none']).default('flat'),
   /** Which caption style is active — see CAPTION_STYLE_PRESETS in @Ordio/engine. */
   captionStyleId: z
     .enum([

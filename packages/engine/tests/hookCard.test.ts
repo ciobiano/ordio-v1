@@ -41,6 +41,7 @@ const style: StyleConfig = {
   lineHeight: 1.4,
   textAlign: 'center',
   verticalAlign: 'auto',
+  backgroundScrim: 'flat',
   captionStyleId: 'word-pop',
 };
 
