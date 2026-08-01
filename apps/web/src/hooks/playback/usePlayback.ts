@@ -109,46 +109,63 @@ export function usePlayback(): UsePlaybackReturn {
   const play = useCallback(async () => {
     if (!bufferRef.current || playingRef.current) return;
 
-    if (!ctxRef.current || ctxRef.current.state === 'closed') {
-      ctxRef.current = new AudioContext();
-    }
-    const ctx = ctxRef.current;
-
-    // iOS suspends AudioContext when backgrounded — must resume on user gesture
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-    }
-
-    const source = ctx.createBufferSource();
-    source.buffer = bufferRef.current;
-    source.connect(ctx.destination);
-
-    const rangeStart = rangeRef.current?.start ?? 0;
-    const rangeEnd = rangeRef.current?.end ?? bufferRef.current.duration;
-    const rangeDur = rangeEnd - rangeStart;
-    const offset = rangeStart + Math.min(seekPositionRef.current, rangeDur);
-
-    source.start(0, offset);
-    // Schedule stop at range boundary so playback doesn't bleed past the trim window
-    source.stop(ctx.currentTime + (rangeEnd - offset));
-    playStartTimeRef.current = ctx.currentTime;
-
-    source.onended = () => {
-      // Guard against stale onended from a replaced source (e.g. after seek)
-      if (sourceRef.current !== source) return;
-      if (playingRef.current) {
-        playingRef.current = false;
-        setIsPlaying(false);
-        seekPositionRef.current = 0;
-        setCurrentTime(0);
-        stopTimeLoop();
-      }
-    };
-
-    sourceRef.current = source;
+    // Claim the flag before the first await. This function is async and the
+    // guard above runs before it, so two taps in quick succession — exactly
+    // what someone does when the button looks dead — could both get through
+    // and start overlapping sources, of which only the last is tracked.
     playingRef.current = true;
-    setIsPlaying(true);
-    startTimeLoop();
+
+    try {
+      if (!ctxRef.current || ctxRef.current.state === 'closed') {
+        ctxRef.current = new AudioContext();
+      }
+      const ctx = ctxRef.current;
+
+      // Any state other than running, not just 'suspended'. iOS Safari parks
+      // the context in a non-standard 'interrupted' state after an audio
+      // interruption, and a context that never resumes has a frozen
+      // currentTime — which every position below is measured against.
+      if (ctx.state !== 'running') {
+        await ctx.resume();
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = bufferRef.current;
+      source.connect(ctx.destination);
+
+      const rangeStart = rangeRef.current?.start ?? 0;
+      const rangeEnd = rangeRef.current?.end ?? bufferRef.current.duration;
+      const rangeDur = rangeEnd - rangeStart;
+      const offset = rangeStart + Math.min(seekPositionRef.current, rangeDur);
+
+      source.start(0, offset);
+      // Schedule stop at range boundary so playback doesn't bleed past the trim window
+      source.stop(ctx.currentTime + (rangeEnd - offset));
+      playStartTimeRef.current = ctx.currentTime;
+
+      source.onended = () => {
+        // Guard against stale onended from a replaced source (e.g. after seek)
+        if (sourceRef.current !== source) return;
+        if (playingRef.current) {
+          playingRef.current = false;
+          setIsPlaying(false);
+          seekPositionRef.current = 0;
+          setCurrentTime(0);
+          stopTimeLoop();
+        }
+      };
+
+      sourceRef.current = source;
+      setIsPlaying(true);
+      startTimeLoop();
+    } catch (err) {
+      // Releasing the flag matters more than the failure itself: leaving it set
+      // would make every later play() a silent no-op.
+      playingRef.current = false;
+      setIsPlaying(false);
+      stopTimeLoop();
+      console.error('[usePlayback] could not start playback', err);
+    }
   }, [startTimeLoop, stopTimeLoop]);
 
   const pause = useCallback(() => {
@@ -205,7 +222,7 @@ export function usePlayback(): UsePlaybackReturn {
         ctxRef.current = new AudioContext();
       }
       const ctx = ctxRef.current;
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state !== 'running') await ctx.resume();
 
       const source = ctx.createBufferSource();
       source.buffer = bufferRef.current;
@@ -250,6 +267,27 @@ export function usePlayback(): UsePlaybackReturn {
     setCurrentTime(0);
     stopTimeLoop();
   }, [stopTimeLoop]);
+
+  /**
+   * Backgrounding the tab suspends the AudioContext and freezes rAF, but tells
+   * this hook nothing — so it goes on believing it is playing while the audio
+   * is silent and `ctx.currentTime` (the clock every position here is derived
+   * from) has stopped advancing. The stale `isPlaying` then sends the user's
+   * next tap to pause() instead of play(), which is why the button reads as
+   * dead.
+   *
+   * Pausing on the way out keeps the hook's state honest and banks the exact
+   * position. Deliberately no auto-resume on return: restarting audio without
+   * a gesture is both jarring and something browsers block anyway.
+   */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && playingRef.current) pause();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [pause]);
 
   useEffect(() => {
     return () => {
