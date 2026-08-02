@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ordGhostBtn, ordStickerBtn } from '@/lib/ordioVariants';
 import { Separator } from '@/components/ui/separator';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { detectSilentRegions } from '@Ordio/engine/media';
@@ -12,11 +13,16 @@ interface TrimPanelProps {
   audioBuffer: AudioBuffer | null;
   trimmer: UseAudioTrimmerReturn;
   onCommit: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
   onPreviewAt?: (time: number) => void;
+  /**
+   * Trim-local undo pair. The export screen omits these — its undo lives in the
+   * transport bar, backed by one history across captions and trim. Studio still
+   * passes them because it keeps its own edit history in `useStudioEdits`.
+   */
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 function formatTimestamp(t: number): string {
@@ -29,11 +35,11 @@ export function TrimPanel({
   audioBuffer,
   trimmer,
   onCommit,
+  onPreviewAt,
   onUndo,
   onRedo,
-  canUndo,
-  canRedo,
-  onPreviewAt,
+  canUndo = false,
+  canRedo = false,
 }: TrimPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,7 +52,7 @@ export function TrimPanel({
     setEndTime,
     toggleSilenceRange,
     deletedSilenceRanges,
-    clearDeletions,
+    resetAll,
   } = trimmer;
   const duration = audioBuffer?.duration ?? 0;
 
@@ -219,54 +225,55 @@ export function TrimPanel({
         </div>
       )}
 
-      {/* Actions row — always visible so undo/redo are always reachable */}
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex gap-1.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!canUndo}
-            onClick={onUndo}
-            className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-          >
-            ↩ Undo
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!canRedo}
-            onClick={onRedo}
-            className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-          >
-            ↪ Redo
-          </Button>
-        </div>
-
-        <div className="flex gap-2">
-          {selectedSilenceCount > 0 && (
+      <div className="flex items-center gap-2.5 pt-1">
+        {onUndo && onRedo && (
+          <div className="flex gap-1.5">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={clearDeletions}
-              className="h-auto py-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+              disabled={!canUndo}
+              onClick={onUndo}
+              aria-label="Undo"
+              className="h-auto px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
             >
-              Clear
+              ↩
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!canRedo}
+              onClick={onRedo}
+              aria-label="Redo"
+              className="h-auto px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+            >
+              ↪
+            </Button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => resetAll(duration)}
+          disabled={!hasPendingCuts}
+          className={cn(ordGhostBtn({ size: 'md' }), 'px-4')}
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          onClick={onCommit}
+          disabled={!hasPendingCuts}
+          className={cn(
+            ordStickerBtn({ tone: 'accent', size: 'sm' }),
+            'flex-1 text-[15px]',
+            hasPendingCuts
+              ? 'bg-[color:var(--acid-error)] text-[color:var(--acid-text-1)]'
+              : 'bg-white/[0.10] text-[color:var(--acid-text-3)] shadow-none'
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!hasPendingCuts}
-            onClick={onCommit}
-            className="h-auto py-1 px-3 text-xs text-destructive bg-destructive/12 hover:bg-destructive/20 disabled:opacity-30"
-          >
-            Apply cuts
-          </Button>
-        </div>
+        >
+          Apply cuts
+        </button>
       </div>
     </div>
   );

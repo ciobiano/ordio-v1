@@ -19,16 +19,12 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
   const transcript = useProcessingStore((state) => state.transcript);
   const captionGroups = useProcessingStore((state) => state.captionGroups);
   const selectedGroupIndices = useProcessingStore((state) => state.selectedGroupIndices);
-  const captionUndoStack = useProcessingStore((state) => state.captionUndoStack);
-  const captionRedoStack = useProcessingStore((state) => state.captionRedoStack);
   const splitAtWord = useProcessingStore((state) => state.splitAtWord);
   const splitAtTime = useProcessingStore((state) => state.splitAtTime);
   const mergeUpAtCursor = useProcessingStore((state) => state.mergeUpAtCursor);
   const mergeDownAtCursor = useProcessingStore((state) => state.mergeDownAtCursor);
   const selectGroup = useProcessingStore((state) => state.selectGroup);
   const clearSelection = useProcessingStore((state) => state.clearSelection);
-  const undoCaptions = useProcessingStore((state) => state.undoCaptions);
-  const redoCaptions = useProcessingStore((state) => state.redoCaptions);
   const toggleAccentWord = useProcessingStore((state) => state.toggleAccentWord);
   const captionStyleId = useUIStore((state) => state.style.captionStyleId);
   const supportsAccent = getCaptionStylePreset(captionStyleId).fontTreatment === 'accent-swap';
@@ -40,13 +36,11 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
     ? selectedGroupIndices[selectedGroupIndices.length - 1]
     : null;
 
-  const canUndo = captionUndoStack.length > 0;
-  const canRedo = captionRedoStack.length > 0;
   const canSplit = selectedGroupIdx !== null && captionGroups[selectedGroupIdx]?.wordIndices.length >= 2;
   const canMergeUp = selectedGroupIdx !== null && selectedGroupIdx > 0;
   const canMergeDown = selectedGroupIdx !== null && selectedGroupIdx < captionGroups.length - 1;
 
-  useCaptionEditorShortcuts({ clearSelection, undoCaptions, redoCaptions });
+  useCaptionEditorShortcuts({ clearSelection });
 
   const activeGroupIndex = useMemo(
     () => captionGroups.findIndex((group) => currentTime >= group.start && currentTime < group.end),
@@ -152,15 +146,11 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
       className="flex h-full min-h-0 flex-col overflow-hidden"
     >
       <CaptionEditorHeader
-        canUndo={canUndo}
-        canRedo={canRedo}
         selectedGroupIdx={selectedGroupIdx}
         cursorPosition={cursorPosition}
         canSplit={canSplit}
         canMergeUp={canMergeUp}
         canMergeDown={canMergeDown}
-        onUndo={undoCaptions}
-        onRedo={redoCaptions}
         onSplit={handleSplit}
         onMergeUp={handleMergeUp}
         onMergeDown={handleMergeDown}

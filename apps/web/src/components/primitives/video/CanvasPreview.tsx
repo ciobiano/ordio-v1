@@ -146,9 +146,10 @@ export default function CanvasPreview({
     else void playback.play();
   }, [playback]);
 
-  // Mobile-only quick toggle for canvas layout (Upper/Lower) — a binary
-  // property of the canvas itself, so it lives here instead of in a panel.
-  // Desktop keeps StageControlBar's inline Stage toggle.
+  // Quick toggle for canvas layout (Upper/Lower) — a binary property of the
+  // canvas itself, so it lives on the canvas rather than in a panel. This is
+  // now the only way to flip: StageControlBar carried the desktop equivalent
+  // and was removed once its other controls moved into the Style tabs.
   const layoutFlipped = storeCanvasLayout === 'flipped';
   const handleFlipStage = useCallback(() => {
     if (!layoutFlipped && isLocked('layout_flipped')) {
@@ -281,14 +282,14 @@ export default function CanvasPreview({
         {getFormatLabel(format)}
       </div>
 
-      {/* Stage flip — mobile-only quick toggle, direct tap, no panel */}
+      {/* Stage flip — direct tap, no panel */}
       <button
         type="button"
         onClick={handleFlipStage}
         aria-pressed={layoutFlipped}
         aria-label={layoutFlipped ? 'Flip stage to upper' : 'Flip stage to lower'}
         className={cn(
-          'md:hidden absolute top-2 right-2 z-40 flex h-7 w-7 items-center justify-center rounded-lg',
+          'absolute top-2 right-2 z-40 flex h-7 w-7 items-center justify-center rounded-lg',
           'bg-black/50 text-white/70 backdrop-blur transition-colors hover:bg-black/65 hover:text-white'
         )}
       >

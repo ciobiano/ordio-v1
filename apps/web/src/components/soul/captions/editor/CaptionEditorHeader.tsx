@@ -1,73 +1,37 @@
 'use client';
 
 import { HugeiconsIcon } from '@hugeicons/react';
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  Redo02Icon,
-  ScissorIcon,
-  Undo02Icon,
-} from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, ArrowUp01Icon, ScissorIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 type CaptionEditorHeaderProps = {
-  canUndo: boolean;
-  canRedo: boolean;
   selectedGroupIdx: number | null;
   cursorPosition: number | null;
   canSplit: boolean;
   canMergeUp: boolean;
   canMergeDown: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
   onSplit: () => void;
   onMergeUp: () => void;
   onMergeDown: () => void;
 };
 
 export function CaptionEditorHeader({
-  canUndo,
-  canRedo,
   selectedGroupIdx,
   cursorPosition,
   canSplit,
   canMergeUp,
   canMergeDown,
-  onUndo,
-  onRedo,
   onSplit,
   onMergeUp,
   onMergeDown,
 }: CaptionEditorHeaderProps) {
   return (
     <div className="sticky top-0 z-10 shrink-0 bg-background/95 backdrop-blur">
-      <div className="flex items-center justify-between px-3 py-1.5">
+      <div className="px-3 py-1.5">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.15em]">
           Edit captions
         </p>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            onClick={onUndo}
-            disabled={!canUndo}
-            aria-label="Undo"
-          >
-            <HugeiconsIcon icon={Undo02Icon} size={14} aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            onClick={onRedo}
-            disabled={!canRedo}
-            aria-label="Redo"
-          >
-            <HugeiconsIcon icon={Redo02Icon} size={14} aria-hidden="true" />
-          </Button>
-        </div>
       </div>
 
       <Separator />

@@ -4,9 +4,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Word } from '@Ordio/shared/schemas';
 import { buildSmartSegments } from '@Ordio/engine/captions/segmentation';
+import { useHistoryStore } from './historyStore';
 import type { TranscriptionSource, EnhanceTier, CaptionGroup } from './types';
 
-const MAX_UNDO_STEPS = 50;
 const INITIAL_PHRASE_SEGMENT_OPTIONS = {
   maxWords: 7,
   maxChars: 38,
@@ -70,12 +70,6 @@ function buildInitialGroups(words: Word[]): CaptionGroup[] {
   }));
 }
 
-// ─── Undo snapshot type ────────────────────────────────────────────────────
-
-interface CaptionSnapshot {
-  captionGroups: CaptionGroup[];
-}
-
 // ─── State shape ───────────────────────────────────────────────────────────
 
 const initialPersisted = {
@@ -88,8 +82,6 @@ const initialSession = {
   transcriptionSource: null as TranscriptionSource,
   captionGroups: [] as CaptionGroup[],
   selectedGroupIndices: [] as number[],
-  captionUndoStack: [] as CaptionSnapshot[],
-  captionRedoStack: [] as CaptionSnapshot[],
   isEnhancing: false,
   enhanceProgress: 0,
   isExporting: false,
@@ -106,10 +98,6 @@ interface ProcessingState {
   captionGroups: CaptionGroup[];
   /** Selected group indices for bulk operations */
   selectedGroupIndices: number[];
-
-  // Undo / Redo stacks for caption group mutations
-  captionUndoStack: CaptionSnapshot[];
-  captionRedoStack: CaptionSnapshot[];
 
   // Enhancing (Audio)
   enhanceTier: EnhanceTier;
@@ -165,12 +153,6 @@ interface ProcessingState {
    */
   toggleAccentWord: (groupIndex: number, positionInGroup: number) => void;
 
-  // Undo / Redo
-  undoCaptions: () => void;
-  redoCaptions: () => void;
-  canUndoCaptions: boolean;
-  canRedoCaptions: boolean;
-
   setEnhanceTier: (tier: EnhanceTier) => void;
   setIsEnhancing: (isEnhancing: boolean) => void;
   setEnhanceProgress: (progress: number) => void;
@@ -187,21 +169,24 @@ export const useProcessingStore = create<ProcessingState>()(
     (set, get) => {
       // ── Internal helpers ──────────────────────────────────────────────────
 
-      /** Snapshot current groups onto the undo stack before a mutation. */
-      function pushUndo() {
-        const { captionGroups, captionUndoStack } = get();
-        const snapshot: CaptionSnapshot = { captionGroups: [...captionGroups] };
-        const newStack = [...captionUndoStack, snapshot].slice(-MAX_UNDO_STEPS);
-        set({ captionUndoStack: newStack, captionRedoStack: [] });
+      /**
+       * Snapshot current groups onto the shared history before a mutation.
+       *
+       * Caption edits and trim commits used to keep separate stacks with
+       * separate buttons; both now feed `historyStore` so the transport bar's
+       * single undo pair walks back through them in the order they happened.
+       * `label` completes the sentence "Undo …" on that button.
+       */
+      function pushUndo(label: string) {
+        useHistoryStore.getState().push({
+          label,
+          snapshot: { kind: 'captions', captionGroups: [...get().captionGroups] },
+        });
       }
 
       return {
         ...initialPersisted,
         ...initialSession,
-
-        // Derived booleans (recomputed from stack lengths)
-        get canUndoCaptions() { return get().captionUndoStack.length > 0; },
-        get canRedoCaptions() { return get().captionRedoStack.length > 0; },
 
         setTranscript: (transcript) => {
           const groups = buildInitialGroups(transcript);
@@ -209,9 +194,8 @@ export const useProcessingStore = create<ProcessingState>()(
             transcript,
             captionGroups: groups,
             selectedGroupIndices: [],
-            captionUndoStack: [],
-            captionRedoStack: [],
           });
+          useHistoryStore.getState().clearHistory();
         },
         setIsTranscribing: (isTranscribing) => set({ isTranscribing }),
         setTranscriptionSource: (transcriptionSource) => set({ transcriptionSource }),
@@ -227,7 +211,7 @@ export const useProcessingStore = create<ProcessingState>()(
           // Must have at least 2 words and split position must be interior
           if (wordPositionInGroup <= 0 || wordPositionInGroup >= group.wordIndices.length) return;
 
-          pushUndo();
+          pushUndo('split caption');
 
           const wordsA = group.wordIndices.slice(0, wordPositionInGroup);
           const wordsB = group.wordIndices.slice(wordPositionInGroup);
@@ -293,7 +277,7 @@ export const useProcessingStore = create<ProcessingState>()(
         mergeDown: (index) => {
           const { captionGroups } = get();
           if (index < 0 || index >= captionGroups.length - 1) return;
-          pushUndo();
+          pushUndo('merge captions');
           const newGroups = mergeTwoGroupsImmutable(captionGroups, index, 'down');
           set({ captionGroups: newGroups, selectedGroupIndices: [] });
         },
@@ -302,7 +286,7 @@ export const useProcessingStore = create<ProcessingState>()(
         mergeUp: (index) => {
           const { captionGroups } = get();
           if (index <= 0 || index >= captionGroups.length) return;
-          pushUndo();
+          pushUndo('merge captions');
           const newGroups = mergeTwoGroupsImmutable(captionGroups, index, 'up');
           set({ captionGroups: newGroups, selectedGroupIndices: [] });
         },
@@ -320,7 +304,7 @@ export const useProcessingStore = create<ProcessingState>()(
             return;
           }
 
-          pushUndo();
+          pushUndo('merge captions');
 
           const prev = captionGroups[index - 1];
           const curr = captionGroups[index];
@@ -364,7 +348,7 @@ export const useProcessingStore = create<ProcessingState>()(
             return;
           }
 
-          pushUndo();
+          pushUndo('merge captions');
 
           const curr = captionGroups[index];
           const next = captionGroups[index + 1];
@@ -440,7 +424,7 @@ export const useProcessingStore = create<ProcessingState>()(
         squeezeGaps: (maxGapSeconds = 0.1) => {
           const { captionGroups } = get();
           if (captionGroups.length < 2) return;
-          pushUndo();
+          pushUndo('squeeze gaps');
 
           const newGroups = [...captionGroups];
           for (let i = 0; i < newGroups.length - 1; i++) {
@@ -458,7 +442,7 @@ export const useProcessingStore = create<ProcessingState>()(
         expandGaps: (minGapSeconds = 0.2) => {
           const { captionGroups } = get();
           if (captionGroups.length < 2) return;
-          pushUndo();
+          pushUndo('expand gaps');
 
           const newGroups = [...captionGroups];
           for (let i = 0; i < newGroups.length - 1; i++) {
@@ -472,37 +456,6 @@ export const useProcessingStore = create<ProcessingState>()(
           set({ captionGroups: newGroups });
         },
 
-        // ── Undo / Redo ───────────────────────────────────────────────────
-        undoCaptions: () => {
-          const { captionUndoStack, captionRedoStack, captionGroups } = get();
-          if (captionUndoStack.length === 0) return;
-
-          const previous = captionUndoStack[captionUndoStack.length - 1];
-          const redoSnapshot: CaptionSnapshot = { captionGroups: [...captionGroups] };
-
-          set({
-            captionGroups: previous.captionGroups,
-            captionUndoStack: captionUndoStack.slice(0, -1),
-            captionRedoStack: [...captionRedoStack, redoSnapshot].slice(-MAX_UNDO_STEPS),
-            selectedGroupIndices: [],
-          });
-        },
-
-        redoCaptions: () => {
-          const { captionRedoStack, captionUndoStack, captionGroups } = get();
-          if (captionRedoStack.length === 0) return;
-
-          const next = captionRedoStack[captionRedoStack.length - 1];
-          const undoSnapshot: CaptionSnapshot = { captionGroups: [...captionGroups] };
-
-          set({
-            captionGroups: next.captionGroups,
-            captionRedoStack: captionRedoStack.slice(0, -1),
-            captionUndoStack: [...captionUndoStack, undoSnapshot].slice(-MAX_UNDO_STEPS),
-            selectedGroupIndices: [],
-          });
-        },
-
         setEnhanceTier: (enhanceTier) => set({ enhanceTier }),
         setIsEnhancing: (isEnhancing) => set({ isEnhancing }),
         setEnhanceProgress: (enhanceProgress) => set({ enhanceProgress }),
@@ -510,10 +463,10 @@ export const useProcessingStore = create<ProcessingState>()(
         setExportProgress: (exportProgress) => set({ exportProgress }),
         setExportedUrl: (exportedUrl) => set({ exportedUrl }),
 
-        resetProcessing: () => set({
-          ...initialSession,
-          enhanceTier: get().enhanceTier,
-        }),
+        resetProcessing: () => {
+          set({ ...initialSession, enhanceTier: get().enhanceTier });
+          useHistoryStore.getState().clearHistory();
+        },
       };
     },
     {

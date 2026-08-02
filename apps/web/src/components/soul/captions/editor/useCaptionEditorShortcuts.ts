@@ -4,39 +4,25 @@ import { useEffect } from 'react';
 
 type UseCaptionEditorShortcutsProps = {
   clearSelection: () => void;
-  undoCaptions: () => void;
-  redoCaptions: () => void;
 };
 
-export function useCaptionEditorShortcuts({
-  clearSelection,
-  undoCaptions,
-  redoCaptions,
-}: UseCaptionEditorShortcutsProps) {
+/**
+ * Escape clears the caption selection.
+ *
+ * Undo/redo used to live here too. They moved to `useExportShortcuts`, which
+ * sits with the transport bar that owns the unified history — binding them in
+ * two places would have given the caption panel a second, narrower undo.
+ */
+export function useCaptionEditorShortcuts({ clearSelection }: UseCaptionEditorShortcutsProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const tagName = (event.target as HTMLElement)?.tagName?.toLowerCase();
       if (tagName === 'input' || tagName === 'textarea') return;
 
-      if (event.key === 'Escape') {
-        clearSelection();
-        return;
-      }
-
-      if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        undoCaptions();
-        return;
-      }
-
-      if ((event.metaKey || event.ctrlKey) && (event.key === 'y' || (event.shiftKey && event.key === 'z'))) {
-        event.preventDefault();
-        redoCaptions();
-      }
+      if (event.key === 'Escape') clearSelection();
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [clearSelection, redoCaptions, undoCaptions]);
+  }, [clearSelection]);
 }
-

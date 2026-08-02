@@ -30,6 +30,9 @@ export type StyleTabId = (typeof STYLE_TABS)[number]['id'];
 
 interface StyleControlsProps {
   onLocked?: (feature: FeatureKey) => void;
+  /** Tab to open on. Callers that deep-link here (Add ▸ Pick artwork) should
+   *  also pass it as a `key` so a jump remounts onto the requested tab. */
+  initialTab?: StyleTabId;
 }
 
 /**
@@ -41,9 +44,9 @@ interface StyleControlsProps {
  * roughly triples the Colors tab, so the split is what makes the rest of the
  * work tractable.
  */
-export default function StyleControls({ onLocked }: StyleControlsProps) {
-  const [activeTab, setActiveTab] = useState<StyleTabId>('motion');
-  const [previousTab, setPreviousTab] = useState<StyleTabId>('motion');
+export default function StyleControls({ onLocked, initialTab = 'motion' }: StyleControlsProps) {
+  const [activeTab, setActiveTab] = useState<StyleTabId>(initialTab);
+  const [previousTab, setPreviousTab] = useState<StyleTabId>(initialTab);
   const reduceMotion = useReducedMotion();
 
   // Slide in the direction of travel along the tab strip, so the motion maps

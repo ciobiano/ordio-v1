@@ -13,6 +13,21 @@ vi.mock('@/components/soul/states/ExportState/ExportControls', () => ({ ExportCo
 vi.mock('@/components/soul/states/ExportState/ExportFooter', () => ({ ExportFooter: () => null }));
 vi.mock('@/components/soul/states/ExportState/ExportOverlay', () => ({ ExportOverlay: () => null }));
 vi.mock('@/components/soul/states/ExportState/DiscardDialog', () => ({ DiscardDialog: () => null }));
+vi.mock('@/components/soul/states/ExportState/ReframeSheet', () => ({ ReframeSheet: () => null }));
+vi.mock('@/components/soul/states/ExportState/transport/TransportBar', () => ({ TransportBar: () => null }));
+vi.mock('@/components/soul/captions/DirectorSheet', () => ({ DirectorSheet: () => null }));
+
+vi.mock('@/hooks/export/useExportHistory', () => ({
+  useExportHistory: () => ({
+    canUndo: false,
+    canRedo: false,
+    undoLabel: 'Undo',
+    redoLabel: 'Redo',
+    undo: vi.fn(),
+    redo: vi.fn(),
+    pushTrim: vi.fn(),
+  }),
+}));
 
 vi.mock('@/hooks/audio/useAudioTrimmer', () => ({
   useAudioTrimmer: () => ({
@@ -44,6 +59,11 @@ vi.mock('@/stores', () => ({
     { getState: () => ({ transcript: [], setTranscript: vi.fn() }), setState: vi.fn() }
   ),
   useUIStore: { getState: () => ({ style: uiStyle }) },
+  useHistoryStore: Object.assign(
+    (selector: (s: { past: unknown[]; future: unknown[] }) => unknown) =>
+      selector({ past: [], future: [] }),
+    { getState: () => ({ push: vi.fn(), undo: vi.fn(), redo: vi.fn(), clearHistory: vi.fn() }) }
+  ),
 }));
 
 function baseProps() {

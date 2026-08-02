@@ -2,22 +2,20 @@
 
 import { useState, useCallback } from 'react';
 import { useAudioTrimmer } from '@/hooks/audio/useAudioTrimmer';
+import { useExportHistory } from '@/hooks/export/useExportHistory';
 import { getCanvasDimensions, useCaptureStore, useProcessingStore, useUIStore } from '@/stores';
 import { ExportHeader } from './ExportHeader';
 import { ExportCanvas } from './ExportCanvas';
 import { ExportControls } from './ExportControls';
 import { ExportFooter } from './ExportFooter';
 import { ExportOverlay } from './ExportOverlay';
+import { ReframeSheet } from './ReframeSheet';
 import { DiscardDialog } from './DiscardDialog';
+import { TransportBar } from './transport/TransportBar';
+import { DirectorSheet } from '@/components/soul/captions/DirectorSheet';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
-import type {
-  WaveformVariant,
-  CanvasLayout,
-  FormatVariant,
-  GraphicStyleId,
-} from '@/stores';
+import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import type { FeatureKey } from '@/lib/featureGates';
-import type { Word } from '@Ordio/shared/schemas';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 
 interface UseVideoExporterShape {
@@ -75,67 +73,38 @@ export default function ExportState({
 }: ExportStateProps) {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [exportOverlayOpen, setExportOverlayOpen] = useState(false);
+  const [reframeOpen, setReframeOpen] = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
   const { isLocked } = useFeatureGates();
-
-  type TrimSnapshot = { audioBuffer: AudioBuffer; transcript: Word[] };
-  const MAX_HISTORY = 5;
-  const [past, setPast] = useState<TrimSnapshot[]>([]);
-  const [future, setFuture] = useState<TrimSnapshot[]>([]);
 
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
   const transcript = useProcessingStore((s) => s.transcript);
   const trimmer = useAudioTrimmer(playback.duration);
+  const history = useExportHistory({ playback, trimmer });
 
-  const restoreSnapshot = useCallback(
-    (snap: TrimSnapshot) => {
-      useCaptureStore.getState().setAudioBuffer(snap.audioBuffer);
-      useProcessingStore.getState().setTranscript(snap.transcript);
-      playback.load(snap.audioBuffer);
-      trimmer.resetAll(snap.audioBuffer.duration);
-    },
-    [playback, trimmer]
-  );
-
-  // Commit all pending cuts (handles + silences) into a new AudioBuffer.
-  // Pushes current state to past, clears future (new branch).
+  /**
+   * Commit pending cuts — handles and selected silences — into a new buffer.
+   *
+   * The pre-cut buffer and transcript go onto the shared history first, so the
+   * transport bar's undo walks back through this the same way it walks back
+   * through a caption split.
+   */
   const handleCommitTrim = useCallback(() => {
     if (!audioBuffer || !trimmer.hasChanges) return;
 
     const trimmedChannels = trimmer.getTrimmedAudio(audioBuffer, transcript ?? []);
     if ((trimmedChannels[0]?.length ?? 0) === 0) return;
+
     const trimmedBuffer = buildAudioBuffer(trimmedChannels, audioBuffer.sampleRate);
     const trimmedTranscript = trimmer.getTrimmedTranscript(transcript ?? []);
 
-    setPast((prev) => [
-      ...prev.slice(-(MAX_HISTORY - 1)),
-      { audioBuffer, transcript: transcript ?? [] },
-    ]);
-    setFuture([]);
+    history.pushTrim(audioBuffer, transcript ?? []);
 
     useCaptureStore.getState().setAudioBuffer(trimmedBuffer);
     useProcessingStore.getState().setTranscript(trimmedTranscript);
     playback.load(trimmedBuffer);
     trimmer.resetAll(trimmedBuffer.duration);
-  }, [audioBuffer, transcript, trimmer, playback]);
-
-  const handleUndoTrim = useCallback(() => {
-    if (past.length === 0 || !audioBuffer) return;
-    const prev = past[past.length - 1];
-    setPast((p) => p.slice(0, -1));
-    setFuture((f) => [
-      { audioBuffer, transcript: transcript ?? [] },
-      ...f.slice(0, MAX_HISTORY - 1),
-    ]);
-    restoreSnapshot(prev);
-  }, [past, future, audioBuffer, transcript, restoreSnapshot]);
-
-  const handleRedoTrim = useCallback(() => {
-    if (future.length === 0 || !audioBuffer) return;
-    const next = future[0];
-    setFuture((f) => f.slice(1));
-    setPast((p) => [...p.slice(-(MAX_HISTORY - 1)), { audioBuffer, transcript: transcript ?? [] }]);
-    restoreSnapshot(next);
-  }, [past, future, audioBuffer, transcript, restoreSnapshot]);
+  }, [audioBuffer, transcript, trimmer, playback, history]);
 
   const handleExport = useCallback(async () => {
     if (!audioBuffer || !transcript) return;
@@ -174,36 +143,54 @@ export default function ExportState({
     } finally {
       useProcessingStore.setState({ transcript: originalTranscript });
     }
-  }, [audioBuffer, transcript, trimmer, format, exporter, showWatermark, onExportStart, isLocked, onLocked]);
+  }, [
+    audioBuffer,
+    transcript,
+    trimmer,
+    format,
+    exporter,
+    showWatermark,
+    onExportStart,
+    isLocked,
+    onLocked,
+  ]);
 
   const exportDisabled = exporter.isExporting || trimmer.isEmpty;
   const hasRender = exporter.exportedUrl !== null && !exporter.isExporting;
   const primaryLabel = hasRender ? 'Save' : exporter.error ? 'Retry export' : 'Export';
 
   return (
-    <div className="flex flex-col w-full h-dvh overflow-hidden md:h-auto md:min-h-dvh md:overflow-visible animate-fadeIn">
-      <ExportHeader
-        primaryLabel={primaryLabel}
-        primaryDisabled={exportDisabled && !hasRender}
-        onBack={() => setShowDiscardDialog(true)}
-        onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
-      />
+    <div className="flex h-dvh w-full flex-col overflow-hidden md:h-auto md:min-h-dvh md:overflow-visible animate-fadeIn">
+      {/* The only scrolling region on mobile. The bottom surface is the last
+          in-flow child of it and sticks — a fixed layer would sit under the
+          mobile URL bar when it expands. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto md:flex-row md:items-start md:gap-6 md:overflow-visible md:px-6 md:py-4">
+        <div className="relative flex min-w-0 flex-1 flex-col">
+          <ExportHeader
+            primaryLabel={primaryLabel}
+            primaryDisabled={exportDisabled && !hasRender}
+            onBack={() => setShowDiscardDialog(true)}
+            onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
+          />
 
-      {/* Mobile: this is the only region that scrolls (header is fixed, dock
-          is fixed) — keeps both pinned in place instead of the whole page
-          scrolling, which is what caused the iOS rubber-band bounce fighting
-          the user. pb-24 clears the fixed bottom dock. Desktop is unaffected
-          (no fixed dock there, side-by-side layout, natural page growth). */}
-      <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-24 md:flex-row md:items-start md:gap-6 md:overflow-visible md:px-6 md:py-4">
-        <ExportCanvas
-          playback={playback}
-          format={format}
-          waveformStyle={waveformStyle}
-          canvasLayout={canvasLayout}
-          graphicStyle={graphicStyle}
-          showWatermark={showWatermark}
-          onLocked={onLocked}
-        />
+          <ExportCanvas
+            playback={playback}
+            format={format}
+            waveformStyle={waveformStyle}
+            canvasLayout={canvasLayout}
+            graphicStyle={graphicStyle}
+            showWatermark={showWatermark}
+            onLocked={onLocked}
+          />
+
+          <TransportBar
+            playback={playback}
+            history={history}
+            onDirector={() => setDirectorOpen(true)}
+          />
+
+          <ExportFooter trimIsEmpty={trimmer.isEmpty} />
+        </div>
 
         <ExportControls
           playback={playback}
@@ -211,14 +198,10 @@ export default function ExportState({
           audioBuffer={audioBuffer}
           onLocked={onLocked}
           onCommit={handleCommitTrim}
-          onUndo={handleUndoTrim}
-          onRedo={handleRedoTrim}
-          canUndo={past.length > 0}
-          canRedo={future.length > 0}
+          onOpenReframe={() => setReframeOpen(true)}
+          reframeOpen={reframeOpen}
         />
       </div>
-
-      <ExportFooter trimIsEmpty={trimmer.isEmpty} />
 
       <ExportOverlay
         open={exportOverlayOpen}
@@ -227,6 +210,18 @@ export default function ExportState({
         durationSeconds={audioBuffer?.duration ?? 0}
         onDownload={onDownload}
         onClose={() => setExportOverlayOpen(false)}
+      />
+
+      <ReframeSheet
+        open={reframeOpen}
+        onClose={() => setReframeOpen(false)}
+        onLocked={onLocked}
+      />
+
+      <DirectorSheet
+        isOpen={directorOpen}
+        onClose={() => setDirectorOpen(false)}
+        onLocked={onLocked}
       />
 
       <DiscardDialog

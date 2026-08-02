@@ -4,8 +4,25 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import { useProcessingStore } from '@/stores/processingStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { useExportHistory } from '@/hooks/export/useExportHistory';
+import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
+import type { UseAudioTrimmerReturn } from '@/hooks/audio/useAudioTrimmer';
 import type { Word } from '@Ordio/shared/schemas';
+
+/**
+ * Undo/redo left processingStore for the shared history behind the transport
+ * bar. These drive the real hook rather than a reimplementation of it, so the
+ * tests stay honest if the apply logic changes. Playback and the trimmer are
+ * only touched when restoring a *trim* snapshot, so stubs suffice here.
+ */
+function renderHistory() {
+  const playback = { load: () => {} } as unknown as UsePlaybackReturn;
+  const trimmer = { resetAll: () => {} } as unknown as UseAudioTrimmerReturn;
+  return renderHook(() => useExportHistory({ playback, trimmer })).result;
+}
 
 // ─── Test data helpers ─────────────────────────────────────────────────────
 
@@ -25,9 +42,8 @@ function resetStore(words?: Word[]) {
     transcript: [],
     captionGroups: [],
     selectedGroupIndices: [],
-    captionUndoStack: [],
-    captionRedoStack: [],
   });
+  useHistoryStore.getState().clearHistory();
   if (words) {
     useProcessingStore.getState().setTranscript(words);
   }
@@ -200,10 +216,12 @@ describe('Feature: Caption Group Management', () => {
       const before = useProcessingStore.getState().captionGroups;
       const beforeLength = before.length;
 
-      useProcessingStore.getState().mergeDown(0);
+      const history = renderHistory();
+
+      act(() => useProcessingStore.getState().mergeDown(0));
       expect(useProcessingStore.getState().captionGroups.length).toBe(beforeLength - 1);
 
-      useProcessingStore.getState().undoCaptions();
+      act(() => history.current.undo());
       expect(useProcessingStore.getState().captionGroups.length).toBe(beforeLength);
     });
 
@@ -211,18 +229,23 @@ describe('Feature: Caption Group Management', () => {
       resetStore(createMockWords(12));
       const beforeLength = useProcessingStore.getState().captionGroups.length;
 
-      useProcessingStore.getState().splitAtWord(0, 3);
+      const history = renderHistory();
+
+      act(() => useProcessingStore.getState().splitAtWord(0, 3));
       expect(useProcessingStore.getState().captionGroups.length).toBe(beforeLength + 1);
 
-      useProcessingStore.getState().undoCaptions();
+      act(() => history.current.undo());
       expect(useProcessingStore.getState().captionGroups.length).toBe(beforeLength);
     });
 
     it('should do nothing when undo stack is empty', () => {
       resetStore(createMockWords(6));
       const before = useProcessingStore.getState().captionGroups.length;
-      useProcessingStore.getState().undoCaptions(); // should be a no-op
+      const history = renderHistory();
+
+      act(() => history.current.undo()); // should be a no-op
       expect(useProcessingStore.getState().captionGroups.length).toBe(before);
+      expect(history.current.canUndo).toBe(false);
     });
   });
 
@@ -231,22 +254,26 @@ describe('Feature: Caption Group Management', () => {
       resetStore(createMockWords(12));
       const initial = useProcessingStore.getState().captionGroups.length;
 
-      useProcessingStore.getState().mergeDown(0);
-      useProcessingStore.getState().undoCaptions();
+      const history = renderHistory();
+
+      act(() => useProcessingStore.getState().mergeDown(0));
+      act(() => history.current.undo());
       expect(useProcessingStore.getState().captionGroups.length).toBe(initial);
 
-      useProcessingStore.getState().redoCaptions();
+      act(() => history.current.redo());
       expect(useProcessingStore.getState().captionGroups.length).toBe(initial - 1);
     });
 
     it('should clear redo stack after a new mutation', () => {
       resetStore(createMockWords(12));
-      useProcessingStore.getState().mergeDown(0);
-      useProcessingStore.getState().undoCaptions();
+      const history = renderHistory();
 
-      // New mutation clears redo stack
-      useProcessingStore.getState().mergeDown(0);
-      expect(useProcessingStore.getState().captionRedoStack.length).toBe(0);
+      act(() => useProcessingStore.getState().mergeDown(0));
+      act(() => history.current.undo());
+
+      // A new mutation abandons the redo branch
+      act(() => useProcessingStore.getState().mergeDown(0));
+      expect(useHistoryStore.getState().future.length).toBe(0);
     });
   });
 
