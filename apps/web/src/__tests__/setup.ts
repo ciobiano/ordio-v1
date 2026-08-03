@@ -116,6 +116,13 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   };
 }
 
+// Mock scrollIntoView (jsdom has no layout, so it ships no implementation at
+// all — calling it throws rather than no-opping). Scrolling strips use it to
+// keep the active item on screen.
+if (typeof Element.prototype.scrollIntoView !== 'function') {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
+
 // Mock OffscreenCanvas for drawGraphic tests (not available in jsdom)
 if (typeof globalThis.OffscreenCanvas === 'undefined') {
   (globalThis as Record<string, unknown>).OffscreenCanvas = class {
