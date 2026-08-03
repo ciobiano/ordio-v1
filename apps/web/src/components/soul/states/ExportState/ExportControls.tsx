@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { motion, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { panelCard } from '@/lib/variants'
@@ -11,6 +12,7 @@ import CaptionEditor from '@/components/soul/captions/CaptionEditor'
 import StyleControls from '@/components/soul/captions/StyleControls'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import { AddPanel } from './AddPanel'
+import { shouldCloseOnGrabStripClick } from './grabStripIntent'
 import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import type { StyleTabId } from '@/components/soul/captions/StyleControls'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
@@ -67,6 +69,13 @@ export function ExportControls({
   const [styleTab, setStyleTab] = useState<StyleTabId>('motion')
   const dragControls = useDragControls()
 
+  // The grab strip is both a drag handle and a tap-to-close button, and now that
+  // the sheet tracks the thumb 1:1 those two roles collide. The strip moves with
+  // the pointer, so the pointer is still over it on release and the browser fires
+  // a click — meaning a short drag that should spring back also closes the panel.
+  // Set on drag start, consumed by the click handler.
+  const didDragRef = useRef(false)
+
   const openPanel = useCallback((panel: MobilePanel) => {
     setMobilePanel(panel)
     setDrawerOpen(true)
@@ -90,6 +99,16 @@ export function ExportControls({
     },
     [drawerOpen, mobilePanel, onOpenReframe, openPanel]
   )
+
+  /** Tap the grab strip to close. Must not fire as the tail of a drag. */
+  const handleGrabStripClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (shouldCloseOnGrabStripClick({ detail: event.detail, didDrag: didDragRef.current })) {
+      setDrawerOpen(false)
+      return
+    }
+    // Consume it, so the next tap on the strip is read as a tap.
+    didDragRef.current = false
+  }, [])
 
   const handlePickArtwork = useCallback(() => {
     setStyleTab('templates')
@@ -156,9 +175,25 @@ export function ExportControls({
         dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
         // Downward only — this sheet has nowhere to go up.
-        dragElastic={{ top: 0, bottom: 0.55 }}
+        //
+        // bottom: 1 is what makes the gesture feel alive. Constraints of 0/0 mean
+        // the sheet has no real travel at all: every pixel is overshoot past the
+        // constraint, and dragElastic scales it. At 0.55 a 100px thumb drag moved
+        // the sheet ~55px against rising resistance, which reads as stiff rather
+        // than as damped. At 1 the surface tracks the thumb exactly.
+        //
+        // Resistance belongs at the boundary, not across the travel — that is what
+        // top: 0 is: a hard stop upward, where the sheet genuinely cannot go.
+        dragElastic={{ top: 0, bottom: 1 }}
         dragMomentum={false}
         dragSnapToOrigin
+        // Snap back faster than the 300ms grid-rows collapse below, so a release
+        // that closes the panel doesn't run two visible animations against
+        // each other.
+        dragTransition={{ bounceStiffness: 620, bounceDamping: 42 }}
+        onDragStart={() => {
+          didDragRef.current = true
+        }}
         onDragEnd={(_, info) => {
           if (info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY) {
             setDrawerOpen(false)
@@ -179,8 +214,11 @@ export function ExportControls({
             <button
               type="button"
               aria-label="Close panel"
-              onClick={() => setDrawerOpen(false)}
-              onPointerDown={(event) => dragControls.start(event)}
+              onClick={handleGrabStripClick}
+              onPointerDown={(event) => {
+                didDragRef.current = false
+                dragControls.start(event)
+              }}
               className={cn(
                 'flex h-11 w-full touch-none items-center justify-center',
                 'cursor-grab active:cursor-grabbing'
