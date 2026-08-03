@@ -138,6 +138,13 @@ export const StyleConfigSchema = z.object({
   activeWordBackgroundEnabled: z.boolean().optional(),
 
   /**
+   * A filled panel behind the whole caption block, for legibility over busy
+   * artwork. Distinct from the active-word chip above, which marks one word.
+   */
+  captionBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  captionBackgroundEnabled: z.boolean().optional(),
+
+  /**
    * How a photo/video backdrop is fitted to the canvas.
    *   fill — crop to cover the frame (the historical behaviour)
    *   fit  — letterbox so the whole source stays visible

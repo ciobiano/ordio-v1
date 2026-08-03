@@ -19,6 +19,7 @@ import {
   transformTranscriptCase,
   transformCaptionGroupsCase,
 } from '../processing/captions/textCase';
+import { measureCaptionBlockRect } from '../processing/captions/blockRect';
 
 export interface FrameOptions {
   waveformData: number[];
@@ -156,6 +157,46 @@ function sourceDimensions(
   return { w: Number(frame.width) || 0, h: Number(frame.height) || 0 };
 }
 
+
+/** Panel padding and corner, as ratios of font size so the backdrop tracks the
+ *  caption rather than staying a fixed slab as the type scales. */
+const CAPTION_BACKDROP_PAD_X_RATIO = 0.55;
+const CAPTION_BACKDROP_PAD_Y_RATIO = 0.3;
+const CAPTION_BACKDROP_RADIUS_RATIO = 0.22;
+
+/**
+ * Filled panel behind the whole caption block.
+ *
+ * Drawn from the same rect the preview's drag frame uses, so what you position
+ * is what gets painted. Rotated about the block centre rather than the canvas
+ * origin — a rotated caption keeps its panel square to the words.
+ */
+function drawCaptionBackdrop(
+  ctx: CanvasRenderingContext2D,
+  rect: { centerX: number; centerY: number; width: number; height: number; rotationDeg: number },
+  color: string,
+  fontSize: number
+): void {
+  const padX = fontSize * CAPTION_BACKDROP_PAD_X_RATIO;
+  const padY = fontSize * CAPTION_BACKDROP_PAD_Y_RATIO;
+  const radius = fontSize * CAPTION_BACKDROP_RADIUS_RATIO;
+  const w = rect.width + padX * 2;
+  const h = rect.height + padY * 2;
+
+  ctx.save();
+  ctx.translate(rect.centerX, rect.centerY);
+  ctx.rotate((rect.rotationDeg * Math.PI) / 180);
+  ctx.fillStyle = color;
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, -h / 2, w, h, radius);
+    ctx.fill();
+  } else {
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+  }
+  ctx.restore();
+}
+
 /**
  * Renders a single video frame to a canvas context.
  * Pure function — no React, no side effects.
@@ -246,6 +287,26 @@ export function renderFrame(
   const casedGroups = captionGroups && transformCaptionGroupsCase(captionGroups, textTransform);
 
   const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
+
+  // Backdrop first, so the words sit on it. Measuring costs a layout pass, so
+  // it only runs when there is actually a panel to draw.
+  if (style.captionBackgroundEnabled && style.captionBackgroundColor) {
+    const rect = measureCaptionBlockRect({
+      ctx,
+      currentTime,
+      transcript: casedTranscript,
+      captionGroups: casedGroups,
+      style,
+      layout,
+      hasVisualZone,
+      flipped,
+      transform: captionTransform,
+    });
+    if (rect) {
+      drawCaptionBackdrop(ctx, rect, style.captionBackgroundColor, style.fontSize);
+    }
+  }
+
   switch (mechanic) {
     case 'static-highlight':
       drawStaticHighlightCaptions(ctx, currentTime, casedTranscript, style, captionTransform, casedGroups);

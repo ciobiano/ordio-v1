@@ -18,6 +18,7 @@ const FALLBACK_SHADOW_COLOR = '#000000';
 const FALLBACK_EMPHASIS_COLOR = '#47D6CE';
 const FALLBACK_CHIP_COLOR = '#22D3EE';
 const FALLBACK_CHIP_TEXT_COLOR = '#111111';
+const FALLBACK_CAPTION_BG_COLOR = '#060606';
 
 /**
  * Colour, grouped Words / Caption box / Canvas.
@@ -81,6 +82,26 @@ export function ColorsTab() {
 
       <span className={ordSectionLabel}>Caption box</span>
       <div className="flex flex-col gap-3">
+        <ToggleRow
+          surface="bare"
+          label="Caption background"
+          hint="A panel behind the whole block"
+          checked={style.captionBackgroundEnabled ?? false}
+          onChange={(captionBackgroundEnabled) => setStyle({ captionBackgroundEnabled })}
+          adornment={
+            <ColorSwatch
+              label="Caption background"
+              showHex={false}
+              value={style.captionBackgroundColor ?? FALLBACK_CAPTION_BG_COLOR}
+              onChange={(captionBackgroundColor) =>
+                // Turning the colour on implies wanting to see it — otherwise
+                // picking a swatch does nothing until you also find the toggle.
+                setStyle({ captionBackgroundColor, captionBackgroundEnabled: true })
+              }
+            />
+          }
+        />
+
         <div className={ordFieldCard}>
           <ColorRow
             label="Stroke"
