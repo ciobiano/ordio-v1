@@ -13,6 +13,9 @@ describe('Layout Engine', () => {
     waveColor: '#ff0000',
     characterSpacing: 0,
     lineHeight: 1.4,
+    textAlign: 'center',
+    verticalAlign: 'auto',
+    backgroundScrim: 'flat',
     captionStyleId: 'minimal-lower-third'
   };
 
