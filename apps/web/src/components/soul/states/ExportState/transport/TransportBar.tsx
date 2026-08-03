@@ -87,7 +87,7 @@ export function TransportBar({ playback, history, onDirector }: TransportBarProp
         <button
           type="button"
           onClick={onDirector}
-          className={cn(ordStickerBtn({ tone: 'premium', size: 'sm' }), 'mx-1 min-w-0 flex-1 text-base')}
+          className={cn(ordStickerBtn({ tone: 'premiumSoft', size: 'sm' }), 'mx-1 min-w-0 flex-1 text-base')}
         >
           <HugeiconsIcon icon={AiMagicIcon} size={18} strokeWidth={2} />
           Direct it

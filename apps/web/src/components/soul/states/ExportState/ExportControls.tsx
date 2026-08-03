@@ -135,13 +135,14 @@ export function ExportControls({
       {/* Mobile: one bottom surface — the panel grows out of the dock itself
           (grid-rows expansion) rather than layering a separate drawer in front.
 
-          Sticky in-flow, not fixed: a fixed layer sits under the mobile URL bar
-          when it expands, which put the dock partly offscreen. As the last
-          in-flow block of a dvh-height column it stays pinned to the visual
-          viewport instead. */}
+          In flow, not fixed: a fixed layer sits under the mobile URL bar when it
+          expands, which put the dock partly offscreen. As the last child of a
+          dvh-height flex column it stays pinned to the visual viewport, and the
+          height it takes is height the stage above gives up — which is what
+          makes the canvas shrink as a panel opens. */}
       <div
         className={cn(
-          'sticky bottom-0 z-40 mt-auto shrink-0 overflow-hidden md:hidden',
+          'z-40 shrink-0 overflow-hidden md:hidden',
           'border-t border-white/[0.08] bg-[color:var(--sheet-bg)]',
           'transition-[border-radius] duration-300',
           drawerOpen ? 'rounded-t-[26px] shadow-[0_-8px_40px_rgba(0,0,0,0.5)]' : 'rounded-t-none'

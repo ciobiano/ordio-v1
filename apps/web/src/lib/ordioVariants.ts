@@ -199,6 +199,15 @@ export const ordStickerBtn = cva(
         accent: 'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]',
         premium: 'bg-[color:var(--acid-premium)] text-[color:var(--acid-on-accent)]',
         paper: 'bg-[color:var(--acid-text-1)] text-[color:var(--acid-on-accent)]',
+        /**
+         * Tinted rather than filled — a wash of the accent behind a solid rule
+         * of it. For a button that sits among the transport controls and should
+         * read as available without shouting over the artwork behind it.
+         */
+        premiumSoft:
+          'bg-[color:var(--acid-premium)]/15 text-[color:var(--acid-premium)] ' +
+          'border-[color:var(--acid-premium)]/55 shadow-none active:translate-x-0 active:translate-y-0 ' +
+          'hover:bg-[color:var(--acid-premium)]/25',
       },
       shape: { pill: 'rounded-full', square: 'rounded-2xl', round: 'rounded-full' },
       size: {

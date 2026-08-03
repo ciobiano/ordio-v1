@@ -169,11 +169,11 @@ export default function ExportState({
         onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
       />
 
-      {/* The only scrolling region on mobile. The bottom surface is the last
-          in-flow child of it and sticks — a fixed layer would sit under the
-          mobile URL bar when it expands. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto md:flex-row md:items-start md:gap-6 md:overflow-visible md:px-6 md:py-4">
-        <div className="flex min-w-0 flex-1 flex-col">
+      {/* Nothing scrolls here on mobile — the stage flexes instead. Opening a
+          panel shortens this row, which shrinks the canvas rather than pushing
+          the transport off-screen. Panels do their own scrolling internally. */}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-start md:gap-6 md:px-6 md:py-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <ExportCanvas
             playback={playback}
             format={format}
