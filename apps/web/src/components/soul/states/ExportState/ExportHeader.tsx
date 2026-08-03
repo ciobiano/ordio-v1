@@ -52,9 +52,13 @@ export function ExportHeader({
         <HugeiconsIcon icon={ArrowLeft02Icon} size={20} strokeWidth={2} />
       </button>
 
+      {/* Paper, not lime. The wordmark sat 12px from the lime primary action and
+          the two cancelled each other out — brand is not an accent role
+          (DESIGN.md §4), and the accent buys more as the header's only saturated
+          object than it does spent twice. */}
       <span
         aria-hidden="true"
-        className="text-[19px] font-bold tracking-[-0.03em] text-[color:var(--acid-accent)]"
+        className="text-[19px] font-bold tracking-[-0.03em] text-[color:var(--acid-text-1)]"
       >
         ordio
       </span>

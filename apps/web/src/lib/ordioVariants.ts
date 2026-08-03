@@ -186,15 +186,42 @@ export const ordChip = cva(
 
 export const ordStickerBtn = cva(
   'inline-flex items-center justify-center gap-2 cursor-pointer font-semibold ' +
-    'border-[3px] border-[color:var(--acid-bg-base)] shadow-[var(--acid-shadow-sticker-sm)] ' +
     'transition-transform duration-[var(--acid-dur-tap)] ease-[var(--acid-ease-snap)] ' +
-    'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ' +
-    'motion-reduce:transition-none motion-reduce:active:translate-x-0 motion-reduce:active:translate-y-0 ' +
+    'motion-reduce:transition-none ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--acid-accent-ring)] ' +
-    'disabled:opacity-40 disabled:cursor-not-allowed ' +
-    'disabled:active:translate-x-0 disabled:active:translate-y-0',
+    'disabled:opacity-40 disabled:cursor-not-allowed',
   {
     variants: {
+      /**
+       * Declared BEFORE `tone` on purpose. CVA emits variant classes in key
+       * order, so anything a tone needs to override (premiumSoft's rule) has to
+       * come after the elevation that would otherwise win on merge order.
+       */
+      elevation: {
+        /**
+         * The signature press. A hard ink offset, no blur, and on press the
+         * element travels 3px into its own shadow as the shadow vanishes —
+         * physical movement, never an opacity dim.
+         *
+         * For things sitting on the canvas or the page: the Add FAB, Export.
+         */
+        raised:
+          'border-[3px] border-[color:var(--acid-bg-base)] shadow-[var(--acid-shadow-sticker-sm)] ' +
+          'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ' +
+          'motion-reduce:active:translate-x-0 motion-reduce:active:translate-y-0 ' +
+          'disabled:active:translate-x-0 disabled:active:translate-y-0',
+        /**
+         * For anything inside a sheet, drawer or panel.
+         *
+         * A sticker needs a surface to peel off. The shadow is `--acid-bg-base`
+         * (#0a0b0a), which reads against the page and all but vanishes against
+         * `--sheet-bg` (#141517) — so in a sheet you got the 3px ink border
+         * reading as a gap and no peel to show for it. A sheet is also already
+         * the raised layer; lifting a button off it is a second claim on the
+         * same depth.
+         */
+        flat: 'shadow-none active:scale-[0.97] motion-reduce:active:scale-100 disabled:active:scale-100',
+      },
       tone: {
         accent: 'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]',
         premium: 'bg-[color:var(--acid-premium)] text-[color:var(--acid-on-accent)]',
@@ -203,10 +230,14 @@ export const ordStickerBtn = cva(
          * Tinted rather than filled — a wash of the accent behind a solid rule
          * of it. For a button that sits among the transport controls and should
          * read as available without shouting over the artwork behind it.
+         *
+         * Carries its own rule because it is the one tone that is an outline;
+         * pair it with `elevation: 'flat'`, which is the only combination that
+         * makes sense.
          */
         premiumSoft:
           'bg-[color:var(--acid-premium)]/15 text-[color:var(--acid-premium)] ' +
-          'border-[color:var(--acid-premium)]/55 shadow-none active:translate-x-0 active:translate-y-0 ' +
+          'border-2 border-[color:var(--acid-premium)]/55 ' +
           'hover:bg-[color:var(--acid-premium)]/25',
       },
       shape: { pill: 'rounded-full', square: 'rounded-2xl', round: 'rounded-full' },
@@ -217,7 +248,7 @@ export const ordStickerBtn = cva(
         icon: 'w-12 h-12 p-0',
       },
     },
-    defaultVariants: { tone: 'accent', shape: 'pill', size: 'md' },
+    defaultVariants: { elevation: 'raised', tone: 'accent', shape: 'pill', size: 'md' },
   }
 );
 

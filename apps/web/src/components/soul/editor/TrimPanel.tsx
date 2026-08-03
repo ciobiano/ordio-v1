@@ -295,7 +295,7 @@ export function TrimPanel({
           onClick={onCommit}
           disabled={!hasPendingCuts}
           className={cn(
-            ordStickerBtn({ tone: 'accent', size: 'sm' }),
+            ordStickerBtn({ tone: 'accent', size: 'sm', elevation: 'flat' }),
             'flex-1 text-[15px]',
             hasPendingCuts
               ? 'bg-[color:var(--acid-error)] text-[color:var(--acid-text-1)]'

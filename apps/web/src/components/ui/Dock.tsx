@@ -50,7 +50,13 @@ export function Dock({ items, activeItem, onItemClick, leadingAction, inline = f
           type="button"
           onClick={leadingAction.onClick}
           aria-label={leadingAction.label}
-          className={cn(ordStickerBtn({ tone: 'paper', shape: 'round', size: 'icon' }), 'shrink-0')}
+          // Raised, explicitly: the FAB reads as sitting on the canvas rather
+          // than inside the dock, so it is one of the few places the sticker
+          // press has a surface to peel off.
+          className={cn(
+            ordStickerBtn({ tone: 'paper', shape: 'round', size: 'icon', elevation: 'raised' }),
+            'shrink-0'
+          )}
         >
           <HugeiconsIcon icon={leadingAction.icon} size={24} strokeWidth={2.6} />
         </button>
@@ -69,15 +75,23 @@ export function Dock({ items, activeItem, onItemClick, leadingAction, inline = f
               className={cn(
                 'flex min-h-12 min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 px-1 py-1',
                 'transition-colors duration-[var(--acid-dur-tap)]',
+                // Paper, not lime. A dock item marks position, and position is
+                // never the accent's job (DESIGN.md §4) — the accent has no
+                // luminance headroom over paper, so using it here just puts a
+                // second shout next to the Export button.
                 isActive
-                  ? 'text-[color:var(--acid-accent)]'
-                  : 'text-[color:var(--acid-text-1)]/60 hover:text-[color:var(--acid-text-1)]/85'
+                  ? 'text-[color:var(--acid-text-1)]'
+                  : 'text-[color:var(--acid-text-3)] hover:text-[color:var(--acid-text-1)]/85'
               )}
             >
+              {/* Weight carries what colour used to. 42% → 100% ink is a real
+                  step on its own, and the heavier stroke makes the glyph read as
+                  selected rather than merely brighter — with the open panel
+                  underneath as the primary signal either way. */}
               <HugeiconsIcon
                 icon={item.icon}
                 size={23}
-                strokeWidth={1.9}
+                strokeWidth={isActive ? 2.4 : 1.9}
                 aria-hidden="true"
                 className="shrink-0"
               />

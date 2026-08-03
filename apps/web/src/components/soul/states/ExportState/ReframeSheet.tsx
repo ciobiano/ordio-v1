@@ -96,7 +96,9 @@ export function ReframeSheet({ open, onClose, onLocked }: ReframeSheetProps) {
             icon={CropIcon}
             size={18}
             strokeWidth={2}
-            className="text-[color:var(--acid-accent)]"
+            // A heading icon is decoration, not a chosen value — the two
+            // selected states below are what earn lime in this sheet.
+            className="text-[color:var(--acid-text-3)]"
           />
           Aspect ratio
         </DrawerTitle>
@@ -151,7 +153,7 @@ export function ReframeSheet({ open, onClose, onLocked }: ReframeSheetProps) {
             icon={FullScreenIcon}
             size={18}
             strokeWidth={2}
-            className="text-[color:var(--acid-accent)]"
+            className="text-[color:var(--acid-text-3)]"
           />
           <span className="text-base font-semibold text-[color:var(--acid-text-1)]">Content fit</span>
         </div>
@@ -197,7 +199,10 @@ export function ReframeSheet({ open, onClose, onLocked }: ReframeSheetProps) {
           <button
             type="button"
             onClick={handleApply}
-            className={cn(ordStickerBtn({ tone: 'accent', size: 'lg' }), 'flex-1')}
+            className={cn(
+              ordStickerBtn({ tone: 'accent', size: 'lg', elevation: 'flat' }),
+              'flex-1'
+            )}
           >
             Apply
           </button>

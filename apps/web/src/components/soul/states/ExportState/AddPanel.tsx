@@ -16,8 +16,6 @@ interface AddItem {
   label: string;
   hint: string;
   icon: IconSvgElement;
-  /** Tailwind background for the icon chip — each row gets its own tint. */
-  tint: string;
   onSelect?: () => void;
 }
 
@@ -36,14 +34,12 @@ export function AddPanel({ onUploadBackdrop, onPickArtwork }: AddPanelProps) {
       label: 'Record more',
       hint: 'Coming soon — one clip per canvas for now',
       icon: Mic01Icon,
-      tint: 'bg-[color:var(--acid-accent)]',
     },
     {
       id: 'backdrop',
       label: 'Upload a backdrop',
       hint: 'Your own video or image',
       icon: Upload04Icon,
-      tint: 'bg-[color:var(--acid-info)]',
       onSelect: onUploadBackdrop,
     },
     {
@@ -51,7 +47,6 @@ export function AddPanel({ onUploadBackdrop, onPickArtwork }: AddPanelProps) {
       label: 'Pick artwork',
       hint: 'Twenty canvases, one per mood',
       icon: Image02Icon,
-      tint: 'bg-[color:var(--acid-premium)]',
       onSelect: onPickArtwork,
     },
   ];
@@ -73,11 +68,15 @@ export function AddPanel({ onUploadBackdrop, onPickArtwork }: AddPanelProps) {
             'disabled:cursor-not-allowed disabled:opacity-40'
           )}
         >
+          {/* Fill, not tint. These chips were lime / info-blue / premium-amber —
+              three saturated objects decorating a menu, one of them lime. Worse,
+              premium means "gated" and this row is the one that isn't; the gated
+              row was wearing info-blue. Semantic tokens spent as decoration is how
+              the vocabulary stops meaning anything (DESIGN.md §4, §5). */}
           <span
             className={cn(
               'flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl',
-              'text-[color:var(--acid-on-accent)]',
-              item.tint
+              'bg-white/[0.10] text-[color:var(--acid-text-1)]'
             )}
           >
             <HugeiconsIcon icon={item.icon} size={20} strokeWidth={2} />
