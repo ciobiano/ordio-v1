@@ -21,7 +21,14 @@ import type { CaptionGroup } from './types';
  */
 
 export type HistorySnapshot =
-  | { kind: 'captions'; captionGroups: CaptionGroup[] }
+  /**
+   * A caption edit. Carries the transcript as well as the grouping because
+   * correcting a word rewrites the transcript itself — without it, undoing a
+   * typo fix would put the grouping back and leave the wrong word in place.
+   * Cheap to hold: a few hundred small objects, and unchanged mutations share
+   * the same array reference rather than copying it.
+   */
+  | { kind: 'captions'; captionGroups: CaptionGroup[]; transcript: Word[] }
   | { kind: 'trim'; audioBuffer: AudioBuffer; transcript: Word[] };
 
 export interface HistoryEntry {

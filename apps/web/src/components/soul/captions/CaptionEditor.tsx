@@ -26,10 +26,12 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
   const selectGroup = useProcessingStore((state) => state.selectGroup);
   const clearSelection = useProcessingStore((state) => state.clearSelection);
   const toggleAccentWord = useProcessingStore((state) => state.toggleAccentWord);
+  const editWord = useProcessingStore((state) => state.editWord);
   const captionStyleId = useUIStore((state) => state.style.captionStyleId);
   const supportsAccent = getCaptionStylePreset(captionStyleId).fontTreatment === 'accent-swap';
 
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  const [editingPosition, setEditingPosition] = useState<number | null>(null);
   const groupRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const selectedGroupIdx = selectedGroupIndices.length > 0
@@ -58,6 +60,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
 
   useEffect(() => {
     setCursorPosition(null);
+    setEditingPosition(null);
   }, [selectedGroupIdx]);
 
   const setGroupRef = useCallback((idx: number, el: HTMLDivElement | null) => {
@@ -109,15 +112,22 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
         transcript={transcript}
         cursorPosition={cursorPosition}
         supportsAccent={supportsAccent}
+        editingPosition={isSelected ? editingPosition : null}
         onSelect={handleSelectGroup}
         onToggleCursor={(positionInGroup) => {
           setCursorPosition((prev) => (prev === positionInGroup ? null : positionInGroup));
         }}
         onToggleAccent={(positionInGroup) => toggleAccentWord(groupIndex, positionInGroup)}
+        onBeginEdit={setEditingPosition}
+        onCommitEdit={(positionInGroup, text) => {
+          editWord(groupIndex, positionInGroup, text);
+          setEditingPosition(null);
+        }}
+        onCancelEdit={() => setEditingPosition(null)}
         setGroupRef={setGroupRef}
       />
     );
-  }), [captionGroups, currentTime, cursorPosition, handleSelectGroup, selectedGroupIdx, setGroupRef, supportsAccent, toggleAccentWord, transcript]);
+  }), [captionGroups, currentTime, cursorPosition, editingPosition, editWord, handleSelectGroup, selectedGroupIdx, setGroupRef, supportsAccent, toggleAccentWord, transcript]);
 
   if (isTranscribing) {
     return (

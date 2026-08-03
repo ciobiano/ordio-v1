@@ -44,9 +44,14 @@ export function useExportHistory({
    *  direction has something to restore. Mirrors `applySnapshot` exactly. */
   const captureCurrent = useCallback((kind: HistorySnapshot['kind'], label: string): HistoryEntry => {
     if (kind === 'captions') {
+      const processing = useProcessingStore.getState();
       return {
         label,
-        snapshot: { kind: 'captions', captionGroups: useProcessingStore.getState().captionGroups },
+        snapshot: {
+          kind: 'captions',
+          captionGroups: processing.captionGroups,
+          transcript: processing.transcript,
+        },
       };
     }
     return {
@@ -64,8 +69,11 @@ export function useExportHistory({
   const applySnapshot = useCallback(
     (snapshot: HistorySnapshot) => {
       if (snapshot.kind === 'captions') {
+        // Set directly rather than through setTranscript, which rebuilds the
+        // grouping from scratch and would discard the splits being restored.
         useProcessingStore.setState({
           captionGroups: snapshot.captionGroups,
+          transcript: snapshot.transcript,
           // The restored grouping may not contain the selected index.
           selectedGroupIndices: [],
         });

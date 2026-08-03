@@ -147,6 +147,17 @@ interface ProcessingState {
   mergeDownAtCursor: (index: number, cursorPosition: number | null) => void;
 
   /**
+   * Correct a word's text.
+   *
+   * `positionInGroup` indexes the group's own wordIndices, matching how the
+   * caption editor addresses words. Rewrites the transcript rather than layering
+   * a display override: a corrected word is the truth, and everything
+   * downstream — the renderer, the group text, the export — should see it.
+   * Undoable, because the caption snapshot carries the transcript.
+   */
+  editWord: (groupIndex: number, positionInGroup: number, text: string) => void;
+
+  /**
    * Re-cut captions under a break rule.
    *
    * `scope` is 'all' to re-cut the whole transcript, or a group index to re-cut
@@ -189,9 +200,10 @@ export const useProcessingStore = create<ProcessingState>()(
        * `label` completes the sentence "Undo …" on that button.
        */
       function pushUndo(label: string) {
+        const { captionGroups, transcript } = get();
         useHistoryStore.getState().push({
           label,
-          snapshot: { kind: 'captions', captionGroups: [...get().captionGroups] },
+          snapshot: { kind: 'captions', captionGroups: [...captionGroups], transcript },
         });
       }
 
@@ -409,6 +421,42 @@ export const useProcessingStore = create<ProcessingState>()(
         },
 
         // ── Selection ────────────────────────────────────────────────────
+        editWord: (groupIndex, positionInGroup, text) => {
+          const { captionGroups, transcript } = get();
+          const group = captionGroups[groupIndex];
+          if (!group) return;
+
+          const wordIndex = group.wordIndices[positionInGroup];
+          if (wordIndex === undefined || !transcript[wordIndex]) return;
+
+          // Whitespace would split one word into two and desynchronise every
+          // index that points past it; an empty value would leave a hole.
+          const next = text.trim().replace(/\s+/g, ' ');
+          if (next.length === 0 || next === transcript[wordIndex].text) return;
+
+          pushUndo('edit word');
+
+          const nextTranscript = transcript.map((word, i) =>
+            i === wordIndex ? { ...word, text: next } : word
+          );
+
+          set({
+            transcript: nextTranscript,
+            // Only this group's text changes; the others still read correctly.
+            captionGroups: captionGroups.map((g, i) =>
+              i !== groupIndex
+                ? g
+                : {
+                    ...g,
+                    text: g.wordIndices
+                      .map((index) => nextTranscript[index]?.text ?? '')
+                      .join(' ')
+                      .trim(),
+                  }
+            ),
+          });
+        },
+
         resegmentCaptions: (options, scope) => {
           const { transcript, captionGroups } = get();
           if (transcript.length === 0) return;

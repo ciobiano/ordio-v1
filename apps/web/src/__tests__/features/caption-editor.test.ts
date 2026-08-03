@@ -277,6 +277,100 @@ describe('Feature: Caption Group Management', () => {
     });
   });
 
+  // ── Word editing ───────────────────────────────────────────────────────
+
+  describe('Scenario: Correcting a mis-transcribed word', () => {
+    it('rewrites the transcript, not just the caption text', () => {
+      resetStore(createMockWords(6));
+      const group = useProcessingStore.getState().captionGroups[0];
+      const transcriptIndex = group.wordIndices[1];
+
+      useProcessingStore.getState().editWord(0, 1, 'Ordio');
+
+      expect(useProcessingStore.getState().transcript[transcriptIndex].text).toBe('Ordio');
+    });
+
+    it("updates that group's text and leaves the others alone", () => {
+      resetStore(createMockWords(12));
+      const otherTexts = useProcessingStore.getState().captionGroups.slice(1).map((g) => g.text);
+
+      useProcessingStore.getState().editWord(0, 0, 'Hello');
+
+      const after = useProcessingStore.getState().captionGroups;
+      expect(after[0].text.split(' ')[0]).toBe('Hello');
+      expect(after.slice(1).map((g) => g.text)).toEqual(otherTexts);
+    });
+
+    it('preserves the word timings, so captions stay in sync', () => {
+      resetStore(createMockWords(6));
+      const index = useProcessingStore.getState().captionGroups[0].wordIndices[1];
+      const { start, end } = useProcessingStore.getState().transcript[index];
+
+      useProcessingStore.getState().editWord(0, 1, 'somethingmuchlonger');
+
+      const word = useProcessingStore.getState().transcript[index];
+      expect(word.start).toBe(start);
+      expect(word.end).toBe(end);
+    });
+
+    it('collapses whitespace, so one word cannot silently become two', () => {
+      resetStore(createMockWords(6));
+      const index = useProcessingStore.getState().captionGroups[0].wordIndices[0];
+
+      useProcessingStore.getState().editWord(0, 0, '  two   words  ');
+
+      // Every wordIndex past this one points at a fixed transcript position, so
+      // splitting a word here would desynchronise the whole grouping.
+      expect(useProcessingStore.getState().transcript[index].text).toBe('two words');
+      expect(useProcessingStore.getState().transcript).toHaveLength(6);
+    });
+
+    it('ignores an empty value rather than leaving a hole', () => {
+      resetStore(createMockWords(6));
+      const index = useProcessingStore.getState().captionGroups[0].wordIndices[0];
+      const original = useProcessingStore.getState().transcript[index].text;
+
+      useProcessingStore.getState().editWord(0, 0, '   ');
+
+      expect(useProcessingStore.getState().transcript[index].text).toBe(original);
+      expect(useHistoryStore.getState().past).toHaveLength(0);
+    });
+
+    it('records nothing when the text is unchanged', () => {
+      resetStore(createMockWords(6));
+      const index = useProcessingStore.getState().captionGroups[0].wordIndices[0];
+      const original = useProcessingStore.getState().transcript[index].text;
+
+      useProcessingStore.getState().editWord(0, 0, original);
+
+      expect(useHistoryStore.getState().past).toHaveLength(0);
+    });
+
+    it('is undoable — the snapshot carries the transcript', () => {
+      resetStore(createMockWords(6));
+      const history = renderHistory();
+      const index = useProcessingStore.getState().captionGroups[0].wordIndices[1];
+      const original = useProcessingStore.getState().transcript[index].text;
+
+      act(() => useProcessingStore.getState().editWord(0, 1, 'Ordio'));
+      expect(useProcessingStore.getState().transcript[index].text).toBe('Ordio');
+
+      act(() => history.current.undo());
+
+      expect(useProcessingStore.getState().transcript[index].text).toBe(original);
+    });
+
+    it('does nothing for an out-of-range group or position', () => {
+      resetStore(createMockWords(6));
+      const before = useProcessingStore.getState().transcript;
+
+      useProcessingStore.getState().editWord(99, 0, 'nope');
+      useProcessingStore.getState().editWord(0, 99, 'nope');
+
+      expect(useProcessingStore.getState().transcript).toBe(before);
+    });
+  });
+
   // ── Selection ──────────────────────────────────────────────────────────
 
   describe('Scenario: Select multiple caption groups', () => {

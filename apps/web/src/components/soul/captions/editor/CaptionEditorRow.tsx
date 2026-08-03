@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { PlayIcon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { captionRow, formatTimestamp } from './shared';
+import { CaptionEditorWord } from './CaptionEditorWord';
 
 type TranscriptWord = { text: string };
 type CaptionGroup = {
@@ -23,9 +24,14 @@ type CaptionEditorRowProps = {
   cursorPosition: number | null;
   /** Whether the active caption style honors accent words (word-pop, big-statement, script-accent) — hides the toggle affordance for styles that ignore it. */
   supportsAccent: boolean;
+  /** Which word in this group is open for editing, if any. */
+  editingPosition: number | null;
   onSelect: (groupIndex: number, startTime: number) => void;
   onToggleCursor: (positionInGroup: number) => void;
   onToggleAccent: (positionInGroup: number) => void;
+  onBeginEdit: (positionInGroup: number) => void;
+  onCommitEdit: (positionInGroup: number, text: string) => void;
+  onCancelEdit: () => void;
   setGroupRef: (idx: number, el: HTMLDivElement | null) => void;
 };
 
@@ -37,9 +43,13 @@ export function CaptionEditorRow({
   transcript,
   cursorPosition,
   supportsAccent,
+  editingPosition,
   onSelect,
   onToggleCursor,
   onToggleAccent,
+  onBeginEdit,
+  onCommitEdit,
+  onCancelEdit,
   setGroupRef,
 }: CaptionEditorRowProps) {
   const rowState = isActive ? 'active' : isSelected ? 'selected' : 'idle';
@@ -107,31 +117,17 @@ export function CaptionEditorRow({
                       </button>
                     )}
 
-                    {supportsAccent ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onToggleAccent(positionInGroup);
-                        }}
-                        aria-pressed={isAccented}
-                        aria-label={`${isAccented ? 'Remove' : 'Mark'} accent on "${word.text}"`}
-                        className={cn(
-                          'rounded-md px-0.5 text-sm transition-colors',
-                          isAccented
-                            ? 'bg-primary/20 text-primary'
-                            : isCursorHere
-                              ? 'text-foreground'
-                              : 'text-foreground/80'
-                        )}
-                      >
-                        {word.text}
-                      </button>
-                    ) : (
-                      <span className={cn('text-sm', isCursorHere ? 'text-foreground' : 'text-foreground/80')}>
-                        {word.text}
-                      </span>
-                    )}
+                    <CaptionEditorWord
+                      text={word.text}
+                      isEditing={editingPosition === positionInGroup}
+                      isAccented={isAccented}
+                      isCursorHere={isCursorHere}
+                      supportsAccent={supportsAccent}
+                      onToggleAccent={() => onToggleAccent(positionInGroup)}
+                      onBeginEdit={() => onBeginEdit(positionInGroup)}
+                      onCommitEdit={(text) => onCommitEdit(positionInGroup, text)}
+                      onCancelEdit={onCancelEdit}
+                    />
                   </span>
                 );
               })}

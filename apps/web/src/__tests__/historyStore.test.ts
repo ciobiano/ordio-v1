@@ -14,6 +14,7 @@ const captionEntry = (n: number): HistoryEntry => ({
   snapshot: {
     kind: 'captions',
     captionGroups: [{ wordIndices: [n], text: `g${n}`, start: n, end: n + 1 }] as CaptionGroup[],
+    transcript: [{ text: `g${n}`, start: n, end: n + 1 }],
   },
 });
 
