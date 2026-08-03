@@ -4,25 +4,43 @@ import { useUIStore } from '@/stores';
 import { getCaptionStylePreset } from '@Ordio/engine';
 import { ordSectionLabel, ordFieldCard } from '@/lib/ordioVariants';
 import { ColorRow } from '../primitives/ColorRow';
+import { ColorSwatch } from '../primitives/ColorSwatch';
 import { SliderRow } from '../primitives/SliderRow';
+import { ToggleRow } from '../primitives/ToggleRow';
 
 const MAX_STROKE_WIDTH = 8;
 
+/** Shown when neither the style nor the user has set one. Hex, because the
+ *  schema constrains these fields to hex and the engine's own fallback is an
+ *  rgba() the colour input can't represent. */
+const FALLBACK_STROKE_COLOR = '#000000';
+const FALLBACK_SHADOW_COLOR = '#000000';
+const FALLBACK_EMPHASIS_COLOR = '#47D6CE';
+const FALLBACK_CHIP_COLOR = '#22D3EE';
+const FALLBACK_CHIP_TEXT_COLOR = '#111111';
+
 /**
- * Colour controls, grouped Words / Caption box / Canvas the way the redesign
- * lays them out.
+ * Colour, grouped Words / Caption box / Canvas.
  *
- * Stroke and Shadow are still gated on the active preset declaring them
- * (`preset.stroke` / `preset.glow`) — the redesign exposes both unconditionally
- * for every preset, but that needs new schema defaults, so it lands in the
- * schema phase rather than this refactor. The grouping and the primitives are
- * already in their final shape, so that change is additive.
+ * This tab used to morph: stroke appeared only for bold-outline, shadow only
+ * for script-accent, because those were the presets declaring the defaults. The
+ * renderer never had that restriction — it has always read
+ * `style.strokeWidth ?? preset.stroke?.defaultWidth ?? DEFAULT` — so the gate
+ * was UI-only, and lifting it makes every style strokeable and shadowable.
+ *
+ * The trade is that presets read as starting points rather than as fixed looks.
+ * That is the intent: with the active-word colours below editable too,
+ * cream-block stops being a distinct preset and becomes a chip colour.
  */
 export function ColorsTab() {
   const style = useUIStore((s) => s.style);
   const setStyle = useUIStore((s) => s.setStyle);
 
   const preset = getCaptionStylePreset(style.captionStyleId);
+  const chipEnabled = style.activeWordBackgroundEnabled ?? true;
+
+  const strokeWidth = style.strokeWidth ?? preset.stroke?.defaultWidth ?? 0;
+  const shadowIntensity = style.glowIntensity ?? preset.glow?.defaultIntensity ?? 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,65 +52,72 @@ export function ColorsTab() {
           onChange={(textColor) => setStyle({ textColor })}
         />
         <ColorRow
+          label="Active word"
+          hint="The word being spoken right now"
+          value={style.activeWordColor ?? preset.chipTextColor ?? FALLBACK_CHIP_TEXT_COLOR}
+          onChange={(activeWordColor) => setStyle({ activeWordColor })}
+        />
+        <ToggleRow
+          surface="bare"
+          label="Active word background"
+          checked={chipEnabled}
+          onChange={(activeWordBackgroundEnabled) => setStyle({ activeWordBackgroundEnabled })}
+          adornment={
+            <ColorSwatch
+              label="Active word background"
+              showHex={false}
+              value={style.activeWordBackgroundColor ?? preset.chipColor ?? FALLBACK_CHIP_COLOR}
+              onChange={(activeWordBackgroundColor) => setStyle({ activeWordBackgroundColor })}
+            />
+          }
+        />
+        <ColorRow
           label="Emphasis"
           hint="Words you tapped in Captions"
-          value={style.accentColor ?? preset.accentColor ?? '#47D6CE'}
+          value={style.accentColor ?? preset.accentColor ?? FALLBACK_EMPHASIS_COLOR}
           onChange={(accentColor) => setStyle({ accentColor })}
         />
       </div>
 
       <span className={ordSectionLabel}>Caption box</span>
       <div className="flex flex-col gap-3">
-        {preset.stroke && (
-          <div className={ordFieldCard}>
-            <ColorRow
-              label="Stroke"
-              value={style.strokeColor ?? preset.stroke.defaultColor}
-              onChange={(strokeColor) => setStyle({ strokeColor })}
-            />
-            <SliderRow
-              label="Stroke width"
-              valueLabel={`${Math.round(
-                ((style.strokeWidth ?? preset.stroke.defaultWidth) / MAX_STROKE_WIDTH) * 100
-              )}%`}
-              minLabel="None"
-              maxLabel="Thick"
-              min={0}
-              max={MAX_STROKE_WIDTH}
-              step={0.5}
-              value={style.strokeWidth ?? preset.stroke.defaultWidth}
-              onChange={(strokeWidth) => setStyle({ strokeWidth })}
-            />
-          </div>
-        )}
+        <div className={ordFieldCard}>
+          <ColorRow
+            label="Stroke"
+            value={style.strokeColor ?? preset.stroke?.defaultColor ?? FALLBACK_STROKE_COLOR}
+            onChange={(strokeColor) => setStyle({ strokeColor })}
+          />
+          <SliderRow
+            label="Stroke width"
+            valueLabel={`${Math.round((strokeWidth / MAX_STROKE_WIDTH) * 100)}%`}
+            minLabel="None"
+            maxLabel="Thick"
+            min={0}
+            max={MAX_STROKE_WIDTH}
+            step={0.5}
+            value={strokeWidth}
+            onChange={(next) => setStyle({ strokeWidth: next })}
+          />
+        </div>
 
-        {preset.glow && (
-          <div className={ordFieldCard}>
-            <ColorRow
-              label="Shadow"
-              value={style.glowColor ?? preset.glow.defaultColor}
-              onChange={(glowColor) => setStyle({ glowColor })}
-            />
-            <SliderRow
-              label="Shadow intensity"
-              valueLabel={`${Math.round((style.glowIntensity ?? preset.glow.defaultIntensity) * 100)}%`}
-              minLabel="None"
-              maxLabel="Heavy"
-              min={0}
-              max={1}
-              step={0.05}
-              value={style.glowIntensity ?? preset.glow.defaultIntensity}
-              onChange={(glowIntensity) => setStyle({ glowIntensity })}
-            />
-          </div>
-        )}
-
-        {!preset.stroke && !preset.glow && (
-          <p className="rounded-2xl bg-white/[0.05] p-4 text-[13px] leading-relaxed text-[color:var(--acid-text-3)]">
-            This caption style has no stroke or shadow of its own — pick Cut or Script in Motion to
-            edit those.
-          </p>
-        )}
+        <div className={ordFieldCard}>
+          <ColorRow
+            label="Shadow"
+            value={style.glowColor ?? preset.glow?.defaultColor ?? FALLBACK_SHADOW_COLOR}
+            onChange={(glowColor) => setStyle({ glowColor })}
+          />
+          <SliderRow
+            label="Shadow intensity"
+            valueLabel={`${Math.round(shadowIntensity * 100)}%`}
+            minLabel="None"
+            maxLabel="Heavy"
+            min={0}
+            max={1}
+            step={0.05}
+            value={shadowIntensity}
+            onChange={(next) => setStyle({ glowIntensity: next })}
+          />
+        </div>
       </div>
 
       <span className={ordSectionLabel}>Canvas</span>

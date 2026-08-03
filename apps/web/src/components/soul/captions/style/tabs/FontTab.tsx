@@ -40,6 +40,14 @@ const ALIGN_OPTIONS = [
   { value: 'end', label: 'End' },
 ] as const satisfies readonly { value: NonNullable<StyleConfig['textAlign']>; label: string }[];
 
+/** Labels are the casing they produce, so the control demonstrates itself. */
+const CASE_OPTIONS = [
+  { value: 'none', label: 'As spoken' },
+  { value: 'uppercase', label: 'AA' },
+  { value: 'lowercase', label: 'aa' },
+  { value: 'capitalize', label: 'Aa' },
+] as const satisfies readonly { value: NonNullable<StyleConfig['textTransform']>; label: string }[];
+
 interface FontTabProps {
   onLocked?: (feature: FeatureKey) => void;
 }
@@ -51,8 +59,12 @@ interface FontTabProps {
  * face because both answer "how do the words sit", where Layout now only
  * answers "where on the canvas".
  *
- * Capitalization, Auto fit and Hide auto punctuation are part of this tab in
- * the design but need new schema fields, so they arrive with the schema phase.
+ * Capitalization only restyles the paint: the transcript keeps the user's own
+ * words verbatim, so switching back to "As spoken" is lossless.
+ *
+ * Auto fit and Hide auto punctuation are part of this tab in the design and
+ * still to come — both change what the segmenter produces rather than how a
+ * word is drawn.
  */
 export function FontTab({ onLocked }: FontTabProps) {
   const style = useUIStore((s) => s.style);
@@ -95,6 +107,13 @@ export function FontTab({ onLocked }: FontTabProps) {
         options={ALIGN_OPTIONS}
         value={style.textAlign ?? 'center'}
         onChange={(textAlign) => setStyle({ textAlign })}
+      />
+
+      <SegmentedRow
+        label="Capitalization"
+        options={CASE_OPTIONS}
+        value={style.textTransform ?? 'none'}
+        onChange={(textTransform) => setStyle({ textTransform })}
       />
 
       <SliderRow

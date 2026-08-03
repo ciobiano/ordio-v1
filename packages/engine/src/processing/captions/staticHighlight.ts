@@ -188,11 +188,18 @@ export function drawStaticHighlightCaptions(
 
   const { width, height, textColor, fontFamily, fontSize, characterSpacing, lineHeight, lines, layout, align, safeMargin, spaceWidth, blockCenterY, topPad, hookBoost } = prep;
   const preset = getCaptionStylePreset(style.captionStyleId);
-  const chipColor = preset.chipColor ?? '#22D3EE';
-  const chipTextColor = preset.chipTextColor ?? '#111111';
+  // The preset supplies this style's own chip; the user's Colors picks override
+  // it. Once both are editable, cream-block is karaoke-chip with a different
+  // chip colour — see the note on captionOwnsStage in VisualTab.
+  const chipEnabled = style.activeWordBackgroundEnabled ?? true;
+  const chipColor = style.activeWordBackgroundColor ?? preset.chipColor ?? '#22D3EE';
+  const chipTextColor = style.activeWordColor ?? preset.chipTextColor ?? '#111111';
+  // With the chip off there is no fill to read against, so the active word is
+  // marked by colour alone and has to sit on the canvas like the idle ones.
+  const activeWordColor = chipEnabled ? chipTextColor : (style.activeWordColor ?? chipColor);
   // A drop shadow behind idle words reads as a smudge on a light surface —
   // only styles that invert their chip (cream-block) sit on one.
-  const idleWordShadow = preset.chipTextColor === undefined;
+  const idleWordShadow = (style.activeWordColor ?? preset.chipTextColor) === undefined;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
@@ -227,19 +234,21 @@ export function drawStaticHighlightCaptions(
 
       ctx.save();
       if (isActive) {
-        const chipX = wordX - chipPadX;
-        const chipY = lineY - lineHeight / 2 + chipPadY / 2;
-        const chipW = word.wordWidth + chipPadX * 2;
-        const chipH = lineHeight - chipPadY;
-        ctx.fillStyle = chipColor;
-        if (typeof ctx.roundRect === 'function') {
-          ctx.beginPath();
-          ctx.roundRect(chipX, chipY, chipW, chipH, chipRadius);
-          ctx.fill();
-        } else {
-          ctx.fillRect(chipX, chipY, chipW, chipH);
+        if (chipEnabled) {
+          const chipX = wordX - chipPadX;
+          const chipY = lineY - lineHeight / 2 + chipPadY / 2;
+          const chipW = word.wordWidth + chipPadX * 2;
+          const chipH = lineHeight - chipPadY;
+          ctx.fillStyle = chipColor;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(chipX, chipY, chipW, chipH, chipRadius);
+            ctx.fill();
+          } else {
+            ctx.fillRect(chipX, chipY, chipW, chipH);
+          }
         }
-        ctx.fillStyle = chipTextColor;
+        ctx.fillStyle = activeWordColor;
       } else {
         if (idleWordShadow) {
           ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';

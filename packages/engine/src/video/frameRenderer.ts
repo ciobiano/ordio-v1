@@ -15,6 +15,10 @@ import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
 import { drawLookChrome } from './lookChrome';
 import { drawGradientBackground } from '../backgrounds/gradientBackground';
+import {
+  transformTranscriptCase,
+  transformCaptionGroupsCase,
+} from '../processing/captions/textCase';
 
 export interface FrameOptions {
   waveformData: number[];
@@ -66,17 +70,55 @@ function drawBackgroundScrim(
   ctx.fillRect(0, 0, width, height);
 }
 
+export interface FitRect { dx: number; dy: number; dw: number; dh: number }
+
 /** Cover-fit source dimensions onto a target canvas. Pure — unit-testable. */
-export function coverFit(
-  srcW: number,
-  srcH: number,
-  dstW: number,
-  dstH: number
-): { dx: number; dy: number; dw: number; dh: number } {
+export function coverFit(srcW: number, srcH: number, dstW: number, dstH: number): FitRect {
   const scale = Math.max(dstW / srcW, dstH / srcH);
   const dw = srcW * scale;
   const dh = srcH * scale;
   return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh };
+}
+
+/** Contain-fit — the whole source stays visible, letterboxed. Pure. */
+export function containFit(srcW: number, srcH: number, dstW: number, dstH: number): FitRect {
+  const scale = Math.min(dstW / srcW, dstH / srcH);
+  const dw = srcW * scale;
+  const dh = srcH * scale;
+  return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh };
+}
+
+/**
+ * How far the source and target aspect ratios may diverge before 'auto' stops
+ * cropping. A 16:9 clip in a 1:1 frame is 1.78 — well past this, so it gets
+ * letterboxed rather than losing a third of its width. A 4:5 in a 1:1 is 1.25,
+ * close enough that cropping reads as framing rather than as loss.
+ */
+const AUTO_COVER_MAX_DIVERGENCE = 1.35;
+
+/**
+ * Resolve the draw rect for a backdrop under the chosen content fit.
+ *
+ * 'auto' is the interesting one: it covers when the shapes are close and
+ * contains when they are not, so a portrait clip dropped into a square canvas
+ * keeps its whole frame instead of being centre-punched.
+ */
+export function resolveContentFit(
+  mode: NonNullable<StyleConfig['contentFit']>,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number
+): FitRect {
+  if (mode === 'fill') return coverFit(srcW, srcH, dstW, dstH);
+  if (mode === 'fit') return containFit(srcW, srcH, dstW, dstH);
+
+  const sourceRatio = srcW / srcH;
+  const targetRatio = dstW / dstH;
+  const divergence = Math.max(sourceRatio / targetRatio, targetRatio / sourceRatio);
+  return divergence <= AUTO_COVER_MAX_DIVERGENCE
+    ? coverFit(srcW, srcH, dstW, dstH)
+    : containFit(srcW, srcH, dstW, dstH);
 }
 
 /**
@@ -160,8 +202,14 @@ export function renderFrame(
         ctx.drawImage(backgroundFrame, dx - (width * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dy - (height * (PRESET_DRIFT_OVERSCAN - 1)) / 2, dw, dh);
         ctx.restore();
       } else {
-        const { dx, dy, dw, dh } = coverFit(srcW, srcH, width, height);
-        ctx.drawImage(backgroundFrame, dx, dy, dw, dh);
+        const fit = resolveContentFit(style.contentFit ?? 'fill', srcW, srcH, width, height);
+        // Letterbox bars show the canvas colour rather than whatever the last
+        // frame left behind.
+        if (fit.dw < width || fit.dh < height) {
+          ctx.fillStyle = style.backgroundColor;
+          ctx.fillRect(0, 0, width, height);
+        }
+        ctx.drawImage(backgroundFrame, fit.dx, fit.dy, fit.dw, fit.dh);
       }
       drawBackgroundScrim(ctx, style.backgroundScrim ?? 'flat', width, height);
     } else {
@@ -188,21 +236,30 @@ export function renderFrame(
   }
 
   // 3. Captions
+  //
+  // Casing is applied here rather than inside each mechanic: all four take the
+  // same two inputs, and doing it before layout means measurement sees the text
+  // that actually paints (uppercase is wider, and would otherwise wrap
+  // differently from how it renders).
+  const textTransform = style.textTransform ?? 'none';
+  const casedTranscript = transformTranscriptCase(transcript, textTransform);
+  const casedGroups = captionGroups && transformCaptionGroupsCase(captionGroups, textTransform);
+
   const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
   switch (mechanic) {
     case 'static-highlight':
-      drawStaticHighlightCaptions(ctx, currentTime, transcript, style, captionTransform, captionGroups);
+      drawStaticHighlightCaptions(ctx, currentTime, casedTranscript, style, captionTransform, casedGroups);
       break;
     case 'word-swap':
       drawWordSwapCaptions(
         ctx,
         currentTime,
-        transcript,
+        casedTranscript,
         style,
         layout,
         hasVisualZone,
         flipped,
-        captionGroups,
+        casedGroups,
         captionTransform
       );
       break;
@@ -210,12 +267,12 @@ export function renderFrame(
       drawPhraseCutCaptions(
         ctx,
         currentTime,
-        transcript,
+        casedTranscript,
         style,
         layout,
         hasVisualZone,
         flipped,
-        captionGroups,
+        casedGroups,
         captionTransform
       );
       break;
@@ -223,12 +280,12 @@ export function renderFrame(
       drawProgressiveRevealCaptions(
         ctx,
         currentTime,
-        transcript,
+        casedTranscript,
         style,
         layout,
         hasVisualZone,
         flipped,
-        captionGroups,
+        casedGroups,
         captionTransform
       );
       break;

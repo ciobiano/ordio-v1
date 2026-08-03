@@ -106,14 +106,44 @@ export const StyleConfigSchema = z.object({
       'cream-block',
     ])
     .default('minimal-lower-third'),
-  /** Text stroke — used by styles whose preset declares a `stroke` default (e.g. bold-outline). */
+  /**
+   * Text stroke. The preset supplies the default when unset, but the value is
+   * honoured for every style — the renderer has always read
+   * `style.strokeWidth ?? preset.stroke?.defaultWidth ?? DEFAULT`, so a style
+   * whose preset declares no stroke still strokes when this is set.
+   */
   strokeWidth: z.number().min(0).max(8).optional(),
   strokeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  /** Text glow — used by styles whose preset declares a `glow` default (e.g. script-accent). */
+  /** Text shadow. Same preset-default-then-override rule as stroke. */
   glowIntensity: z.number().min(0).max(1).optional(),
   glowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   /** Accent-word color override — used by styles whose preset declares an `accentColor` default (word-pop, big-statement). */
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+
+  /**
+   * Casing applied to caption text at draw time. The transcript itself is never
+   * rewritten — the user's words stay verbatim in the store and in exports of
+   * the transcript; this only changes how they are painted.
+   */
+  textTransform: z.enum(['none', 'uppercase', 'lowercase', 'capitalize']).optional(),
+
+  /**
+   * The word currently being spoken, in mechanics that mark one. Today that is
+   * the karaoke chip (static-highlight); the preset supplies the default chip
+   * and text colours and these override them.
+   */
+  activeWordColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  activeWordBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /** Whether the active word gets a filled chip behind it at all. */
+  activeWordBackgroundEnabled: z.boolean().optional(),
+
+  /**
+   * How a photo/video backdrop is fitted to the canvas.
+   *   fill — crop to cover the frame (the historical behaviour)
+   *   fit  — letterbox so the whole source stays visible
+   *   auto — cover when the aspect ratios are close, contain when they are not
+   */
+  contentFit: z.enum(['fill', 'fit', 'auto']).optional(),
 });
 
 export type StyleConfig = z.infer<typeof StyleConfigSchema>;
