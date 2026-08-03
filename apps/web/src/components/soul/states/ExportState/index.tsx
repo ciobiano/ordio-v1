@@ -161,18 +161,19 @@ export default function ExportState({
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden md:h-auto md:min-h-dvh md:overflow-visible animate-fadeIn">
+      {/* Above the scroll region, so the bar stays put the way the dock does. */}
+      <ExportHeader
+        primaryLabel={primaryLabel}
+        primaryDisabled={exportDisabled && !hasRender}
+        onBack={() => setShowDiscardDialog(true)}
+        onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
+      />
+
       {/* The only scrolling region on mobile. The bottom surface is the last
           in-flow child of it and sticks — a fixed layer would sit under the
           mobile URL bar when it expands. */}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto md:flex-row md:items-start md:gap-6 md:overflow-visible md:px-6 md:py-4">
-        <div className="relative flex min-w-0 flex-1 flex-col">
-          <ExportHeader
-            primaryLabel={primaryLabel}
-            primaryDisabled={exportDisabled && !hasRender}
-            onBack={() => setShowDiscardDialog(true)}
-            onPrimary={hasRender ? () => setExportOverlayOpen(true) : handleExport}
-          />
-
+        <div className="flex min-w-0 flex-1 flex-col">
           <ExportCanvas
             playback={playback}
             format={format}
