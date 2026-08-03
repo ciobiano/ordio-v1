@@ -8,19 +8,17 @@ import type { FeatureKey } from '@/lib/featureGates';
 import { MotionTab } from './style/tabs/MotionTab';
 import { ColorsTab } from './style/tabs/ColorsTab';
 import { FontTab } from './style/tabs/FontTab';
+import { BreaksTab } from './style/tabs/BreaksTab';
 import { TemplatesTab } from './style/tabs/TemplatesTab';
 import { LayoutTab } from './style/tabs/LayoutTab';
 import { VisualTab } from './style/tabs/VisualTab';
 
-/**
- * Tab order is the design's, minus Breaks — that tab needs segmentation modes
- * the engine doesn't have yet, so it lands with its own phase rather than
- * shipping empty. Insert it between Font and Templates when it arrives.
- */
+/** Tab order is the design's. */
 const STYLE_TABS = [
   { id: 'motion', label: 'Motion' },
   { id: 'colors', label: 'Colors' },
   { id: 'font', label: 'Font' },
+  { id: 'breaks', label: 'Breaks' },
   { id: 'templates', label: 'Templates' },
   { id: 'layout', label: 'Layout' },
   { id: 'visual', label: 'Visual' },
@@ -115,6 +113,7 @@ export default function StyleControls({ onLocked, initialTab = 'motion' }: Style
             {activeTab === 'motion' && <MotionTab onLocked={onLocked} />}
             {activeTab === 'colors' && <ColorsTab />}
             {activeTab === 'font' && <FontTab onLocked={onLocked} />}
+            {activeTab === 'breaks' && <BreaksTab />}
             {activeTab === 'templates' && <TemplatesTab onLocked={onLocked} />}
             {activeTab === 'layout' && <LayoutTab />}
             {activeTab === 'visual' && <VisualTab onLocked={onLocked} />}

@@ -18,6 +18,7 @@
     "./captions/display": "./src/captions/display/index.ts",
     "./captions/display/textBoundaries": "./src/captions/display/textBoundaries.ts",
     "./captions/segmentation": "./src/captions/segmentation.ts",
+    "./captions/breaks": "./src/captions/breaks.ts",
     "./backgrounds/backgroundLibrary": "./src/backgrounds/backgroundLibrary.ts",
     "./media": "./src/media/index.ts",
     "./media/silenceDetector": "./src/media/silenceDetector.ts",

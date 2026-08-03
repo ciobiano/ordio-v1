@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Word } from '@Ordio/shared/schemas';
 import { buildSmartSegments } from '@Ordio/engine/captions/segmentation';
+import { buildSegmentsForMode, type BreakOptions } from '@Ordio/engine/captions/breaks';
 import { useHistoryStore } from './historyStore';
 import type { TranscriptionSource, EnhanceTier, CaptionGroup } from './types';
 
@@ -144,6 +145,16 @@ interface ProcessingState {
   //   If no cursor (null), falls back to full-group merge
   mergeUpAtCursor: (index: number, cursorPosition: number | null) => void;
   mergeDownAtCursor: (index: number, cursorPosition: number | null) => void;
+
+  /**
+   * Re-cut captions under a break rule.
+   *
+   * `scope` is 'all' to re-cut the whole transcript, or a group index to re-cut
+   * just that caption — which is what the Breaks tab's "Apply to all phrases"
+   * toggle switches between. Both discard any manual splits or merges inside
+   * the scope, and both are undoable.
+   */
+  resegmentCaptions: (options: BreakOptions, scope: 'all' | number) => void;
 
   /**
    * Toggle whether the word at `positionInGroup` (a position within the
@@ -398,6 +409,54 @@ export const useProcessingStore = create<ProcessingState>()(
         },
 
         // ── Selection ────────────────────────────────────────────────────
+        resegmentCaptions: (options, scope) => {
+          const { transcript, captionGroups } = get();
+          if (transcript.length === 0) return;
+
+          if (scope === 'all') {
+            pushUndo('change breaks');
+            set({
+              captionGroups: buildSegmentsForMode(transcript, options).map((segment) => ({
+                wordIndices: Array.from(
+                  { length: segment.endIndex - segment.startIndex },
+                  (_, i) => segment.startIndex + i
+                ),
+                text: segment.text,
+                start: segment.start,
+                end: segment.end,
+              })),
+              selectedGroupIndices: [],
+            });
+            return;
+          }
+
+          const group = captionGroups[scope];
+          if (!group) return;
+
+          // Re-cut the group's own words. Segment indices come back relative to
+          // the slice, so they map through wordIndices to reach the transcript.
+          const words = group.wordIndices.map((i) => transcript[i]).filter(Boolean);
+          if (words.length === 0) return;
+
+          const replacement = buildSegmentsForMode(words, options).map((segment) => ({
+            wordIndices: group.wordIndices.slice(segment.startIndex, segment.endIndex),
+            text: segment.text,
+            start: segment.start,
+            end: segment.end,
+          }));
+          if (replacement.length === 0) return;
+
+          pushUndo('change breaks');
+          set({
+            captionGroups: [
+              ...captionGroups.slice(0, scope),
+              ...replacement,
+              ...captionGroups.slice(scope + 1),
+            ],
+            selectedGroupIndices: [],
+          });
+        },
+
         selectGroup: (index, multi = false) => {
           const { selectedGroupIndices, captionGroups } = get();
           let newSelection = multi ? [...selectedGroupIndices] : [];

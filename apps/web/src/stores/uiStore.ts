@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { StyleConfig } from '@Ordio/shared/schemas';
+import type { BreakMode, BreakQuantity } from '@Ordio/engine/captions/breaks';
 import type { FeatureKey } from '@/lib/featureGates';
 import type {
   AppPhase,
@@ -25,9 +26,24 @@ export const LEGACY_CAPTION_MODE_MIGRATION: Record<string, CaptionStyleId> = {
   stack: 'word-pop',
 };
 
+/**
+ * How captions are cut into blocks. Persisted with the other look preferences
+ * rather than living in StyleConfig: these decide *content* — which words share
+ * a caption — not how a caption is painted, and they are applied by rewriting
+ * captionGroups rather than read at draw time.
+ */
+export interface BreakSettings {
+  mode: BreakMode;
+  quantity: BreakQuantity;
+  holdSeconds: number;
+  /** Off re-cuts only the selected caption. */
+  applyAll: boolean;
+}
+
 interface UIState {
   // Configurable / Persisted Settings
   theme: Theme;
+  breaks: BreakSettings;
   style: StyleConfig;
   waveformStyle: WaveformVariant;
   graphicStyle: GraphicStyleId;
@@ -47,6 +63,7 @@ interface UIState {
   setCanvasLayout: (layout: CanvasLayout) => void;
   setFormat: (format: FormatVariant) => void;
   setCaptionTransform: (transform: Partial<CaptionTransform>) => void;
+  setBreaks: (settings: Partial<BreakSettings>) => void;
   resetCaptionTransform: () => void;
   setCurrentState: (state: AppPhase) => void;
   setUpgradeTarget: (target: FeatureKey | 'export_limit' | null) => void;
@@ -55,6 +72,12 @@ interface UIState {
 
 const initialPersisted = {
   theme: 'dark' as Theme,
+  breaks: {
+    mode: 'punct',
+    quantity: 4,
+    holdSeconds: 3,
+    applyAll: true,
+  } as BreakSettings,
   style: {
     width: 1080,
     height: 1080,
@@ -99,6 +122,7 @@ export const useUIStore = create<UIState>()(
       setWaveformStyle: (waveformStyle) => set({ waveformStyle }),
       setGraphicStyle: (graphicStyle) => set({ graphicStyle }),
       setCanvasLayout: (canvasLayout) => set({ canvasLayout }),
+      setBreaks: (settings) => set((state) => ({ breaks: { ...state.breaks, ...settings } })),
       setCaptionTransform: (transform) =>
         set((state) => ({
           captionTransform: {
@@ -160,6 +184,7 @@ export const useUIStore = create<UIState>()(
       },
       partialize: (state) => ({
         theme: state.theme,
+        breaks: state.breaks,
         style: state.style,
         waveformStyle: state.waveformStyle,
         graphicStyle: state.graphicStyle,
