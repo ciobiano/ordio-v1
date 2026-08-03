@@ -20,6 +20,8 @@ import {
   resolveLineX,
   resolveScalePivotX,
   type PhraseCaptionMetrics,
+  AUTO_FIT_MIN_SCALE,
+  AUTO_FIT_MAX_SCALE,
 } from './shared';
 
 interface ActiveWordScene {
@@ -49,6 +51,20 @@ function getActiveWordScene(
  * next word on its own timestamp boundary — no cross-fade. Used by the
  * word-pop caption style.
  */
+/**
+ * One word, fitted to the frame.
+ *
+ * Without auto fit this only ever shrinks — a word narrower than the frame is
+ * left at its chosen size. With it on, short words scale up to fill the width
+ * too, which is the point of the setting.
+ */
+function resolveWordFitScale(measuredWidth: number, maxTextWidth: number, autoFit?: boolean): number {
+  if (measuredWidth <= 0) return 1;
+  const raw = maxTextWidth / measuredWidth;
+  if (!autoFit) return Math.min(1, raw);
+  return Math.max(AUTO_FIT_MIN_SCALE, Math.min(AUTO_FIT_MAX_SCALE, raw));
+}
+
 export function drawWordSwapCaptions(
   ctx: CanvasRenderingContext2D,
   currentTime: number,
@@ -91,7 +107,7 @@ export function drawWordSwapCaptions(
 
   const measuredWidth = measureTextWidth(ctx, scene.text, characterSpacing);
   const hookBoost = scene.isHook ? HOOK_SCALE_MULTIPLIER : 1;
-  const fitScale = (measuredWidth > 0 ? Math.min(1, maxTextWidth / measuredWidth) : 1) * hookBoost;
+  const fitScale = resolveWordFitScale(measuredWidth, maxTextWidth, style.autoFit) * hookBoost;
   const centerX = resolveLineX(align, measuredWidth, width, safeMargin) + measuredWidth / 2;
 
   const offsetX = (captionTransform?.offsetXRatio ?? 0) * width;
@@ -160,7 +176,7 @@ export function measureWordSwapCaptionBlock(
     blockWidth,
     blockHeight: lineHeight,
     blockCenterY: textY + lineHeight / 2,
-    fitScale: blockWidth > 0 ? Math.min(1, maxTextWidth / blockWidth) : 1,
+    fitScale: resolveWordFitScale(blockWidth, maxTextWidth, style.autoFit),
     pivotX: resolveScalePivotX(align, style.width, safeMargin),
   };
 }

@@ -14,6 +14,8 @@ interface TrimPanelProps {
   trimmer: UseAudioTrimmerReturn;
   onCommit: () => void;
   onPreviewAt?: (time: number) => void;
+  /** Drives the playhead line over the waveform. */
+  currentTime?: number;
   /**
    * Trim-local undo pair. The export screen omits these — its undo lives in the
    * transport bar, backed by one history across captions and trim. Studio still
@@ -36,6 +38,7 @@ export function TrimPanel({
   trimmer,
   onCommit,
   onPreviewAt,
+  currentTime = 0,
   onUndo,
   onRedo,
   canUndo = false,
@@ -46,6 +49,7 @@ export function TrimPanel({
   const activeHandle = useRef<'start' | 'end' | null>(null);
   const lastDragTimeRef = useRef(0);
 
+  const NUDGE_SECONDS = 1;
   const {
     trimState,
     setStartTime,
@@ -176,6 +180,32 @@ export function TrimPanel({
           >
             <div className="absolute inset-y-1/3 left-0.5 w-px bg-black/30" />
           </div>
+
+          {/* Playhead — shows where a cut would land relative to playback. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-[color:var(--acid-accent)]"
+            style={{ left: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%` }}
+          />
+        </div>
+
+        <div className="mt-2 flex gap-2.5">
+          <button
+            type="button"
+            onClick={() => setStartTime(trimState.startTime + NUDGE_SECONDS)}
+            disabled={trimState.startTime + NUDGE_SECONDS >= trimState.endTime}
+            className={cn(ordGhostBtn({ size: 'sm' }), 'flex-1 uppercase tracking-[0.06em]')}
+          >
+            Trim in +1s
+          </button>
+          <button
+            type="button"
+            onClick={() => setEndTime(trimState.endTime - NUDGE_SECONDS)}
+            disabled={trimState.endTime - NUDGE_SECONDS <= trimState.startTime}
+            className={cn(ordGhostBtn({ size: 'sm' }), 'flex-1 uppercase tracking-[0.06em]')}
+          >
+            Trim out +1s
+          </button>
         </div>
 
         <div className="flex justify-between mt-1">

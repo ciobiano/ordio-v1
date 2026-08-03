@@ -3,6 +3,27 @@ import type { CaptionGroup } from '../../types';
 
 export type TextTransform = NonNullable<StyleConfig['textTransform']>;
 
+/** How the text is restyled at paint time. Casing and punctuation travel
+ *  together because they share one cache and one application point. */
+export interface CaptionTextOptions {
+  transform: TextTransform;
+  hidePunctuation: boolean;
+}
+
+/**
+ * Punctuation the transcription step attaches to a word. Only trailing marks
+ * are stripped: an apostrophe or a hyphen inside a word is part of the word
+ * ("don't", "twenty-two"), not something Whisper added.
+ */
+const TRAILING_PUNCTUATION_RE = /[.,!?;:—–-]+$/;
+
+export function stripTrailingPunctuation(text: string): string {
+  const stripped = text.replace(TRAILING_PUNCTUATION_RE, '');
+  // A word that is *only* punctuation would vanish; keep it rather than
+  // leaving a gap in the line.
+  return stripped.length > 0 ? stripped : text;
+}
+
 /**
  * Casing applied to caption text at paint time.
  *
@@ -42,41 +63,62 @@ export function applyTextCase(text: string, transform: TextTransform): string {
  * that only changes when the user picks a different casing. The outer WeakMap
  * lets a replaced transcript be collected.
  */
-const transcriptCache = new WeakMap<Word[], Map<TextTransform, Word[]>>();
-const groupCache = new WeakMap<CaptionGroup[], Map<TextTransform, CaptionGroup[]>>();
+const transcriptCache = new WeakMap<Word[], Map<string, Word[]>>();
+const groupCache = new WeakMap<CaptionGroup[], Map<string, CaptionGroup[]>>();
+
+const cacheKey = (options: CaptionTextOptions) =>
+  `${options.transform}:${options.hidePunctuation ? 1 : 0}`;
+
+const isIdentity = (options: CaptionTextOptions) =>
+  options.transform === 'none' && !options.hidePunctuation;
 
 function cached<T extends object>(
-  cache: WeakMap<T, Map<TextTransform, T>>,
+  cache: WeakMap<T, Map<string, T>>,
   source: T,
-  transform: TextTransform,
+  key: string,
   compute: () => T
 ): T {
-  let byTransform = cache.get(source);
-  if (!byTransform) {
-    byTransform = new Map();
-    cache.set(source, byTransform);
+  let byKey = cache.get(source);
+  if (!byKey) {
+    byKey = new Map();
+    cache.set(source, byKey);
   }
-  const hit = byTransform.get(transform);
+  const hit = byKey.get(key);
   if (hit) return hit;
 
   const value = compute();
-  byTransform.set(transform, value);
+  byKey.set(key, value);
   return value;
 }
 
-export function transformTranscriptCase(transcript: Word[], transform: TextTransform): Word[] {
-  if (transform === 'none') return transcript;
-  return cached(transcriptCache, transcript, transform, () =>
-    transcript.map((word) => ({ ...word, text: applyTextCase(word.text, transform) }))
+/** Punctuation first, then casing — stripping after capitalize would leave the
+ *  casing decided by a character that is no longer there. */
+function restyle(text: string, options: CaptionTextOptions): string {
+  const base = options.hidePunctuation ? stripTrailingPunctuation(text) : text;
+  return applyTextCase(base, options.transform);
+}
+
+export function restyleTranscript(transcript: Word[], options: CaptionTextOptions): Word[] {
+  if (isIdentity(options)) return transcript;
+  return cached(transcriptCache, transcript, cacheKey(options), () =>
+    transcript.map((word) => ({ ...word, text: restyle(word.text, options) }))
   );
 }
 
-export function transformCaptionGroupsCase(
+export function restyleCaptionGroups(
   groups: CaptionGroup[],
-  transform: TextTransform
+  options: CaptionTextOptions
 ): CaptionGroup[] {
-  if (transform === 'none') return groups;
-  return cached(groupCache, groups, transform, () =>
-    groups.map((group) => ({ ...group, text: applyTextCase(group.text, transform) }))
+  if (isIdentity(options)) return groups;
+  return cached(groupCache, groups, cacheKey(options), () =>
+    groups.map((group) => ({
+      ...group,
+      // Group text is a joined sentence, so each word is stripped individually
+      // rather than only the final mark on the line.
+      text: group.text
+        .split(/\s+/)
+        .map((word) => restyle(word, options))
+        .join(' '),
+    }))
   );
 }

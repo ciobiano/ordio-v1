@@ -90,7 +90,9 @@ function layoutChunk(
     };
   });
 
-  const wrap = layoutWrappedLines(words, spaceWidth, maxTextWidth);
+  const wrap = layoutWrappedLines(words, spaceWidth, maxTextWidth, {
+    fitToWidth: style.autoFit,
+  });
 
   return {
     text: group.text,

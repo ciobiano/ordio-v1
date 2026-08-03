@@ -9,6 +9,7 @@ import type { FeatureKey } from '@/lib/featureGates';
 import { OptionCard } from '../primitives/OptionCard';
 import { SliderRow } from '../primitives/SliderRow';
 import { SegmentedRow } from '../primitives/SegmentedRow';
+import { ToggleRow } from '../primitives/ToggleRow';
 
 type FontFamily = StyleConfig['fontFamily'];
 
@@ -62,9 +63,9 @@ interface FontTabProps {
  * Capitalization only restyles the paint: the transcript keeps the user's own
  * words verbatim, so switching back to "As spoken" is lossless.
  *
- * Auto fit and Hide auto punctuation are part of this tab in the design and
- * still to come — both change what the segmenter produces rather than how a
- * word is drawn.
+ * Auto fit reverses the standing fixed-size rule on purpose and ships on. With
+ * it off, one size holds for the whole clip and long phrases wrap; with it on,
+ * each block scales to fill the frame, so short phrases read large.
  */
 export function FontTab({ onLocked }: FontTabProps) {
   const style = useUIStore((s) => s.style);
@@ -116,6 +117,13 @@ export function FontTab({ onLocked }: FontTabProps) {
         onChange={(textTransform) => setStyle({ textTransform })}
       />
 
+      <ToggleRow
+        label="Auto fit"
+        hint="Ordio sizes each line to the canvas"
+        checked={style.autoFit ?? false}
+        onChange={(autoFit) => setStyle({ autoFit })}
+      />
+
       <SliderRow
         label="Font size"
         valueLabel={`${style.fontSize}px`}
@@ -126,6 +134,15 @@ export function FontTab({ onLocked }: FontTabProps) {
         step={1}
         value={style.fontSize}
         onChange={(fontSize) => setStyle({ fontSize })}
+        // Auto fit decides the size, so the slider only sets the starting point.
+        muted={style.autoFit ?? false}
+      />
+
+      <ToggleRow
+        label="Hide auto punctuation"
+        hint="Drop the commas and stops we added"
+        checked={style.hidePunctuation ?? false}
+        onChange={(hidePunctuation) => setStyle({ hidePunctuation })}
       />
     </div>
   );

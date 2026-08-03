@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   applyTextCase,
-  transformTranscriptCase,
-  transformCaptionGroupsCase,
+  stripTrailingPunctuation,
+  restyleTranscript,
+  restyleCaptionGroups,
 } from '../src/processing/captions/textCase';
 import type { Word } from '@Ordio/shared/schemas';
 import type { CaptionGroup } from '../src/types';
@@ -18,7 +19,49 @@ const groups: CaptionGroup[] = [
   { wordIndices: [0, 1, 2, 3], text: 'so I BUILT this', start: 0, end: 1.6 },
 ];
 
+const opts = (transform: 'none' | 'uppercase' | 'lowercase' | 'capitalize', hidePunctuation = false) =>
+  ({ transform, hidePunctuation }) as const;
+
 describe('processing/captions: textCase', () => {
+  describe('stripTrailingPunctuation', () => {
+    it('drops the marks transcription adds to the end of a word', () => {
+      expect(stripTrailingPunctuation('okay,')).toBe('okay');
+      expect(stripTrailingPunctuation('right.')).toBe('right');
+      expect(stripTrailingPunctuation('really?!')).toBe('really');
+    });
+
+    it('leaves punctuation that is part of the word', () => {
+      // An apostrophe or an internal hyphen is spelling, not something Whisper
+      // attached.
+      expect(stripTrailingPunctuation("don't")).toBe("don't");
+      expect(stripTrailingPunctuation('twenty-two')).toBe('twenty-two');
+    });
+
+    it('keeps a word that is only punctuation rather than emptying it', () => {
+      expect(stripTrailingPunctuation('...')).toBe('...');
+    });
+  });
+
+  describe('combined restyle', () => {
+    it('strips before casing, so capitalize is decided by a real letter', () => {
+      const out = restyleTranscript(
+        [{ text: 'okay,', start: 0, end: 1 }],
+        opts('capitalize', true)
+      );
+      expect(out[0].text).toBe('Okay');
+    });
+
+    it('passes the array through when neither option is on', () => {
+      expect(restyleTranscript(words, opts('none', false))).toBe(words);
+    });
+
+    it('caches per option pair, not per transform alone', () => {
+      const withPunct = restyleTranscript(words, opts('uppercase', false));
+      const withoutPunct = restyleTranscript(words, opts('uppercase', true));
+      expect(withPunct).not.toBe(withoutPunct);
+    });
+  });
+
   describe('applyTextCase', () => {
     it('leaves the text alone when the transform is none', () => {
       expect(applyTextCase('so I BUILT this', 'none')).toBe('so I BUILT this');
@@ -40,42 +83,42 @@ describe('processing/captions: textCase', () => {
     });
   });
 
-  describe('transformTranscriptCase', () => {
+  describe('restyleTranscript', () => {
     it('returns the original array identity when nothing changes', () => {
       // Identity matters: the render loop compares inputs to decide whether to
       // redraw, so a fresh array every frame would defeat that.
-      expect(transformTranscriptCase(words, 'none')).toBe(words);
+      expect(restyleTranscript(words, opts('none'))).toBe(words);
     });
 
     it('rewrites only the text, preserving each word timing', () => {
-      const out = transformTranscriptCase(words, 'uppercase');
+      const out = restyleTranscript(words, opts('uppercase'));
       expect(out.map((w) => w.text)).toEqual(['SO', 'I', 'BUILT', 'THIS']);
       expect(out.map((w) => [w.start, w.end])).toEqual(words.map((w) => [w.start, w.end]));
     });
 
     it('never mutates the source', () => {
-      transformTranscriptCase(words, 'uppercase');
+      restyleTranscript(words, opts('uppercase'));
       expect(words[0].text).toBe('so');
     });
 
     it('caches per source and transform, so a frame loop does not recompute', () => {
-      const first = transformTranscriptCase(words, 'uppercase');
-      const second = transformTranscriptCase(words, 'uppercase');
+      const first = restyleTranscript(words, opts('uppercase'));
+      const second = restyleTranscript(words, opts('uppercase'));
       expect(second).toBe(first);
     });
 
     it('keeps separate entries per transform', () => {
-      const upper = transformTranscriptCase(words, 'uppercase');
-      const lower = transformTranscriptCase(words, 'lowercase');
+      const upper = restyleTranscript(words, opts('uppercase'));
+      const lower = restyleTranscript(words, opts('lowercase'));
       expect(upper).not.toBe(lower);
       expect(upper[0].text).toBe('SO');
       expect(lower[0].text).toBe('so');
     });
   });
 
-  describe('transformCaptionGroupsCase', () => {
+  describe('restyleCaptionGroups', () => {
     it('rewrites group text but leaves indices and timings alone', () => {
-      const out = transformCaptionGroupsCase(groups, 'uppercase');
+      const out = restyleCaptionGroups(groups, opts('uppercase'));
       expect(out[0].text).toBe('SO I BUILT THIS');
       expect(out[0].wordIndices).toEqual([0, 1, 2, 3]);
       expect(out[0].start).toBe(0);
@@ -83,7 +126,7 @@ describe('processing/captions: textCase', () => {
     });
 
     it('passes the array straight through when the transform is none', () => {
-      expect(transformCaptionGroupsCase(groups, 'none')).toBe(groups);
+      expect(restyleCaptionGroups(groups, opts('none'))).toBe(groups);
     });
   });
 });

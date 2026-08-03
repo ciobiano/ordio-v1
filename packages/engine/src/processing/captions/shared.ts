@@ -85,6 +85,10 @@ export const HOOK_SCALE_MULTIPLIER = 1.4;
 // --- Caption style presets (word-pop, bold-outline, karaoke-chip, minimal-lower-third,
 // big-statement, script-accent) — shared constants for the 3 reveal mechanics. ---
 /** Default thin legibility stroke every style falls back to when its preset/StyleConfig doesn't specify one. */
+/** Bounds for auto fit, so neither extreme becomes unreadable. */
+export const AUTO_FIT_MIN_SCALE = 0.5;
+export const AUTO_FIT_MAX_SCALE = 1.8;
+
 export const DEFAULT_STROKE_WIDTH_RATIO = 0.022;
 export const DEFAULT_STROKE_COLOR = 'rgba(0, 0, 0, 0.28)';
 export const HIGHLIGHT_TOP_RATIO = 0.15;
@@ -220,6 +224,12 @@ export function layoutWrappedLines(
     linePauseBreak?: number;
     /** 0 disables orphan control, preserving the pre-existing wrap exactly. */
     orphanMaxChars?: number;
+    /**
+     * Auto fit: scale the block so its widest line spans the available width,
+     * up as well as down. Off, the block holds one size for the whole clip and
+     * only ever scales down for a single unbreakable word.
+     */
+    fitToWidth?: boolean;
   } = {}
 ): LineLayout {
   const minWordsPerLine = options.minWordsPerLine ?? HIGHLIGHT_MIN_WORDS_PER_LINE;
@@ -235,6 +245,17 @@ export function layoutWrappedLines(
   // A block needing more room gets more lines. There is no line cap and no
   // height-based shrink: capping lines and squashing the overflow was the last
   // remaining source of per-phrase size jumps.
+  // Auto fit sizes every block to the frame, so a short phrase reads large and
+  // a long one reads small. Clamped at both ends: unclamped, a one-word block
+  // would balloon and a dense one would shrink past legibility.
+  if (options.fitToWidth) {
+    const raw = maxWidth / widestLine;
+    const scale = Number.isFinite(raw)
+      ? Math.max(AUTO_FIT_MIN_SCALE, Math.min(AUTO_FIT_MAX_SCALE, raw))
+      : 1;
+    return { lines, scale, logicalMaxWidth: maxWidth / scale };
+  }
+
   if (widestLine <= maxWidth) {
     return { lines, scale: 1, logicalMaxWidth: maxWidth };
   }

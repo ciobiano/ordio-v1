@@ -15,10 +15,7 @@ import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
 import { drawLookChrome } from './lookChrome';
 import { drawGradientBackground } from '../backgrounds/gradientBackground';
-import {
-  transformTranscriptCase,
-  transformCaptionGroupsCase,
-} from '../processing/captions/textCase';
+import { restyleTranscript, restyleCaptionGroups } from '../processing/captions/textCase';
 import { measureCaptionBlockRect } from '../processing/captions/blockRect';
 
 export interface FrameOptions {
@@ -282,9 +279,12 @@ export function renderFrame(
   // same two inputs, and doing it before layout means measurement sees the text
   // that actually paints (uppercase is wider, and would otherwise wrap
   // differently from how it renders).
-  const textTransform = style.textTransform ?? 'none';
-  const casedTranscript = transformTranscriptCase(transcript, textTransform);
-  const casedGroups = captionGroups && transformCaptionGroupsCase(captionGroups, textTransform);
+  const textOptions = {
+    transform: style.textTransform ?? 'none',
+    hidePunctuation: style.hidePunctuation ?? false,
+  };
+  const casedTranscript = restyleTranscript(transcript, textOptions);
+  const casedGroups = captionGroups && restyleCaptionGroups(captionGroups, textOptions);
 
   const hasVisualZone = !takesFullScreen && (waveformStyle !== 'none' || !!graphicStyle);
 

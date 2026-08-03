@@ -100,6 +100,7 @@ function prepareHighlightScene(
   // Orphan control only where the study's fixed chunking is in play, so
   // karaoke-chip's long-standing wrap is untouched.
   const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth, {
+    fitToWidth: style.autoFit,
     orphanMaxChars: chunkWords ? ORPHAN_MAX_CHARS : 0,
   });
   const lines = wrapLayout.lines;

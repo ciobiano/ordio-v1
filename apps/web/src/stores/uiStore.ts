@@ -92,6 +92,9 @@ const initialPersisted = {
     verticalAlign: 'auto' as const,
     backgroundScrim: 'flat' as const,
     captionStyleId: 'minimal-lower-third' as CaptionStyleId,
+    // The engine defaults this off so existing configs and the size-stability
+    // guard keep the old fixed-size behaviour; new sessions opt in.
+    autoFit: true,
   },
   waveformStyle: 'bars' as WaveformVariant,
   graphicStyle: null as GraphicStyleId,

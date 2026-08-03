@@ -119,7 +119,10 @@ function prepareRevealScene(
     measured[i].pauseToNext = Math.max(0, measured[i + 1].start - measured[i].end);
   }
 
-  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth, { orphanMaxChars: ORPHAN_MAX_CHARS });
+  const wrapLayout = layoutWrappedLines(measured, spaceWidth, maxWidth, {
+    orphanMaxChars: ORPHAN_MAX_CHARS,
+    fitToWidth: style.autoFit,
+  });
   const blockHeight = wrapLayout.lines.length * lineHeight;
   const blockTop = resolveBlockTop(
     style.verticalAlign ?? DEFAULT_VERTICAL_ALIGN,

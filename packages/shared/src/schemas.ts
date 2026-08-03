@@ -121,6 +121,23 @@ export const StyleConfigSchema = z.object({
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 
   /**
+   * Scale each caption block to fill the caption width, instead of holding one
+   * size for the whole clip and wrapping.
+   *
+   * Off is the historical behaviour and stays the engine's default so existing
+   * configs and the size-stability guard are unaffected; the app seeds new
+   * sessions with it on. See feedback_caption_fixed_size_wrapping — this is a
+   * deliberate, opt-out reversal of that rule, not a regression of it.
+   */
+  autoFit: z.boolean().optional(),
+
+  /**
+   * Drop the punctuation the transcription step added. Applied at draw time
+   * alongside casing, so the transcript keeps it and the toggle is lossless.
+   */
+  hidePunctuation: z.boolean().optional(),
+
+  /**
    * Casing applied to caption text at draw time. The transcript itself is never
    * rewritten — the user's words stay verbatim in the store and in exports of
    * the transcript; this only changes how they are painted.

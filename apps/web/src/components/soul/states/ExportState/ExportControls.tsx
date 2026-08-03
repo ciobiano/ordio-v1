@@ -102,6 +102,7 @@ export function ExportControls({
       trimmer={trimmer}
       onCommit={onCommit}
       onPreviewAt={playback.previewAt}
+      currentTime={playback.currentTime}
     />
   )
 
