@@ -1,240 +1,258 @@
 # Ordio Design System
 
-> Extracted from the splash screen (2026-03-30). Extend via `/design-consultation`.
+> The contract for the ACID system. Tokens live in `apps/web/src/app/globals.css`;
+> component variants in `apps/web/src/lib/ordioVariants.ts` and `lib/variants.ts`.
+> This file says what they *mean*. If a colour appears on screen and you cannot
+> point at the rule below that licenses it, it is a bug.
 
-## Brand Identity
-
-- **Voice:** Audio-native, restrained, purposeful. No hype. No generic SaaS aesthetics.
-- **Aesthetic:** Dark canvas — black backgrounds, white type, frosted glass surfaces. Apple/OpenAI restraint.
-- **References:** GitHub 2026 (weight contrast, monospace eyebrows), Apple 2019 (clear space, no decoration)
-
----
-
-## Color
-
-```
-Canvas:     #000000          (bg-black)
-Surface:    rgba(255,255,255,0.05)–0.10  (frosted glass, bg-white/5 to bg-white/10)
-Border:     rgba(255,255,255,0.10)       (border-white/10)
-Text/100:   rgba(255,255,255,1.0)        (text-white)
-Text/60:    rgba(255,255,255,0.60)       (text-white/60)
-Text/45:    rgba(255,255,255,0.45)       (text-white/45) — eyebrow/secondary
-Text/20:    rgba(255,255,255,0.20)       (text-white/20) — tertiary/meta
-Accent CTA: #ffffff                      (bg-white text-black — primary action on dark bg)
-```
-
-No purple gradients. No blue-to-purple color schemes. No decorative shadows.
+**Aesthetic:** bold consumer / expressive creator-social. Ink base, one electric
+lime signature. Not restraint — but not noise either: the energy comes from
+scarcity and weight, never from spreading the accent around.
 
 ---
 
-## Typography
+## 1. The one rule
 
-**Acid system (bold-consumer UI, e.g. Share Card): Nunito, one family for display + body.**
-Loaded via `next/font/google` in `layout.tsx` as `--font-acid-nunito` (weights 400–900),
-wired to `--acid-font-display` / `--acid-font-body` in `globals.css`. Weight carries the
-display/body distinction (`font-semibold`/`font-black` for hero type, `font-medium`/`font-normal`
-for body) rather than a second family.
+**Lime marks a value the user chose, or the one action that commits it. Nothing else.**
 
-*Why Nunito:* the brand target is "Spotify Wrapped energy, Duolingo confidence" (see
-`memory/feedback_ordio_bold_consumer_aesthetic.md`). Neither Spotify Circular nor Duolingo
-Feather Bold is licensable — both are bespoke, commissioned faces. Duolingo's own brand
-guidelines name **Nunito** as the substitute font for anyone without access to Feather Bold,
-so this is a documented register match, not a guess. Tradeoff: it's also the most-used
-rounded Google Font of the last decade — reads as "friendly Google Font" before it reads as
-"Ordio." Decided 2026-07-27, see `memory/project_typography_review_2026-07.md` for the full
-comparison (Cabinet Grotesk, Plus Jakarta Sans, Fraunces, PP Right Grotesk were the other
-candidates considered).
+Everything a colour system usually does with hue — hierarchy, position, grouping,
+emphasis, surface — is done here with **one ink at four opacities** and **white at
+four alphas**. That is the whole system. Lime is the exception you earn.
 
-Retired: Clash Grotesk + Satoshi (previous Acid pairing — well-executed but became the most
-commonly cloned "trendy startup" font of 2023–2025, cutting against the no-slop rule).
-HelveticaNeueCyr and TrendSansOne were also removed — verified zero consumers in the codebase.
+### Why this is stricter than a typical accent rule
 
-**Caption/export engine is a separate system and unaffected.** `packages/engine/src/loaders/fontLoader.ts`
-loads caption fonts (Geist, Inter, Roboto, Outfit, Poppins, Montserrat, Space Grotesk, DM Sans,
-Playfair Display, Lora) dynamically from Google Fonts or `/fonts/Geist-Regular.woff2` at render
-time — it never touched the removed font files.
+| | luminance (L\*) |
+|---|---|
+| iOS `systemBlue` `#007AFF` | ~48 |
+| Ordio paper `#f4f5ef` | ~96 |
+| **Ordio lime `#c6ff3d`** | **~92** |
 
-### The scale — size, leading and tracking are one triple
+A conventional accent is *mid*-luminance, so it reads as coloured while still
+ranking clearly **below** the primary text. Lime has no such headroom — it is
+within 4 points of paper white. It cannot rank below paper by brightness, so two
+lime objects and a white heading all compete as equals.
 
-Every role binds all three. They are defined in `globals.css` and exposed through
-Tailwind v4's `--text-{name}--line-height` / `--letter-spacing` modifiers, so a single
-`text-acid-*` class applies the whole triple. **Never add a separate `leading-*` or
-`tracking-*` next to one** — that decouples the pair and is what the old system did wrong.
+Lime therefore cannot earn attention by contrast. **It earns attention by being
+the rarest thing on the screen.** Target: **one to three lime objects per
+viewport.** If you count more, the screen is wrong, not the eye.
 
-Tracking follows the **inverse-size rule**: large type reads loose at default spacing,
-small type reads cramped. Reference anchor is M3/Roboto (−0.025em at 57px display, 0 at
-body, +0.05em at 12px label), then calibrated for Nunito — its rounded terminals carry more
-optical whitespace than a flat-terminal grotesque, so display roles run ~0.01em tighter than
-the Roboto reference; its large x-height (~0.49em) also tolerates tighter leading.
+---
 
-| Role | Size | Leading | Tracking | Use |
-|------|------|---------|----------|-----|
-| `text-acid-stat` | 48→88px | 0.95 | −0.02em | Wrapped-style numerals |
-| `text-acid-display` | 40→72px | 1.0 | −0.035em | One hero line per screen |
-| `text-acid-title` | 28→40px | 1.08 | −0.025em | Section openers |
-| `text-acid-headline` | 22→26px | 1.25 | −0.015em | Card / group headers |
-| `text-acid-body` | 15→17px | 1.55 | 0 | Reading default |
-| `text-acid-label` | 13→14px | 1.4 | +0.005em | Controls, pills, buttons |
-| `text-acid-caption` | 12→13px | 1.45 | +0.01em | Meta, timestamps |
-| `text-acid-footnote` | 11→12px | 1.4 | +0.02em | Smallest role |
-| `text-acid-eyebrow` | 13→14px | 1.2 | +0.14em | All-caps micro-label |
+## 2. Ink — hierarchy
 
-Two roles break the size-driven curve on purpose:
-- **Eyebrow** — all-caps has no ascender/descender variation to separate glyphs, so its
-  tracking is driven by *casing*, not size (general rule is 0.05–0.1em; 0.14em here is a
-  deliberate brand choice, louder than default).
-- **Stat** — digits are uniform-width with none of the awkward pairs that drive negative
-  tracking in text, so numerals run looser than a letter role at the same size.
+One hue, four weights. This carries *all* type hierarchy. Never introduce a fifth
+step; never tint ink toward the accent.
 
-### Card scale — fixed-composition artifacts
+| Token | Value | Use |
+|---|---|---|
+| `--acid-text-1` | `#f4f5ef` | Headings, **active navigation**, set values, primary glyphs |
+| `--acid-text-2` | 64% | Field labels, body copy |
+| `--acid-text-3` | 42% | Hints, meta, **inactive navigation**, section eyebrows |
+| `--acid-text-4` | 24% | Disabled text, dividers |
 
-The Share Card is a locked 9:16 export whose internal proportions must survive rendering at
-any display size, so it uses **fixed px, not `clamp()`** — viewport-relative type would let
-the composition drift. Same tracking curve, anchored to the card instead of the viewport.
+Backgrounds run the same discipline — an ink ladder, not a grey palette:
+
+| Token | Value | Use |
+|---|---|---|
+| `--acid-bg-base` | `#0a0b0a` | The page. Also `--acid-on-accent` (text on lime). |
+| `--acid-bg-subtle` | `#101110` | Recessed wells |
+| `--acid-surface-1` | `#141517` | Sheets, drawers, dock (`--sheet-bg` aliases this) |
+| `--acid-surface-2` | `#1c1d20` | Cards on a sheet |
+| `--acid-surface-3` | `#26282b` | The highest raised card |
+
+---
+
+## 3. Fill — surfaces inside a surface
+
+White at four alphas. Use these instead of another surface token when something
+needs to read as inset within its parent rather than as a new layer.
+
+```
+white/0.05   resting field card, unselected option card
+white/0.07   segmented track, chip at rest
+white/0.10   hover, back button, secondary button face
+white/0.18   toggle track (off)
+```
+
+Borders are the same idea: `--acid-border-subtle` (7%), `-default` (12%),
+`-strong` (18%).
+
+---
+
+## 4. Lime — three treatments, never a scale
+
+There is no `lime-100 … lime-900`. There is one lime and three ways to apply it.
+Adding a shade is how the system rots.
+
+| Treatment | Tokens | Means | Examples |
+|---|---|---|---|
+| **Solid** | `--acid-accent` bg + `--acid-on-accent` text | *This commits.* **One per screen.** | Export, Apply, Apply cuts |
+| **Glyph** | `--acid-accent` as text/icon/fill | *This is the value you set.* | Slider fill, live value readout |
+| **Wash** | `--acid-accent-soft` (14%) + solid `--acid-accent` rule | *This row holds your choice.* | Selected option card, emphasised word |
+
+Plus `--acid-accent-ring` (40%) — focus only, never decoration.
+
+### Lime is banned from
+
+- **Position.** Active tab, active dock item, current step. That is `--acid-text-1`
+  against `--acid-text-3`; the open panel is already the strongest position signal
+  there is, and a lime underline just doubles it in the loudest available colour.
+- **Identity.** The wordmark, headers, chrome. Brand lives in the app icon and in
+  the *work*, not in the furniture. A lime wordmark 12px from a lime Export button
+  costs you the button.
+- **Decoration.** Rules, dividers, icon accents, hover states, empty-state art.
+- **Any screen whose content is colour.** The Colors tab shows swatches the user
+  picked; lime chrome there competes with the only thing on screen that matters.
+  Chrome yields to content, always.
+
+### The `--acid-signal` gradient
+
+`linear-gradient(90deg, #c6ff3d, #6be0ff)`. Reserved for exactly two things: the
+single hero headline on a marketing screen, and the Orb's live-audio state. It is
+not a wash, not a border, not a button.
+
+---
+
+## 5. Semantic roles
+
+These are not palette entries you may reach for. Each has one job.
+
+| Token | Value | Job |
+|---|---|---|
+| `--acid-premium` | aliases `--acid-warning` `#ffc24b` | Gated features only. Amber not red: a lock is an upsell, not a failure. |
+| `--acid-error` | `#ff5c5c` | Destructive and failed only |
+| `--acid-success` | `#7ce23d` | Confirmation only. **Note it is near-lime — never place it beside the accent.** |
+| `--acid-info` | `#6be0ff` | Informational only |
+
+---
+
+## 6. Elevation — sticker vs flat
+
+The sticker press is the signature: a **3px ink border**, a **hard offset shadow**
+(`--acid-shadow-sticker` 6px / `-sm` 3px, no blur), and a press that **translates
+3px into its own shadow** as the shadow vanishes. Physical movement, never a dim.
+
+**A sticker needs a surface to peel off.** The shadow is `--acid-bg-base` (`#0a0b0a`),
+which reads against the page and disappears against `--sheet-bg` (`#141517`) — on a
+sheet you get the border reading as a gap and no peel at all. And a sheet is already
+the raised layer; raising something on top of it is a second claim to the same depth.
+
+| Context | Elevation | Press |
+|---|---|---|
+| On the canvas / page — Dock FAB, Export | `raised` | translate into shadow |
+| Inside a sheet, drawer or panel | `flat` | `scale(0.97)` |
+
+Encoded as the `elevation` variant on `ordStickerBtn`. Default is `raised`; sheets
+pass `flat` explicitly so the choice is visible at the call site.
+
+---
+
+## 7. Motion
+
+| Token | Value | Use |
+|---|---|---|
+| `--acid-dur-tap` | 90ms | Colour and opacity on press |
+| `--acid-dur-snap` | 220ms | Toggles, chips, selection |
+| `--acid-ease-snap` | `cubic-bezier(0.2, 0.9, 0.1, 1)` | Chip select, sticker land |
+| `--acid-ease-overshoot` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Sheets rising |
+
+**Sheets track the thumb 1:1** on the dismiss axis. A sheet that moves less than
+your finger reads as broken, not as damped — resistance belongs at the *boundary*
+(`dragElastic.top = 0`, a hard stop), never across the whole travel.
+
+Animation is targeted, never blanket: hero entrance, timeline progress, named
+accordion transitions, sheet gestures. No scroll-triggered fade wrappers.
+Every animation honours `prefers-reduced-motion`.
+
+---
+
+## 8. Typography
+
+Nunito, one family for display and body, loaded in `layout.tsx` as
+`--font-acid-nunito` (400–900). **Weight** carries the display/body distinction,
+not family.
+
+Size, leading and tracking are **one triple per role** and are never mixed across
+roles. Tracking follows the inverse-size rule: large type loosens by default and
+needs negative tracking; small type reads cramped and needs positive.
 
 | Role | Size | Leading | Tracking |
-|------|------|---------|----------|
-| `text-card-headline` | 34px | 1.02 | −0.025em |
-| `text-card-title` | 15px | 1.2 | −0.01em |
-| `text-card-meta` | 12px | 1.35 | +0.01em |
+|---|---|---|---|
+| `display` | 40 → 72px | 1 | −0.035em |
+| `title` | 28 → 40px | 1.08 | −0.025em |
+| `headline` | 22 → 26px | 1.25 | −0.015em |
+| `body` | 15 → 17px | 1.55 | 0 |
+| `label` | 13 → 14px | 1.4 | 0.005em |
+| `caption` | 12 → 13px | 1.45 | 0.01em |
+| `footnote` | 11 → 12px | 1.4 | 0.02em |
+| `eyebrow` | (label size, caps) | 1.2 | 0.14em |
 
-### Kerning
+Sizes are `clamp()` so they are responsive at the token, not the breakpoint.
+Tracking is in `em` so it stays proportional across the clamp range; leading is
+unitless so nested elements inherit a ratio. **Both units are load-bearing — do
+not convert them to px.**
 
-`font-kerning: normal` is set on `body`. Browsers disable a font's own kern pairs at small
-sizes under the default `auto`; forcing `normal` applies them at every size, which is what
-fixes gappy pairs (Va, To, Ay, LT). `font-variant-ligatures: common-ligatures contextual`
-is set alongside it.
-
-Deliberately **not** using `text-rendering: optimizeLegibility` — it buys the same kerning
-at the cost of known layout-jank and dropped-text bugs on long documents.
-
-### Units
-
-- **Tracking in `em`** — stays proportional across each `clamp()` range. Never `px`.
-- **Leading unitless** — nested elements inherit a *ratio*; a `px` value would lock children
-  to the parent's line box.
-
-Tailwind scale used throughout for non-Acid chrome — do not use arbitrary `text-[Npx]` values.
-
-| Role       | Class             | Usage                          |
-|------------|-------------------|--------------------------------|
-| Display    | `text-3xl` / `text-4xl` | Hero headlines                 |
-| Headline   | `text-2xl`        | Section headers                |
-| Eyebrow    | `text-xs` + `tracking-wide` | Monospace-feel labels above headlines |
-| Body       | `text-sm`         | Descriptions, labels           |
-| Caption    | `text-xs`         | Meta, timestamps               |
-
-Font weight split: `font-light` for sentence start, `font-bold` for the key noun (Ordio brand pattern).
-Example: `Record your <strong>story</strong>` — light + bold within the same heading.
-
-Tracking: headlines use `tracking-tight`. Eyebrows use `tracking-wide`.
-
-## Mobile Apple Feel (Mobile-First)
-Target a clean, Apple-app like look for iOS devices.
-- Typography: System fonts first (SF Pro Display / SF Pro Text), with Apple-like crisp rendering.
-- Surface: Frosted glass surfaces with slight elevation; use backdrop-filter blur where supported.
-- Controls: Large tap targets, generous vertical rhythm, rounded pills for CTAs.
-- Color: High-contrast white on near-black canvas; maintain small accent color usage rather than loud.
-- Imagery: Minimal hero ornamentation; focus on typography and whitespace.
-- Example tokens:
-  - Font-family: ui-sans-serif, -apple-system, "SF Pro Display", "SF Pro Text", Roboto, Arial, sans-serif
-  - Heading sizes: Display 34-40px on mobile, body 16px
-  - Border radii: 14-20px for surfaces
-  - CTA: white background, black text, radius 14px
-- Motion: subtle, no parallax; prefer fade/slide with quick durations (200-300ms)
-- Accessibility: ensure accessible contrast, large tap targets, proper focus ring
+One `display` line per screen, maximum.
 
 ---
 
-## Spacing
+## 9. Component inventory
 
-Use Tailwind 4-unit scale. Key values:
-- Page inset: `px-5` (20px) on mobile, `px-6` (24px) for content blocks
-- Section gap: `gap-3` to `gap-6`
-- Bottom safe area: `pb-8` (32px) above home indicator
+Every variant is CVA in `lib/ordioVariants.ts`. No hardcoded Tailwind variant
+strings in JSX, no arbitrary values — dynamic values go through CSS custom
+properties, never inline `style` (the one sanctioned exception is a colour swatch
+rendering a user-chosen hex, which cannot be a token by definition).
 
----
+| Export | Component | Lime treatment when active |
+|---|---|---|
+| `ordStickerBtn` | Primary button | Solid — the commit |
+| `ordGhostBtn` | Cancel / Reset / Done | None, ever |
+| `ordSegmentTrack` / `ordSegmentBtn` | Alignment, Position, Capitalization | Solid — chosen value |
+| `ordToggleTrack` / `ordToggleThumb` | Labelled switch | Solid — on-state |
+| `ordOptionCard` / `ordCheckPill` | Motion, Visual rows; Font tiles | Wash + rule |
+| `ordChip` | Breaks frequency, detected pauses | Solid — chosen value |
+| `ordLockBadge` | Gated-control pin | Premium amber |
+| `ordFieldCard` | Recessed well around a control group | — |
+| `ordSectionLabel` | Caps structural label | Ink-3 |
+| `ordFieldLabel` / `ordFieldHint` | Row label / secondary line | Ink-2 / Ink-3 |
 
-## Components
+### Gating contract
 
-### Frosted Glass Surface
-```
-bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl
-```
-Use for: floating controls, sliders, modals on dark backgrounds.
-
-### Primary CTA Button (dark bg variant)
-```
-bg-white text-black rounded-2xl h-14 font-bold text-sm tracking-tight
-active:scale-95 transition-transform duration-100
-```
-
-### Dash Progress Indicator
-```
-Active:   h-0.5 w-7 rounded-full bg-white/90 (transition-all duration-300)
-Inactive: h-0.5 w-5 rounded-full bg-white/20
-```
-
-### Logo Mark
-```
-w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center
-```
-Paired with `text-sm font-bold tracking-tight text-white` wordmark.
+A locked control still fires its `onSelect`. The **caller** wraps that callback in
+the feature gate, so the upgrade sheet opens from anywhere on the control rather
+than only from the padlock. `LockPin` is decorative and non-interactive by design —
+the older `ui/LockBadge` pattern covered its parent with `absolute inset-0` and
+swallowed the click, which let a free user apply a locked option by tapping past
+the badge.
 
 ---
 
-## Animation
+## 10. Touch, layout and accessibility
 
-- **Page transitions:** `opacity` + `y: 8px` fade-up, 300ms, `[0.22, 1, 0.36, 1]` easing
-- **Carousel content:** cross-fade 150ms ease-out (Decision 3A)
-- **Shimmer sweep:** 2.8s ease-in-out infinite (shimmer keyframe in globals.css)
-- **Slide-to-continue snap-back:** `transition: left 300ms ease`
-- **Touch feedback:** `active:scale-95 transition-transform duration-100`
-
-Targets: hero entrance, page transitions, named interactive states. NO blanket scroll FadeIn wrappers.
-
----
-
-## Visual Anchor (Splash-specific)
-
-The upper 60% of the splash canvas contains a subtle ambient waveform visualization (Decision 1A):
-- 20–40 SVG/canvas bars, white at 6–12% opacity
-- Slow ambient animation (no reactivity on splash — reactive waveform lives in `/create`)
-- Communicates "audio app" without copy
-- Present in both carousel and returning-user states
+- **44×44px minimum** on every interactive target. Several controls are drawn
+  smaller than this by design (the 46×26 switch, the 34px swatch) — the target is
+  then owned by the **row**, not the glyph. A control with `px-0` has a tap target
+  the width of its text; that is always a bug.
+- **Scrolling strips scroll on one axis.** `overflow-x: auto` alone computes
+  `overflow-y: auto` too, per CSS — the other axis can never stay `visible`. Pair it
+  with an explicit `overflow-y-hidden`, and keep active-state pseudo-elements
+  *inside* the box or they will silently create a second scroll axis.
+- A horizontally scrolling strip must **scroll its active item into view** when that
+  item changes programmatically, or deep links land on something off-screen.
+- Contrast: body text ≥ 4.5:1, large text ≥ 3:1. `--acid-text-4` is decorative and
+  never carries meaning alone.
+- State is never signalled by opacity — with one exception: **disabled is `0.4`**.
+- Always `next/image`. Never a raw `<img>`.
 
 ---
 
-## Responsive
+## 11. Adding something new
 
-- **Mobile-first.** Primary target: 375px–430px viewport width.
-- **Desktop behavior:** Not yet specified. See Pass 6 TODO.
-- Touch targets: 44px minimum (per Apple HIG). Splash CTA is `h-14` (56px) ✅. Dash buttons are `h-0.5` visually but need `min-h-[44px]` wrapper for touch.
+1. Can ink + fill express it? Then use ink + fill. Stop here almost every time.
+2. Is it a value the user chose, or the commit? Then it is lime — pick one of the
+   three treatments, do not invent a fourth.
+3. Is it gated, destructive, or a confirmation? Then it is a semantic role.
+4. Otherwise it does not get a colour.
 
----
-
-## Phase 3: Page-by-Page Visual Audit (Mobile)
-
-- Pages to audit (mobile):
-- Home: /
-- Create: /create
-- Dashboard: /dashboard
-- Settings: /settings
-- Auth: /login, /signin, /auth, /sso
-
-- For each page:
-- goto <url>
-- snapshot -i -a -o "$REPORT_DIR/screenshots/<page>-mobile-annotated.png"
-- responsive "$REPORT_DIR/screenshots/<page>-mobile.png"
-- console --errors
-- perf
-
----
-
-## Accessibility
-
-- `aria-live="polite"` on carousel text container ✅
-- Dash indicators use `<button>` with `aria-label` and `aria-current` ✅
-- Spinner/loading: overlay via `NavigationTransition`
-- Color contrast: white text on black bg exceeds WCAG AA ✅
-- Touch events: `touch-none select-none` on drag targets ✅
+Then: put the variant in CVA, count the lime objects in the viewport, and check the
+tap target.
