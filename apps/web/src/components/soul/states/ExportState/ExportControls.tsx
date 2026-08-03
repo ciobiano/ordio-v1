@@ -140,13 +140,30 @@ export function ExportControls({
           dvh-height flex column it stays pinned to the visual viewport, and the
           height it takes is height the stage above gives up — which is what
           makes the canvas shrink as a panel opens. */}
-      <div
+      <motion.div
         className={cn(
           'z-40 shrink-0 overflow-hidden md:hidden',
           'border-t border-white/[0.08] bg-[color:var(--sheet-bg)]',
           'transition-[border-radius] duration-300',
           drawerOpen ? 'rounded-t-[26px] shadow-[0_-8px_40px_rgba(0,0,0,0.5)]' : 'rounded-t-none'
         )}
+        // The whole surface is what moves, not the panel inside it. Dragging
+        // the inner content went nowhere visible: it lives inside the
+        // overflow-hidden box that the grid-rows collapse needs, so every pixel
+        // of travel was clipped and the gesture felt dead.
+        drag={drawerOpen ? 'y' : false}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        // Downward only — this sheet has nowhere to go up.
+        dragElastic={{ top: 0, bottom: 0.55 }}
+        dragMomentum={false}
+        dragSnapToOrigin
+        onDragEnd={(_, info) => {
+          if (info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY) {
+            setDrawerOpen(false)
+          }
+        }}
       >
         <div
           className={cn(
@@ -154,24 +171,20 @@ export function ExportControls({
             drawerOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
           )}
         >
-          <motion.div
-            className="min-h-0 overflow-hidden"
-            drag="y"
-            dragControls={dragControls}
-            dragListener={false}
-            dragSnapToOrigin
-            onDragEnd={(_, info) => {
-              if (info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY) {
-                setDrawerOpen(false)
-              }
-            }}
-          >
+          <div className="min-h-0 overflow-hidden">
+            {/* Full-width 44px grab strip. The pill is only the visible part —
+                the target is the whole band, so the gesture is findable with a
+                thumb. touch-none keeps the browser from claiming the drag as a
+                scroll before framer sees it. */}
             <button
               type="button"
               aria-label="Close panel"
               onClick={() => setDrawerOpen(false)}
-              onPointerDown={(e) => dragControls.start(e)}
-              className="flex w-full cursor-pointer touch-none justify-center pb-1 pt-2"
+              onPointerDown={(event) => dragControls.start(event)}
+              className={cn(
+                'flex h-11 w-full touch-none items-center justify-center',
+                'cursor-grab active:cursor-grabbing'
+              )}
             >
               <span className="h-[5px] w-11 rounded-full bg-white/[0.28]" />
             </button>
@@ -204,7 +217,7 @@ export function ExportControls({
                 />
               </div>
             )}
-          </motion.div>
+          </div>
         </div>
 
         <Dock
@@ -219,7 +232,7 @@ export function ExportControls({
               drawerOpen && mobilePanel === 'add' ? setDrawerOpen(false) : openPanel('add'),
           }}
         />
-      </div>
+      </motion.div>
     </>
   )
 }

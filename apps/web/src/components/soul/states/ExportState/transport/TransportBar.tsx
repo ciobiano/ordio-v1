@@ -54,7 +54,7 @@ export function TransportBar({ playback, history, onDirector }: TransportBarProp
   );
 
   return (
-    <div className="flex w-full shrink-0 flex-col gap-3 px-4 pt-3.5">
+    <div className="flex w-full shrink-0 flex-col gap-3 px-4 pb-1 pt-3.5">
       <div className="flex items-center gap-2.5">
         <button
           type="button"

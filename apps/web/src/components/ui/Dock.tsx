@@ -33,7 +33,10 @@ export function Dock({ items, activeItem, onItemClick, leadingAction, inline = f
   return (
     <nav
       className={cn(
-        'flex items-center gap-1 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden',
+        // overflow-hidden is the backstop: the FAB plus four labelled items is
+        // wider than a 320px phone, and without it the last item escapes the
+        // screen instead of the row tightening.
+        'flex items-center gap-1 overflow-hidden px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] md:hidden',
         inline
           ? 'relative'
           : 'fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[color:var(--sheet-bg)]'
@@ -53,7 +56,7 @@ export function Dock({ items, activeItem, onItemClick, leadingAction, inline = f
         </button>
       )}
 
-      <div className="flex flex-1 items-center justify-around">
+      <div className="flex min-w-0 flex-1 items-center justify-around">
         {items.map((item) => {
           const isActive = activeItem === item.id
           return (
@@ -64,15 +67,24 @@ export function Dock({ items, activeItem, onItemClick, leadingAction, inline = f
               aria-label={item.label}
               aria-pressed={isActive}
               className={cn(
-                'flex min-h-12 cursor-pointer flex-col items-center gap-1.5 px-2 py-1',
+                'flex min-h-12 min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 px-1 py-1',
                 'transition-colors duration-[var(--acid-dur-tap)]',
                 isActive
                   ? 'text-[color:var(--acid-accent)]'
                   : 'text-[color:var(--acid-text-1)]/60 hover:text-[color:var(--acid-text-1)]/85'
               )}
             >
-              <HugeiconsIcon icon={item.icon} size={23} strokeWidth={1.9} aria-hidden="true" />
-              <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.1em]">
+              <HugeiconsIcon
+                icon={item.icon}
+                size={23}
+                strokeWidth={1.9}
+                aria-hidden="true"
+                className="shrink-0"
+              />
+              {/* Truncates rather than pushing a neighbour off-screen. The
+                  button keeps its aria-label, so the full name is still
+                  announced even if the visible text is clipped. */}
+              <span className="w-full truncate text-center text-[10px] font-semibold uppercase leading-none tracking-[0.08em]">
                 {item.label}
               </span>
             </button>

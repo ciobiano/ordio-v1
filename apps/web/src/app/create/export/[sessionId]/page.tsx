@@ -149,10 +149,14 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
     );
   }
 
-    return (
+  // Exactly one viewport tall, and full-bleed. The horizontal padding that used
+  // to live here kept the header and dock off the screen edges, and min-h-dvh
+  // wrapping an h-dvh child made the page taller than the viewport, so the whole
+  // screen floated and scrolled. Each region owns its own padding now.
+  return (
     <main
       id="main-content"
-      className="min-h-dvh flex flex-col px-4 sm:px-6 relative"
+      className="relative flex h-dvh flex-col overflow-hidden md:h-auto md:min-h-dvh md:overflow-visible"
     >
       <ExportState
         playback={playback}
