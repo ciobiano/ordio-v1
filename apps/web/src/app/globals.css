@@ -565,6 +565,15 @@
 html {
   font-size: 16px; /* Minimum for mobile readability */
   -webkit-text-size-adjust: 100%;
+
+  /* Pull-to-refresh off.
+     This has to live here, not on body. `overscroll-behavior` does not
+     propagate from body to the viewport the way `overflow` does — it is only
+     honoured from the root — so the declaration further down on body has never
+     had any effect on the browser's own gesture. Dragging a sheet down past its
+     travel was reaching the viewport and reloading the page.
+     Only the y axis: -x would also kill the browser's swipe-back. */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -578,6 +587,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  /* Kept for nested scroll chains; the viewport's own is set on html above. */
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 

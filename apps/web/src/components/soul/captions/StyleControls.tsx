@@ -101,6 +101,12 @@ export default function StyleControls({ onLocked, initialTab = 'motion' }: Style
         className={cn(
           'shrink-0 overflow-x-auto overflow-y-hidden border-b',
           'border-[color:var(--acid-border-default)]',
+          // touch-pan-x hands the browser the sideways scroll and keeps the
+          // vertical axis for the sheet drag. Without it the tabs inherit
+          // `touch-action: manipulation` from the global button rule, the
+          // browser treats a downward swipe here as a pan of its own, and the
+          // drag never reaches framer.
+          'touch-pan-x',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         )}
       >
@@ -148,7 +154,10 @@ export default function StyleControls({ onLocked, initialTab = 'motion' }: Style
         role="tabpanel"
         aria-label={`${activeTab} style controls`}
         className={cn(
-          'min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-0.5 pb-1',
+          // touch-pan-y: this scroller owns the vertical axis, the sheet does
+          // not. overscroll-contain keeps a swipe past its end from chaining
+          // out to the page.
+          'min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-contain px-0.5 pb-1',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         )}
       >

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
-import { motion, useDragControls } from 'framer-motion'
+import { animate, motion, useDragControls, useMotionValue } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { panelCard } from '@/lib/variants'
 import { IconToolbar } from '@/components/ui/IconToolbar'
@@ -59,6 +59,18 @@ const PANEL_HEIGHT: Record<MobilePanel, string> = {
 const DRAG_CLOSE_OFFSET = 80
 const DRAG_CLOSE_VELOCITY = 600
 
+/**
+ * The iOS sheet curve, and the one vaul animates Reframe with. Decelerates hard
+ * and settles without overshoot, which is what reads as "smooth" — a spring
+ * wobbles at the end, and next to Reframe that wobble is the whole difference.
+ * Already used by the grid-rows collapse below, so the two now share it.
+ */
+const SHEET_EASE = [0.32, 0.72, 0, 1] as const
+/** Springing back after a drag that did not dismiss. vaul's own duration. */
+const SHEET_SETTLE_SEC = 0.5
+/** Returning to rest while the panel collapses — matched to it, not racing it. */
+const SHEET_COLLAPSE_SEC = 0.3
+
 export function ExportControls({
   playback,
   trimmer,
@@ -74,6 +86,12 @@ export function ExportControls({
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('captions')
   const [styleTab, setStyleTab] = useState<StyleTabId>('motion')
   const dragControls = useDragControls()
+  /**
+   * Driven by hand rather than by dragSnapToOrigin, which only springs. The
+   * release has to land on the same curve as the collapse underneath it or the
+   * two visibly disagree.
+   */
+  const y = useMotionValue(0)
 
   // The grab strip is both a drag handle and a tap-to-close button, and now that
   // the sheet tracks the thumb 1:1 those two roles collide. The strip moves with
@@ -195,8 +213,15 @@ export function ExportControls({
         className={cn(
           'z-40 shrink-0 overflow-hidden md:hidden',
           'border-t border-white/[0.08] bg-[color:var(--sheet-bg)]',
-          'transition-[border-radius] duration-300',
-          drawerOpen ? 'rounded-t-[26px] shadow-[0_-8px_40px_rgba(0,0,0,0.5)]' : 'rounded-t-none'
+          // rounded-t-4xl and the same shadow Reframe uses, so the two read as
+          // one family — Reframe floats inset on all four corners because vaul
+          // is fixed; this one is in flow and anchored, so only the top pair
+          // rounds. The shadow is in the transition rather than snapping on,
+          // and both run the sheet curve, matching the collapse below.
+          'transition-[border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          drawerOpen
+            ? 'rounded-t-4xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)]'
+            : 'rounded-t-none shadow-none'
         )}
         // The whole surface is what moves, not the panel inside it. Dragging
         // the inner content went nowhere visible: it lives inside the
@@ -218,18 +243,26 @@ export function ExportControls({
         // top: 0 is: a hard stop upward, where the sheet genuinely cannot go.
         dragElastic={{ top: 0, bottom: 1 }}
         dragMomentum={false}
-        dragSnapToOrigin
-        // Snap back faster than the 300ms grid-rows collapse below, so a release
-        // that closes the panel doesn't run two visible animations against
-        // each other.
-        dragTransition={{ bounceStiffness: 620, bounceDamping: 42 }}
+        style={{ y }}
         onDragStart={() => {
           didDragRef.current = true
         }}
         onDragEnd={(_, info) => {
-          if (info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY) {
-            setDrawerOpen(false)
-          }
+          // Velocity as well as distance, so a quick flick dismisses without
+          // having to travel the full threshold — the flick is the whole reason
+          // Reframe feels lighter than this did.
+          const dismissing =
+            info.offset.y > DRAG_CLOSE_OFFSET || info.velocity.y > DRAG_CLOSE_VELOCITY
+
+          if (dismissing) setDrawerOpen(false)
+
+          // Return to rest on the same curve either way. When dismissing, match
+          // the collapse's duration so the surface and the height it occupies
+          // resolve together instead of one finishing under the other.
+          animate(y, 0, {
+            duration: dismissing ? SHEET_COLLAPSE_SEC : SHEET_SETTLE_SEC,
+            ease: SHEET_EASE,
+          })
         }}
       >
         <div
