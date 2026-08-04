@@ -119,11 +119,47 @@ export const PROGRESSIVE_REVEAL_TOP_RATIO = 0.18;
 export const ORPHAN_MAX_CHARS = 4;
 
 /**
- * The word block on screen. Fixed-size chunking (the design study's grouping)
- * when either the style or the session asks for it, else the content-aware
- * sentence segmentation the lyric styles have always used.
+ * The word block on screen.
+ *
+ * `captionGroups` wins when it exists, and it exists whenever a transcript
+ * does — it is what the Breaks tab rewrites, what the caption editor's splits
+ * and merges edit, and what undo restores. Deriving the block from anything
+ * else means the user cuts their captions and watches nothing happen.
+ *
+ * That was the bug: this function only ever chose between fixed-size chunks and
+ * sentence segmentation. Callers passed `groups` down and it reached them, but
+ * they only consulted it for accent words and the hook role — after the scene
+ * was already decided here. So Breaks worked on phrase-cut, was moot on
+ * word-swap (one word at a time), and did nothing at all on the
+ * static-highlight and progressive-reveal styles.
+ *
+ * The two fallbacks stay for the paths that genuinely have no groups: preset
+ * preview cards and any render that runs before segmentation.
  */
-export function buildCaptionScene(transcript: Word[], currentTime: number, chunkWords?: number): Word[] {
+export function buildCaptionScene(
+  transcript: Word[],
+  currentTime: number,
+  chunkWords?: number,
+  groups?: CaptionGroup[]
+): Word[] {
+  if (groups?.length) {
+    // getActiveCaptionGroup returns null in the lead-in before the first
+    // caption starts, where findActiveDisplaySegment clamps to its first
+    // segment. Falling through there would show a derived chunk on the paused
+    // canvas at t=0 and then snap to the user's cut on play. Clamp the same way
+    // instead: once groups exist they are authoritative at every timestamp.
+    const group = getActiveCaptionGroup(groups, currentTime) ?? groups[0];
+    if (group) {
+      // Indices are into the transcript, and a group can outlive the words it
+      // points at — a trim commit rebuilds the transcript. Drop the danglers
+      // rather than rendering `undefined`.
+      const words = group.wordIndices
+        .map((index) => transcript[index])
+        .filter((word): word is Word => word !== undefined);
+      if (words.length > 0) return words;
+    }
+  }
+
   const segments = chunkWords
     ? buildFixedWordChunks(transcript, chunkWords)
     : buildSentenceSegments(transcript);

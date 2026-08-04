@@ -94,7 +94,12 @@ function prepareRevealScene(
   } = style;
 
   const preset = getCaptionStylePreset(style.captionStyleId);
-  const scene = buildCaptionScene(transcript, currentTime, style.chunkWords ?? preset.defaultChunkWords);
+  const scene = buildCaptionScene(
+    transcript,
+    currentTime,
+    style.chunkWords ?? preset.defaultChunkWords,
+    groups
+  );
   if (scene.length === 0) return null;
 
   const font = `${resolveFontWeight(fontFamily)} ${fontSize}px "${fontFamily}", serif`;

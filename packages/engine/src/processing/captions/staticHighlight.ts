@@ -76,7 +76,7 @@ function prepareHighlightScene(
   const maxWidth = getMaxCaptionTextWidth(width, preset.textWidthRatio);
 
   const chunkWords = style.chunkWords ?? preset.defaultChunkWords;
-  const scene = buildCaptionScene(transcript, currentTime, chunkWords);
+  const scene = buildCaptionScene(transcript, currentTime, chunkWords, groups);
   if (scene.length === 0) return null;
 
   ctx.font = `${FONT_WEIGHT} ${fontSize}px "${fontFamily}", sans-serif`;
