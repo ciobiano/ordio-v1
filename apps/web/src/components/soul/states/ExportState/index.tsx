@@ -75,6 +75,9 @@ export default function ExportState({
   const [exportOverlayOpen, setExportOverlayOpen] = useState(false);
   const [reframeOpen, setReframeOpen] = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
+  /** Owned here rather than inside ExportControls because the canvas above has
+   *  to react to it: the stage shrinks, and its play badge steps out of the way. */
+  const [panelOpen, setPanelOpen] = useState(false);
   const { isLocked } = useFeatureGates();
 
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
@@ -182,6 +185,7 @@ export default function ExportState({
             graphicStyle={graphicStyle}
             showWatermark={showWatermark}
             onLocked={onLocked}
+            stageShrunk={panelOpen}
           />
 
           <TransportBar
@@ -201,6 +205,8 @@ export default function ExportState({
           onCommit={handleCommitTrim}
           onOpenReframe={() => setReframeOpen(true)}
           reframeOpen={reframeOpen}
+          drawerOpen={panelOpen}
+          onDrawerOpenChange={setPanelOpen}
         />
       </div>
 

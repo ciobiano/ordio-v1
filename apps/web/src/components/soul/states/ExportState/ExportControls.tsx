@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
-import type { MouseEvent as ReactMouseEvent } from 'react'
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { motion, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { panelCard } from '@/lib/variants'
@@ -13,6 +13,7 @@ import StyleControls from '@/components/soul/captions/StyleControls'
 import { TrimPanel } from '@/components/soul/editor/TrimPanel'
 import { AddPanel } from './AddPanel'
 import { shouldCloseOnGrabStripClick } from './grabStripIntent'
+import { shouldStartSheetDrag } from './sheetDragIntent'
 import { SubtitleIcon, PaintBoardIcon, ScissorIcon, CropIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import type { StyleTabId } from '@/components/soul/captions/StyleControls'
 import type { ToolbarPanel } from '@/components/ui/IconToolbar'
@@ -33,6 +34,10 @@ interface ExportControlsProps {
   onOpenReframe: () => void
   /** Reframe reflects as active in the dock while its sheet is up. */
   reframeOpen: boolean
+  /** Whether a bottom panel is expanded. Owned by the parent, because the
+   *  canvas above has to react to it — it shrinks, and its play badge hides. */
+  drawerOpen: boolean
+  onDrawerOpenChange: (open: boolean) => void
 }
 
 const DOCK_ITEMS = [
@@ -62,10 +67,11 @@ export function ExportControls({
   onCommit,
   onOpenReframe,
   reframeOpen,
+  drawerOpen,
+  onDrawerOpenChange: setDrawerOpen,
 }: ExportControlsProps) {
   const [desktopPanel, setDesktopPanel] = useState<ToolbarPanel>('captions')
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('captions')
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [styleTab, setStyleTab] = useState<StyleTabId>('motion')
   const dragControls = useDragControls()
 
@@ -75,11 +81,34 @@ export function ExportControls({
   // a click — meaning a short drag that should spring back also closes the panel.
   // Set on drag start, consumed by the click handler.
   const didDragRef = useRef(false)
+  const surfaceRef = useRef<HTMLDivElement>(null)
 
-  const openPanel = useCallback((panel: MobilePanel) => {
-    setMobilePanel(panel)
-    setDrawerOpen(true)
-  }, [])
+  /**
+   * Arm the sheet drag from anywhere on the panel that is not busy scrolling.
+   *
+   * Only arms it — framer will not move anything until the pointer travels past
+   * its own threshold, so a tap on a tab or a toggle still reads as a tap and
+   * its click still fires.
+   */
+  const handleSurfacePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const surface = surfaceRef.current
+      if (!surface) return
+      if (!shouldStartSheetDrag(event.target as Element | null, surface)) return
+
+      didDragRef.current = false
+      dragControls.start(event)
+    },
+    [dragControls]
+  )
+
+  const openPanel = useCallback(
+    (panel: MobilePanel) => {
+      setMobilePanel(panel)
+      setDrawerOpen(true)
+    },
+    [setDrawerOpen]
+  )
 
   const handleDockItemClick = useCallback(
     (id: string) => {
@@ -97,18 +126,21 @@ export function ExportControls({
       }
       openPanel(panel)
     },
-    [drawerOpen, mobilePanel, onOpenReframe, openPanel]
+    [drawerOpen, mobilePanel, onOpenReframe, openPanel, setDrawerOpen]
   )
 
   /** Tap the grab strip to close. Must not fire as the tail of a drag. */
-  const handleGrabStripClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
-    if (shouldCloseOnGrabStripClick({ detail: event.detail, didDrag: didDragRef.current })) {
-      setDrawerOpen(false)
-      return
-    }
-    // Consume it, so the next tap on the strip is read as a tap.
-    didDragRef.current = false
-  }, [])
+  const handleGrabStripClick = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
+      if (shouldCloseOnGrabStripClick({ detail: event.detail, didDrag: didDragRef.current })) {
+        setDrawerOpen(false)
+        return
+      }
+      // Consume it, so the next tap on the strip is read as a tap.
+      didDragRef.current = false
+    },
+    [setDrawerOpen]
+  )
 
   const handlePickArtwork = useCallback(() => {
     setStyleTab('templates')
@@ -206,7 +238,18 @@ export function ExportControls({
             drawerOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
           )}
         >
-          <div className="min-h-0 overflow-hidden">
+          {/* The drag zone is the whole panel, minus whatever is scrolling.
+              Reframe is a vaul drawer and closes from any swipe; these panels
+              are in flow so the canvas can shrink into them, which means a
+              hand-rolled gesture — and it used to start only on the grab strip,
+              leaving the rest of the surface feeling dead. shouldStartSheetDrag
+              decides per pointer, so the strip, the tab row and every static
+              header now drag, while a live scroller keeps its own gesture. */}
+          <div
+            ref={surfaceRef}
+            className="min-h-0 overflow-hidden"
+            onPointerDown={handleSurfacePointerDown}
+          >
             {/* Full-width 44px grab strip. The pill is only the visible part —
                 the target is the whole band, so the gesture is findable with a
                 thumb. touch-none keeps the browser from claiming the drag as a
@@ -215,10 +258,6 @@ export function ExportControls({
               type="button"
               aria-label="Close panel"
               onClick={handleGrabStripClick}
-              onPointerDown={(event) => {
-                didDragRef.current = false
-                dragControls.start(event)
-              }}
               className={cn(
                 'flex h-11 w-full touch-none items-center justify-center',
                 'cursor-grab active:cursor-grabbing'

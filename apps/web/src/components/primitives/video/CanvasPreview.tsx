@@ -30,6 +30,14 @@ interface CanvasPreviewProps {
   showGrid?: boolean;
   gridSize?: number;
   onLocked?: (feature: FeatureKey) => void;
+  /**
+   * Drop the centre play badge. Set while a bottom panel has the stage running
+   * at reduced height, where a 56px disc over a small canvas covers the artwork
+   * it is meant to sit on. Only the badge goes — it is decorative
+   * (`aria-hidden`, `pointer-events-none`) and the full-canvas tap target
+   * underneath is untouched, so tapping the stage still plays.
+   */
+  hidePlayBadge?: boolean;
 }
 
 function getFormatLabel(format: FormatVariant): string {
@@ -62,6 +70,7 @@ export default function CanvasPreview({
   showGrid = false,
   gridSize = 24,
   onLocked,
+  hidePlayBadge = false,
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const storeCanvasLayout = useUIStore((s) => s.canvasLayout);
@@ -243,7 +252,15 @@ export default function CanvasPreview({
       {!captionTransform.visible && (
         <button
           type="button"
-          className="absolute bottom-3 right-3 z-40 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-xs text-white"
+          // Was px-3 py-1 text-xs — a ~24px target, and the only way back once
+          // captions are hidden, so missing it looks like the captions are gone
+          // for good. Sized and coloured off the system rather than the raw
+          // black/white it was carrying.
+          className={cn(
+            'absolute bottom-3 right-3 z-40 flex h-11 items-center rounded-full px-4',
+            'border border-white/20 bg-black/70 text-[13px] font-semibold text-[color:var(--acid-text-1)]',
+            'backdrop-blur transition-colors hover:bg-black/80'
+          )}
           onClick={() => {
             setCaptionTransform({
               visible: true,
@@ -290,7 +307,11 @@ export default function CanvasPreview({
         aria-label={layoutFlipped ? 'Flip stage to upper' : 'Flip stage to lower'}
         className={cn(
           'absolute top-2 right-2 z-40 flex h-7 w-7 items-center justify-center rounded-lg',
-          'bg-black/50 text-white/70 backdrop-blur transition-colors hover:bg-black/65 hover:text-white'
+          'bg-black/50 text-white/70 backdrop-blur transition-colors hover:bg-black/65 hover:text-white',
+          // The disc stays 28px so it does not crowd the artwork, but the target
+          // it presents to a thumb is 48px. Same pattern the caption transform
+          // handles use.
+          'after:absolute after:-inset-2.5 after:content-[""]'
         )}
       >
         <HugeiconsIcon icon={FlipVerticalIcon} size={14} strokeWidth={2} />
@@ -304,12 +325,16 @@ export default function CanvasPreview({
         className="absolute inset-0 z-20 w-full h-full cursor-pointer focus:outline-none"
       />
 
-      {/* Visual center play indicator (hidden while playing, pointer-events-none to avoid conflicts) */}
+      {/* Visual centre play indicator. Purely decorative — the tap target is the
+          full-canvas button above, so this fading out never costs an action.
+          Hidden while playing, and while a panel has the stage shrunk, where a
+          56px disc covers most of the artwork it is sitting on. Faded rather
+          than unmounted so it eases out with the canvas resize. */}
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-xl backdrop-blur-md transition-all duration-300",
-          playback.isPlaying ? "scale-90 opacity-0" : "scale-100 opacity-100"
+          "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-xl backdrop-blur-md transition-all duration-300 motion-reduce:transition-none",
+          playback.isPlaying || hidePlayBadge ? "scale-90 opacity-0" : "scale-100 opacity-100"
         )}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

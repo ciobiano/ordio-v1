@@ -16,6 +16,8 @@ interface ExportCanvasProps {
   graphicStyle?: GraphicStyleId
   showWatermark?: boolean
   onLocked?: (feature: FeatureKey) => void
+  /** A bottom panel is open, so the stage is running at reduced height. */
+  stageShrunk?: boolean
 }
 
 /**
@@ -44,6 +46,7 @@ export function ExportCanvas({
   graphicStyle,
   showWatermark,
   onLocked,
+  stageShrunk = false,
 }: ExportCanvasProps) {
   const { width, height } = getCanvasDimensions(format)
   const aspectRatio = width / height
@@ -74,6 +77,7 @@ export function ExportCanvas({
           graphicStyle={graphicStyle}
           showWatermark={showWatermark}
           onLocked={onLocked}
+          hidePlayBadge={stageShrunk}
         />
       </div>
     </div>
