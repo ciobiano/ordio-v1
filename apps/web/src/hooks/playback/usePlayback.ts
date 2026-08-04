@@ -15,6 +15,43 @@ export interface UsePlaybackReturn {
   registerTimeListener: (fn: (t: number, d: number) => void) => () => void;
 }
 
+/**
+ * A resume that has not come back by now is not coming back.
+ *
+ * A genuine resume settles in single-digit milliseconds; this only has to be
+ * long enough not to give up on a slow one.
+ */
+const RESUME_TIMEOUT_MS = 400;
+
+/**
+ * Bring a context back to `running`, or report that it cannot be.
+ *
+ * The timeout is the whole point. iOS parks a backgrounded context in the
+ * non-standard `interrupted` state, and `resume()` on it can return a promise
+ * that never settles — not rejects, never settles. A bare `await` on that hangs
+ * forever, so neither the caller's catch nor its finally ever runs.
+ */
+async function resumeToRunning(ctx: AudioContext): Promise<boolean> {
+  // Read through a call rather than inline. `ctx.state` is mutated by the audio
+  // thread, but TypeScript narrows it at the guard below and carries that
+  // narrowing across the await — so a second inline comparison reads as
+  // provably false. Each call re-reads at the full declared type.
+  const isRunning = () => ctx.state === 'running';
+
+  if (isRunning()) return true;
+
+  const resumed = await Promise.race([
+    ctx.resume().then(
+      () => true,
+      () => false
+    ),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), RESUME_TIMEOUT_MS)),
+  ]);
+
+  // Resolving is not the same as recovering.
+  return resumed && isRunning();
+}
+
 export function usePlayback(): UsePlaybackReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -116,17 +153,26 @@ export function usePlayback(): UsePlaybackReturn {
     playingRef.current = true;
 
     try {
+      // Synchronous, and deliberately so: on iOS a context has to be created
+      // or resumed in the task the tap started. Everything below this point is
+      // after an await, so a context built here is the one that inherits the
+      // gesture.
       if (!ctxRef.current || ctxRef.current.state === 'closed') {
         ctxRef.current = new AudioContext();
       }
       const ctx = ctxRef.current;
 
-      // Any state other than running, not just 'suspended'. iOS Safari parks
-      // the context in a non-standard 'interrupted' state after an audio
-      // interruption, and a context that never resumes has a frozen
-      // currentTime — which every position below is measured against.
-      if (ctx.state !== 'running') {
-        await ctx.resume();
+      // Any state other than running, not just 'suspended'. A context that
+      // never resumes has a frozen currentTime — the clock every position below
+      // is measured against.
+      if (!(await resumeToRunning(ctx))) {
+        // Retire it. Leaving a wedged context in the ref means every future tap
+        // tries to revive the same corpse; dropping it lets the next tap build
+        // a fresh one, synchronously, inside its own gesture. Not awaited —
+        // close() on an interrupted context can hang the same way resume() does.
+        ctxRef.current = null;
+        void ctx.close().catch(() => {});
+        throw new Error('AudioContext would not resume');
       }
 
       const source = ctx.createBufferSource();
@@ -222,7 +268,13 @@ export function usePlayback(): UsePlaybackReturn {
         ctxRef.current = new AudioContext();
       }
       const ctx = ctxRef.current;
-      if (ctx.state !== 'running') await ctx.resume();
+      if (!(await resumeToRunning(ctx))) {
+        // Same retirement as play(). A preview is skippable; leaving a dead
+        // context behind for the next real playback is not.
+        ctxRef.current = null;
+        void ctx.close().catch(() => {});
+        return;
+      }
 
       const source = ctx.createBufferSource();
       source.buffer = bufferRef.current;
@@ -279,10 +331,30 @@ export function usePlayback(): UsePlaybackReturn {
    * Pausing on the way out keeps the hook's state honest and banks the exact
    * position. Deliberately no auto-resume on return: restarting audio without
    * a gesture is both jarring and something browsers block anyway.
+   *
+   * Coming back, the context itself is retired if the OS parked it. Pausing on
+   * the way out was never enough on its own — the browser suspends the context
+   * whether or not anything was playing, and after a long enough absence iOS
+   * moves it to `interrupted`, where it may never resume. Dropping it here is
+   * what makes the first tap on return work rather than the second: the next
+   * play() finds an empty ref and builds a fresh context synchronously, inside
+   * the tap's own gesture.
+   *
+   * A healthy context is left alone. pause() stops the source node, it does not
+   * suspend the context, so anything not `running` here was parked from outside.
    */
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && playingRef.current) pause();
+      if (document.hidden) {
+        if (playingRef.current) pause();
+        return;
+      }
+
+      const ctx = ctxRef.current;
+      if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') {
+        ctxRef.current = null;
+        void ctx.close().catch(() => {});
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
