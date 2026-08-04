@@ -54,7 +54,11 @@ export function TransportBar({ playback, history, onDirector }: TransportBarProp
   );
 
   return (
-    <div className="flex w-full shrink-0 flex-col gap-3 px-4 pb-1 pt-3.5">
+    /* gap-0: the scrubber now sits in its own 44px gesture row, which centres a
+       6px rule and so already carries 19px of clear space on each side. Keeping
+       gap-3 on top of that would double-space it and cost height the canvas
+       pays for. */
+    <div className="flex w-full shrink-0 flex-col gap-0 px-4 pb-1 pt-3.5">
       <div className="flex items-center gap-2.5">
         <button
           type="button"

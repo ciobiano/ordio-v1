@@ -72,11 +72,31 @@ export function Scrubber({ playback }: ScrubberProps) {
     seek(progressRef.current * duration);
   }, [seek, duration]);
 
+  /**
+   * The OS can take the pointer away mid-drag — an edge swipe, the notification
+   * shade, a second finger landing. Without this the drag never ended: the flag
+   * stayed set, so the time listener's early return above kept the head frozen
+   * while the audio played on, and the seek never fired.
+   *
+   * Releasing without seeking is the right call, unlike pointer-up. A drag the
+   * system interrupted is not a drag the user finished, so the playhead snaps
+   * back to where the audio actually is on the next tick.
+   */
+  const handlePointerCancel = useCallback(() => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    paint(duration > 0 ? currentTime / duration : 0);
+  }, [duration, currentTime, paint]);
+
   const initialProgress = duration > 0 ? currentTime / duration : 0;
 
   return (
+    /* The gesture target is this 44px row, not the 6px rule inside it.
+       The track used to carry the handlers itself, which asked a thumb to land
+       on six pixels — the 18px head is drawn, not hit. Measurement still comes
+       off the track's own rect, so only the reachable area changed, not the
+       mapping from x to time. */
     <div
-      ref={trackRef}
       role="slider"
       aria-label="Seek audio"
       aria-valuemin={0}
@@ -86,25 +106,28 @@ export function Scrubber({ playback }: ScrubberProps) {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={cn(
-        'relative h-1.5 w-full cursor-pointer touch-none select-none rounded-full bg-white/[0.14]',
+        'flex h-11 w-full cursor-pointer touch-none select-none items-center',
         duration === 0 && 'pointer-events-none cursor-default opacity-40'
       )}
     >
-      <div
-        ref={fillRef}
-        className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--acid-accent)]"
-        style={{ width: `${initialProgress * 100}%` }}
-      />
-      <div
-        ref={headRef}
-        aria-hidden="true"
-        className={cn(
-          'absolute top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full',
-          'border-[3px] border-[color:var(--acid-bg-base)] bg-[color:var(--acid-text-1)]'
-        )}
-        style={{ left: `${initialProgress * 100}%` }}
-      />
+      <div ref={trackRef} className="relative h-1.5 w-full rounded-full bg-white/[0.14]">
+        <div
+          ref={fillRef}
+          className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--acid-accent)]"
+          style={{ width: `${initialProgress * 100}%` }}
+        />
+        <div
+          ref={headRef}
+          aria-hidden="true"
+          className={cn(
+            'absolute top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full',
+            'border-[3px] border-[color:var(--acid-bg-base)] bg-[color:var(--acid-text-1)]'
+          )}
+          style={{ left: `${initialProgress * 100}%` }}
+        />
+      </div>
     </div>
   );
 }
