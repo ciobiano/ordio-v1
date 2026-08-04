@@ -11,6 +11,7 @@ import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCaptureStore, useUIStore } from '@/stores';
 import { useCheckout } from '@/hooks/billing/useCheckout';
+import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import UpgradeSheet from '@/components/soul/modals/UpgradeSheet';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
@@ -211,7 +212,9 @@ export function StudioDesk() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a"
+        // The third copy of this list, and the third one missing .mp3. Shared
+        // now — see the note on FILE_ACCEPT_ATTRIBUTE.
+        accept={FILE_ACCEPT_ATTRIBUTE}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

@@ -5,6 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Image01Icon, Video01Icon, File01Icon } from '@hugeicons/core-free-icons';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 
 interface UploadActionSheetProps {
   isOpen: boolean;
@@ -12,8 +13,11 @@ interface UploadActionSheetProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
 }
 
-const ACCEPT_AUDIO_VIDEO =
-  'audio/*,video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4a';
+// Imported, never hand-written. This file used to carry its own copy of the
+// accept list, and because openPicker below assigns `input.accept` directly the
+// copy always won over the JSX value on the input itself — so a format missing
+// here was greyed out in the OS picker no matter what validateFile() allowed.
+// mp3 was missing. See the note on FILE_ACCEPT_ATTRIBUTE.
 
 // Row layout follows the ChatGPT iOS Design System's "Attach menu" component: left icon,
 // stacked title (18px/600) + subtitle (15px, secondary gray #8E8E93), 12px vertical padding.
@@ -27,7 +31,7 @@ const ACCEPT_AUDIO_VIDEO =
 const ROWS = [
   { label: 'Photo Library', sub: 'Choose from your library', icon: Image01Icon, accept: 'video/*,image/*' as const },
   { label: 'Take Video', sub: 'Record a new video', icon: Video01Icon, accept: 'video/*' as const, capture: 'environment' },
-  { label: 'Choose File', sub: 'Browse audio or video files', icon: File01Icon, accept: ACCEPT_AUDIO_VIDEO },
+  { label: 'Choose File', sub: 'Browse audio or video files', icon: File01Icon, accept: FILE_ACCEPT_ATTRIBUTE },
 ];
 
 export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActionSheetProps) {
