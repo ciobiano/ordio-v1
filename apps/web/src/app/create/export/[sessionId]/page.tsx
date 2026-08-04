@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
@@ -38,6 +38,22 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
 
   const [isHydrating, setIsHydrating] = useState(false);
 
+  /**
+   * Which session we have already pulled audio for.
+   *
+   * The hydration effect below used to key off `!audioBuffer`, which reads as
+   * "we have no audio, go and get it" but actually means "anything that clears
+   * the audio re-downloads it". Discard is exactly that: it wipes the stores and
+   * navigates away, so clearing the buffer satisfied the guard, and the page
+   * re-fetched and re-decoded the recording the user had just thrown away —
+   * racing the navigation and putting it back into the store. The discard did
+   * not stick and the screen sat on the spinner.
+   *
+   * Keyed on the session instead, so hydration happens once per recording and
+   * an emptied store is left empty.
+   */
+  const hydratedSessionRef = useRef<string | null>(null);
+
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as GenericId<'sessions'>,
   });
@@ -64,36 +80,55 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
 
   // Hydrate audio from Convex storage when arriving via direct navigation
   useEffect(() => {
-    if (!session || !audioUrlResult || audioBuffer) return;
-    if (isHydrating) return;
+    if (!session || !audioUrlResult) return;
+    if (audioBuffer) {
+      // Arrived with the recording already in memory — count it as hydrated so
+      // a later reset cannot be mistaken for a cold load.
+      hydratedSessionRef.current = sessionId;
+      return;
+    }
+    if (hydratedSessionRef.current === sessionId) return;
 
+    hydratedSessionRef.current = sessionId;
     setIsHydrating(true);
+
+    // Discard navigates away mid-flight. Without this the fetch would land
+    // afterwards and write the discarded recording back into a global store
+    // that the next screen is already reading.
+    const controller = new AbortController();
 
     const hydrate = async () => {
       try {
-        const res = await fetch(audioUrlResult);
+        const res = await fetch(audioUrlResult, { signal: controller.signal });
         const arrayBuf = await res.arrayBuffer();
+        if (controller.signal.aborted) return;
 
         const blob = new Blob([arrayBuf], { type: session.mimeType });
         const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
+        if (controller.signal.aborted) return;
+
         setAudioBuffer(decoded);
         setAudioBlob(blob);
         setAudioDuration(decoded.duration);
         setTranscript(session.transcript);
-      } catch {
+      } catch (err) {
+        if (controller.signal.aborted || (err as Error)?.name === 'AbortError') return;
+        // Let the next visit retry rather than stranding the user on a spinner.
+        hydratedSessionRef.current = null;
         toast.error('Failed to load your recording.');
         router.replace('/create');
       } finally {
-        setIsHydrating(false);
+        if (!controller.signal.aborted) setIsHydrating(false);
       }
     };
 
     void hydrate();
+    return () => controller.abort();
   }, [
     session,
+    sessionId,
     audioUrlResult,
     audioBuffer,
-    isHydrating,
     setAudioBuffer,
     setAudioBlob,
     setAudioDuration,
