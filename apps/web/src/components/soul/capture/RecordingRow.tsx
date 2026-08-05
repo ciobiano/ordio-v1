@@ -215,9 +215,16 @@ export function RecordingRow({
                 'focus-visible:ring-[color:var(--acid-accent-ring)]'
               )}
             >
-              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2.4} />
+              {/* Matched to the confirm glyph so the pair reads as one control,
+                  even though this one carries no fill. */}
+              <HugeiconsIcon icon={Cancel01Icon} size={15} strokeWidth={2.6} />
             </button>
 
+            {/* The lime disc is 28px; the button around it stays 44 so the
+                target still meets the minimum. A full 44px of accent next to a
+                text field read as a button competing with the thing being
+                edited — the fill only has to mark which action commits, and at
+                this size it still does. */}
             <button
               type="button"
               onClick={() => void commit()}
@@ -225,8 +232,6 @@ export function RecordingRow({
               aria-label="Save name"
               className={cn(
                 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
-                // The one commit action here, so it takes the accent.
-                'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]',
                 'transition-opacity hover:opacity-90',
                 // A name cannot be blank — the mutation rejects it — so the
                 // control says so rather than letting the tap fail.
@@ -235,7 +240,16 @@ export function RecordingRow({
                 'focus-visible:ring-[color:var(--acid-accent-ring)]'
               )}
             >
-              <HugeiconsIcon icon={Tick02Icon} size={18} strokeWidth={2.8} />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full',
+                  // The one commit action here, so it takes the accent.
+                  'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]'
+                )}
+              >
+                <HugeiconsIcon icon={Tick02Icon} size={15} strokeWidth={3} />
+              </span>
             </button>
           </div>
         ) : (

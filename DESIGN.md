@@ -92,6 +92,20 @@ Adding a shade is how the system rots.
 
 Plus `--acid-accent-ring` (40%) — focus only, never decoration.
 
+### Focus is one ring, and it is lime
+
+`--ring` resolves to `--acid-accent`, so every shadcn-derived primitive inherits
+it. Focus is the one place the accent marks something that is neither a chosen
+value nor a commit, because it is not decoration — it is the keyboard user's
+cursor, and it has to be the loudest thing on screen while it exists.
+
+**One indicator, never stacked.** The upstream primitives shipped
+`focus-visible:border-ring` *and* `focus-visible:ring-[3px]` *and*
+`focus-visible:outline-1` — up to three concentric marks, two of them neutral
+grey because `--ring` defaulted to a zero-chroma value. Only the ring survives.
+When adding a control: one `focus-visible:ring-*`, no border recolour, no
+outline.
+
 ### Lime is banned from
 
 - **Position.** Active tab, active dock item, current step. That is `--acid-text-1`

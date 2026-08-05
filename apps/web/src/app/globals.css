@@ -287,8 +287,16 @@
      when it appears the panel simply loses a little more. */
   --export-chrome-h: calc(278px + env(safe-area-inset-bottom));
   /* In dvh, not px, so the stage reads at a comparable size on every phone
-     rather than shrinking with the viewport. */
-  --export-canvas-floor: 32dvh;
+     rather than shrinking with the viewport.
+
+     Tuned to 30.5, not a rounder 30 or 32. The figure that matters is what the
+     canvas gains on a *tall* phone, because that is the only case where the
+     panel was not already starving it — and it is where taking too much reads
+     as the panel being cramped for no reason. 32dvh gave the canvas +20% there
+     and cost the Style panel 50px; 30.5 gives +15% and hands roughly 13px back.
+     Short phones are nowhere near the cap either way, so they keep the whole
+     rescue: an SE goes from a 17px stage to 213px regardless. */
+  --export-canvas-floor: 30.5dvh;
   --export-panel-max-h: calc(100dvh - var(--export-canvas-floor) - var(--export-chrome-h));
 
   /* ─── Onboarding tokens ─── */
@@ -339,7 +347,7 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--acid-accent); /* focus is the accent, never a neutral — see DESIGN.md §4 */
   --chart-1: oklch(0.871 0.15 154.449);
   --chart-2: oklch(0.723 0.219 149.579);
   --chart-3: oklch(0.627 0.194 149.214);
@@ -375,7 +383,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.22 0 0);
   --input: oklch(0.22 0 0);
-  --ring: oklch(0.6 0.118 165.612);
+  --ring: var(--acid-accent); /* focus is the accent, never a neutral — see DESIGN.md §4 */
   --sidebar: oklch(0.1 0 0);
   --sidebar-foreground: oklch(0.97 0 0);
   --sidebar-primary: oklch(0.6 0.118 165.612);
@@ -1184,7 +1192,7 @@ select {
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--acid-accent); /* focus is the accent, never a neutral — see DESIGN.md §4 */
   --chart-1: oklch(0.871 0.15 154.449);
   --chart-2: oklch(0.723 0.219 149.579);
   --chart-3: oklch(0.627 0.194 149.214);
