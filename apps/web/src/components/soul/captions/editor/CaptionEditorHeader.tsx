@@ -1,7 +1,7 @@
 'use client';
 
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowDown01Icon, ArrowUp01Icon, ScissorIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, ArrowUp01Icon, Delete01Icon, ScissorIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -14,6 +14,7 @@ type CaptionEditorHeaderProps = {
   onSplit: () => void;
   onMergeUp: () => void;
   onMergeDown: () => void;
+  onDelete: () => void;
 };
 
 export function CaptionEditorHeader({
@@ -25,6 +26,7 @@ export function CaptionEditorHeader({
   onSplit,
   onMergeUp,
   onMergeDown,
+  onDelete,
 }: CaptionEditorHeaderProps) {
   return (
     <div className="sticky top-0 z-10 shrink-0 bg-background/95 backdrop-blur">
@@ -77,6 +79,21 @@ export function CaptionEditorHeader({
             >
               <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
               Merge ↓
+            </Button>
+
+            {/* Removes the caption, never the audio. The words stay in the
+                transcript so nothing after this shifts in time — that span just
+                plays with no caption over it. Undo covers it, so it does not
+                need a confirm; cutting audio is the Trim panel's job. */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              aria-label="Delete this caption"
+              className="flex-1 gap-1.5 text-xs text-[color:var(--acid-error)] hover:text-[color:var(--acid-error)]"
+            >
+              <HugeiconsIcon icon={Delete01Icon} size={14} aria-hidden="true" />
+              Delete
             </Button>
           </div>
           <Separator />

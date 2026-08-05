@@ -147,6 +147,12 @@ interface ProcessingState {
   mergeDownAtCursor: (index: number, cursorPosition: number | null) => void;
 
   /**
+   * Remove a caption block without touching the audio or the transcript.
+   * That span renders no caption; everything else keeps its timing.
+   */
+  deleteGroup: (index: number) => void;
+
+  /**
    * Correct a word's text.
    *
    * `positionInGroup` indexes the group's own wordIndices, matching how the
@@ -400,6 +406,26 @@ export const useProcessingStore = create<ProcessingState>()(
             ...captionGroups.slice(index + 2),
           ];
           set({ captionGroups: newGroups, selectedGroupIndices: [index] });
+        },
+
+        // ── Delete a caption block ────────────────────────────────────────
+        // Drops the block only. Its words stay in the transcript, so the audio
+        // is untouched and nothing after it shifts in time — that span simply
+        // renders no caption, because the renderer draws from captionGroups.
+        // Removing words instead would desync every timestamp downstream, and
+        // cutting the audio is what the Trim panel is for.
+        deleteGroup: (index) => {
+          const { captionGroups } = get();
+          if (index < 0 || index >= captionGroups.length) return;
+
+          pushUndo('delete caption');
+
+          set({
+            captionGroups: captionGroups.filter((_, i) => i !== index),
+            // Indices shift on removal, so a held selection would now point at
+            // whatever moved up into the gap.
+            selectedGroupIndices: [],
+          });
         },
 
         // ── Accent word toggle (script-accent, word-pop, big-statement styles) ──

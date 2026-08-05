@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Delete01Icon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
+import {
+  Cancel01Icon,
+  Delete01Icon,
+  MoreHorizontalIcon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -73,8 +78,8 @@ export function RecordingRow({
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const inputRef = useRef<HTMLInputElement>(null);
-  /** Enter and Escape both blur, and blur commits — this stops that second
-   *  path from re-running a save the key handler already resolved. */
+  /** Return can fire alongside the confirm button on some soft keyboards; this
+   *  keeps the save to one call. */
   const settledRef = useRef(false);
 
   /**
@@ -167,26 +172,72 @@ export function RecordingRow({
         className="relative flex items-center bg-[color:var(--sheet-bg)]"
       >
         {isEditing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            aria-label="Recording name"
-            onChange={(event) => setDraft(event.target.value)}
-            onBlur={() => void commit()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                void commit();
-              } else if (event.key === 'Escape') {
-                event.preventDefault();
-                cancel();
-              }
-            }}
-            className={cn(
-              'min-w-0 flex-1 rounded-lg bg-white/8 px-3 py-3 text-base text-white',
-              'outline-none ring-2 ring-[color:var(--acid-accent-ring)]'
-            )}
-          />
+          /* Cancel then confirm, both trailing the field.
+             A phone keyboard has Return but no Escape, so without these there
+             was no way to abandon a rename — only to commit it or tap away and
+             hope. The order is the nav-bar convention (Cancel leading, Done
+             trailing) held on one row: cancel reads first, confirm sits
+             rightmost where the thumb lands and carries the accent as the one
+             committing action. */
+          <div className="flex min-w-0 flex-1 items-center gap-1 py-1.5 pl-2 pr-1">
+            <input
+              ref={inputRef}
+              value={draft}
+              aria-label="Recording name"
+              enterKeyHint="done"
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void commit();
+                } else if (event.key === 'Escape') {
+                  // Hardware keyboards only, but free to support.
+                  event.preventDefault();
+                  cancel();
+                }
+              }}
+              className={cn(
+                'min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-2 text-base text-white',
+                'outline-none ring-2 ring-[color:var(--acid-accent-ring)]'
+              )}
+            />
+
+            <button
+              type="button"
+              onClick={cancel}
+              aria-label="Cancel rename"
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
+                // Quiet, and deliberately not red: abandoning an edit discards a
+                // draft, it does not destroy anything.
+                'text-white/55 transition-colors hover:bg-white/8 hover:text-white/85',
+                'focus-visible:outline-none focus-visible:ring-2',
+                'focus-visible:ring-[color:var(--acid-accent-ring)]'
+              )}
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2.4} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void commit()}
+              disabled={draft.trim().length === 0}
+              aria-label="Save name"
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
+                // The one commit action here, so it takes the accent.
+                'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]',
+                'transition-opacity hover:opacity-90',
+                // A name cannot be blank — the mutation rejects it — so the
+                // control says so rather than letting the tap fail.
+                'disabled:cursor-not-allowed disabled:opacity-40',
+                'focus-visible:outline-none focus-visible:ring-2',
+                'focus-visible:ring-[color:var(--acid-accent-ring)]'
+              )}
+            >
+              <HugeiconsIcon icon={Tick02Icon} size={18} strokeWidth={2.8} />
+            </button>
+          </div>
         ) : (
           <>
             <button

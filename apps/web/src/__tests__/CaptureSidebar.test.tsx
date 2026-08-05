@@ -134,12 +134,12 @@ describe('CaptureSidebar rename', () => {
     });
   });
 
-  it('saves when the field loses focus', async () => {
-    // Tapping elsewhere is how most people leave a field on a phone; treating
-    // that as "discard what I typed" would be the surprising reading.
+  it('saves from the confirm button', async () => {
+    // The reason these buttons exist: a phone keyboard has Return but no
+    // Escape, so the only way out of a rename used to be to commit it.
     const input = openRenameField();
     fireEvent.change(input, { target: { value: 'Evening notes' } });
-    fireEvent.blur(input);
+    fireEvent.click(screen.getByLabelText('Save name'));
 
     await waitFor(() => {
       expect(mockRenameSession).toHaveBeenCalledWith({
@@ -149,7 +149,29 @@ describe('CaptureSidebar rename', () => {
     });
   });
 
-  it('discards on Escape', async () => {
+  it('discards from the cancel button', async () => {
+    const input = openRenameField();
+    fireEvent.change(input, { target: { value: 'Evening notes' } });
+    fireEvent.click(screen.getByLabelText('Cancel rename'));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Recording name')).not.toBeInTheDocument();
+    });
+    expect(mockRenameSession).not.toHaveBeenCalled();
+  });
+
+  it('does not save when the field merely loses focus', async () => {
+    // Blur used to commit, which made Cancel unimplementable: tapping ✕ blurs
+    // the field first, so the rename would save on the way to being cancelled.
+    const input = openRenameField();
+    fireEvent.change(input, { target: { value: 'Evening notes' } });
+    fireEvent.blur(input);
+
+    expect(mockRenameSession).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Recording name')).toBeInTheDocument();
+  });
+
+  it('discards on Escape from a hardware keyboard', async () => {
     const input = openRenameField();
     fireEvent.change(input, { target: { value: 'Evening notes' } });
     fireEvent.keyDown(input, { key: 'Escape' });
@@ -160,18 +182,11 @@ describe('CaptureSidebar rename', () => {
     expect(mockRenameSession).not.toHaveBeenCalled();
   });
 
-  it('does not commit an Escape twice when the field also blurs', async () => {
-    // Escape and Enter both end with the field unmounting, which fires blur —
-    // and blur commits. Without a settled guard, cancelling would save.
+  it('disables confirm rather than letting a blank name fail server-side', () => {
     const input = openRenameField();
-    fireEvent.change(input, { target: { value: 'Evening notes' } });
-    fireEvent.keyDown(input, { key: 'Escape' });
-    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: '   ' } });
 
-    await waitFor(() => {
-      expect(screen.queryByLabelText('Recording name')).not.toBeInTheDocument();
-    });
-    expect(mockRenameSession).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Save name')).toBeDisabled();
   });
 
   it('skips the round trip when nothing changed', async () => {
@@ -184,7 +199,7 @@ describe('CaptureSidebar rename', () => {
     expect(mockRenameSession).not.toHaveBeenCalled();
   });
 
-  it('refuses to save an empty name', async () => {
+  it('refuses to save an empty name even via Return', async () => {
     // The mutation throws on an empty title, so this would be a guaranteed
     // round trip to an error toast.
     const input = openRenameField();

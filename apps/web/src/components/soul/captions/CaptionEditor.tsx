@@ -23,6 +23,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
   const splitAtTime = useProcessingStore((state) => state.splitAtTime);
   const mergeUpAtCursor = useProcessingStore((state) => state.mergeUpAtCursor);
   const mergeDownAtCursor = useProcessingStore((state) => state.mergeDownAtCursor);
+  const deleteGroup = useProcessingStore((state) => state.deleteGroup);
   const selectGroup = useProcessingStore((state) => state.selectGroup);
   const clearSelection = useProcessingStore((state) => state.clearSelection);
   const toggleAccentWord = useProcessingStore((state) => state.toggleAccentWord);
@@ -92,6 +93,11 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
     mergeDownAtCursor(selectedGroupIdx, cursorPosition);
     setCursorPosition(null);
   }, [captionGroups.length, cursorPosition, mergeDownAtCursor, selectedGroupIdx]);
+
+  const handleDelete = useCallback(() => {
+    if (selectedGroupIdx === null) return;
+    deleteGroup(selectedGroupIdx);
+  }, [deleteGroup, selectedGroupIdx]);
 
   const handleSelectGroup = useCallback((groupIndex: number, startTime: number) => {
     selectGroup(groupIndex, false);
@@ -164,6 +170,7 @@ export default function CaptionEditor({ currentTime, onSeek, isTranscribing }: C
         onSplit={handleSplit}
         onMergeUp={handleMergeUp}
         onMergeDown={handleMergeDown}
+        onDelete={handleDelete}
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
