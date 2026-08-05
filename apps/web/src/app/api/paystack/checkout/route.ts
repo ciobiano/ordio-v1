@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { resolveReturnOrigin } from '@/lib/checkoutReturnUrl';
 
-const PLAN_CODES: Record<string, string> = {
-  creator: process.env.NEXT_PUBLIC_PAYSTACK_CREATOR_PLAN_CODE!,
-};
+/**
+ * One entry per purchasable tier. Keyed on a literal union rather than
+ * `Record<string, …>` so an unknown tier is a lookup miss the compiler can see,
+ * and so the plan code and its price can never drift apart.
+ *
+ * Amounts are in kobo (₦1 = 100 kobo).
+ */
+const PLANS = {
+  creator: {
+    planCode: process.env.NEXT_PUBLIC_PAYSTACK_CREATOR_PLAN_CODE,
+    amountKobo: 500_000, // ₦5,000
+  },
+} as const satisfies Record<string, { planCode: string | undefined; amountKobo: number }>;
 
-// Amounts in kobo (₦1 = 100 kobo)
-const PLAN_AMOUNTS: Record<string, number> = {
-  creator: 500000, // ₦5,000
-};
+type Tier = keyof typeof PLANS;
+
+function isTier(value: unknown): value is Tier {
+  return typeof value === 'string' && value in PLANS;
+}
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -16,14 +28,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { tier, returnUrl } = (await request.json()) as {
-    tier: string;
-    returnUrl: string;
-  };
-
-  const planCode = PLAN_CODES[tier];
-  if (!planCode) {
+  const { tier } = (await request.json().catch(() => ({}))) as { tier?: unknown };
+  if (!isTier(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
+  }
+
+  const { planCode, amountKobo } = PLANS[tier];
+  if (!planCode) {
+    // Misconfigured deployment, not a bad request.
+    console.error('[/api/paystack/checkout] NEXT_PUBLIC_PAYSTACK_CREATOR_PLAN_CODE is not set');
+    return NextResponse.json({ error: 'Checkout is unavailable' }, { status: 503 });
   }
 
   const user = await currentUser();
@@ -32,27 +46,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No email on account' }, { status: 400 });
   }
 
-  const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      amount: PLAN_AMOUNTS[tier],
-      plan: planCode,
-      callback_url: `${returnUrl}?upgrade=paystack-success`,
-      metadata: { tokenIdentifier: userId },
-    }),
-  });
+  // Derived server-side, never taken from the body — see checkoutReturnUrl.ts.
+  const origin = resolveReturnOrigin(request);
 
-  if (!paystackRes.ok) {
-    const err = (await paystackRes.json()) as { message: string };
-    console.error('[Paystack error]', paystackRes.status, err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  let paystackRes: Response;
+  try {
+    paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: amountKobo,
+        plan: planCode,
+        callback_url: `${origin}?upgrade=paystack-success`,
+        metadata: { tokenIdentifier: userId },
+      }),
+    });
+  } catch (err) {
+    console.error('[/api/paystack/checkout] network', err);
+    return NextResponse.json({ error: 'Could not start checkout' }, { status: 502 });
   }
 
-  const { data } = (await paystackRes.json()) as { data: { authorization_url: string } };
+  if (!paystackRes.ok) {
+    // Provider text can name plan codes and account state — log it, don't ship it.
+    console.error('[/api/paystack/checkout]', paystackRes.status, await paystackRes.text());
+    return NextResponse.json({ error: 'Could not start checkout' }, { status: 502 });
+  }
+
+  const { data } = (await paystackRes.json()) as { data?: { authorization_url?: string } };
+  if (!data?.authorization_url) {
+    console.error('[/api/paystack/checkout] no authorization_url in response');
+    return NextResponse.json({ error: 'Could not start checkout' }, { status: 502 });
+  }
+
   return NextResponse.json({ url: data.authorization_url });
 }

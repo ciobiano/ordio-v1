@@ -24,13 +24,14 @@ export function useCheckout() {
   );
 
   const startCheckout = useCallback(async (tier: 'creator' | 'pro') => {
-    const returnUrl = window.location.origin;
     const processor = market === 'nigerian' ? 'paystack' : 'stripe';
 
+    // No returnUrl: the route derives the origin from the request itself, so a
+    // caller cannot nominate where checkout sends the user afterwards.
     const res = await fetch(`/api/${processor}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier, returnUrl }),
+      body: JSON.stringify({ tier }),
     });
 
     if (!res.ok) {
