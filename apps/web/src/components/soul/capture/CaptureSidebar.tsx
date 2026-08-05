@@ -1,16 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Search01Icon, PlusSignIcon, Settings01Icon, Delete01Icon } from '@hugeicons/core-free-icons';
+import { Search01Icon, PlusSignIcon, Settings01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
 import { captureGlossyBtn } from '@/lib/variants';
 import { formatDuration } from '@/components/saved-audio/formatters';
+import { RecordingRow } from './RecordingRow';
+import { useSwipeHint } from './useSwipeHint';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,13 +33,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const PAGE_SIZE = 8;
-
-/** Swipe-to-delete discoverability (HIG: never rely on an invisible gesture).
- * First visit with recordings present: the top row peeks open to flash the
- * delete action, then springs back. Shown once, remembered here. Long-press
- * remains the permanent alternate path to delete. */
-const SWIPE_HINT_SEEN_KEY = 'ordio-swipe-delete-hint-seen';
-const LONG_PRESS_MS = 500;
 
 function formatRecentMeta(durationMs: number, createdAt: number): string {
   const created = new Date(createdAt);
@@ -86,36 +80,25 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
 
-  const [hintRowId, setHintRowId] = useState<string | null>(null);
-  const hintQueuedRef = useRef(false);
-  useEffect(() => {
-    if (hintQueuedRef.current || sessions.length === 0) return;
-    if (localStorage.getItem(SWIPE_HINT_SEEN_KEY)) return;
-    hintQueuedRef.current = true;
-    setHintRowId(sessions[0].id);
-  }, [sessions]);
+  const { hintRowId, onHintPlayed, onUserSwiped } = useSwipeHint(sessions[0]?.id);
 
-  const completeHint = useCallback(() => {
-    localStorage.setItem(SWIPE_HINT_SEEN_KEY, '1');
-    setHintRowId(null);
-  }, []);
-
-  const longPressTimerRef = useRef<number | null>(null);
-  const longPressFiredRef = useRef(false);
-  const beginLongPress = useCallback((session: (typeof sessions)[number]) => {
-    longPressFiredRef.current = false;
-    longPressTimerRef.current = window.setTimeout(() => {
-      longPressFiredRef.current = true;
-      setPendingDelete(session);
-    }, LONG_PRESS_MS);
-  }, []);
-  const cancelLongPress = useCallback(() => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-  useEffect(() => cancelLongPress, [cancelLongPress]);
+  const renameSession = useMutation(api.sessions.renameSession);
+  // Id, not string: RecordingRow is presentational and knows ids only as
+  // strings, but the mutation is typed against the table. Taking the branded id
+  // here keeps the cast out of the component and the call site type-checked.
+  const handleRename = useCallback(
+    async (sessionId: (typeof sessions)[number]['id'], title: string) => {
+      try {
+        await renameSession({ sessionId, title });
+      } catch {
+        // The row has already dropped back to its label by now, and Convex is
+        // the source of truth for it — so a failure just means the old name
+        // stays put, and the toast is what explains why.
+        toast.error('Could not rename this recording');
+      }
+    },
+    [renameSession]
+  );
 
   const handleConfirmDelete = useCallback(async () => {
     if (!pendingDelete) return;
@@ -161,65 +144,19 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
       <div className="text-[15px] font-semibold text-white/50 px-5 pb-1.5">Recents</div>
       <div className="flex-1 overflow-y-auto px-2 pb-3 capture-scroll-thin">
         {sessions.map((session) => (
-          <div key={session.id} className="relative overflow-hidden rounded-[10px] mb-0.5">
-            <button
-              type="button"
-              onClick={() => setPendingDelete(session)}
-              aria-label={`Delete ${session.name}`}
-              className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-[#ff453a] text-white"
-            >
-              <HugeiconsIcon icon={Delete01Icon} size={18} strokeWidth={2} />
-            </button>
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: -80, right: 0 }}
-              dragElastic={0.06}
-              dragMomentum={false}
-              onDragStart={cancelLongPress}
-              animate={
-                hintRowId === session.id
-                  ? { x: [0, -64, 0] }
-                  : { x: swipeOpenId === session.id ? -80 : 0 }
-              }
-              transition={
-                hintRowId === session.id
-                  ? { delay: 0.6, duration: 1.15, times: [0, 0.4, 1], ease: [0.32, 0.72, 0, 1] }
-                  : { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
-              }
-              onAnimationComplete={() => {
-                if (hintRowId === session.id) completeHint();
-              }}
-              onDragEnd={(_, info) =>
-                setSwipeOpenId(info.offset.x < -40 ? session.id : null)
-              }
-              className="relative bg-[color:var(--sheet-bg)]"
-            >
-              <button
-                type="button"
-                onPointerDown={() => beginLongPress(session)}
-                onPointerUp={cancelLongPress}
-                onPointerLeave={cancelLongPress}
-                onClick={() => {
-                  cancelLongPress();
-                  if (longPressFiredRef.current) {
-                    longPressFiredRef.current = false;
-                    return;
-                  }
-                  if (swipeOpenId !== null) {
-                    setSwipeOpenId(null);
-                    return;
-                  }
-                  handleSelect(session.id);
-                }}
-                className="w-full text-left px-3 py-3 text-base text-white/85 cursor-pointer truncate hover:bg-white/5"
-              >
-                {session.name}
-                <span className="block text-[13px] text-white/40 font-mono">
-                  {formatRecentMeta(session.durationMs, session.createdAt)}
-                </span>
-              </button>
-            </motion.div>
-          </div>
+          <RecordingRow
+            key={session.id}
+            session={session}
+            meta={formatRecentMeta(session.durationMs, session.createdAt)}
+            isSwipeOpen={swipeOpenId === session.id}
+            onSwipeOpenChange={(open) => setSwipeOpenId(open ? session.id : null)}
+            isHinting={hintRowId === session.id}
+            onHintPlayed={onHintPlayed}
+            onUserSwiped={onUserSwiped}
+            onSelect={() => handleSelect(session.id)}
+            onRequestDelete={() => setPendingDelete(session)}
+            onRename={(title) => handleRename(session.id, title)}
+          />
         ))}
       </div>
 
