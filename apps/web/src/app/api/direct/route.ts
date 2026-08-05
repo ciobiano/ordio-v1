@@ -44,11 +44,22 @@ const LOOK_PRESET_DESCRIPTIONS = `
 - cream-block: warm cream card, maroon type, the active word filling with a solid maroon block — soft, bookish, personal-brand quotes
 `.trim();
 
+/**
+ * Both arrays are interpolated straight into the prompt, so an unbounded array
+ * is an unbounded bill. The caps match find-clips (20k words) and leave ample
+ * headroom for a real episode.
+ */
+const MAX_TRANSCRIPT_WORDS = 20_000;
+const MAX_CAPTION_GROUPS = 2_000;
+
+const VALID_FORMATS = ['square', 'vertical', 'horizontal', 'instagram'] as const;
+type DirectFormat = (typeof VALID_FORMATS)[number];
+
 interface DirectRequestBody {
   transcript: Word[];
   /** group.text per captionGroups index — lets the model pick a valid hookGroupIndex. */
   captionGroupTexts: string[];
-  format: 'square' | 'vertical' | 'horizontal' | 'instagram';
+  format: DirectFormat;
 }
 
 function isValidBody(body: unknown): body is DirectRequestBody {
@@ -56,9 +67,17 @@ function isValidBody(body: unknown): body is DirectRequestBody {
   const b = body as Record<string, unknown>;
   return (
     Array.isArray(b.transcript) &&
+    b.transcript.length <= MAX_TRANSCRIPT_WORDS &&
+    b.transcript.every(
+      (w) => typeof w === 'object' && w !== null && typeof (w as Word).text === 'string'
+    ) &&
     Array.isArray(b.captionGroupTexts) &&
     b.captionGroupTexts.length > 0 &&
-    typeof b.format === 'string'
+    b.captionGroupTexts.length <= MAX_CAPTION_GROUPS &&
+    b.captionGroupTexts.every((t) => typeof t === 'string') &&
+    // Checked against the enum, not just `typeof string` — this value lands in
+    // the user prompt verbatim.
+    VALID_FORMATS.includes(b.format as DirectFormat)
   );
 }
 

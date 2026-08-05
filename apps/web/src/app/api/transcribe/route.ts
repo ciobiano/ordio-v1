@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { auth } from '@clerk/nextjs/server';
 import type { Word } from '@Ordio/shared/schemas';
+import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 import { getOpenAITranscriptionFilename } from './audioFile';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
@@ -17,6 +19,14 @@ function getClient(): OpenAI {
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
+
+// This route bills OpenAI per audio-minute, so it is the most expensive thing a
+// caller can trigger. Every other AI route already pairs auth with a per-hour
+// ceiling; this one is held to the same contract.
+//
+// TODO(human): choose the real budget for these two constants.
+const TRANSCRIBE_PER_HOUR = 20;
+const HOUR_MS = 60 * 60 * 1000;
 
 interface WhisperWord {
   word: string;
@@ -90,6 +100,18 @@ function mergePunctuation(words: WhisperWord[], segments: WhisperSegment[]): Wor
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!consumeRateLimit(`transcribe:${userId}`, TRANSCRIBE_PER_HOUR, HOUR_MS)) {
+      return NextResponse.json(
+        { error: 'Too many transcription requests — try again later' },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('audio');
 
@@ -153,12 +175,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[/api/transcribe]', message);
 
     if (message.includes('OPENAI_API_KEY')) {
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured. Add OPENAI_API_KEY to .env.local' },
-        { status: 500 }
-      );
+      // Deployment fault, not the caller's — and the detail stays in the log.
+      return NextResponse.json({ error: 'Transcription is unavailable' }, { status: 503 });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Never forward raw SDK/API error text to the client — it can carry request
+    // IDs, org identifiers and provider doc URLs. Full message is logged above.
+    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
   }
 }
