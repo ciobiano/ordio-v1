@@ -24,6 +24,21 @@ async function computeHmac(
     .join("");
 }
 
+/**
+ * Compare two hex digests without leaking their divergence point through
+ * timing. `===` on strings can short-circuit at the first differing byte; this
+ * always walks the full width. Length is compared first because it is not
+ * secret — only the contents are.
+ */
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 async function verifyStripeSignature(
   body: string,
   signatureHeader: string,
@@ -40,7 +55,7 @@ async function verifyStripeSignature(
     if (!timestamp || !expectedHex) return false;
 
     const hex = await computeHmac(`${timestamp}.${body}`, secret, "SHA-256");
-    return hex === expectedHex;
+    return timingSafeEqualHex(hex, expectedHex);
   } catch {
     return false;
   }
@@ -53,33 +68,16 @@ async function verifyPaystackSignature(
 ): Promise<boolean> {
   try {
     const hex = await computeHmac(body, secret, "SHA-512");
-    return hex === signatureHeader;
+    return timingSafeEqualHex(hex, signatureHeader);
   } catch {
     return false;
   }
 }
 
-// ─── Existing Route ───────────────────────────────────────────────────────────
-
-/**
- * Webhook for the renderer to update job status.
- * e.g. POST /updateStatus { jobId, status, renderedVideoId }
- */
-http.route({
-  path: "/updateStatus",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const { jobId, status, renderedVideoId, error } = await request.json();
-
-    if (!jobId || !status) {
-      return new Response("Missing jobId or status", { status: 400 });
-    }
-
-    console.log(`Received status update for ${jobId}: ${status}`);
-
-    return new Response(null, { status: 200 });
-  }),
-});
+// `/updateStatus` used to live here: an unauthenticated public POST route for a
+// renderer that no longer exists. It verified no signature, wrote nothing, and
+// only logged its input — a free, internet-reachable way to write attacker text
+// into our logs. Removed rather than secured; there is nothing left to secure.
 
 // ─── Stripe Webhook ───────────────────────────────────────────────────────────
 

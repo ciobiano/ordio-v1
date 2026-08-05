@@ -21,8 +21,34 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
+          // Cross-origin isolation — required for SharedArrayBuffer, which
+          // ffmpeg.wasm needs on the Safari export path.
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+
+          // Clickjacking. The app has one-tap destructive and paid actions, so
+          // it must never render inside someone else's frame.
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+
+          // Stop the browser second-guessing our Content-Types.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+
+          // Never leak a session URL (which carries a Convex session id) to a
+          // third-party origin; same-origin still gets the full path.
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+
+          // Mic is the one capability this app legitimately needs.
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), geolocation=(), interest-cohort=(), microphone=(self)',
+          },
+
+          // HSTS. Vercel serves https only, so there is no http origin to strand.
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
         ],
       },
     ];
