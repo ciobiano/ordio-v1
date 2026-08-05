@@ -47,13 +47,23 @@ const DOCK_ITEMS = [
   { id: 'reframe', label: 'Reframe', icon: CropIcon },
 ]
 
-/** Fixed heights, matching the design. Add is a three-row menu and needs far
- *  less room than the editors, which scroll. */
+/**
+ * The design's heights, but never more than the viewport can spare.
+ *
+ * These were flat pixel values, which is fine on a tall phone and ruinous on a
+ * short one: 372px of Style panel on an iPhone 12 in Safari left the canvas
+ * around 45px, and on an SE it collapsed entirely. The stage is what the user
+ * is editing, so `--export-panel-max-h` reserves it a floor first and the panel
+ * takes what remains. The panels already scroll, so height costs them a little
+ * more scrolling; it costs the canvas legibility.
+ *
+ * Add is a three-row menu and is short enough that the cap rarely binds.
+ */
 const PANEL_HEIGHT: Record<MobilePanel, string> = {
-  captions: 'h-[332px]',
-  style: 'h-[372px]',
-  trim: 'h-[332px]',
-  add: 'h-[210px]',
+  captions: 'h-[min(332px,var(--export-panel-max-h))]',
+  style: 'h-[min(372px,var(--export-panel-max-h))]',
+  trim: 'h-[min(332px,var(--export-panel-max-h))]',
+  add: 'h-[min(210px,var(--export-panel-max-h))]',
 }
 
 const DRAG_CLOSE_OFFSET = 80

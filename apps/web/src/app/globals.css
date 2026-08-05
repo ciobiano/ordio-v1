@@ -270,6 +270,27 @@
   --surface-sheet: rgba(255, 255, 255, 0.03);
   --sheet-bg: var(--acid-surface-1); /* single source of truth for sheet/drawer/sidebar dark surfaces */
 
+  /* ─── Export screen vertical budget (mobile) ───────────────────────
+     The bottom panels used to carry fixed pixel heights, which does not
+     survive a short phone: 372px of Style panel on a 745px viewport left the
+     canvas about 45px, and on an iPhone SE it collapsed to nothing. The stage
+     is the thing being edited, so it gets a floor and the panels take what is
+     left — they scroll internally, so losing height costs them far less than
+     it costs the canvas.
+
+     Chrome is everything fixed above and below the panel body:
+       54  export header
+       106 transport (14 pad + 44 controls + 44 scrubber row + 4 pad)
+       44  panel grab strip
+       74  dock (66 + 8) plus the safe area it reserves
+     The inline footer is absent unless the trim empties, so it is not counted;
+     when it appears the panel simply loses a little more. */
+  --export-chrome-h: calc(278px + env(safe-area-inset-bottom));
+  /* In dvh, not px, so the stage reads at a comparable size on every phone
+     rather than shrinking with the viewport. */
+  --export-canvas-floor: 32dvh;
+  --export-panel-max-h: calc(100dvh - var(--export-canvas-floor) - var(--export-chrome-h));
+
   /* ─── Onboarding tokens ─── */
   --onboarding-border: rgba(255, 255, 255, 0.07);
   --onboarding-glow-opacity: 0.28;
