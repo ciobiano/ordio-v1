@@ -12,7 +12,16 @@ function getStartOfToday(): number {
 }
 
 type PaystackVerifyResponse = {
-  data: { status: string; customer?: { customer_code?: string } };
+  data: {
+    status: string;
+    customer?: { customer_code?: string };
+    /**
+     * Set by us when the transaction is initialized (see
+     * apps/web/src/app/api/paystack/checkout/route.ts) and echoed back by
+     * Paystack. This is what ties a reference to the account that paid.
+     */
+    metadata?: { tokenIdentifier?: string } | null;
+  };
 };
 
 export const upsertUser = mutation({
@@ -230,6 +239,16 @@ export const confirmPaystackPayment = action({
 
     if (body.data.status !== "success") {
       throw new Error("Payment not confirmed by Paystack");
+    }
+
+    // The reference alone proves a payment happened — not that THIS caller made
+    // it. References travel in the callback URL, so without this check any
+    // signed-in user could replay someone else's reference and upgrade
+    // themselves for free. The metadata is stamped server-side at checkout
+    // creation from the authenticated userId, so it cannot be forged by a
+    // caller; it only had to be read.
+    if (body.data.metadata?.tokenIdentifier !== identity.tokenIdentifier) {
+      throw new Error("Payment reference does not belong to this account");
     }
 
     await ctx.runMutation(internal.users.setTier, {
