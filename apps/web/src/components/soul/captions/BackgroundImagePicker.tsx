@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
+import { backgroundLabelForUpload } from '@/lib/backgroundLabel';
 
 interface BackgroundImagePickerProps {
   onLocked?: (feature: FeatureKey) => void;
@@ -83,7 +84,10 @@ export function BackgroundImagePicker({ onLocked }: BackgroundImagePickerProps) 
       const { storageId } = (await res.json()) as { storageId: string };
       const assetId = await uploadBackground({
         storageId: storageId as GenericId<'_storage'>,
-        label: file.name.replace(/\.[^.]+$/, ''),
+        // Not the raw filename: iOS hands over things like
+        // `CFNetworkDownload_34hlmZ.tmp` for anything routed through the Files
+        // app, which is not a name the user would recognise.
+        label: backgroundLabelForUpload(file.name, myImages.length),
         mediaType: 'image',
         sizeBytes: file.size,
       });

@@ -14,6 +14,7 @@ import { hasWebCodecsSupport } from '@Ordio/engine/video';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import LockBadge from '@/components/ui/LockBadge';
 import type { FeatureKey } from '@/lib/featureGates';
+import { backgroundLabelForUpload } from '@/lib/backgroundLabel';
 
 interface BackgroundVideoPickerProps {
   onLocked?: (feature: FeatureKey) => void;
@@ -85,7 +86,9 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
       setUploadProgress(95);
       const assetId = await uploadBackground({
         storageId: storageId as GenericId<'_storage'>,
-        label: file.name.replace(/\.[^.]+$/, ''),
+        // See the note in BackgroundImagePicker — iOS temp handles are not
+        // labels.
+        label: backgroundLabelForUpload(file.name, myBackgrounds.length),
         mediaType: 'video',
         durationSec,
         sizeBytes: blob.size,
