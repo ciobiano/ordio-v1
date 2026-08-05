@@ -24,8 +24,11 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
 // caller can trigger. Every other AI route already pairs auth with a per-hour
 // ceiling; this one is held to the same contract.
 //
-// TODO(human): choose the real budget for these two constants.
-const TRANSCRIBE_PER_HOUR = 20;
+// 15/hour is sized off a heavy legitimate session — recording, discarding and
+// re-recording a handful of takes — rather than off cost, so a real user should
+// never meet it. The effective ceiling is higher still, since the limiter is
+// per warm serverless instance. Raise it if support ever sees a genuine 429.
+const TRANSCRIBE_PER_HOUR = 15;
 const HOUR_MS = 60 * 60 * 1000;
 
 interface WhisperWord {
