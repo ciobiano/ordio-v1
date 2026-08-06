@@ -7,11 +7,13 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import { useCheckout } from '@/hooks/billing/useCheckout'
 import { primaryBtn, captureSheetSurface } from '@/lib/variants'
 import type { FeatureKey } from '@/lib/featureGates'
+import type { UpgradeTarget } from '@/stores/uiStore'
 
 interface UpgradeSheetProps {
   open: boolean
   onClose: () => void
-  feature?: FeatureKey
+  /** Why the sheet opened. See `UpgradeTarget`. */
+  target?: UpgradeTarget
   onSignIn?: () => void
   onUpgrade?: () => void
 }
@@ -39,16 +41,39 @@ function featureLabel(feature: FeatureKey): string {
   return labels[feature]
 }
 
-export default function UpgradeSheet({ open, onClose, feature, onUpgrade }: UpgradeSheetProps) {
+/**
+ * What the sheet says, per reason for opening.
+ *
+ * Limits get their own copy because they are not locked features — the user did
+ * nothing wrong and nothing is broken, they have used an allowance up. The
+ * wording avoids "failed" and avoids naming credits, which are an internal unit;
+ * people are shown minutes everywhere else.
+ */
+export function copyFor(target: UpgradeTarget | undefined): { title: string; body: string } {
+  if (target === undefined || target === 'export_limit') {
+    return {
+      title: 'Daily export limit reached',
+      body: 'Unlimited exports are included with Creator.',
+    }
+  }
+
+  if (target === 'transcription_credits') {
+    return {
+      title: 'Transcription paused',
+      body: 'Your recording is safe — you have used up your free transcription minutes. Creator adds more every month.',
+    }
+  }
+
+  return {
+    title: `${featureLabel(target)} is a Creator feature`,
+    body: 'Upgrade to Creator to unlock this feature.',
+  }
+}
+
+export default function UpgradeSheet({ open, onClose, target, onUpgrade }: UpgradeSheetProps) {
   const { priceLabel } = useCheckout()
 
-  const isExportLimit = feature === undefined
-  const title = isExportLimit
-    ? 'Daily export limit reached'
-    : `${featureLabel(feature)} is a Creator feature`
-  const body = isExportLimit
-    ? 'Unlimited exports are included with Creator.'
-    : 'Upgrade to Creator to unlock this feature.'
+  const { title, body } = copyFor(target)
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()}>

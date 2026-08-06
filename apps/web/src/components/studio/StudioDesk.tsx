@@ -227,7 +227,7 @@ export function StudioDesk() {
       <UpgradeSheet
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
-        feature={upgradeTarget === 'export_limit' ? undefined : (upgradeTarget ?? undefined)}
+        target={upgradeTarget ?? undefined}
         onUpgrade={() =>
           startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
         }

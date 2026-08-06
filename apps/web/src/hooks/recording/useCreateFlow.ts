@@ -52,16 +52,6 @@ function outOfCreditsFrom(error: AudioProcessingError): InsufficientCreditsError
 }
 
 function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState {
-  const outOfCredits = outOfCreditsFrom(error);
-  if (outOfCredits) {
-    // TODO(human): write what the user sees when their free minutes run out.
-    return {
-      stage: 'transcription',
-      title: '',
-      detail: '',
-    };
-  }
-
   if (error.stage === 'enhancement') {
     return {
       stage: error.stage,
@@ -136,6 +126,14 @@ export function useCreateFlow() {
 
   const handleProcessingFailure = useCallback((err: unknown) => {
     if (err instanceof AudioProcessingError) {
+      // Running out of credits is a limit, not a fault: it goes to the upgrade
+      // sheet, which offers a way forward, rather than to the alert banner,
+      // which is hard-coded destructive and whose only action here would be
+      // "Dismiss".
+      if (outOfCreditsFrom(err)) {
+        setUpgradeTarget('transcription_credits');
+        return;
+      }
       setProcessingAlert(buildProcessingAlert(err));
       return;
     }
@@ -144,7 +142,7 @@ export function useCreateFlow() {
       title: 'Processing failed',
       detail: 'Processing stopped safely. You can retry from your previous screen.',
     });
-  }, []);
+  }, [setUpgradeTarget]);
 
   // ── Audio level sync ─────────────────────────────────────────────
 

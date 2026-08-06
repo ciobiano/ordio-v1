@@ -5,6 +5,20 @@ import { persist } from 'zustand/middleware';
 import type { StyleConfig } from '@Ordio/shared/schemas';
 import type { BreakMode, BreakQuantity } from '@Ordio/engine/captions/breaks';
 import type { FeatureKey } from '@/lib/featureGates';
+
+/**
+ * Why the upgrade sheet is open.
+ *
+ * A `FeatureKey` means the user reached for a locked control. The other two are
+ * limits rather than features — nothing is locked, they have simply used up an
+ * allowance — which is why they cannot be expressed as feature keys.
+ *
+ * These are the only sanctioned monetization prompts. A limit is never surfaced
+ * through `ProcessingAlertBanner`: that component is hard-coded to the
+ * destructive variant, so anything routed through it reads to the user as a
+ * crash rather than as an invitation.
+ */
+export type UpgradeTarget = FeatureKey | 'export_limit' | 'transcription_credits';
 import type {
   AppPhase,
   Theme,
@@ -53,7 +67,7 @@ interface UIState {
 
   // Transient Session GUI states
   currentState: AppPhase;
-  upgradeTarget: FeatureKey | 'export_limit' | null;
+  upgradeTarget: UpgradeTarget | null;
 
   // Actions
   setTheme: (theme: Theme) => void;
@@ -66,7 +80,7 @@ interface UIState {
   setBreaks: (settings: Partial<BreakSettings>) => void;
   resetCaptionTransform: () => void;
   setCurrentState: (state: AppPhase) => void;
-  setUpgradeTarget: (target: FeatureKey | 'export_limit' | null) => void;
+  setUpgradeTarget: (target: UpgradeTarget | null) => void;
   resetUI: () => void;
 }
 
