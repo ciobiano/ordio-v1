@@ -118,6 +118,13 @@ http.route({
         tokenIdentifier,
         stripeCustomerId: session.customer,
       });
+
+      // The processor that took the money decides the allowance — never the
+      // client, which infers its market from the device timezone.
+      await ctx.runMutation(internal.credits.setMonthlyAllowance, {
+        tokenIdentifier,
+        processor: "stripe",
+      });
     }
 
     if (event.type === "customer.subscription.deleted") {
@@ -131,6 +138,12 @@ http.route({
           tier: "free",
           subscriptionId: sub.id,
           subscriptionStatus: "canceled",
+        });
+
+        // Stops future refills. Their remaining balance stays theirs — they
+        // paid for this month, and cancelling should not confiscate it.
+        await ctx.runMutation(internal.credits.clearMonthlyAllowance, {
+          tokenIdentifier: user.tokenIdentifier,
         });
       }
     }
@@ -183,6 +196,12 @@ http.route({
         tokenIdentifier,
         paystackCustomerCode: charge.customer?.customer_code,
       });
+
+      // ₦999 buys a smaller allowance than $9.99 — see shared/src/credits.ts.
+      await ctx.runMutation(internal.credits.setMonthlyAllowance, {
+        tokenIdentifier,
+        processor: "paystack",
+      });
     }
 
     if (event.event === "subscription.disable") {
@@ -198,6 +217,11 @@ http.route({
             tier: "free",
             subscriptionId: sub.subscription_code,
             subscriptionStatus: "canceled",
+          });
+
+          // As above: stop refilling, but leave the paid-for balance alone.
+          await ctx.runMutation(internal.credits.clearMonthlyAllowance, {
+            tokenIdentifier: user.tokenIdentifier,
           });
         }
       }

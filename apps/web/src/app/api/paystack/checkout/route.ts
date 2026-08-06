@@ -12,7 +12,7 @@ import { resolveReturnOrigin } from '@/lib/checkoutReturnUrl';
 const PLANS = {
   creator: {
     planCode: process.env.NEXT_PUBLIC_PAYSTACK_CREATOR_PLAN_CODE,
-    amountKobo: 500_000, // ₦5,000
+    amountKobo: 99_900, // ₦999
   },
 } as const satisfies Record<string, { planCode: string | undefined; amountKobo: number }>;
 

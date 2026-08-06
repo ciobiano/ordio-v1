@@ -161,7 +161,9 @@ export function useAudioProcessing(
         }
 
         const transcriptionTask = transcriptionRef.current
-          .transcribeAudio(transcriptionBlob)
+          // Decoded duration sizes the credit hold; the server settles against
+          // Whisper's own figure afterwards.
+          .transcribeAudio(transcriptionBlob, decoded.duration)
           .catch((err) => {
             throw new AudioProcessingError(
               'transcription',

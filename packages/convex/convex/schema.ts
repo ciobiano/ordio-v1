@@ -8,6 +8,19 @@ export default defineSchema({
     tier: v.union(v.literal('free'), v.literal('creator'), v.literal('pro')),
     usageCount: v.number(), // Daily usage
     lastResetTime: v.number(), // Timestamp of last usage reset
+
+    // ── Credits ──────────────────────────────────────────────────────────────
+    // Optional throughout: rows created before credits shipped have none, and
+    // an absent balance must read as "not yet granted" rather than as zero, or
+    // existing users would be locked out on deploy. See shared/src/credits.ts.
+    /** Current balance. 10 credits = 1 minute of transcription. */
+    credits: v.optional(v.number()),
+    /** When the one-time welcome grant was given. Absent = never granted. */
+    welcomeGrantedAt: v.optional(v.number()),
+    /** Credits added on each monthly refill, set by the webhook that took payment. */
+    monthlyAllowance: v.optional(v.number()),
+    /** Timestamp of the last monthly refill, so a cycle is only credited once. */
+    lastRefillAt: v.optional(v.number()),
     stripeCustomerId: v.optional(v.string()),
     paystackCustomerCode: v.optional(v.string()),
     subscriptionId: v.optional(v.string()),

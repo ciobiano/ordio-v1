@@ -70,9 +70,15 @@ app = modal.App("ordio-audio-enhance")
     gpu="A10G",
     volumes={MODEL_DIR: model_volume},
     secrets=[HF_HUB_SECRET],
-    # Keep container alive 5 min after last request — eliminates cold starts
-    # for burst traffic without paying for always-on
-    scaledown_window=300,
+    # Keep the container alive briefly after the last request, so a user
+    # cleaning several clips in one sitting shares a single warm GPU.
+    #
+    # This was 300s. On an A10G that idle tail costs roughly 9c, against ~0.5c
+    # for the 15s of actual work — the waiting was ~20x the compute, and about
+    # six isolated requests consumed a whole month of a NGN999 subscription.
+    # 60s still covers back-to-back use within a session, which is the shape
+    # that actually matters, and costs under 2c.
+    scaledown_window=60,
     # MossFormer2 on a 2-min clip takes ~15s GPU; 3 min is a safe ceiling
     timeout=180,
     min_containers=0,  # scale to zero when idle ($0 cost)
