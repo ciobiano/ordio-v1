@@ -40,25 +40,22 @@ export const ENHANCE_CREDITS_PER_MINUTE = {
 
 export type EnhanceLevel = keyof typeof ENHANCE_CREDITS_PER_MINUTE;
 
-/** One-time welcome grant: 30 minutes. Costs us about $0.18 per signup. */
-export const WELCOME_GRANT_CREDITS = 300;
-
 /**
- * Monthly allowance per market, set from the webhook that took the payment
- * rather than from the client, which decides its market by reading the device
- * timezone and can therefore be told to lie.
+ * The one-time welcome grant: 30 minutes, and the only way credits ever enter
+ * an account now that nothing is for sale.
  *
- * The split is deliberate: ₦999 and $9.99 are very different revenue, so they
- * buy very different amounts of Whisper. Both stay profitable.
+ * That makes this number the whole cost model. Maximum lifetime spend per
+ * signup is one grant, so total exposure is `signups × 30 minutes` and nothing
+ * else — no subscription, no refill, no way for one user to run up a bill.
+ *
+ * Budget honestly at **≈ $0.69 per signup**, not the $0.36 the Whisper line
+ * item alone suggests. Every recorded minute is transcribed twice: once live
+ * through the Realtime API for disposable captions (≈ $0.017/min, and *not*
+ * metered here) and once through Whisper for the authoritative transcript
+ * (≈ $0.006/min, metered). The live pass is the larger cost and the invisible
+ * one. See `/api/realtime/transcription-token`.
  */
-export const MONTHLY_ALLOWANCE = {
-  /** Paystack — ₦999/mo nets ≈ $0.63, so 60 minutes costs ≈ $0.36. */
-  paystack: 600,
-  /** Stripe — $9.99/mo nets ≈ $9.40, so 10 hours costs ≈ $3.60. */
-  stripe: 6_000,
-} as const;
-
-export type BillingProcessor = keyof typeof MONTHLY_ALLOWANCE;
+export const WELCOME_GRANT_CREDITS = 300;
 
 /**
  * What a stretch of audio costs, rounded up to a whole credit.

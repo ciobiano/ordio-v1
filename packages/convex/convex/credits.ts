@@ -17,25 +17,27 @@
  * Step 3 is what makes step 1 safe to trust a client for. Under-reporting buys
  * exactly one transcription before the balance goes negative and the next hold
  * is refused.
+ *
+ * With nothing for sale, the ledger stopped being a monetisation lever and
+ * became the spend cap. The welcome grant is now the only way credits ever
+ * enter an account, which bounds what any one signup can ever cost us to a
+ * single grant's worth of Whisper. The subscription refill that used to live
+ * here went out with the checkout routes — no processor can set an allowance
+ * any more, so nothing could ever have triggered it.
  */
 
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireUser, getCurrentUser } from "./auth";
 import {
   WELCOME_GRANT_CREDITS,
-  MONTHLY_ALLOWANCE,
   creditsForSeconds,
   enhanceCreditsForSeconds,
   minutesFromCredits,
   applyDebit,
   settleHold,
-  type BillingProcessor,
 } from "@Ordio/shared";
 import type { Doc } from "./_generated/dataModel";
-
-/** A month, for refill purposes. Calendar months differ; billing does not care. */
-const REFILL_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * A row's balance, treating "never granted" as zero rather than as unlimited.
@@ -73,7 +75,6 @@ export const getMyCredits = query({
       credits,
       minutes: minutesFromCredits(credits),
       tier: user.tier,
-      monthlyAllowance: user.monthlyAllowance ?? null,
       welcomeGranted: user.welcomeGrantedAt !== undefined,
     };
   },
@@ -108,96 +109,6 @@ export const ensureWelcomeGrant = mutation({
     const credits = balanceOf(user) + WELCOME_GRANT_CREDITS;
     await ctx.db.patch(user._id, { credits, welcomeGrantedAt: Date.now() });
     return { granted: true, credits };
-  },
-});
-
-/**
- * Set a subscriber's monthly allowance and credit the first cycle.
- *
- * Internal, and called from the webhook that took the payment — never from the
- * client, and never keyed on the market the browser claims to be in. The
- * processor that charged the card is the only trustworthy signal of which
- * allowance was actually paid for.
- */
-export const setMonthlyAllowance = internalMutation({
-  args: {
-    tokenIdentifier: v.string(),
-    processor: v.union(v.literal("stripe"), v.literal("paystack")),
-  },
-  handler: async (ctx, { tokenIdentifier, processor }) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
-      .unique();
-
-    if (!user) return;
-
-    const allowance = MONTHLY_ALLOWANCE[processor as BillingProcessor];
-    await ctx.db.patch(user._id, {
-      monthlyAllowance: allowance,
-      // Top up rather than overwrite: a user who subscribes mid-cycle keeps
-      // whatever is left of their welcome grant. They paid for the allowance,
-      // not for the removal of what they already had.
-      credits: balanceOf(user) + allowance,
-      lastRefillAt: Date.now(),
-    });
-  },
-});
-
-/**
- * Stop refilling a lapsed subscriber, without confiscating their balance.
- *
- * Clearing `monthlyAllowance` is what ends the subscription; the credits they
- * already paid for stay theirs to spend. Taking them back would be charging for
- * a month and then withdrawing it.
- */
-export const clearMonthlyAllowance = internalMutation({
-  args: { tokenIdentifier: v.string() },
-  handler: async (ctx, { tokenIdentifier }) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
-      .unique();
-
-    if (!user) return;
-    await ctx.db.patch(user._id, { monthlyAllowance: undefined });
-  },
-});
-
-/**
- * Credit a subscriber's monthly allowance when a cycle has elapsed.
- *
- * Driven from app load rather than a cron so a dormant account does not
- * accumulate months of unused credits it never asked for. Guarded on elapsed
- * time, so calling it repeatedly within a cycle does nothing.
- */
-export const refillIfDue = mutation({
-  args: {},
-  handler: async (ctx): Promise<{ refilled: boolean; credits: number }> => {
-    const identity = await requireUser(ctx);
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) return { refilled: false, credits: 0 };
-
-    const allowance = user.monthlyAllowance;
-    if (!allowance) return { refilled: false, credits: balanceOf(user) };
-
-    const now = Date.now();
-    const last = user.lastRefillAt ?? 0;
-    if (now - last < REFILL_INTERVAL_MS) {
-      return { refilled: false, credits: balanceOf(user) };
-    }
-
-    // Set rather than accumulate: an allowance is what you get each month, not
-    // something that stockpiles indefinitely while you are not using it. A
-    // balance already above the allowance (from a recent top-up) is left alone.
-    const credits = Math.max(balanceOf(user), allowance);
-    await ctx.db.patch(user._id, { credits, lastRefillAt: now });
-    return { refilled: true, credits };
   },
 });
 

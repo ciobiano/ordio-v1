@@ -3,7 +3,6 @@
 import { useCallback } from 'react';
 import { getCanvasDimensions, useCaptureStore, useUIStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
-import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
@@ -21,19 +20,23 @@ export function StudioExportBody({ playback }: StudioExportBodyProps) {
   const graphicStyle = useUIStore((s) => s.graphicStyle);
   const setUpgradeTarget = useUIStore((s) => s.setUpgradeTarget);
   const audioBuffer = useCaptureStore((s) => s.audioBuffer);
-  const { tier } = useCurrentUser();
   const exporter = useVideoExporter();
   const exportGate = useExportGate();
   const { isLocked } = useFeatureGates();
 
-  const showWatermark = tier === 'free';
+  // Every export is marked, because there is no longer a tier that could buy
+  // its way out of one. It stopped being a paywall the day checkout was
+  // removed and became plain attribution: an audiogram posted to someone
+  // else's feed is the only distribution this project has.
+  const showWatermark = true;
 
   const handleExport = useCallback(async () => {
     if (!audioBuffer) return;
 
     const style = useUIStore.getState().style;
 
-    // Video backgrounds preview free, but export is creator-gated.
+    // Dormant while every gate reads 'free' — kept as the seam a paid tier
+    // would come back through, not as live behaviour.
     if (style.background?.type === 'video' && isLocked('background_video')) {
       setUpgradeTarget('background_video');
       return;
@@ -123,11 +126,9 @@ export function StudioExportBody({ playback }: StudioExportBodyProps) {
           <div className="text-xs text-acid-error">{exporter.error}</div>
         )}
 
-        {showWatermark && (
-          <div className="text-[11px] text-acid-text-3">
-            Free tier exports include a watermark.
-          </div>
-        )}
+        <div className="text-[11px] text-acid-text-3">
+          Exports include a small Ordio mark.
+        </div>
       </div>
     </div>
   );

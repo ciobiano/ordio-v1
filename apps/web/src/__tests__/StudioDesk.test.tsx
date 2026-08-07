@@ -23,7 +23,7 @@ vi.mock('@Ordio/convex', () => ({
 vi.mock('@/components/soul/auth/UserAvatarButton', () => ({
   default: () => <div data-testid="user-avatar-button" />,
 }));
-vi.mock('@/components/soul/modals/UpgradeSheet', () => ({
+vi.mock('@/components/soul/modals/WaitlistSheet', () => ({
   default: () => null,
 }));
 vi.mock('@/components/soul/captions/StyleControls', () => ({
@@ -37,9 +37,6 @@ vi.mock('@/components/soul/recording/AudioSettings', () => ({
 }));
 vi.mock('@/components/studio/StudioExportBody', () => ({
   StudioExportBody: () => <div data-testid="export-body" />,
-}));
-vi.mock('@/hooks/billing/useCheckout', () => ({
-  useCheckout: () => ({ startCheckout: vi.fn(async () => {}) }),
 }));
 vi.mock('@/lib/persistence/recordingDraft', () => ({
   getRecordingDraft: vi.fn().mockResolvedValue(null),

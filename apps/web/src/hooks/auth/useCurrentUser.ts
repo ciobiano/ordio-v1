@@ -17,24 +17,22 @@ export function useCurrentUser(): CurrentUser {
   const me = useQuery(api.users.getMe);
   const upsertUser = useMutation(api.users.upsertUser);
   const ensureWelcomeGrant = useMutation(api.credits.ensureWelcomeGrant);
-  const refillIfDue = useMutation(api.credits.refillIfDue);
 
   const upsertedRef = useRef(false);
   useEffect(() => {
     if (isAuthenticated && !upsertedRef.current) {
       upsertedRef.current = true;
 
-      // Strictly ordered: both credit mutations look the user up by token and
-      // no-op when the row is missing, so provisioning has to finish first or a
-      // brand-new signup silently gets no welcome grant.
+      // Strictly ordered: the grant looks the user up by token and no-ops when
+      // the row is missing, so provisioning has to finish first or a brand-new
+      // signup silently gets no welcome grant.
       //
-      // Both are idempotent — the grant is guarded on `welcomeGrantedAt` and the
-      // refill on elapsed time — so running them on every sign-in is safe.
+      // Idempotent — guarded on `welcomeGrantedAt` — so running it on every
+      // sign-in is safe.
       void (async () => {
         try {
           await upsertUser();
           await ensureWelcomeGrant();
-          await refillIfDue();
         } catch {
           // Provisioning is best-effort. A failure here leaves the user with
           // whatever balance they had; the next sign-in retries.
@@ -44,7 +42,7 @@ export function useCurrentUser(): CurrentUser {
     if (!isAuthenticated) {
       upsertedRef.current = false;
     }
-  }, [isAuthenticated, upsertUser, ensureWelcomeGrant, refillIfDue]);
+  }, [isAuthenticated, upsertUser, ensureWelcomeGrant]);
 
   if (!isAuthenticated) {
     return { tier: 'free', usageCount: 0, isAuthenticated: false, isLoading: authLoading };

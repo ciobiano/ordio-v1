@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   CREDITS_PER_MINUTE,
   WELCOME_GRANT_CREDITS,
-  MONTHLY_ALLOWANCE,
   creditsForSeconds,
   minutesFromCredits,
   applyDebit,
@@ -15,18 +14,12 @@ describe('credit constants', () => {
     expect(minutesFromCredits(WELCOME_GRANT_CREDITS)).toBe(30);
   });
 
-  it('gives Paystack subscribers 60 minutes a month', () => {
-    expect(minutesFromCredits(MONTHLY_ALLOWANCE.paystack)).toBe(60);
-  });
-
-  it('gives Stripe subscribers 10 hours a month', () => {
-    expect(minutesFromCredits(MONTHLY_ALLOWANCE.stripe)).toBe(600);
-  });
-
-  it('keeps the paid allowance above the free grant in both markets', () => {
-    // Otherwise subscribing is a downgrade.
-    expect(MONTHLY_ALLOWANCE.paystack).toBeGreaterThan(WELCOME_GRANT_CREDITS);
-    expect(MONTHLY_ALLOWANCE.stripe).toBeGreaterThan(WELCOME_GRANT_CREDITS);
+  it('is the only way credits ever enter an account', () => {
+    // With no checkout and no refill, the welcome grant is the entire cost
+    // model: lifetime exposure per signup is exactly one grant. If a second
+    // credit source ever appears, this assertion is the wrong one to delete —
+    // the budget maths in credits.ts is what needs revisiting first.
+    expect(minutesFromCredits(WELCOME_GRANT_CREDITS)).toBe(30);
   });
 });
 

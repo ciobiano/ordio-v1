@@ -10,9 +10,8 @@ import { useStudioEdits } from '@/hooks/studio/useStudioEdits';
 import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCaptureStore, useUIStore } from '@/stores';
-import { useCheckout } from '@/hooks/billing/useCheckout';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
-import UpgradeSheet from '@/components/soul/modals/UpgradeSheet';
+import WaitlistSheet from '@/components/soul/modals/WaitlistSheet';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
 import { CenterStage } from './CenterStage';
@@ -51,7 +50,6 @@ export function StudioDesk() {
   const setStyle = useUIStore((s) => s.setStyle);
   const setFormat = useUIStore((s) => s.setFormat);
   const setWaveformStyle = useUIStore((s) => s.setWaveformStyle);
-  const { startCheckout } = useCheckout();
 
   const session = useQuery(
     api.sessions.getSession,
@@ -224,13 +222,10 @@ export function StudioDesk() {
         }}
       />
 
-      <UpgradeSheet
+      <WaitlistSheet
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
         target={upgradeTarget ?? undefined}
-        onUpgrade={() =>
-          startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
-        }
       />
 
       {/* Long-episode clip-finder pipeline — routes files over the duration

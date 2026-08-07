@@ -17,10 +17,6 @@ export default defineSchema({
     credits: v.optional(v.number()),
     /** When the one-time welcome grant was given. Absent = never granted. */
     welcomeGrantedAt: v.optional(v.number()),
-    /** Credits added on each monthly refill, set by the webhook that took payment. */
-    monthlyAllowance: v.optional(v.number()),
-    /** Timestamp of the last monthly refill, so a cycle is only credited once. */
-    lastRefillAt: v.optional(v.number()),
     stripeCustomerId: v.optional(v.string()),
     paystackCustomerCode: v.optional(v.string()),
     subscriptionId: v.optional(v.string()),
@@ -31,6 +27,24 @@ export default defineSchema({
   .index("by_token", ["tokenIdentifier"])
   .index("by_stripe_customer", ["stripeCustomerId"])
   .index("by_paystack_customer", ["paystackCustomerCode"]),
+
+  /**
+   * People who ran out of free minutes and asked to be told when more exist.
+   *
+   * Kept deliberately thin. This is a demand signal, not a CRM: the only
+   * questions it needs to answer are how many people hit the ceiling and how
+   * to reach them. Anything else is recoverable from the users table.
+   */
+  waitlist: defineTable({
+    /** Clerk tokenIdentifier — everyone who can hit the limit is signed in. */
+    tokenIdentifier: v.string(),
+    email: v.string(),
+    /** What they were trying to do when they hit the wall. */
+    reason: v.string(),
+    joinedAt: v.number(),
+  })
+  .index("by_token", ["tokenIdentifier"])
+  .index("by_email", ["email"]),
 
   backgroundAssets: defineTable({
     userId: v.string(),          // Clerk user ID (tokenIdentifier)

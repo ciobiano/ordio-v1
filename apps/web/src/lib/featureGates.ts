@@ -26,35 +26,32 @@ const TIER_RANK: Record<UserTier, number> = {
 };
 
 /**
- * What a tier unlocks.
+ * What a tier unlocks — currently, everything.
  *
- * The rule: **gate what costs us money, give away what does not.**
+ * There is nothing to buy. The checkout routes are gone, so no account can ever
+ * hold a tier above `free`, and a gate left at `creator` would be a permanently
+ * shut door rather than a prompt to upgrade. A lock with no key on sale is
+ * indistinguishable from a broken feature.
  *
- * Fonts, waveform shapes, aspect ratios and layouts are drawn on the user's own
- * device. They cost us nothing per use and are infinite in supply, so locking
- * them bought no margin and cost conversions — they are exactly the things that
- * make someone think "this is good" before they have paid anything. They are
- * free now.
+ * The spend ceiling moved wholesale to the credit ledger, which is the better
+ * instrument regardless: it meters the thing that actually costs money, by the
+ * minute, instead of guessing which features correlate with cost. Enhancement
+ * and Director rerolls were gated because they burn GPU seconds and completions
+ * — those are now bounded by the same finite balance as everything else.
  *
- * What remains gated all has a bill behind it: GPU seconds for enhancement,
- * Convex storage for uploaded backgrounds, OpenAI calls for Director rerolls.
- * Transcription is not here at all — it is metered in credits instead, which is
- * a better fit for a per-minute cost than a yes/no gate.
- *
- * The other paid lever is the export watermark, which is not a feature gate at
- * all: see `StudioExportBody`, where it keys off `tier === 'free'`. It costs us
- * nothing to remove and is the most common reason people upgrade, which makes
- * it the ideal thing to charge for.
+ * The table is kept rather than deleted because it is the seam a paid tier
+ * would come back through, and `tierHasAccess` still guards every call site.
+ * Flipping one entry back to `creator` is the entire change.
  */
 export const FEATURE_GATES: Record<FeatureKey, UserTier> = {
-  // ── Costs us money per use ───────────────────────────────────────────────
-  enhance_clean: 'creator', // Modal A10G seconds
-  enhance_hd: 'creator', // Modal A10G seconds, and also priced in credits
-  background_video: 'creator', // Convex storage + egress
-  background_upload: 'creator', // Convex storage
-  director_reroll: 'creator', // an extra OpenAI completion per reroll
+  // ── Bounded by the credit ledger rather than by tier ─────────────────────
+  enhance_clean: 'free',
+  enhance_hd: 'free',
+  background_video: 'free',
+  background_upload: 'free',
+  director_reroll: 'free',
 
-  // ── Free: rendered on the user's device, costs us nothing ────────────────
+  // ── Rendered on the user's device, costs us nothing ──────────────────────
   waveform_circle: 'free',
   waveform_spectrogram: 'free',
   font_poppins: 'free',
