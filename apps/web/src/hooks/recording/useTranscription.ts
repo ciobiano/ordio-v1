@@ -2,12 +2,18 @@
 
 import { useState, useCallback } from 'react';
 import type { Word } from '@Ordio/shared/schemas';
+import { transcriptionErrorFor } from '@/lib/transcription/insufficientCredits';
 
 export interface UseTranscriptionReturn {
   isTranscribing: boolean;
   transcript: Word[];
   error: string | null;
-  transcribeAudio: (blob: Blob) => Promise<Word[]>;
+  /**
+   * `durationSec` sizes the credit hold. It is not trusted — the server
+   * reconciles against the duration Whisper reports — but passing it means an
+   * honest caller's hold matches what they actually spend.
+   */
+  transcribeAudio: (blob: Blob, durationSec?: number) => Promise<Word[]>;
   clearTranscript: () => void;
 }
 
@@ -16,41 +22,26 @@ export function useTranscription(): UseTranscriptionReturn {
   const [transcript, setTranscript] = useState<Word[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const transcribeAudio = useCallback(async (blob: Blob): Promise<Word[]> => {
+  const transcribeAudio = useCallback(async (blob: Blob, durationSec?: number): Promise<Word[]> => {
     setIsTranscribing(true);
     setError(null);
     try {
       const formData = new FormData();
       formData.append('audio', blob);
+      if (durationSec !== undefined && Number.isFinite(durationSec)) {
+        formData.append('durationSec', String(durationSec));
+      }
 
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7303/ingest/ea0527ef-c382-4800-867c-062d25f2a635', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '381f43' },
-        body: JSON.stringify({
-          sessionId: '381f43',
-          runId: 'post-fix',
-          location: 'useTranscription.ts:transcribeAudio:response',
-          message: '/api/transcribe response',
-          data: {
-            ok: res.ok,
-            status: res.status,
-            sentMime: blob.type,
-            sentSize: blob.size,
-          },
-          timestamp: Date.now(),
-          hypothesisId: 'C',
-        }),
-      }).catch(() => {});
-      // #endregion
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Transcription failed' }));
-        throw new Error(body.error ?? `Transcription failed (${res.status})`);
+        const body: unknown = await res.json().catch(() => ({}));
+        // Out of credits is its own error type — callers show an upgrade
+        // prompt for it rather than offering a retry that cannot succeed.
+        throw transcriptionErrorFor(res.status, body);
       }
 
       const { words } = (await res.json()) as { words: Word[] };

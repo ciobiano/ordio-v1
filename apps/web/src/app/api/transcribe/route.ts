@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { auth } from '@clerk/nextjs/server';
+import { fetchMutation } from 'convex/nextjs';
+import { api } from '@Ordio/convex';
 import type { Word } from '@Ordio/shared/schemas';
 import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 import { getOpenAITranscriptionFilename } from './audioFile';
@@ -30,6 +32,19 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
 // per warm serverless instance. Raise it if support ever sees a genuine 429.
 const TRANSCRIBE_PER_HOUR = 15;
 const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Read the caller's declared audio length from the form.
+ *
+ * Only ever used to size the credit hold — the settle step reconciles against
+ * Whisper's reported duration, so a caller who under-reports gains one
+ * transcription and a negative balance, not free service.
+ */
+function parseDeclaredDuration(value: FormDataEntryValue | null): number {
+  if (typeof value !== 'string') return 0;
+  const seconds = Number.parseFloat(value);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+}
 
 interface WhisperWord {
   word: string;
@@ -102,12 +117,42 @@ function mergePunctuation(words: WhisperWord[], segments: WhisperSegment[]): Wor
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Declared outside the try so the catch can return the hold. A user must
+  // never pay for a transcription that failed.
+  let held = 0;
+  let convexToken: string | undefined;
+
+  /**
+   * Reconcile the hold against what the transcription actually cost.
+   *
+   * Pass 0 seconds to return the whole hold — that is the failure path.
+   * Settling must never throw: a ledger hiccup should not turn a successful
+   * transcription into an error the user sees. Worst case the hold stands,
+   * which is at most a few seconds of over-charge on an honest estimate.
+   */
+  const settle = async (actualSeconds: number): Promise<void> => {
+    if (held === 0 || !convexToken) return;
+    try {
+      await fetchMutation(
+        api.credits.settleTranscription,
+        { held, actualSeconds },
+        { token: convexToken }
+      );
+      held = 0;
+    } catch (err) {
+      console.error('[/api/transcribe] settle failed; hold stands', err);
+    }
+  };
+
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // The rate limit is an anti-hammering brake; credits are the real spend
+    // ceiling. Both, because the limiter also protects the credit ledger from
+    // a client looping faster than Convex can settle.
     if (!consumeRateLimit(`transcribe:${userId}`, TRANSCRIBE_PER_HOUR, HOUR_MS)) {
       return NextResponse.json(
         { error: 'Too many transcription requests — try again later' },
@@ -125,6 +170,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: 'Audio file exceeds 25MB Whisper limit' }, { status: 413 });
     }
+
+    // Convex verifies this token itself; the route is only a courier.
+    convexToken = (await getToken({ template: 'convex' })) ?? undefined;
+    if (!convexToken) {
+      console.error('[/api/transcribe] no Convex token — check the Clerk JWT template named "convex"');
+      return NextResponse.json({ error: 'Transcription is unavailable' }, { status: 503 });
+    }
+
+    const declaredSeconds = parseDeclaredDuration(formData.get('durationSec'));
+    const hold = await fetchMutation(
+      api.credits.holdForTranscription,
+      { estimatedSeconds: declaredSeconds },
+      { token: convexToken }
+    );
+
+    if (!hold.allowed) {
+      return NextResponse.json(
+        { error: 'Out of transcription credits', code: 'INSUFFICIENT_CREDITS', minutes: hold.minutes },
+        { status: 402 }
+      );
+    }
+    held = hold.held;
 
     const client = getClient();
 
@@ -153,8 +220,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       duration?: number;
     };
 
+    // Whisper's own duration is the billable figure — the client's estimate
+    // only ever sized the hold.
+    const actualSeconds = verboseResponse.duration ?? 0;
+
     const rawWords = verboseResponse.words;
     if (!rawWords || !Array.isArray(rawWords) || rawWords.length === 0) {
+      await settle(actualSeconds);
       return NextResponse.json({
         words: [{ text: response.text, start: 0, end: response.duration ?? 0 }],
       });
@@ -172,8 +244,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ? mergePunctuation(validWords, validSegments)
         : validWords.map((w) => ({ text: w.word.trim(), start: w.start, end: w.end }));
 
+    await settle(actualSeconds);
     return NextResponse.json({ words });
   } catch (err) {
+    // Nobody pays for a transcription that failed.
+    await settle(0);
+
     const message = err instanceof Error ? err.message : 'Transcription failed';
     console.error('[/api/transcribe]', message);
 

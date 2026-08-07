@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
 import { usePlayback } from '@/hooks/playback/usePlayback';
-import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
 import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
@@ -66,7 +65,6 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
   const exporter = useVideoExporter();
   const playback = usePlayback();
   const loadAudio = playback.load;
-  const { tier } = useCurrentUser();
   const exportGate = useExportGate();
 
   // Guard: session undefined = loading; null = not found/expired
@@ -200,7 +198,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
         waveformStyle={waveformStyle}
         canvasLayout={canvasLayout}
         graphicStyle={graphicStyle}
-        showWatermark={tier === 'free'}
+        showWatermark
         onExportStart={handleExportStart}
         onDownload={handleDownload}
         onReset={handleReset}

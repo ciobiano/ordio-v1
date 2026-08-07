@@ -16,6 +16,7 @@ import {
   type AudioProcessingFailureStage,
   useAudioProcessing,
 } from '@/hooks/audio/useAudioProcessing';
+import { InsufficientCreditsError } from '@/lib/transcription/insufficientCredits';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useLiveTranscription } from '@/hooks/recording/useLiveTranscription';
 import { useMicPermission } from '@/hooks/recording/useMicPermission';
@@ -35,6 +36,19 @@ export interface ProcessingAlertState {
   stage: AudioProcessingFailureStage;
   title: string;
   detail: string;
+}
+
+/**
+ * Pull the out-of-credits failure back out of the wrapper.
+ *
+ * `useAudioProcessing` wraps every transcription failure in an
+ * `AudioProcessingError`, preserving the original as `cause`. Running out of
+ * credits arrives that way too, but it is not a failure in the usual sense —
+ * nothing broke, and retrying cannot succeed — so it needs telling apart before
+ * the generic "Transcription failed" copy is chosen.
+ */
+function outOfCreditsFrom(error: AudioProcessingError): InsufficientCreditsError | null {
+  return error.cause instanceof InsufficientCreditsError ? error.cause : null;
 }
 
 function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState {
@@ -112,6 +126,14 @@ export function useCreateFlow() {
 
   const handleProcessingFailure = useCallback((err: unknown) => {
     if (err instanceof AudioProcessingError) {
+      // Running out of credits is a limit, not a fault: it goes to the upgrade
+      // sheet, which offers a way forward, rather than to the alert banner,
+      // which is hard-coded destructive and whose only action here would be
+      // "Dismiss".
+      if (outOfCreditsFrom(err)) {
+        setUpgradeTarget('transcription_credits');
+        return;
+      }
       setProcessingAlert(buildProcessingAlert(err));
       return;
     }
@@ -120,7 +142,7 @@ export function useCreateFlow() {
       title: 'Processing failed',
       detail: 'Processing stopped safely. You can retry from your previous screen.',
     });
-  }, []);
+  }, [setUpgradeTarget]);
 
   // ── Audio level sync ─────────────────────────────────────────────
 

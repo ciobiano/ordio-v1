@@ -6,12 +6,9 @@ import { Suspense } from 'react';
 import { useUIStore } from '@/stores';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
-import { useCheckout } from '@/hooks/billing/useCheckout';
-import { usePaymentRedirect } from '@/hooks/billing/usePaymentRedirect';
 import { useAuth } from '@clerk/nextjs';
-import { toast } from 'sonner';
 import { CapabilityBanner } from '@/components/primitives';
-import { UpgradeSheet } from '@/components/soul';
+import { WaitlistSheet } from '@/components/soul';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 
@@ -21,9 +18,6 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = useCurrentUser();
   const { isSignedIn } = useAuth();
   useOverlayLoading(isLoading);
-  const { startCheckout } = useCheckout();
-
-  usePaymentRedirect();
 
   if (isLoading) return null;
 
@@ -45,14 +39,11 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Upgrade sheet - modal overlay */}
-      <UpgradeSheet
+      {/* Waitlist sheet - modal overlay */}
+      <WaitlistSheet
         open={upgradeTarget !== null}
         onClose={() => setUpgradeTarget(null)}
-        feature={upgradeTarget === 'export_limit' ? undefined : (upgradeTarget ?? undefined)}
-        onUpgrade={() =>
-          startCheckout('creator').catch(() => toast.error('Checkout failed. Please try again.'))
-        }
+        target={upgradeTarget ?? undefined}
       />
 
       {/* Brand watermark - subtle, non-interactive */}

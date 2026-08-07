@@ -1,5 +1,4 @@
-import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireUser, getCurrentUser } from "./auth";
 
@@ -218,49 +217,3 @@ export const setTierByEmail = internalMutation({
   },
 });
 
-/**
- * PUBLIC ACTION: Verifies a Paystack payment reference server-side and upgrades
- * the calling user's tier to 'creator'. Called from the client after redirect.
- */
-export const confirmPaystackPayment = action({
-  args: { reference: v.string() },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const res = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`,
-      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    );
-
-    if (!res.ok) throw new Error("Paystack verification request failed");
-
-    const body = (await res.json()) as PaystackVerifyResponse;
-
-    if (body.data.status !== "success") {
-      throw new Error("Payment not confirmed by Paystack");
-    }
-
-    // The reference alone proves a payment happened — not that THIS caller made
-    // it. References travel in the callback URL, so without this check any
-    // signed-in user could replay someone else's reference and upgrade
-    // themselves for free. The metadata is stamped server-side at checkout
-    // creation from the authenticated userId, so it cannot be forged by a
-    // caller; it only had to be read.
-    if (body.data.metadata?.tokenIdentifier !== identity.tokenIdentifier) {
-      throw new Error("Payment reference does not belong to this account");
-    }
-
-    await ctx.runMutation(internal.users.setTier, {
-      tokenIdentifier: identity.tokenIdentifier,
-      tier: "creator",
-      subscriptionId: args.reference,
-      subscriptionStatus: "active",
-    });
-
-    await ctx.runMutation(internal.users.setCustomerId, {
-      tokenIdentifier: identity.tokenIdentifier,
-      paystackCustomerCode: body.data.customer?.customer_code,
-    });
-  },
-});

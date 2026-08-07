@@ -84,11 +84,20 @@ describe('BACKGROUND_LIBRARY', () => {
 });
 
 describe('feature gates', () => {
-  it('gates background_video and background_upload at creator', () => {
-    expect(FEATURE_GATES.background_video).toBe('creator');
-    expect(FEATURE_GATES.background_upload).toBe('creator');
-    expect(tierHasAccess('free', FEATURE_GATES.background_video)).toBe(false);
-    expect(tierHasAccess('creator', FEATURE_GATES.background_video)).toBe(true);
+  it('leaves backgrounds open, since there is no tier that could unlock them', () => {
+    // Nothing is for sale, so a 'creator' gate here would be a door with no
+    // key rather than an upgrade prompt. Storage cost is bounded by the credit
+    // ledger instead. See the note on FEATURE_GATES.
+    expect(FEATURE_GATES.background_video).toBe('free');
+    expect(FEATURE_GATES.background_upload).toBe('free');
+    expect(tierHasAccess('free', FEATURE_GATES.background_video)).toBe(true);
+  });
+
+  it('still refuses access when a gate is raised above the user tier', () => {
+    // tierHasAccess is the mechanism a paid tier would come back through, so
+    // it is asserted independently of what the table currently says.
+    expect(tierHasAccess('free', 'creator')).toBe(false);
+    expect(tierHasAccess('creator', 'creator')).toBe(true);
   });
 });
 

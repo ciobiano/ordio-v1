@@ -4,4 +4,4 @@ export { default as CaptionEditor } from './captions/CaptionEditor';
 export { default as ExportState } from './states/ExportState';
 export { default as FormatToggle } from './shared/FormatToggle';
 export { default as StyleControls } from './captions/StyleControls';
-export { default as UpgradeSheet } from './modals/UpgradeSheet';
+export { default as WaitlistSheet } from './modals/WaitlistSheet';
