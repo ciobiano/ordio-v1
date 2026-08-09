@@ -1,0 +1,3 @@
+# Audio is large and, for LibriSpeech, reproducible from a public download.
+# Reference transcripts are committed — they are the part with judgement in them.
+samples/audio/
