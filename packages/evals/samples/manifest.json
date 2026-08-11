@@ -1,1 +1,142 @@
-[]
+[
+  {
+    "id": "5639-40744-0031",
+    "audio": "audio/5639-40744-0031.flac",
+    "reference": "reference/5639-40744-0031.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 5639 (M), 83 words"
+  },
+  {
+    "id": "908-157963-0007",
+    "audio": "audio/908-157963-0007.flac",
+    "reference": "reference/908-157963-0007.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 908 (M), 77 words"
+  },
+  {
+    "id": "5105-28241-0015",
+    "audio": "audio/5105-28241-0015.flac",
+    "reference": "reference/5105-28241-0015.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 5105 (M), 75 words"
+  },
+  {
+    "id": "1188-133604-0009",
+    "audio": "audio/1188-133604-0009.flac",
+    "reference": "reference/1188-133604-0009.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 1188 (M), 70 words"
+  },
+  {
+    "id": "1995-1836-0004",
+    "audio": "audio/1995-1836-0004.flac",
+    "reference": "reference/1995-1836-0004.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 1995 (F), 96 words"
+  },
+  {
+    "id": "2094-142345-0008",
+    "audio": "audio/2094-142345-0008.flac",
+    "reference": "reference/2094-142345-0008.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 2094 (F), 88 words"
+  },
+  {
+    "id": "4970-29093-0006",
+    "audio": "audio/4970-29093-0006.flac",
+    "reference": "reference/4970-29093-0006.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 4970 (F), 87 words"
+  },
+  {
+    "id": "5142-36377-0014",
+    "audio": "audio/5142-36377-0014.flac",
+    "reference": "reference/5142-36377-0014.txt",
+    "split": "clean",
+    "note": "LibriSpeech test-clean, speaker 5142 (F), 84 words"
+  },
+  {
+    "id": "7018-75789-0029",
+    "audio": "audio/7018-75789-0029.flac",
+    "reference": "reference/7018-75789-0029.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 7018 (M), 91 words"
+  },
+  {
+    "id": "2033-164915-0004",
+    "audio": "audio/2033-164915-0004.flac",
+    "reference": "reference/2033-164915-0004.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 2033 (M), 86 words"
+  },
+  {
+    "id": "7902-96592-0014",
+    "audio": "audio/7902-96592-0014.flac",
+    "reference": "reference/7902-96592-0014.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 7902 (M), 64 words"
+  },
+  {
+    "id": "7105-2340-0005",
+    "audio": "audio/7105-2340-0005.flac",
+    "reference": "reference/7105-2340-0005.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 7105 (M), 63 words"
+  },
+  {
+    "id": "4294-14317-0014",
+    "audio": "audio/4294-14317-0014.flac",
+    "reference": "reference/4294-14317-0014.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 4294 (F), 119 words"
+  },
+  {
+    "id": "367-293981-0010",
+    "audio": "audio/367-293981-0010.flac",
+    "reference": "reference/367-293981-0010.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 367 (F), 88 words"
+  },
+  {
+    "id": "5442-41168-0009",
+    "audio": "audio/5442-41168-0009.flac",
+    "reference": "reference/5442-41168-0009.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 5442 (F), 82 words"
+  },
+  {
+    "id": "6070-86744-0018",
+    "audio": "audio/6070-86744-0018.flac",
+    "reference": "reference/6070-86744-0018.txt",
+    "split": "other",
+    "note": "LibriSpeech test-other, speaker 6070 (F), 81 words"
+  },
+  {
+    "id": "ralph-equiano-take1",
+    "audio": "audio/ralph-equiano-take1.m4a",
+    "reference": "reference/ralph-equiano-take1.txt",
+    "split": "ralph-quiet",
+    "note": "Equiano ch.1 (markets/manufactures), read aloud, quiet room, 210 words"
+  },
+  {
+    "id": "ralph-equiano-take2",
+    "audio": "audio/ralph-equiano-take2.m4a",
+    "reference": "reference/ralph-equiano-take2.txt",
+    "split": "ralph-quiet",
+    "note": "Equiano ch.1 (land is rich), read aloud, quiet room, 228 words"
+  },
+  {
+    "id": "ralph-equiano-take3",
+    "audio": "audio/ralph-equiano-take3.m4a",
+    "reference": "reference/ralph-equiano-take3.txt",
+    "split": "ralph-quiet",
+    "note": "Equiano ch.1 (nation of dancers), read aloud, quiet room, 202 words"
+  },
+  {
+    "id": "ralph-unscripted",
+    "audio": "audio/ralph-unscripted.m4a",
+    "reference": "reference/ralph-unscripted.txt",
+    "split": "ralph-unscripted",
+    "note": "Unscripted speech w/ disfluency. Reference is dictation output verified against the audio by the speaker \u2014 not independently written. Expect optimistic WER."
+  }
+]

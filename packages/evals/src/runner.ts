@@ -9,8 +9,8 @@
  * obviously attributable to one file.
  */
 
-import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { resolve, dirname } from 'node:path';
 import { loadManifest } from './manifest.js';
 import { transcribe, estimateCostUsd, TRANSCRIPTION_MODEL } from './transcribe.js';
 import { wordErrorRate } from './wer.js';
@@ -18,23 +18,45 @@ import { formatReport, type Scored } from './report.js';
 
 const DEFAULT_MANIFEST = 'samples/manifest.json';
 
-function parseArgs(argv: string[]): { manifest: string; out?: string } {
+interface Args {
+  manifest: string;
+  out?: string;
+  /** Only score samples whose id or split contains this. */
+  only?: string;
+}
+
+function parseArgs(argv: string[]): Args {
   const args = argv.slice(2);
-  const outIndex = args.indexOf('--out');
-  const out = outIndex >= 0 ? args[outIndex + 1] : undefined;
-  const manifest = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--out');
-  return { manifest: manifest ?? DEFAULT_MANIFEST, out };
+  const valueOf = (flag: string): string | undefined => {
+    const i = args.indexOf(flag);
+    return i >= 0 ? args[i + 1] : undefined;
+  };
+  const flagged = new Set(['--out', '--only']);
+  const manifest = args.find(
+    (a, i) => !a.startsWith('--') && !flagged.has(args[i - 1] ?? '')
+  );
+  return { manifest: manifest ?? DEFAULT_MANIFEST, out: valueOf('--out'), only: valueOf('--only') };
 }
 
 async function main(): Promise<void> {
-  const { manifest, out } = parseArgs(process.argv);
+  const { manifest, out, only } = parseArgs(process.argv);
   const manifestPath = resolve(process.cwd(), manifest);
 
-  const samples = await loadManifest(manifestPath);
+  const all = await loadManifest(manifestPath);
+  const samples = only
+    ? all.filter((s) => s.id.includes(only) || s.split.includes(only))
+    : all;
+
   if (samples.length === 0) {
-    console.error(`No samples in ${manifestPath}. See samples/README.md.`);
+    console.error(
+      only
+        ? `Nothing in ${manifestPath} matches "${only}".`
+        : `No samples in ${manifestPath}. See samples/README.md.`
+    );
     process.exit(1);
   }
+
+  await mkdir(resolve(dirname(manifestPath), 'hypothesis'), { recursive: true });
 
   console.error(`Scoring ${samples.length} samples against ${TRANSCRIPTION_MODEL}…\n`);
 
@@ -49,6 +71,16 @@ async function main(): Promise<void> {
 
       totalSeconds += durationSec;
       scores.push({ id: sample.id, split: sample.split, durationSec, result });
+
+      // Always keep what the model actually said. A WER without its transcript
+      // is a number you cannot argue with or learn from — and the interesting
+      // question is never "how bad", it is "bad how". Deletions and
+      // substitutions look identical in the table and mean opposite things.
+      await writeFile(
+        resolve(dirname(manifestPath), 'hypothesis', `${sample.id}.txt`),
+        text.trim() + '\n',
+        'utf8'
+      );
 
       console.error(`${position} ${sample.id.padEnd(26)} WER ${result.wer.toFixed(4)}`);
     } catch (err) {
