@@ -116,7 +116,8 @@
     "audio": "audio/ralph-equiano-take1.m4a",
     "reference": "reference/ralph-equiano-take1.txt",
     "split": "ralph-quiet",
-    "note": "Equiano ch.1 (markets/manufactures), read aloud, quiet room, 210 words"
+    "note": "Equiano ch.1 (markets/manufactures), read aloud, quiet room, 177 words. Reference corrected 2026-08-12 from 210 words, the same over-copying as take2. Three separate sub-30s passes over the closing audio — a 35s tail cut, the same tail loudness-normalised to -24 dB, and chunk 6 of a six-way split — all stop at the same garbled rendering of 'odoriferous woods' and none reaches 'and our salt of wood ashes'. If those 33 words had been read they would be in a 25-second single-window transcription of exactly that audio. What remains is a real 12-deletion drop that chunking recovers, which is the actual bug.",
+    "referenceConfidence": "inferred"
   },
   {
     "id": "ralph-equiano-take2",
