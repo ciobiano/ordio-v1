@@ -109,8 +109,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://ordio.app",
-        "https://www.ordio.app",
+        "https://ordio.space",
+        "https://www.ordio.space",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_methods=["POST", "GET", "OPTIONS"],

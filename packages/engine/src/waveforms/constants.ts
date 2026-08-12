@@ -53,19 +53,6 @@ export const ORB_RING_B_PERIOD = 13;
 export const ORB_RING_B_FROM = 0.14;
 export const ORB_RING_B_TO = 1;
 
-// The tag riding top-right of the orb composition. Ratios are of canvas
-// width, taken from the study's 360px-wide frame.
-export const ORB_TAG_TEXT = 'ordio.ai/presets';
-export const ORB_TAG_INSET_RATIO = 22 / 360;
-export const ORB_TAG_FONT_RATIO = 10 / 360;
-export const ORB_TAG_TRACKING_EM = 0.04;
-export const ORB_TAG_ALPHA = 0.72;
-export const ORB_TAG_GAP_RATIO = 6 / 360;
-export const ORB_TAG_CARET_W_RATIO = 2 / 360;
-export const ORB_TAG_CARET_H_RATIO = 11 / 360;
-export const ORB_TAG_CARET_COLOR = '#D81E0B';
-export const ORB_TAG_CARET_PERIOD = 1;
-
 export const ORB_SHELL_ALPHA = 0.9;
 export const ORB_RING_A_ALPHA = 0.55;
 export const ORB_RING_B_ALPHA = 0.4;

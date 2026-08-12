@@ -13,7 +13,6 @@ import {
 } from '../processing/captions';
 import { getCaptionStylePreset } from '../captions/presets';
 import { drawWatermark } from '../processing/watermark';
-import { drawLookChrome } from './lookChrome';
 import { drawGradientBackground } from '../backgrounds/gradientBackground';
 import { restyleTranscript, restyleCaptionGroups } from '../processing/captions/textCase';
 import { measureCaptionBlockRect } from '../processing/captions/blockRect';
@@ -352,12 +351,9 @@ export function renderFrame(
       break;
   }
 
-  // 4. Look chrome — the fixed marks a look's own composition includes.
-  drawLookChrome(ctx, currentTime, style, waveformStyle);
-
-  // 5. Watermark — drawn last so it sits on top
+  // 4. Watermark — drawn last so it sits on top of everything else.
   if (showWatermark) {
-    drawWatermark(ctx);
+    drawWatermark(ctx, currentTime, style);
   }
 }
 
