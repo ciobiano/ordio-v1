@@ -8,15 +8,15 @@ Live at **[ordio.space](https://ordio.space)**.
 
 ## Why another one of these
 
-Ask any captioning tool how accurate it is on *your* voice and you get a marketing adjective. Nobody publishes a number. That matters more than it sounds, because the benchmarks these models are measured against are read by professional American and British narrators, and plenty of users do not sound like that.
+Captioning tools often use marketing buzzwords to describe how well they capture your voice. No one shares specific numbers. This is important because professional narrators in the US and UK set the standards, and many of us don’t sound like them.
 
-So it is measured here, on accented speech, and published including the parts that were unflattering:
+We’re measuring accuracy here, specifically on accented speech, and including imperfect parts.
 
 ```
 split                  words   sub   del   ins     WER  accuracy
 clean (8)                660    21    19     1  0.0621     93.8%
 other (8)                674    23     2     1  0.0386     96.1%
-ralph-quiet (3)          579    54    23    15  0.1589     84.1%
+africa-quiet (3)          579    54    23    15  0.1589     84.1%
 OVERALL                 1988   106    57    18  0.0910     90.9%
 ```
 
