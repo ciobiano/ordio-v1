@@ -66,34 +66,76 @@ text that was never spoken rather than text the model misheard. take2 now sits
 at 13.50% against take3's 12.87%: two untruncated samples of one speaker
 agreeing, which is what a correct reference should look like.
 
-**take1 is a real drop, and the audio says why.** Its reference (210) matches
-what the voiced time predicts (195–208); the 169 transcribed words do not. The
-difference is where each file's energy goes. Measured against each file's own
-mean, the last 25 seconds are **−7.4 dB on take1**, −1.6 dB on take2, and +0.9
-dB on take3. The only recording with a quiet tail is the only recording that
-lost words, and the ~29 seconds take1's transcript leaves unaccounted for is
-exactly that quiet stretch — about how long the missing 42 words take to say.
-
-So the mechanism is narrower than "intermittent": **trailing speech goes
-missing once it drops far enough below the level of the rest of the take**, and
-what comes back is a clean, plausible, successful-looking transcript with the
-end gone. The earlier duration theory (141s fine, 140s and 131s cut) was
-fitting a line to one real case and one artefact.
+**take1 is a real drop.** Its reference (210) is close to what voiced time
+predicts (195–208); the 169 transcribed words are not.
 
 **It is deterministic.** take1 and take2 were transcribed twice, six hours
 apart, and reproduced to four decimal places (0.3429 and 0.2412). Whatever
-causes the drop is a property of the audio, not sampling noise. That closes one
-of the two questions this section previously left open.
+causes the drop is a property of the request, not sampling noise.
 
-**Why this matters for the product.** `/api/transcribe` calls the same model. A
-user records two minutes, trails off at the end as people do, and the transcript
-silently omits the last stretch — the route succeeds, credits settle, captions
-render, and they have no way to know.
+**Confirmed by isolation, 2026-08-12.** take1's final 35 seconds, cut out and
+sent on their own, come back as:
 
-**Open:** is it worse under the production parameters? The route requests
-`timestamp_granularities: ['word','segment']`; this harness does not.
-Transcribing take1's final 35 seconds in isolation would confirm the mechanism
-directly and costs about two cents.
+> They generally bring us firearms, powder, hats, beads, and dried fish. The
+> last we esteemed a great rarity, as our waters were only brooks and springs.
+> **This article they batter with us for a other furious good.**
+
+That last sentence is the reference's *"These articles they barter with us for
+odoriferous woods"*, mangled but unmistakably present — and it does not appear
+anywhere in the full-file transcript, which stops at *"only brooks and
+springs."* **The audio contained speech that the full-file pass dropped.** The
+words were there; the model returned 200 OK without them.
+
+### Two mechanisms proposed and killed
+
+**Duration is not it.** The isolated clip is 35 seconds — nowhere near any
+plausible length limit — and it truncates too, never reaching *"and our salt of
+wood ashes."* A 35-second file and a 140-second file both losing their endings
+cannot be explained by how long they are. The original "141s fine, 140s and
+131s cut" theory was fitting a line to one real case and one artefact.
+
+**Loudness is not it either, and this one we tested properly.** The obvious
+hypothesis was that trailing speech goes missing once it drops below the level
+of the rest of the take: take1's last 25 seconds sit 7.4 dB under its own mean,
+against −1.6 dB on take2 and +0.9 dB on take3, so the only recording with a
+quiet tail was the only one that lost words. A tidy correlation across three
+samples, and wrong. Re-encoding through `loudnorm=I=-16:TP=-1.5:LRA=11` lifts
+the trailing audio from −45 dB to −24 dB without altering a word or a timing,
+and the normalised file returns **167 words against the original's 169**,
+stopping at the same sentence. Twenty decibels changed nothing. Level is not
+the trigger, and the three-sample correlation was a coincidence sitting on n=3.
+
+### What survives
+
+The one manipulation that *does* change the output is **isolation**. Identical
+audio, identical level: inside the 140-second file those words are absent, and
+inside a 35-second file they are present. Nothing about the signal differs — only
+what surrounds it. That points away from the audio entirely and at the
+**long-form decoding path**, which for anything over 30 seconds stitches
+together a sequence of windows rather than reading the file in one pass.
+Changing the file's length changes the window boundaries, and the output
+changes with them.
+
+Finding 1b is the same subsystem seen from another angle: take3's repetition
+loops are the other well-known long-form decoding pathology. One file loops,
+another stops early, and both are >30s. That is a more coherent account than
+anything about the audio.
+
+**Why this matters for the product.** `/api/transcribe` calls the same model on
+recordings that are routinely over 30 seconds. A user records two minutes, the
+transcript silently omits the last stretch, the route succeeds, credits settle,
+captions render, and they have no way to know.
+
+**Open.** The remaining ~30 words appear in no transcription at any level, so
+they were either dropped by the same mechanism on the shorter file or never
+read aloud; take1's reference may be over-copied like take2's, by less. The
+finding above does not depend on it, resting on words that were *recovered*
+rather than words that were not. Also open: whether production parameters make
+it worse — the route requests `timestamp_granularities: ['word','segment']` and
+this harness does not — and whether chunking the audio ourselves into <30s
+segments avoids the long-form path altogether. That is the next thing to try,
+and unlike the loudness fix it is a real change to `/api/transcribe` rather than
+one filter.
 
 ## Finding 1b — the same audio does not score the same twice
 
