@@ -30,6 +30,22 @@ export interface Sample {
   split: string;
   /** Anything worth remembering about why this sample is in the set. */
   note?: string;
+  /**
+   * How much the reference itself can be trusted.
+   *
+   * `verified` — written or checked against the audio directly. The default,
+   * and what every LibriSpeech sample is.
+   * `inferred` — corrected by argument rather than by listening. `take2`'s
+   * reference was cut by 28 words on a voiced-time calculation, which is good
+   * evidence and is still not the same as someone playing the file back.
+   *
+   * This exists because a word error rate silently assumes the reference is
+   * right. Deletions are counted from the reference's point of view, so a
+   * reference with words the speaker never said is indistinguishable, in the
+   * table, from a model that dropped them. If that assumption is doing work,
+   * it should at least be written down next to the number it produces.
+   */
+  referenceConfidence?: 'verified' | 'inferred';
 }
 
 export interface LoadedSample extends Sample {

@@ -123,7 +123,8 @@
     "audio": "audio/ralph-equiano-take2.m4a",
     "reference": "reference/ralph-equiano-take2.txt",
     "split": "ralph-quiet",
-    "note": "Equiano ch.1 (land is rich), read aloud, quiet room, 228 words"
+    "note": "Equiano ch.1 (land is rich), read aloud, quiet room, 200 words. Reference corrected 2026-08-12: it originally ran to 228 words and scored 35 deletions, which was read as the model truncating. It was not. Loudness-normalised voiced time is 107.6s, and at the 1.78-1.90 words per voiced second measured on take3 the recording holds 192-204 words — the last two sentences were copied from the page but never read aloud. Removing them costs 28 words and 28 deletions and no substitutions, which is the signature of text that was never spoken rather than text the model misheard.",
+    "referenceConfidence": "inferred"
   },
   {
     "id": "ralph-equiano-take3",

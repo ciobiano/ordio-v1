@@ -15,6 +15,8 @@ export interface Scored {
   split: string;
   durationSec: number;
   result: WerResult;
+  /** Carried from the manifest so the report can surface an unverified reference. */
+  referenceConfidence?: 'verified' | 'inferred';
 }
 
 /** Aggregate WER over samples, weighted by reference length. */
@@ -67,7 +69,22 @@ function row(label: string, words: number, r: WerResult): string {
   ].join('');
 }
 
-export function formatReport(scores: Scored[], meta: { model: string; costUsd: number }): string {
+/**
+ * How a sample is labelled in the table.
+ *
+ * An `inferred` reference is marked where the number is, not only in the
+ * manifest. The table gets pasted into writeups and screenshots and the
+ * manifest does not travel with it, so a caveat that lives anywhere else is a
+ * caveat the reader will not have.
+ */
+function labelFor(s: Scored): string {
+  return s.referenceConfidence === 'inferred' ? `${s.id} *` : s.id;
+}
+
+export function formatReport(
+  scores: Scored[],
+  meta: { model: string; costUsd: number; rescored?: boolean }
+): string {
   if (scores.length === 0) return 'No samples scored — is the manifest empty?';
 
   const header = COLUMNS.map((c) =>
@@ -84,7 +101,7 @@ export function formatReport(scores: Scored[], meta: { model: string; costUsd: n
   ];
 
   for (const s of [...scores].sort((a, b) => a.split.localeCompare(b.split) || a.id.localeCompare(b.id))) {
-    lines.push(row(s.id, s.result.referenceWords, s.result));
+    lines.push(row(labelFor(s), s.result.referenceWords, s.result));
   }
 
   const splits = [...new Set(scores.map((s) => s.split))].sort();
@@ -101,8 +118,26 @@ export function formatReport(scores: Scored[], meta: { model: string; costUsd: n
   lines.push(rule);
   lines.push(row('OVERALL', overall.referenceWords, overall));
   lines.push('');
-  lines.push(`Audio scored: ${(scores.reduce((n, s) => n + s.durationSec, 0) / 60).toFixed(1)} min`);
-  lines.push(`Est. cost:    $${meta.costUsd.toFixed(4)}`);
+
+  // Only when one is actually present. A legend printed unconditionally is one
+  // more line to skip past, and it trains the reader to skip the line on the
+  // run where it matters.
+  if (scores.some((s) => s.referenceConfidence === 'inferred')) {
+    lines.push('* reference corrected by inference, not checked against the audio.');
+    lines.push('');
+  }
+  if (meta.rescored) {
+    // Say so loudly. These rows came from transcripts on disk, so they carry
+    // whatever the model happened to return the day it was paid for — which is
+    // the point when comparing reference edits, and misleading if a reader
+    // assumes the numbers were produced against the model today.
+    lines.push(`Re-scored from saved transcripts — no audio sent, no cost.`);
+  } else {
+    lines.push(
+      `Audio scored: ${(scores.reduce((n, s) => n + s.durationSec, 0) / 60).toFixed(1)} min`
+    );
+    lines.push(`Est. cost:    $${meta.costUsd.toFixed(4)}`);
+  }
 
   return lines.join('\n');
 }
