@@ -223,28 +223,54 @@ describe('renderFrame', () => {
     expect(fillTextCalls.length).toBeGreaterThan(0);
   });
 
-  it('renders watermark at top-left with "Ordio by Kaine Studio" in Geist font', () => {
+  it('renders the watermark slug top-right in a monospace face', () => {
     const ctx = createMockCtx();
-    const options = makeOptions({ showWatermark: true });
-    renderFrame(ctx, 0, 90, options);
+    renderFrame(ctx, 0, 90, makeOptions({ showWatermark: true }));
 
     const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
       .__calls;
 
-    const fillTextCall = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
-    );
-    expect(fillTextCall).toBeDefined();
-    expect(fillTextCall?.args[1]).toBe(16); // x
-    expect(fillTextCall?.args[2]).toBe(16); // y
+    // Tracking is non-zero, so drawSpacedText emits one fillText per glyph.
+    // Reassembling them is what actually proves the slug rendered.
+    const glyphs = calls.filter((c) => c.method === 'fillText' && String(c.args[0]).length === 1);
+    const drawn = glyphs.map((c) => String(c.args[0])).join('');
+    const at = drawn.indexOf('ordio.space/create');
+    expect(at).toBeGreaterThanOrEqual(0);
 
     const fontSet = calls.find(
-      (c) => c.method === 'set:font' && String(c.args[0]).includes('Geist')
+      (c) => c.method === 'set:font' && String(c.args[0]).includes('monospace')
     );
     expect(fontSet).toBeDefined();
 
-    const arcCall = calls.find((c) => c.method === 'arc');
-    expect(arcCall).toBeUndefined();
+    // Only the slug's own glyphs. Captions are drawn per-character too, so
+    // filtering on "single character" alone sweeps them in and the position
+    // assertions below become meaningless.
+    const slugGlyphs = glyphs.slice(at, at + 'ordio.space/create'.length);
+    const xs = slugGlyphs.map((c) => Number(c.args[1]));
+    const ys = slugGlyphs.map((c) => Number(c.args[2]));
+    expect(Math.min(...xs)).toBeGreaterThan(1080 / 2);
+    expect(Math.max(...ys)).toBeLessThan(1920 / 8);
+  });
+
+  it('blinks the caret on the half second rather than fading it', () => {
+    // renderFrame takes a frame index, not seconds: currentTime = frame / FPS.
+    // At 30fps the caret is on for frames 0-14 of each second and off for
+    // 15-29, so frame 20 lands in the off half.
+    const countCarets = (frame: number) => {
+      const ctx = createMockCtx();
+      renderFrame(ctx, frame, 90, makeOptions({ showWatermark: true }));
+      const calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> })
+        .__calls;
+      // Neither shape nor corner identifies the caret on their own: waveform
+      // bars are narrow, tall, and can reach the top-right. Its colour is the
+      // one thing nothing else in the frame uses.
+      return calls.filter(
+        (c) => c.method === 'set:fillStyle' && String(c.args[0]).toUpperCase() === '#D81E0B'
+      ).length;
+    };
+
+    expect(countCarets(0)).toBeGreaterThan(0); // 0.00s — on
+    expect(countCarets(20)).toBe(0); // 0.67s — off, with no intermediate state
   });
 
   it('renders without crashing when graphicStyle is set', () => {
@@ -308,18 +334,18 @@ describe('renderFrame', () => {
     // showWatermark: false
     renderFrame(ctx, 0, 90, makeOptions({ showWatermark: false }));
     let calls = (ctx as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
-    let fillTextWatermark = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
-    );
-    expect(fillTextWatermark).toBeUndefined();
+    const slugFrom = (c: Array<{ method: string; args: unknown[] }>) =>
+      c
+        .filter((x) => x.method === 'fillText' && String(x.args[0]).length === 1)
+        .map((x) => String(x.args[0]))
+        .join('');
+
+    expect(slugFrom(calls)).not.toContain('ordio.space');
 
     // showWatermark omitted (default)
     const ctx2 = createMockCtx();
     renderFrame(ctx2, 0, 90, makeOptions());
     calls = (ctx2 as unknown as { __calls: Array<{ method: string; args: unknown[] }> }).__calls;
-    fillTextWatermark = calls.find(
-      (c) => c.method === 'fillText' && c.args[0] === 'Ordio by Kaine Studio'
-    );
-    expect(fillTextWatermark).toBeUndefined();
+    expect(slugFrom(calls)).not.toContain('ordio.space');
   });
 });
