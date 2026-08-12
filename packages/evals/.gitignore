@@ -1,0 +1,8 @@
+# Audio is large and, for LibriSpeech, reproducible from a public download.
+# Reference transcripts are committed — they are the part with judgement in them.
+samples/audio/
+
+# Model output — regenerated on every run. The findings that matter are
+# quoted verbatim in RESULTS.md; committing these would churn on each eval.
+samples/hypothesis/
+report.txt
