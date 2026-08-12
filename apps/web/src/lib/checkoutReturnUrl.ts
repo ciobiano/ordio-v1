@@ -27,7 +27,7 @@ function isTrustedOrigin(origin: string): boolean {
 }
 
 /** Last resort when the request carries no usable origin of its own. */
-const FALLBACK_ORIGIN = 'https://ordio.app';
+const FALLBACK_ORIGIN = 'https://ordio.space';
 
 /**
  * The origin to send the user back to, derived server-side.

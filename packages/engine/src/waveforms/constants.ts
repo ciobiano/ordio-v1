@@ -55,7 +55,7 @@ export const ORB_RING_B_TO = 1;
 
 // The tag riding top-right of the orb composition. Ratios are of canvas
 // width, taken from the study's 360px-wide frame.
-export const ORB_TAG_TEXT = 'ordio.ai/presets';
+export const ORB_TAG_TEXT = 'ordio.space';
 export const ORB_TAG_INSET_RATIO = 22 / 360;
 export const ORB_TAG_FONT_RATIO = 10 / 360;
 export const ORB_TAG_TRACKING_EM = 0.04;

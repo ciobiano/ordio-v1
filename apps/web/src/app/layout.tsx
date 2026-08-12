@@ -28,7 +28,7 @@ const nunitoAcid = Nunito({
   display: 'swap',
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ordio.app';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ordio.space';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

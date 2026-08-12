@@ -13,7 +13,7 @@ import { drawSpacedText, measureTextWidth } from './textLayout';
  */
 
 // Orb panel: mono slug + blinking caret, top-right, from a 360px-wide frame.
-const TAG_TEXT = 'ordio.ai/presets';
+const TAG_TEXT = 'ordio.space';
 const TAG_INSET_RATIO = 22 / 360;
 const TAG_FONT_RATIO = 10 / 360;
 const TAG_TRACKING_EM = 0.04;
