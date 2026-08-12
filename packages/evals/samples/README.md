@@ -62,8 +62,8 @@ trying to measure.
     "note": "LibriSpeech test-clean"
   },
   {
-    "id": "ralph-quiet-room",
-    "audio": "audio/ralph-quiet.m4a",
+    "id": "africa-quiet-room",
+    "audio": "audio/africa-quiet.m4a",
     "reference": "reference/equiano-passage.txt",
     "split": "nigerian",
     "note": "Equiano ch.2, quiet room, natural pace"

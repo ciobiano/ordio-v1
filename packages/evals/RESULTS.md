@@ -9,8 +9,8 @@ split                  words   sub   del   ins     WER  accuracy
 ────────────────────────────────────────────────────────────────
 clean (8)                660    21    19     1  0.0621     93.8%
 other (8)                674    23     2     1  0.0386     96.1%
-ralph-quiet (3) *        579    54    23    15  0.1589     84.1%
-ralph-unscripted (1)      75     8    13     1  0.2933     70.7%
+africa-quiet (3) *        579    54    23    15  0.1589     84.1%
+africa-unscripted (1)      75     8    13     1  0.2933     70.7%
 ────────────────────────────────────────────────────────────────
 OVERALL         *       1988   106    57    18  0.0910     90.9%
 ```
@@ -21,7 +21,7 @@ words to 177 and take2's from 228 to 200; they previously read 0.2391 and
 0.1181. The LibriSpeech rows are untouched and are the original run's.
 
 `clean` and `other` are LibriSpeech test-clean and test-other, eight speakers
-each, gender-balanced, longest utterance per speaker. `ralph-*` are our own
+each, gender-balanced, longest utterance per speaker. `africa-*` are our own
 recordings.
 
 Normalisation lowercases and strips punctuation but does **not** expand
@@ -35,7 +35,7 @@ LibriSpeech results. See `src/wer.ts`.
 **The headline was mostly our error. What survives is one tenth the size and
 still worth fixing.**
 
-`ralph-quiet` scored 23.9% WER against LibriSpeech clean's 6.2%, which read as
+`africa-quiet` scored 23.9% WER against LibriSpeech clean's 6.2%, which read as
 an accent effect until the error breakdown contradicted it: 84 deletions
 against 54 substitutions. Mishearing an accent produces *substitutions*.
 Deletions mean the reference and the output disagree about whether words exist
@@ -51,7 +51,7 @@ point where reading stopped: take2 by 28 words, take1 by 33.
 | take2 | 228 | **200** | 0.2412 | 0.1350 |
 | take3 | 202 | 202 | 0.1287 | — |
 
-`ralph-quiet` moves 0.2391 -> 0.1589 and OVERALL 0.1181 -> 0.0910. Of the 84
+`africa-quiet` moves 0.2391 -> 0.1589 and OVERALL 0.1181 -> 0.0910. Of the 84
 deletions that started this, 61 were ours.
 
 ### How the cut points were established
@@ -165,9 +165,9 @@ this speaker rather than one:
 
 ```
 clean (LibriSpeech, 8 speakers)   6.21% WER
-ralph-equiano-take2              13.50% WER
-ralph-equiano-take3              12.87% WER
-ralph-equiano-take1              22.03% WER   (still carries the 12-word drop)
+africa-equiano-take2              13.50% WER
+africa-equiano-take3              12.87% WER
+africa-equiano-take1              22.03% WER   (still carries the 12-word drop)
 ```
 
 Same task — reading printed prose aloud in a quiet room. take2 and take3 agree
@@ -197,7 +197,7 @@ lying.
 
 ## Caveats
 
-- **`ralph-unscripted` has a weak reference.** It was produced by dictation and
+- **`africa-unscripted` has a weak reference.** It was produced by dictation and
   verified by the speaker reading along to the audio, not written independently.
   Verification-by-reading systematically misses errors you do not expect, so
   that row is biased optimistic. Its 29.3% WER is inflated by truncation in the
@@ -217,7 +217,7 @@ lying.
   reading stopped. The failure mode is specific to hand-built datasets and it
   biases every number pessimistically, which is the direction that flatters a
   finding.
-- **The LibriSpeech rows predate transcript-saving.** Only the four `ralph-*`
+- **The LibriSpeech rows predate transcript-saving.** Only the four `africa-*`
   hypotheses are on disk, so `--rescore` covers those and the sixteen benchmark
   rows above are carried from the original run.
 - **WER ignores word timings**, which Ordio's captions depend on entirely. A
