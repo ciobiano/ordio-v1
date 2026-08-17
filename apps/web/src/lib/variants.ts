@@ -263,6 +263,46 @@ export const acidEyebrow =
   'font-acid-body font-black text-acid-eyebrow uppercase text-acid-text-3';
 
 /**
+ * The brand mark — lime dot plus the Ordio wordmark, as one lockup.
+ *
+ * Sizes are paired deliberately: the dot and the word have to scale together or
+ * the mark stops reading as a single thing. Living here rather than as loose
+ * classes because the mark belongs on more than one surface — the only previous
+ * copy was private inside SplashShell, which is why the desktop sign-in grew its
+ * own substitute (a hardcoded lime-to-cyan gradient tile with a letter "O" in
+ * it) instead of using the real mark.
+ */
+export const brandLogoDot = cva('rounded-full bg-acid-accent shrink-0', {
+  variants: {
+    size: {
+      sm: 'h-6 w-6',
+      lg: 'h-14 w-14',
+    },
+  },
+  defaultVariants: { size: 'sm' },
+});
+
+export const brandLogoWord = cva('font-acid-display font-bold text-acid-text-1', {
+  variants: {
+    size: {
+      sm: 'text-acid-label',
+      lg: 'text-acid-title',
+    },
+  },
+  defaultVariants: { size: 'sm' },
+});
+
+export const brandLogoLockup = cva('flex items-center', {
+  variants: {
+    size: {
+      sm: 'gap-2',
+      lg: 'gap-4',
+    },
+  },
+  defaultVariants: { size: 'sm' },
+});
+
+/**
  * Acid surface — elevation-ladder card/panel container.
  */
 export const acidSurface = cva('border border-acid-border-default', {
