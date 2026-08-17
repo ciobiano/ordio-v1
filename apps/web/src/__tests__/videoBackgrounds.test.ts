@@ -7,11 +7,7 @@ import {
   transcodeBackgroundUpload,
 } from '@Ordio/engine/media/transcodeBackgroundUpload';
 import { coverFit, BACKGROUND_SCRIM_ALPHA } from '@Ordio/engine/video/frameRenderer';
-import {
-  pingPongTime,
-  pingPongTimestamps,
-  pingPongCycleFrames,
-} from '@Ordio/engine/video/pingPongTime';
+import { loopTimestamps } from '@Ordio/engine/video/backgroundFrameStream';
 import { FEATURE_GATES, tierHasAccess } from '@/lib/featureGates';
 
 const mockConversion: { onProgress?: (p: number) => void; isValid: boolean } = { isValid: true };
@@ -179,85 +175,60 @@ describe('transcodeBackgroundUpload', () => {
   });
 });
 
-/** Largest single step between consecutive source timestamps. */
-function maxJump(timestamps: number[]): number {
-  let worst = 0;
+/**
+ * Places the sequence steps backwards. Each one costs the decoder a re-seek to
+ * the previous keyframe, so this is the number that decides whether background
+ * playback is cheap or unusable.
+ */
+function backwardSteps(timestamps: number[]): number {
+  let count = 0;
   for (let i = 1; i < timestamps.length; i++) {
-    worst = Math.max(worst, Math.abs(timestamps[i] - timestamps[i - 1]));
+    if (timestamps[i] < timestamps[i - 1]) count++;
   }
-  return worst;
+  return count;
 }
 
-describe('pingPongTime', () => {
-  it('runs forward on the first leg', () => {
-    expect(pingPongTime(0, 10)).toBe(0);
-    expect(pingPongTime(2.5, 10)).toBe(2.5);
-    expect(pingPongTime(10, 10)).toBe(10); // apex, reached exactly once
+describe('loopTimestamps', () => {
+  it('wraps output timestamps modulo the loop duration', () => {
+    const ts = loopTimestamps(6, 2, 1.5); // 6 frames @2fps over a 1.5s loop
+    expect(ts).toEqual([0, 0.5, 1.0, 0, 0.5, 1.0]);
   });
 
-  it('reflects back down on the second leg', () => {
-    expect(pingPongTime(12, 10)).toBe(8);
-    expect(pingPongTime(17.5, 10)).toBe(2.5);
-    expect(pingPongTime(20, 10)).toBe(0); // period closes where it opened
-  });
-
-  it('repeats every 2D', () => {
-    expect(pingPongTime(23, 10)).toBe(pingPongTime(3, 10));
-    expect(pingPongTime(43, 10)).toBe(pingPongTime(3, 10));
-  });
-
-  it('floors invalid input to 0', () => {
-    expect(pingPongTime(-5, 10)).toBe(0);
-    expect(pingPongTime(5, 0)).toBe(0);
-    expect(pingPongTime(5, -1)).toBe(0);
-  });
-});
-
-describe('pingPongTimestamps', () => {
-  it('reflects at the apex instead of restarting', () => {
-    // 6 frames @2fps over a 1.5s loop — period is 3s, so this covers a full cycle.
-    const ts = pingPongTimestamps(6, 2, 1.5);
-    expect(ts).toEqual([0, 0.5, 1.0, 1.5, 1.0, 0.5]);
-  });
-
-  it('never advances more than one frame between consecutive output frames', () => {
-    // This is the whole feature, stated as arithmetic. A visible jump cut IS a
-    // source timestamp that moves further than one frame in one output frame,
-    // so an implementation that cuts cannot satisfy this.
+  it('steps backwards only once per loop', () => {
+    // The regression this pins is a production outage, not a nicety. Every
+    // background sat on a loading spinner forever because a reflecting
+    // ("ping-pong") sequence was substituted here to remove the visible cut at
+    // the wrap. mediabunny's `samplesAtTimestamps` documents an optimized path
+    // taken *only* for monotonically sorted timestamps; a reflecting sequence
+    // descends on every frame of its reverse leg, so ~300 of 600 frames each
+    // re-decoded from the previous keyframe — on the order of 9,000 extra
+    // frame-decodes per 10s loop, run at load time with the spinner up.
+    //
+    // Note the bound is not "never steps backwards": modulo wrapping descends
+    // too, once per loop. One re-seek per 10s of output is the cheap case the
+    // stream is designed around. The count is what matters.
     const fps = 30;
     const loopSec = 10;
-    const ts = pingPongTimestamps(fps * loopSec * 5, fps, loopSec); // 5 legs
-    expect(maxJump(ts)).toBeLessThanOrEqual(1 / fps + 1e-9);
+    const ts = loopTimestamps(fps * loopSec * 3, fps, loopSec); // 3 loops
+    expect(backwardSteps(ts)).toBe(2); // one per wrap; 3 loops means 2 wraps
   });
 
-  it('is the property the old modulo loop violated', () => {
-    // Kept as the counter-example so the assertion above cannot be mistaken for
-    // something that passes trivially: restarting the loop jumped nearly its
-    // entire duration at every wrap, ~36 times under six minutes of audio.
+  it('a reflecting sequence would step backwards on nearly every frame', () => {
+    // The counter-example, kept so the bound above cannot be mistaken for
+    // something that passes trivially. This is what shipped and broke.
     const fps = 30;
     const loopSec = 10;
-    const sawtooth = Array.from(
-      { length: fps * loopSec * 2 },
-      (_, i) => (i / fps) % loopSec
-    );
-    expect(maxJump(sawtooth)).toBeGreaterThan(loopSec - 1);
+    const period = 2 * loopSec;
+    const pingPong = Array.from({ length: fps * loopSec * 2 }, (_, i) => {
+      const phase = (i / fps) % period;
+      return phase <= loopSec ? phase : period - phase;
+    });
+    expect(backwardSteps(pingPong)).toBeGreaterThan(fps * loopSec * 0.4);
   });
 
   it('returns [] for invalid inputs', () => {
-    expect(pingPongTimestamps(0, 30, 10)).toEqual([]);
-    expect(pingPongTimestamps(10, 0, 10)).toEqual([]);
-    expect(pingPongTimestamps(10, 30, 0)).toEqual([]);
-  });
-});
-
-describe('pingPongCycleFrames', () => {
-  it('spans twice the source so a native loop wrap lands on the seamless point', () => {
-    expect(pingPongCycleFrames(10, 30)).toBe(600);
-    expect(pingPongCycleFrames(1.5, 2)).toBe(6);
-  });
-
-  it('returns 0 for invalid inputs', () => {
-    expect(pingPongCycleFrames(0, 30)).toBe(0);
-    expect(pingPongCycleFrames(10, 0)).toBe(0);
+    expect(loopTimestamps(0, 30, 10)).toEqual([]);
+    expect(loopTimestamps(10, 0, 10)).toEqual([]);
+    expect(loopTimestamps(10, 30, 0)).toEqual([]);
   });
 });

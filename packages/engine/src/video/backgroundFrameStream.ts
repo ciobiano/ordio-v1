@@ -6,14 +6,32 @@
  * the next — never pre-extracting the loop's frames (300 raw 720p frames
  * ≈ 1GB, the same memory trap episode ingestion avoids).
  *
- * Looping: output-frame timestamps come from pingPongTime — the loop reflects
- * (0→D→0) rather than restarting (0→D, 0→D), so there is no jump cut at the
- * wrap. The reverse leg seeks backward, which costs the decoder real work, but
- * export is offline: that is wall-clock time rather than dropped frames. The
- * preview cannot make the same trade and bakes the sequence instead
- * (media/bakePingPongLoop), driven by the same function so the two agree.
+ * Looping: output-frame timestamps are mapped modulo the background's duration.
+ * The wrap forces one decoder re-seek per loop (~every 10s of output), which is
+ * cheap, and the sequence stays monotonically increasing — which matters more
+ * than it looks. `samplesAtTimestamps` documents an optimized path taken *only*
+ * for monotonically sorted timestamps, decoding each packet at most once.
+ *
+ * A reflecting ("ping-pong") sequence was tried here to remove the visible cut
+ * at the wrap. It reversed direction, left that fast path, and re-decoded from
+ * the previous keyframe on every descending step. Any future attempt has to
+ * decode forward in bounded windows and emit each window backwards, so the
+ * monotonic guarantee holds inside the decoder even though output runs backwards.
  */
-import { pingPongTimestamps } from './pingPongTime';
+
+/** Map output timestamps onto a looping background. Pure — unit-testable. */
+export function loopTimestamps(
+  totalFrames: number,
+  fps: number,
+  loopDurationSec: number
+): number[] {
+  if (totalFrames <= 0 || fps <= 0 || loopDurationSec <= 0) return [];
+  const out = new Array<number>(totalFrames);
+  for (let i = 0; i < totalFrames; i++) {
+    out[i] = (i / fps) % loopDurationSec;
+  }
+  return out;
+}
 
 export interface BackgroundFrame {
   image: CanvasImageSource & { width?: number; height?: number };
@@ -24,27 +42,6 @@ export interface BackgroundFrameStream {
   /** Pull the frame for the next output timestamp. Null = hold last drawn. */
   next: () => Promise<BackgroundFrame | null>;
   dispose: () => void;
-}
-
-/**
- * The loop duration this module maps timestamps against.
- *
- * Callers that need to size a full ping-pong cycle before opening the stream
- * must measure it through here rather than via `input.computeDuration()`. The
- * two can disagree by a frame or two (container vs. track), and a cycle sized
- * from the wrong one runs past the seamless point — which would put the jump
- * cut straight back at the wrap of the baked asset.
- */
-export async function probeBackgroundLoopDuration(source: Blob): Promise<number> {
-  const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
-  const input = new Input({ source: new BlobSource(source), formats: ALL_FORMATS });
-  try {
-    const track = await input.getPrimaryVideoTrack();
-    if (!track) throw new Error('Background video has no video track.');
-    return await track.computeDuration();
-  } finally {
-    input.dispose();
-  }
 }
 
 export async function createBackgroundFrameStream(
@@ -63,7 +60,7 @@ export async function createBackgroundFrameStream(
 
   const loopDuration = await track.computeDuration();
   const sink = new VideoSampleSink(track);
-  const timestamps = pingPongTimestamps(totalFrames, fps, loopDuration);
+  const timestamps = loopTimestamps(totalFrames, fps, loopDuration);
   const generator = sink.samplesAtTimestamps(timestamps);
 
   return {
