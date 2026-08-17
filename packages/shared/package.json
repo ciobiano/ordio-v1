@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./credits": "./src/credits.ts",
+    "./featureGates": "./src/featureGates.ts",
     "./time": "./src/time.ts",
     "./waveform": "./src/waveform.ts",
     "./layout": "./src/layout.ts",
