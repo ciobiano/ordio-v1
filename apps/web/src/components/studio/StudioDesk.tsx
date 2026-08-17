@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from 'convex/react';
-import { toast } from 'sonner';
 import { api } from '@Ordio/convex';
 import { useStudioFlow } from '@/hooks/studio/useStudioFlow';
 import { useStudioEdits } from '@/hooks/studio/useStudioEdits';
@@ -11,7 +10,6 @@ import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useCaptureStore, useUIStore } from '@/stores';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
-import WaitlistSheet from '@/components/soul/modals/WaitlistSheet';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
 import { CenterStage } from './CenterStage';
@@ -45,7 +43,6 @@ export function StudioDesk() {
   const [showCmdk, setShowCmdk] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const upgradeTarget = useUIStore((s) => s.upgradeTarget);
   const setUpgradeTarget = useUIStore((s) => s.setUpgradeTarget);
   const setStyle = useUIStore((s) => s.setStyle);
   const setFormat = useUIStore((s) => s.setFormat);
@@ -222,11 +219,10 @@ export function StudioDesk() {
         }}
       />
 
-      <WaitlistSheet
-        open={upgradeTarget !== null}
-        onClose={() => setUpgradeTarget(null)}
-        target={upgradeTarget ?? undefined}
-      />
+      {/* No WaitlistSheet here: create/layout.tsx renders one for the whole
+          route, and this desk now mounts inside it. Two would stack. Locked
+          controls still open it by setting upgradeTarget, which the layout
+          reads from the same store. */}
 
       {/* Long-episode clip-finder pipeline — routes files over the duration
           threshold away from the direct transcription path above. */}

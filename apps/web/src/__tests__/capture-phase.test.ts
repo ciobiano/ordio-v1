@@ -42,9 +42,9 @@ describe('deriveCapturePhase', () => {
 });
 
 describe('deriveStatusText', () => {
-  it('shows the idle typewriter in idle phase', () => {
+  it('shows the static idle prompt in idle phase', () => {
     expect(deriveStatusText({ phase: 'idle', audioLevel: 0, isSpeaking: false })).toEqual({
-      kind: 'idle-typewriter',
+      kind: 'idle',
     });
   });
 

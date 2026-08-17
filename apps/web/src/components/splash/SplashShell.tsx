@@ -3,24 +3,9 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Orb } from '@/components/primitives/orb/Orb';
+import { Logo } from '@/components/primitives/Logo';
 
 export const SPLASH_EASE = [0.22, 1, 0.36, 1] as const;
-
-/**
- * Circle mark + wordmark. Shares the footer's 24px inset — the previous mark
- * sat at `top-5 left-5` (20px) while every other element sat at `left-6`, so
- * the left edge never lined up.
- */
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="h-6 w-6 rounded-full bg-acid-accent" aria-hidden="true" />
-      <span className="font-acid-display text-acid-label font-bold text-acid-text-1">
-        Ordio
-      </span>
-    </div>
-  );
-}
 
 interface SplashShellProps {
   /** Eyebrow + headline. */

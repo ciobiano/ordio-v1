@@ -6,11 +6,7 @@ export {
 } from './videoEncoder';
 export { encodeVideoFFmpeg } from './ffmpegEncoder';
 export { renderFrame, type FrameOptions } from './frameRenderer';
-export {
-  pingPongTime,
-  pingPongTimestamps,
-  pingPongCycleFrames,
-} from './pingPongTime';
+export { loopTimestamps } from './backgroundFrameStream';
 export {
   drawWordSwapCaptions,
   drawPhraseCutCaptions,

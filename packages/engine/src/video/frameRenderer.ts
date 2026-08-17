@@ -141,7 +141,7 @@ function presetDriftTransform(currentTime: number): { rotate: number; scale: num
   };
 }
 
-export function sourceDimensions(
+function sourceDimensions(
   frame: CanvasImageSource & { width?: number; height?: number }
 ): { w: number; h: number } {
   if (typeof VideoFrame !== 'undefined' && frame instanceof VideoFrame) {

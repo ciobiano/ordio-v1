@@ -20,7 +20,7 @@ export function deriveCapturePhase(input: DerivePhaseInput): CapturePhase {
 export function deriveStatusText(input: DeriveStatusInput): StatusText {
   const { phase, audioLevel, isSpeaking } = input;
 
-  if (phase === 'idle') return { kind: 'idle-typewriter' };
+  if (phase === 'idle') return { kind: 'idle' };
   if (phase === 'paused') return { kind: 'paused' };
   if (phase === 'ready') return { kind: 'ready' };
 

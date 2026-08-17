@@ -80,6 +80,9 @@ function makeFlow(overrides: Partial<UseStudioFlowReturn>): UseStudioFlowReturn 
     goExport: vi.fn(),
     getAudioLevel: vi.fn(() => 0),
     cancelProcessing: vi.fn(),
+    isPaused: false,
+    pauseRecording: vi.fn(),
+    resumeRecording: vi.fn(),
     ...overrides,
   };
 }
@@ -96,6 +99,40 @@ describe('CenterStage', () => {
     const flow = makeFlow({ view: 'capture', recordingTime: 12 });
     render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     expect(screen.getByText(/recording/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+    expect(flow.stopRecording).toHaveBeenCalled();
+  });
+
+  it('capture: pauses an in-progress recording', () => {
+    const flow = makeFlow({ view: 'capture', isPaused: false });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /pause recording/i }));
+    expect(flow.pauseRecording).toHaveBeenCalled();
+    expect(flow.resumeRecording).not.toHaveBeenCalled();
+  });
+
+  it('capture: the same control resumes once paused', () => {
+    const flow = makeFlow({ view: 'capture', isPaused: true });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
+    // One control, two states — a separate Resume button would sit dead on
+    // screen for the whole recording.
+    expect(screen.queryByRole('button', { name: /pause recording/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /resume recording/i }));
+    expect(flow.resumeRecording).toHaveBeenCalled();
+  });
+
+  it('capture: says Paused rather than Recording while paused', () => {
+    const flow = makeFlow({ view: 'capture', isPaused: true, recordingTime: 12 });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
+    expect(screen.getByText(/paused/i)).toBeInTheDocument();
+    // The live indicator must not still claim to be recording — the MediaStream
+    // stays open through a pause, so nothing else would contradict it.
+    expect(screen.queryByText(/^recording$/i)).not.toBeInTheDocument();
+  });
+
+  it('capture: stop is still reachable while paused', () => {
+    const flow = makeFlow({ view: 'capture', isPaused: true });
+    render(<CenterStage flow={flow} sessionData={null} audioLevel={0} playback={mockPlayback} onOpenPalette={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
     expect(flow.stopRecording).toHaveBeenCalled();
   });
