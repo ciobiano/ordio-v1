@@ -1,8 +1,9 @@
 // packages/convex/convex/backgrounds.ts
-// User-uploaded background video loops (creator tier).
+// User-uploaded background image and video loops.
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, requireUser } from "./auth";
+import { FEATURE_GATES, tierHasAccess } from "@Ordio/shared/featureGates";
 
 // Storage cost control: cap per-user custom backgrounds. Revisit after the
 // user test if real usage wants more.
@@ -23,14 +24,22 @@ export const uploadBackground = mutation({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
 
-    // Tier check server-side — never trust the client's gate alone.
+    // Tier check server-side — never trust the client's gate alone. The rule
+    // itself comes from the shared FEATURE_GATES table so this can never again
+    // disagree with the lock the UI shows.
     const dbUser = await ctx.db
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", user.tokenIdentifier))
       .unique();
     const tier = dbUser?.tier ?? "free";
-    if (tier === "free") {
-      throw new Error("Custom backgrounds require a Creator subscription");
+
+    // Unreachable while the table says `free`, and kept precisely so it stays
+    // that way: reintroducing a paid tier should be one edit to FEATURE_GATES,
+    // not an edit plus remembering to re-add a server check. One key covers both
+    // media types — this gates the right to upload at all, not what the upload
+    // contains. `background_video` separately gates *using* a video background.
+    if (!tierHasAccess(tier, FEATURE_GATES.background_upload)) {
+      throw new Error("Your account is not permitted to upload custom backgrounds");
     }
 
     if (args.sizeBytes > MAX_BACKGROUND_BYTES) {
