@@ -1,136 +1,42 @@
 // apps/web/src/app/create/page.tsx
-// HIG-compliant: clarity, deference, depth, meaningful motion
-// Pure composition — all logic lives in useCreateFlow
+//
+// The single capture route for every viewport. It chooses which chrome to mount
+// and nothing else — the mobile and desktop bodies each own their own flow hook.
+//
+// This replaced a hard user-agent route split (`/create` for phones, `/studio`
+// for desktops, with redirects in middleware and on `/`). That split let desktop
+// drift months behind mobile in silence: the two routes shared no components, so
+// no mobile change ever broke a desktop build or failed a desktop test. One route
+// with one auth gate means the next mobile improvement reaches both by default
+// instead of by somebody remembering.
+//
+// Only one branch mounts. Rendering both and hiding one with CSS would run two
+// canvas RAF loops, two audio analysers and two microphone streams at once.
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
 
-import { useCreateFlow } from '@/hooks/recording/useCreateFlow';
+import { useIsDesktopViewport } from '@/hooks/useBreakpoint';
 
-const CaptureScreen = dynamic(
-  () => import('@/components/soul/capture/CaptureScreen').then((m) => ({ default: m.CaptureScreen })),
-  { ssr: false }
-);
-
-const ProcessingAlertBanner = dynamic(
+const MobileCaptureFlow = dynamic(
   () =>
-    import('@/components/soul/states/ProcessingAlertBanner').then(
-      (m) => m.ProcessingAlertBanner
+    import('@/components/soul/capture/MobileCaptureFlow').then(
+      (m) => m.MobileCaptureFlow
     ),
   { ssr: false }
 );
 
-const FileConfirmDialog = dynamic(
-  () =>
-    import('@/components/soul/states/FileConfirmDialog').then(
-      (m) => m.FileConfirmDialog
-    ),
-  { ssr: false }
-);
-
-const ClipPickerSheet = dynamic(
-  () =>
-    import('@/components/soul/clips/ClipPickerSheet').then(
-      (m) => m.ClipPickerSheet
-    ),
-  { ssr: false }
-);
-
-const EpisodeProgressOverlay = dynamic(
-  () =>
-    import('@/components/soul/clips/EpisodeProgressOverlay').then(
-      (m) => m.EpisodeProgressOverlay
-    ),
-  { ssr: false }
-);
-
-const EpisodeErrorDialog = dynamic(
-  () =>
-    import('@/components/soul/clips/EpisodeErrorDialog').then(
-      (m) => m.EpisodeErrorDialog
-    ),
+const StudioDesk = dynamic(
+  () => import('@/components/studio/StudioDesk').then((m) => m.StudioDesk),
   { ssr: false }
 );
 
 export default function CreatePage() {
-  const router = useRouter();
-  const flow = useCreateFlow();
+  const isDesktop = useIsDesktopViewport();
 
   return (
     <main id="main-content" className="relative min-h-dvh">
-      <ProcessingAlertBanner
-        alert={flow.processingAlert}
-        onDisableEnhancement={flow.handleDisableEnhancement}
-        onDismiss={flow.dismissAlert}
-      />
-
-      <CaptureScreen
-        currentState={flow.currentState}
-        audioLevel={flow.audioLevel}
-        isSpeaking={flow.isSpeaking}
-        isStarting={flow.isStarting}
-        micDenied={flow.micDenied}
-        canRecord={flow.capabilities.canRecord}
-        processingProgress={flow.processingProgress}
-        fileInputRef={flow.fileInputRef}
-        onFileUpload={flow.handleFileSelect}
-        isPaused={flow.recorder.isPaused}
-        committedCaptionLines={flow.committedCaptionLines}
-        interimCaptionText={flow.interimCaptionText}
-        onStartRecording={flow.handleStartRecording}
-        onPauseRecording={flow.handlePauseRecording}
-        onResumeRecording={flow.handleResumeRecording}
-        onStopRecording={flow.handleStopRecording}
-        onRestart={flow.handleRestart}
-        onProceed={flow.handleProceed}
-        onCancel={flow.handleReset}
-        onLocked={flow.setUpgradeTarget}
-      />
-
-      {/* HIG: File upload confirmation — user confirms before processing */}
-      <FileConfirmDialog
-        file={flow.stagedFile}
-        onConfirm={flow.handleFileConfirm}
-        onCancel={() => flow.setStagedFile(null)}
-      />
-
-      {/* Long-episode clip-finder pipeline — routes files over the duration
-          threshold away from the short staged-file confirm flow above. */}
-      <ClipPickerSheet
-        isOpen={flow.episode.phase === 'picking'}
-        candidates={flow.episode.candidates}
-        episodeFile={flow.episode.episodeFile}
-        episodeWords={flow.episode.episodeWords}
-        onClose={flow.episode.cancel}
-        onPicked={(sessionId) => {
-          flow.episode.cancel();
-          router.push(`/create/export/${sessionId}`);
-        }}
-      />
-      {(flow.episode.phase === 'ingesting' ||
-        flow.episode.phase === 'transcribing' ||
-        flow.episode.phase === 'finding') && (
-        <EpisodeProgressOverlay
-          phase={flow.episode.phase}
-          progress={flow.episode.progress}
-          onCancel={flow.episode.cancel}
-        />
-      )}
-      {flow.episode.phase === 'error' && (
-        <EpisodeErrorDialog
-          message={flow.episode.error ?? 'Something went wrong.'}
-          partialAvailable={flow.episode.partialAvailable}
-          onUsePartial={flow.episode.usePartialTranscript}
-          onDismiss={flow.episode.cancel}
-        />
-      )}
-
-      {/* HIG: Live region for screen readers — invisible but announced */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {flow.currentState === 'recording' && 'Recording started'}
-        {flow.currentState === 'processing' && 'Processing audio'}
-      </div>
+      {isDesktop ? <StudioDesk /> : <MobileCaptureFlow />}
     </main>
   );
 }
