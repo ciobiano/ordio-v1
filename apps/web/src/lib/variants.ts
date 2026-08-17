@@ -352,16 +352,30 @@ export const acidCta = cva(
  * decision, two ways" instead of a four-item menu.
  */
 export const authTrayBtn = cva(
-  'h-15.5 rounded-2xl flex items-center justify-center font-black text-[17px] ' +
-  'tracking-[-0.01em] cursor-pointer transition-transform duration-150 active:scale-[0.985]',
+  'h-15.5 rounded-2xl flex items-center justify-center gap-2.5 font-black text-[17px] ' +
+  'tracking-[-0.01em] cursor-pointer transition-transform duration-150 active:scale-[0.985] ' +
+  // An OAuth handoff is a redirect, so these stay disabled until the browser
+  // leaves the page — there is no success state to return to.
+  'disabled:cursor-not-allowed disabled:active:scale-100',
   {
     variants: {
       variant: {
         apple: 'bg-white text-acid-bg-base',
         google: 'bg-acid-surface-3 text-acid-text-1',
       },
+      /**
+       * `waiting` is the button you pressed; `blocked` is every other button,
+       * disabled so a second provider cannot be started mid-handoff. They are
+       * dimmed differently on purpose — identical treatment would lose track of
+       * which provider is actually working.
+       */
+      state: {
+        idle: '',
+        waiting: 'disabled:opacity-100',
+        blocked: 'disabled:opacity-40',
+      },
     },
-    defaultVariants: { variant: 'google' },
+    defaultVariants: { variant: 'google', state: 'idle' },
   }
 );
 
@@ -374,7 +388,17 @@ export const authTrayBtn = cva(
 export const authTrayLink =
   'h-11 flex items-center justify-center font-acid-body font-medium ' +
   'text-acid-label text-acid-text-2 cursor-pointer transition-colors ' +
-  'duration-[var(--acid-duration-micro)] hover:text-acid-text-1';
+  'duration-[var(--acid-duration-micro)] hover:text-acid-text-1 ' +
+  'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-acid-text-2';
+
+/**
+ * Spinner for a pending auth handoff. `currentColor` so it reads on both tray
+ * buttons — the Apple one is white-on-dark, the Google one dark-on-surface, and a
+ * fixed colour would vanish on one of them.
+ */
+export const authTraySpinner =
+  'h-4.5 w-4.5 shrink-0 animate-spin rounded-full border-2 ' +
+  'border-current/25 border-t-current';
 
 export const acidPill = cva(
   'flex-1 text-center font-acid-body font-medium ' +
