@@ -16,7 +16,7 @@ export interface DerivePhaseInput {
 }
 
 export type StatusText =
-  | { kind: 'idle-typewriter' }
+  | { kind: 'idle' }
   | { kind: 'paused' }
   | { kind: 'too-quiet' }
   | { kind: 'listening' }

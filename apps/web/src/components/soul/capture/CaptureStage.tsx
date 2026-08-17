@@ -3,7 +3,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Orb } from '@/components/primitives/orb/Orb';
 import { deriveStatusText } from './phase';
-import { useIdleTypewriter } from './useIdleTypewriter';
+/**
+ * The idle prompt is static. It used to type itself out and cycle between two
+ * phrases on a 42ms/char, 2000ms-hold, 26ms/char-delete loop — motion that ran
+ * forever on a screen whose whole job is to wait, and slow enough that the
+ * instruction was often mid-deletion when you looked at it. It names the actual
+ * gesture (the dock's record button fires on pointerdown), so it only needs to
+ * be readable.
+ */
+const IDLE_PROMPT = 'Press and hold to record';
 import type { CapturePhase } from './types';
 
 interface CaptureStageProps {
@@ -63,7 +71,6 @@ export function CaptureStage({
 }: CaptureStageProps) {
   const isIdle = phase === 'idle';
   const status = deriveStatusText({ phase, audioLevel, isSpeaking });
-  const idleText = useIdleTypewriter(isIdle);
 
   // Apple Music lyrics model: one line is "current" (bright, prominent) and the
   // line just before it recedes above (dim, small) rather than everything
@@ -105,10 +112,9 @@ export function CaptureStage({
       </motion.div>
 
       <div className="flex items-center justify-center w-full px-8 min-h-16 mt-6.5">
-        {status.kind === 'idle-typewriter' && (
+        {status.kind === 'idle' && (
           <p className="text-white/45 text-xl tracking-[0.3px] whitespace-nowrap">
-            {idleText}
-            <span className="inline-block w-4 h-4 rounded-full ml-2 bg-white/55 animate-pulse" />
+            {IDLE_PROMPT}
           </p>
         )}
         {status.kind === 'paused' && <p className="text-white/45 text-xl">Paused</p>}
