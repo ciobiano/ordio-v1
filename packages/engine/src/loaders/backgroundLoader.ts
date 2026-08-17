@@ -8,32 +8,86 @@
  */
 import { getCuratedBackground } from '../backgrounds/backgroundLibrary';
 import { getCanvasPreset } from '../backgrounds/canvasPresets';
+import { bakePingPongLoop } from '../media/bakePingPongLoop';
+import { FPS } from '@Ordio/shared/time';
 
 const cache = new Map<string, HTMLVideoElement>();
+/** Object URLs for baked loops, kept alive as long as their cached element. */
+const bakedUrls = new Map<string, string>();
 
 function cacheKey(source: 'curated' | 'custom', assetId: string): string {
   return `${source}:${assetId}`;
 }
 
-async function loadVideo(key: string, url: string): Promise<HTMLVideoElement> {
-  const cached = cache.get(key);
-  if (cached) return cached;
-
+function attachVideo(url: string): Promise<HTMLVideoElement> {
   const video = document.createElement('video');
   video.src = url;
   video.muted = true;
+  // Safe to loop natively: the source is a baked forward+reverse cycle, so the
+  // wrap point is the seamless one. On the un-baked fallback path this still
+  // cuts, which is the old behaviour and better than no background at all.
   video.loop = true;
   video.playsInline = true;
   video.crossOrigin = 'anonymous';
   video.preload = 'auto';
 
-  await new Promise<void>((res, rej) => {
+  return new Promise<void>((res, rej) => {
     video.onloadeddata = () => res();
-    video.onerror = () => rej(new Error(`Failed to load background video: ${key}`));
-  });
+    video.onerror = () => rej(new Error(`Failed to load background video: ${url}`));
+  }).then(() => video);
+}
+
+/**
+ * Fetch a loop and bake it into a seamless forward+reverse cycle before handing
+ * it to a video element. See media/bakePingPongLoop for why the reversal has to
+ * happen here rather than by seeking during playback.
+ *
+ * A bake failure degrades to the original asset rather than propagating: the
+ * background then cuts at the wrap exactly as it used to, which is a visual
+ * regression but not a broken preview.
+ */
+async function loadVideo(key: string, url: string): Promise<HTMLVideoElement> {
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  let playbackUrl = url;
+  let bakedUrl: string | null = null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch background video: ${key}`);
+    const { blob } = await bakePingPongLoop(await res.blob(), FPS);
+    bakedUrl = URL.createObjectURL(blob);
+    playbackUrl = bakedUrl;
+  } catch {
+    // Fall through to the un-baked source URL.
+  }
+
+  let video: HTMLVideoElement;
+  try {
+    video = await attachVideo(playbackUrl);
+  } catch (err) {
+    if (bakedUrl) URL.revokeObjectURL(bakedUrl);
+    throw err;
+  }
+
+  // Another caller may have populated the cache while we were baking. Keep the
+  // winner and release our redundant blob so it does not leak.
+  const raced = cache.get(key);
+  if (raced) {
+    if (bakedUrl) URL.revokeObjectURL(bakedUrl);
+    return raced;
+  }
 
   cache.set(key, video);
+  if (bakedUrl) bakedUrls.set(key, bakedUrl);
   return video;
+}
+
+/** Release cached loops and their baked blobs. */
+export function clearBackgroundVideoCache(): void {
+  for (const url of bakedUrls.values()) URL.revokeObjectURL(url);
+  bakedUrls.clear();
+  cache.clear();
 }
 
 export async function loadCuratedBackground(assetId: string): Promise<HTMLVideoElement> {

@@ -7,7 +7,11 @@ import {
   transcodeBackgroundUpload,
 } from '@Ordio/engine/media/transcodeBackgroundUpload';
 import { coverFit, BACKGROUND_SCRIM_ALPHA } from '@Ordio/engine/video/frameRenderer';
-import { loopTimestamps } from '@Ordio/engine/video/backgroundFrameStream';
+import {
+  pingPongTime,
+  pingPongTimestamps,
+  pingPongCycleFrames,
+} from '@Ordio/engine/video/pingPongTime';
 import { FEATURE_GATES, tierHasAccess } from '@/lib/featureGates';
 
 const mockConversion: { onProgress?: (p: number) => void; isValid: boolean } = { isValid: true };
@@ -99,6 +103,30 @@ describe('feature gates', () => {
     expect(tierHasAccess('free', 'creator')).toBe(false);
     expect(tierHasAccess('creator', 'creator')).toBe(true);
   });
+
+  it('never leaves a gate above the highest tier an account can actually reach', () => {
+    // The regression this pins: `backgrounds.uploadBackground` used to carry its
+    // own hand-written `tier === "free"` throw. Once the checkout routes went
+    // away, `free` became the only reachable tier, so that gate rejected every
+    // upload — while the client table said the feature was unlocked and let the
+    // user get all the way through storing the file first.
+    //
+    // Any gate set above HIGHEST_REACHABLE_TIER is a door with no key. Raise
+    // this constant in the same change that makes a higher tier purchasable.
+    const HIGHEST_REACHABLE_TIER = 'free' as const;
+    const unreachable = Object.entries(FEATURE_GATES).filter(
+      ([, required]) => !tierHasAccess(HIGHEST_REACHABLE_TIER, required)
+    );
+    expect(unreachable).toEqual([]);
+  });
+
+  it('exposes the same gate table to the Convex backend', async () => {
+    // Both sides must read one table — a duplicated rule is a rule that drifts.
+    // `packages/convex/convex/backgrounds.ts` imports from here.
+    const shared = await import('@Ordio/shared/featureGates');
+    expect(shared.FEATURE_GATES).toBe(FEATURE_GATES);
+    expect(shared.tierHasAccess).toBe(tierHasAccess);
+  });
 });
 
 describe('clampBackgroundDuration', () => {
@@ -151,15 +179,85 @@ describe('transcodeBackgroundUpload', () => {
   });
 });
 
-describe('loopTimestamps', () => {
-  it('wraps output timestamps modulo the loop duration', () => {
-    const ts = loopTimestamps(6, 2, 1.5); // 6 frames @2fps over a 1.5s loop
-    expect(ts).toEqual([0, 0.5, 1.0, 0, 0.5, 1.0]);
+/** Largest single step between consecutive source timestamps. */
+function maxJump(timestamps: number[]): number {
+  let worst = 0;
+  for (let i = 1; i < timestamps.length; i++) {
+    worst = Math.max(worst, Math.abs(timestamps[i] - timestamps[i - 1]));
+  }
+  return worst;
+}
+
+describe('pingPongTime', () => {
+  it('runs forward on the first leg', () => {
+    expect(pingPongTime(0, 10)).toBe(0);
+    expect(pingPongTime(2.5, 10)).toBe(2.5);
+    expect(pingPongTime(10, 10)).toBe(10); // apex, reached exactly once
+  });
+
+  it('reflects back down on the second leg', () => {
+    expect(pingPongTime(12, 10)).toBe(8);
+    expect(pingPongTime(17.5, 10)).toBe(2.5);
+    expect(pingPongTime(20, 10)).toBe(0); // period closes where it opened
+  });
+
+  it('repeats every 2D', () => {
+    expect(pingPongTime(23, 10)).toBe(pingPongTime(3, 10));
+    expect(pingPongTime(43, 10)).toBe(pingPongTime(3, 10));
+  });
+
+  it('floors invalid input to 0', () => {
+    expect(pingPongTime(-5, 10)).toBe(0);
+    expect(pingPongTime(5, 0)).toBe(0);
+    expect(pingPongTime(5, -1)).toBe(0);
+  });
+});
+
+describe('pingPongTimestamps', () => {
+  it('reflects at the apex instead of restarting', () => {
+    // 6 frames @2fps over a 1.5s loop — period is 3s, so this covers a full cycle.
+    const ts = pingPongTimestamps(6, 2, 1.5);
+    expect(ts).toEqual([0, 0.5, 1.0, 1.5, 1.0, 0.5]);
+  });
+
+  it('never advances more than one frame between consecutive output frames', () => {
+    // This is the whole feature, stated as arithmetic. A visible jump cut IS a
+    // source timestamp that moves further than one frame in one output frame,
+    // so an implementation that cuts cannot satisfy this.
+    const fps = 30;
+    const loopSec = 10;
+    const ts = pingPongTimestamps(fps * loopSec * 5, fps, loopSec); // 5 legs
+    expect(maxJump(ts)).toBeLessThanOrEqual(1 / fps + 1e-9);
+  });
+
+  it('is the property the old modulo loop violated', () => {
+    // Kept as the counter-example so the assertion above cannot be mistaken for
+    // something that passes trivially: restarting the loop jumped nearly its
+    // entire duration at every wrap, ~36 times under six minutes of audio.
+    const fps = 30;
+    const loopSec = 10;
+    const sawtooth = Array.from(
+      { length: fps * loopSec * 2 },
+      (_, i) => (i / fps) % loopSec
+    );
+    expect(maxJump(sawtooth)).toBeGreaterThan(loopSec - 1);
   });
 
   it('returns [] for invalid inputs', () => {
-    expect(loopTimestamps(0, 30, 10)).toEqual([]);
-    expect(loopTimestamps(10, 0, 10)).toEqual([]);
-    expect(loopTimestamps(10, 30, 0)).toEqual([]);
+    expect(pingPongTimestamps(0, 30, 10)).toEqual([]);
+    expect(pingPongTimestamps(10, 0, 10)).toEqual([]);
+    expect(pingPongTimestamps(10, 30, 0)).toEqual([]);
+  });
+});
+
+describe('pingPongCycleFrames', () => {
+  it('spans twice the source so a native loop wrap lands on the seamless point', () => {
+    expect(pingPongCycleFrames(10, 30)).toBe(600);
+    expect(pingPongCycleFrames(1.5, 2)).toBe(6);
+  });
+
+  it('returns 0 for invalid inputs', () => {
+    expect(pingPongCycleFrames(0, 30)).toBe(0);
+    expect(pingPongCycleFrames(10, 0)).toBe(0);
   });
 });
