@@ -7,6 +7,7 @@ import { OnboardingScreen } from './OnboardingScreen';
 import { SlideToContinue } from './SlideToContinue';
 import { SplashShell, SPLASH_EASE } from './SplashShell';
 import { useNavigate, useOverlayLoading } from '@/components/NavigationTransition';
+import { useIsDesktopViewport } from '@/hooks/useBreakpoint';
 import { acidEyebrow, acidHeading } from '@/lib/variants';
 
 type CycleType = 'time-based' | 'welcome-back';
@@ -34,6 +35,7 @@ const CYCLE_TYPES: CycleType[] = ['time-based', 'welcome-back'];
 export function SplashScreen() {
   const { isLoaded, isSignedIn } = useAuth();
   const { navigate } = useNavigate();
+  const isDesktop = useIsDesktopViewport();
   useOverlayLoading(!isLoaded);
 
   const [index, setIndex] = useState(0);
@@ -48,7 +50,20 @@ export function SplashScreen() {
 
   const greeting = useMemo(() => GREETING_OPTIONS[CYCLE_TYPES[index]](), [index]);
 
+  // Desktop does not use the splash at all, signed in or out. Both states are
+  // full-bleed phone compositions — a slide-to-continue thumb gesture and an orb
+  // centred in the viewport — and both read as an empty page with text in the
+  // corner once the viewport is desktop-width. Send it to the workspace, which
+  // gates itself with a centred modal when signed out. This is what the old
+  // desktop route did before /create became responsive.
+  useEffect(() => {
+    if (isLoaded && isDesktop) navigate('/create');
+  }, [isLoaded, isDesktop, navigate]);
+
   if (!isLoaded) return null;
+
+  // Navigating away; render nothing rather than flash the phone layout.
+  if (isDesktop) return null;
 
   if (!isSignedIn) return <OnboardingScreen />;
 

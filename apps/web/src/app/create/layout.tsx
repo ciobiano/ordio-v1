@@ -10,6 +10,8 @@ import { useAuth } from '@clerk/nextjs';
 import { CapabilityBanner } from '@/components/primitives';
 import { WaitlistSheet } from '@/components/soul';
 import { SplashScreen } from '@/components/splash/SplashScreen';
+import { DesktopAuthModal } from '@/components/soul/auth/DesktopAuthModal';
+import { useIsDesktopViewport } from '@/hooks/useBreakpoint';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 
 function CreateLayoutContent({ children }: { children: React.ReactNode }) {
@@ -17,11 +19,25 @@ function CreateLayoutContent({ children }: { children: React.ReactNode }) {
   const capabilities = useCapabilities();
   const { isLoading } = useCurrentUser();
   const { isSignedIn } = useAuth();
+  const isDesktop = useIsDesktopViewport();
   useOverlayLoading(isLoading);
 
   if (isLoading) return null;
 
   if (!isSignedIn) {
+    // Desktop signs in *over* the workspace: the desk mounts behind a centred
+    // modal, blurred and inert, so the thing being unlocked is visible while you
+    // unlock it. Mobile has no room for that and gets the full-screen splash.
+    if (isDesktop) {
+      return (
+        <>
+          <div inert aria-hidden="true">
+            {children}
+          </div>
+          <DesktopAuthModal />
+        </>
+      );
+    }
     return <SplashScreen />;
   }
 
