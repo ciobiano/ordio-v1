@@ -6,6 +6,7 @@ import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import CanvasPreview from '@/components/primitives/video/CanvasPreview';
 import { Orb } from '@/components/primitives/orb/Orb';
 import { useUIStore } from '@/stores';
+import { cn } from '@/lib/utils';
 import type { UseStudioFlowReturn } from '@/hooks/studio/useStudioFlow';
 
 export interface SessionEditData {
@@ -70,8 +71,13 @@ export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPal
       {flow.view === 'capture' && (
         <div className="w-full max-w-160 flex flex-col items-center gap-7.5">
           <div className="flex items-center gap-2.5 text-acid-text-1 font-bold text-[13px] uppercase tracking-wide">
-            <span className="w-2.5 h-2.5 rounded-full bg-acid-error animate-pulse" />
-            Recording{' '}
+            <span
+              className={cn(
+                'w-2.5 h-2.5 rounded-full',
+                flow.isPaused ? 'bg-acid-text-4' : 'bg-acid-error animate-pulse'
+              )}
+            />
+            {flow.isPaused ? 'Paused' : 'Recording'}{' '}
             <span className="text-acid-text-3 tabular-nums normal-case tracking-normal">
               {formatTimer(flow.recordingTime)}
             </span>
@@ -80,8 +86,13 @@ export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPal
             {Array.from({ length: 48 }).map((_, i) => (
               <div
                 key={i}
-                className="w-1 rounded bg-acid-text-1/70"
-                style={{ height: `${20 + Math.abs(Math.sin(i * 0.7 + audioLevel * 10)) * 70}%` }}
+                className={cn('w-1 rounded', flow.isPaused ? 'bg-acid-text-1/25' : 'bg-acid-text-1/70')}
+                // Frozen while paused. The MediaStream stays live through a
+                // pause — only MediaRecorder stops — so a meter driven by the
+                // analyser would keep bouncing and imply we were still capturing.
+                style={{
+                  height: `${20 + Math.abs(Math.sin(i * 0.7 + (flow.isPaused ? 0 : audioLevel) * 10)) * 70}%`,
+                }}
               />
             ))}
           </div>
@@ -91,13 +102,32 @@ export function CenterStage({ flow, sessionData, audioLevel, playback, onOpenPal
           >
             {liveCaption || <span className="text-acid-text-4">Say something…</span>}
           </div>
-          <button
-            aria-label="Stop recording"
-            onClick={() => void flow.stopRecording()}
-            className="w-16 h-16 rounded-full border-3 border-acid-border-default flex items-center justify-center"
-          >
-            <div className="w-5.5 h-5.5 rounded-md bg-acid-error" />
-          </button>
+          {/* Pause sits beside Stop rather than replacing it, the same pairing
+              the mobile dock uses — a recording you cannot pause is one you have
+              to restart, and the transcript pass is charged per minute. */}
+          <div className="flex items-center gap-5">
+            <button
+              aria-label={flow.isPaused ? 'Resume recording' : 'Pause recording'}
+              onClick={flow.isPaused ? flow.resumeRecording : flow.pauseRecording}
+              className="w-12 h-12 rounded-full border-2 border-acid-border-default flex items-center justify-center text-acid-text-1 hover:bg-acid-surface-1 transition-colors"
+            >
+              {flow.isPaused ? (
+                <div className="w-0 h-0 border-y-7 border-y-transparent border-l-11 border-l-current ml-1" />
+              ) : (
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-4.5 rounded-xs bg-current" />
+                  <div className="w-1.5 h-4.5 rounded-xs bg-current" />
+                </div>
+              )}
+            </button>
+            <button
+              aria-label="Stop recording"
+              onClick={() => void flow.stopRecording()}
+              className="w-16 h-16 rounded-full border-3 border-acid-border-default flex items-center justify-center"
+            >
+              <div className="w-5.5 h-5.5 rounded-md bg-acid-error" />
+            </button>
+          </div>
         </div>
       )}
 

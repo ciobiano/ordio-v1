@@ -43,6 +43,10 @@ export interface UseStudioFlowReturn {
   goExport: () => void;
   getAudioLevel: () => number;
   cancelProcessing: () => void;
+  /** Mid-recording pause, matching the mobile capture dock. */
+  isPaused: boolean;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
 }
 
 function processingErrorMessage(err: unknown): string {
@@ -143,6 +147,20 @@ export function useStudioFlow(): UseStudioFlowReturn {
 
   useRecordingRecovery(handleResumeRecovery);
 
+  // Suspending the live stream is the load-bearing half of a pause, not a
+  // nicety: the realtime transcription socket bills for what it receives, so a
+  // pause that only stopped the recorder would keep paying to transcribe silence
+  // for as long as the user was away. Mirrors useCreateFlow exactly.
+  const pauseRecording = useCallback(() => {
+    recorder.pauseRecording();
+    live.setLiveSuspended(true);
+  }, [recorder, live]);
+
+  const resumeRecording = useCallback(() => {
+    recorder.resumeRecording();
+    live.setLiveSuspended(false);
+  }, [recorder, live]);
+
   const stopRecording = useCallback(async () => {
     live.stopLive();
     analyser.disconnect();
@@ -239,5 +257,8 @@ export function useStudioFlow(): UseStudioFlowReturn {
     goExport,
     getAudioLevel: analyser.getAudioLevel,
     cancelProcessing,
+    isPaused: recorder.isPaused,
+    pauseRecording,
+    resumeRecording,
   };
 }
