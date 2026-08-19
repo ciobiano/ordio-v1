@@ -1,0 +1,278 @@
+/* ── Ordio Desktop Editor structure ──────────────────────────
+   The design pins exact pixel sizes (58px bar, 330px transcript,
+   372px inspector, 72px rail, 212px timeline). Those are not on
+   Tailwind's scale, and the house rule bans arbitrary values in
+   JSX, so the geometry lives here as named classes and the CVA
+   layer in lib/ordVariants.ts composes them.
+
+   Every class is prefixed `ord-` and only ever renders inside
+   [data-ord], where the palette in ord-tokens.css is defined. */
+
+/* ─── Shell ─── */
+.ord-shell {
+  height: 100vh;
+  min-height: 720px;
+  min-width: 1080px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ord-ink);
+  color: var(--ord-paper);
+  font-family: var(--font-core);
+}
+
+.ord-workrow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ─── Top bar ─── */
+.ord-topbar {
+  flex: 0 0 auto;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+
+.ord-searchbar {
+  width: min(400px, 100%);
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 234, 0.06);
+  border: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ─── Columns ─── */
+.ord-transcript {
+  flex: 0 1 330px;
+  width: 330px;
+  min-width: 262px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-raised);
+  border-right: 1px solid var(--border-hairline);
+}
+
+.ord-player {
+  flex: 1 1 480px;
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ord-ink);
+}
+
+.ord-inspector {
+  flex: 0 1 372px;
+  width: 372px;
+  min-width: 312px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--border-hairline);
+}
+
+.ord-rail {
+  flex: 0 0 auto;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0;
+  /* One step off the base, same role as the design's darker rail. */
+  background: var(--acid-bg-subtle);
+  border-left: 1px solid var(--border-hairline);
+}
+
+.ord-rail-btn {
+  width: 58px;
+  height: 54px;
+  border-radius: 11px;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* ─── Timeline ─── */
+.ord-timeline {
+  flex: 0 0 auto;
+  /* 38 head + 20 ruler + 58 captions + 36 music.
+     Was 190px with an audio waveform row; the stage already plays the audio
+     back, so a second amplitude read-out was decoration taking 52px. */
+  height: 152px;
+  display: flex;
+  flex-direction: column;
+  /* The deepest ground in the system, the same one mobile stands on. The
+     timeline is the floor of the editor — anything raised above ink here
+     reads as a panel floating over the black rather than the base itself. */
+  background: var(--ord-ink);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.ord-timeline-head {
+  flex: 0 0 auto;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Vertical scroll lives here so gutter and tracks move together. Dormant
+   with three tracks — they fit exactly — and load-bearing the moment a
+   second bed, an overlay or a b-roll track lands. */
+.ord-timeline-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ord-paper) 18%, transparent) transparent;
+}
+
+.ord-timeline-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ord-timeline-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ord-timeline-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ord-paper) 18%, transparent);
+  border-radius: 100px;
+}
+
+.ord-track-gutter {
+  flex: 0 0 auto;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-hairline);
+}
+
+.ord-track-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  /* visible, not hidden — the row above owns the Y axis now. */
+  overflow-y: visible;
+}
+
+/* A zoomable timeline with a hidden scrollbar has no affordance and no
+   pointer-only way to pan — the design hid it, which reads as tidy until
+   you zoom to 6x. Thin and inline, styled to the palette. */
+.ord-track-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ord-paper) 18%, transparent) transparent;
+}
+
+.ord-track-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ord-track-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ord-track-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ord-paper) 18%, transparent);
+  border-radius: 100px;
+}
+
+.ord-track-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ord-paper) 30%, transparent);
+}
+
+/* Track heights, named for the row they carry. */
+/* Stays put while the tracks scroll under it, so you never lose the clock. */
+.ord-track-ruler {
+  height: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ord-ink);
+}
+.ord-track-captions { height: 58px; }
+.ord-track-music { height: 36px; }
+
+/* ─── Type roles ───
+   Every size in the editor resolves to a step on the acid scale in
+   globals.css — the same ladder mobile draws from. The design export
+   specified 8 hand-picked pixel values (13.5px, 12.5px, 11.5px, 9.5px…);
+   those are gone. Roles, not sizes, so a scale change lands everywhere. */
+
+.ord-type-label {
+  font-size: var(--acid-text-label);
+  line-height: var(--acid-leading-label);
+  letter-spacing: var(--acid-tracking-label);
+}
+
+.ord-type-caption {
+  font-size: var(--acid-text-caption);
+  line-height: var(--acid-leading-caption);
+  letter-spacing: var(--acid-tracking-caption);
+}
+
+.ord-type-footnote {
+  font-size: var(--acid-text-footnote);
+  line-height: var(--acid-leading-footnote);
+  letter-spacing: var(--acid-tracking-footnote);
+}
+
+/* Dense tool chrome: ruler ticks, rail labels, mono readouts. */
+.ord-type-micro {
+  font-size: var(--acid-text-micro);
+  line-height: var(--acid-leading-micro);
+  letter-spacing: var(--acid-tracking-micro);
+}
+
+.ord-eyebrow {
+  font-size: var(--acid-text-footnote);
+  font-weight: 700;
+  line-height: var(--acid-leading-eyebrow);
+  letter-spacing: var(--acid-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ord-mono {
+  font-family: var(--font-mono);
+  font-size: var(--acid-text-micro);
+  line-height: var(--acid-leading-micro);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ord-kbd {
+  font-family: var(--font-mono);
+  font-size: var(--acid-text-micro);
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ord-paper) 8%, transparent);
+}
+
+/* ─── Motion ─── */
+.ord-animate-fade {
+  animation: ord-fade 200ms var(--ease-snap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ord-animate-fade { animation: none; }
+}

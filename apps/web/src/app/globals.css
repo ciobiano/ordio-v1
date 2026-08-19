@@ -15,6 +15,10 @@
    via next/font/google as --font-acid-nunito in layout.tsx. */
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+/* Desktop editor: token aliases onto the acid system, plus editor geometry.
+   Not a second palette — see the header of ord-tokens.css. */
+@import './ord-tokens.css';
+@import './ord-editor.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -116,6 +120,18 @@
   --acid-error: #ff5c5c;
   --acid-info: #6be0ff;
 
+  /* ─── Timeline track identity ───
+     Colour here answers "which track am I looking at" — that is identity,
+     and DESIGN.md reserves lime for a chosen value or the one commit action,
+     never identity. So each track carries its own hue and the accent stays
+     out of the timeline except on the block you have actually selected.
+     Shared, not desktop-only: mobile draws the same two hues wherever it
+     shows speech against music. */
+  --acid-track-speech: #4b3fc9;
+  --acid-track-speech-fill: rgba(96, 84, 214, 0.34);
+  --acid-track-music: #a8325b;
+  --acid-track-music-fill: rgba(190, 62, 104, 0.26);
+
   /* Gated-feature marker. The export-screen design used a dedicated rose for
      this; ACID has no premium role, so it aliases the existing amber rather
      than adding a rival hue. Amber over error-red on purpose: a lock is an
@@ -193,6 +209,15 @@
   --acid-text-footnote: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11px → 12px */
   --acid-leading-footnote: 1.4;
   --acid-tracking-footnote: 0.02em;
+
+  /* Micro — dense tool chrome only: timeline ruler ticks, mono readouts,
+     rail labels. Added for the desktop editor, which needs a step below
+     footnote; kept in the shared scale rather than as editor-local sizes
+     so both viewports keep drawing from one ladder. Do not use for
+     anything a person has to read in a sentence. */
+  --acid-text-micro: clamp(0.625rem, 0.7vw, 0.6875rem); /* 10px → 11px */
+  --acid-leading-micro: 1.3;
+  --acid-tracking-micro: 0.03em;
 
   /* Eyebrow — all-caps micro-label. Caps have no ascender/descender
      variation to separate them, so they need far more tracking than
