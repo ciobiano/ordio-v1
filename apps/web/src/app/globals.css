@@ -93,7 +93,12 @@
   /* ─── Text ─── */
   --acid-text-1: #f4f5ef;
   --acid-text-2: rgba(244, 245, 239, 0.64);
-  --acid-text-3: rgba(244, 245, 239, 0.42);
+  /* Raised 0.42 → 0.58 for WCAG AA. At 0.42 this composites to
+     rgb(114,115,114) on --acid-surface-1 — 3.83:1, under the 4.5:1 floor,
+     and it carries the smallest text in the app (timestamps, eyebrows,
+     hints). 0.58 lands 6.22:1. The failing value never appeared in any
+     source file, which is why it survived review for so long. */
+  --acid-text-3: rgba(244, 245, 239, 0.58);
   --acid-text-4: rgba(244, 245, 239, 0.24);
 
   /* ─── Accent — electric lime, the signature ─── */
