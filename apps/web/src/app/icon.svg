@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ordio">
+  <!--
+    The lime dot from the Logo lockup, on its own.
+
+    The wordmark does not come with it: at 16px the letters collapse into a
+    smear, and the dot is already the half of the mark that carries at that
+    size. Same #c6ff3d as --acid-accent in globals.css — hardcoded because an
+    icon file is served without the stylesheet that defines the token.
+
+    Ink ground rather than transparent: a lime circle on a transparent field
+    disappears into a light browser theme's tab strip, which is exactly where
+    this is meant to be recognised.
+  -->
+  <rect width="32" height="32" rx="7" fill="#0a0b0a"/>
+  <circle cx="16" cy="16" r="8" fill="#c6ff3d"/>
+</svg>
