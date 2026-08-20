@@ -20,10 +20,18 @@ import { cva, type VariantProps } from 'class-variance-authority';
  * get a real background lift rather than a 42% → 100% text nudge that reads as
  * nothing on a dark rail. `enabled:` keeps both off the disabled state.
  */
-export const railButton = cva('ord-rail-btn transition-colors', {
+/**
+ * Rail tool button.
+ *
+ * Selected is a lime tint plus lime foreground, not a lime fill — see the
+ * marker rule in ord-editor.css for why. Hover is declared per selection
+ * state on purpose: a single hover rule out-specified the selected rule once
+ * before and painted near-white text on the lime fill at about 1.1:1.
+ */
+export const railButton = cva('ord-rail-btn transition-colors duration-[var(--dur-tap)]', {
   variants: {
     selected: {
-      true: 'bg-[var(--ord-acid)] text-[var(--ord-ink)] enabled:hover:brightness-90',
+      true: 'bg-[var(--ord-acid)]/14 text-[var(--ord-acid)] enabled:hover:bg-[var(--ord-acid)]/22',
       false:
         'bg-transparent text-[var(--text-muted)] enabled:hover:bg-[var(--ord-paper)]/8 enabled:hover:text-[var(--ord-paper)]',
     },
@@ -33,7 +41,7 @@ export const railButton = cva('ord-rail-btn transition-colors', {
 
 /** Pill chip — languages, break modes, beds, ratios, animation choices. */
 export const chip = cva(
-  'inline-flex items-center gap-[5px] rounded-full border font-bold cursor-pointer transition-colors',
+  'inline-flex items-center gap-[5px] rounded-full border font-bold cursor-pointer transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       selected: {
@@ -55,7 +63,7 @@ export const chip = cva(
 
 /** Square-ish icon button in the top bar and panel headers. */
 export const iconButton = cva(
-  'flex items-center justify-center rounded-[9px] cursor-pointer transition-colors disabled:cursor-default disabled:opacity-40',
+  'flex items-center justify-center rounded-[9px] cursor-pointer transition-colors duration-[var(--dur-tap)] disabled:cursor-default disabled:opacity-40',
   {
     variants: {
       tone: {
@@ -76,7 +84,7 @@ export const iconButton = cva(
 
 /** Solid commit buttons. The acid fill is the single export action. */
 export const solidButton = cva(
-  'flex items-center justify-center gap-2 rounded-[11px] border-0 font-bold cursor-pointer transition-transform active:scale-[0.97]',
+  'flex items-center justify-center gap-2 rounded-[11px] border-0 font-bold cursor-pointer transition-transform duration-[var(--dur-tap)] active:scale-[0.97]',
   {
     variants: {
       tone: {
@@ -94,14 +102,21 @@ export const solidButton = cva(
 );
 
 /** Transcript row, media clip row — a selectable list item. */
+/**
+ * A transcript row.
+ *
+ * No left border. A 3px lime rail down the side of every selected row put the
+ * accent on position — the one job DESIGN.md reserves it from — and it read as
+ * heavy beside rows that are mostly text. The tint alone marks selection, and
+ * the row that is playing is already marked by its highlighted word.
+ */
 export const listRow = cva(
-  'flex w-full cursor-pointer items-start gap-[10px] rounded-[10px] px-[11px] py-[9px] text-left transition-colors',
+  'flex w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       selected: {
-        true: 'bg-[var(--ord-acid)]/12 border-l-[3px] border-l-[var(--ord-acid)]',
-        false:
-          'bg-transparent border-l-[3px] border-l-transparent hover:bg-[var(--ord-paper)]/5',
+        true: 'bg-[var(--ord-acid)]/12',
+        false: 'bg-transparent hover:bg-[var(--ord-paper)]/5',
       },
     },
     defaultVariants: { selected: false },
@@ -110,7 +125,7 @@ export const listRow = cva(
 
 /** A word chip inside the expanded transcript row. */
 export const wordChip = cva(
-  'rounded-[5px] px-1 py-0.5 ord-type-label cursor-text transition-colors',
+  'rounded-full px-1 py-1 ord-type-label cursor-text transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       state: {
@@ -132,7 +147,7 @@ export const wordChip = cva(
  * that — see memory/pitfall_cva_variant_key_order.
  */
 export const trackBlock = cva(
-  'absolute flex items-center overflow-hidden rounded-lg border cursor-pointer whitespace-nowrap transition-colors',
+  'absolute flex items-center overflow-hidden rounded-lg border cursor-pointer whitespace-nowrap transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       tone: {

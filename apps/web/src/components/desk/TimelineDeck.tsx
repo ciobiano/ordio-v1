@@ -125,11 +125,11 @@ export function TimelineDeck(props: TimelineDeckProps) {
               key={track.label}
               className={cn(
                 track.className,
-                'flex flex-none items-center gap-[7px] border-t border-[var(--border-hairline)] px-[11px] text-[var(--text-muted)]'
+                'flex flex-none items-center gap-2 border-t border-[var(--border-hairline)] px-3 text-[var(--text-muted)]'
               )}
             >
               <span className={cn('size-1.5 flex-none rounded-full', track.dot)} />
-              <span className="truncate ord-type-micro font-bold tracking-[0.08em] uppercase">
+              <span className="truncate ord-type-caps">
                 {track.label}
               </span>
             </div>
@@ -148,7 +148,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
               {ticks.map((tick, i) => (
                 <span
                   key={i}
-                  className="absolute inset-y-0 flex items-center border-l border-[var(--ord-paper)]/10 pl-[5px]"
+                  className="absolute inset-y-0 flex items-center border-l border-[var(--ord-paper)]/10 pl-1"
                   style={{ left: tick.left }}
                 >
                   <span className="ord-mono ord-type-micro">{tick.label}</span>
@@ -185,7 +185,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
               <div
                 className={cn(
                   trackBlock({ tone: 'music' }),
-                  'inset-x-0 top-1 bottom-1 cursor-default px-[9px] ord-mono tracking-[0.05em]'
+                  'inset-x-0 top-1 bottom-1 cursor-default px-2 ord-mono'
                 )}
               >
                 {props.bedLabel}
@@ -212,7 +212,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
               className="pointer-events-none absolute inset-y-0 w-0.5 bg-[var(--ord-paper)]"
               style={{ left: pct(t) }}
             >
-              <span className="absolute top-0 -left-[5px] h-[11px] w-3 rounded-sm bg-[var(--ord-paper)]" />
+              <span className="absolute top-0 -left-[5px] h-[11px] w-3 rounded-full bg-[var(--ord-paper)]" />
             </div>
           </div>
         </div>

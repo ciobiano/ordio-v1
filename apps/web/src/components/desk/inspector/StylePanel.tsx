@@ -2,14 +2,17 @@
 
 /** Caption style — the design's largest panel, split across four tabs. */
 
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Clock01Icon, DashboardSquare02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { chip } from '@/lib/desk/deskVariants';
 import type { DeskState, StyleTab } from '@/lib/desk/deskState';
 import type { BreakMode } from '@Ordio/engine/captions/breaks';
-import { ANIMS, FONTS, PRESETS, VISUALS } from '@/lib/desk/deskCatalog';
+import { ANIMS, FONTS, VISUALS } from '@/lib/desk/deskCatalog';
 import {
   ChipRow,
   ColourField,
+  FieldRow,
   PanelBody,
   Section,
   SliderField,
@@ -23,12 +26,29 @@ const TABS: { id: StyleTab; label: string }[] = [
   { id: 'layout', label: 'Layout' },
 ];
 
-const BREAK_MODES: { id: BreakMode; label: string }[] = [
-  { id: 'punct', label: 'Punctuation' },
-  { id: 'quantity', label: 'Word count' },
+/**
+ * Frequency and Quantity are one choice shown as two rows — the arrangement
+ * mobile uses. `quantity` is deliberately absent from Frequency: picking a
+ * count in the second row is what switches the mode, so the first row
+ * deselects rather than the second row appearing out of nowhere.
+ */
+const BREAK_FREQUENCIES: { id: BreakMode; label: string }[] = [
+  { id: 'punct', label: 'Punctuation or pause' },
+  { id: 'single', label: 'Single word' },
   { id: 'time', label: 'Time' },
-  { id: 'single', label: 'One word' },
-  { id: 'random', label: 'Varied' },
+  { id: 'random', label: 'Random' },
+];
+
+const BREAK_QUANTITIES: { id: string; label: string }[] = [
+  { id: '1', label: 'One' },
+  { id: '2', label: 'Two' },
+  { id: '3', label: 'Three' },
+  { id: '4', label: 'Four' },
+  { id: '5', label: 'Five' },
+  { id: '6', label: 'Six' },
+  { id: '7', label: 'Seven' },
+  { id: '8', label: 'Eight' },
+  { id: 'random', label: 'Random' },
 ];
 
 interface StylePanelProps {
@@ -39,7 +59,7 @@ interface StylePanelProps {
 export function StylePanel({ state, patch }: StylePanelProps) {
   return (
     <>
-      <div className="flex flex-none gap-1 px-[18px] pb-2.5">
+      <div className="flex flex-none gap-1 px-4 pb-2">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -55,43 +75,6 @@ export function StylePanel({ state, patch }: StylePanelProps) {
       <PanelBody>
         {state.styleTab === 'animation' && (
           <>
-            <Section label="Caption presets">
-              <div className="grid grid-cols-3 gap-1.5">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() =>
-                      patch(
-                        {
-                          preset: preset.id,
-                          font: preset.font,
-                          capCase: preset.textCase,
-                          textColor: preset.text,
-                          activeWordBg: preset.wordBg,
-                          activeWordColor: preset.wordText,
-                          strokeW: preset.stroke,
-                          anim: preset.anim,
-                        },
-                        true
-                      )
-                    }
-                    className={cn(
-                      'flex h-[54px] flex-col items-center justify-center gap-1 rounded-[10px] border transition-colors',
-                      state.preset === preset.id
-                        ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
-                        : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
-                    )}
-                  >
-                    <span className="ord-type-footnote font-bold text-[var(--ord-paper)]">
-                      {preset.name}
-                    </span>
-                    <span className="ord-mono ord-type-micro">{preset.sample}</span>
-                  </button>
-                ))}
-              </div>
-            </Section>
-
             <Section label="Animation">
               <div className="flex flex-col gap-1">
                 {ANIMS.map((anim) => (
@@ -100,13 +83,13 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                     type="button"
                     onClick={() => patch({ anim: anim.id }, true)}
                     className={cn(
-                      'flex flex-col gap-0.5 rounded-[10px] border px-3 py-2 text-left transition-colors',
+                      'flex flex-col gap-1 rounded-xl border px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
                       state.anim === anim.id
                         ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                         : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
                     )}
                   >
-                    <span className="ord-type-footnote font-bold text-[var(--ord-paper)]">
+                    <span className="ord-type-footnote font-semibold text-[var(--ord-paper)]">
                       {anim.label}
                     </span>
                     <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
@@ -117,22 +100,49 @@ export function StylePanel({ state, patch }: StylePanelProps) {
               </div>
             </Section>
 
-            <Section label="Break on">
-              <ChipRow
-                options={BREAK_MODES}
-                value={state.breakMode}
-                onChange={(id) => patch({ breakMode: id })}
-              />
-              {state.breakMode === 'quantity' && (
+            <Section
+              label="Line breaks"
+              hint="Where one caption ends and the next begins"
+            >
+              <FieldRow
+                icon={<HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} />}
+                label="Frequency"
+              >
                 <ChipRow
-                  options={[2, 3, 4, 5, 6].map((n) => ({
-                    id: String(n),
-                    label: `${n} words`,
-                  }))}
-                  value={String(state.breakQty)}
-                  onChange={(id) => patch({ breakQty: Number(id) })}
+                  options={BREAK_FREQUENCIES}
+                  value={state.breakMode === 'quantity' ? null : state.breakMode}
+                  onChange={(id) => patch({ breakMode: id })}
                 />
-              )}
+              </FieldRow>
+
+              <FieldRow
+                icon={
+                  <HugeiconsIcon
+                    icon={DashboardSquare02Icon}
+                    size={16}
+                    strokeWidth={2}
+                  />
+                }
+                label="Quantity"
+              >
+                {/* Always present, never conditional. Hiding this until the
+                    mode was already `quantity` meant the only way to find it
+                    was to pick the option it belonged to — undiscoverable.
+                    Choosing a count here sets the mode. */}
+                <ChipRow
+                  options={BREAK_QUANTITIES}
+                  value={
+                    state.breakMode === 'quantity' ? String(state.breakQty) : null
+                  }
+                  onChange={(id) =>
+                    patch({
+                      breakMode: 'quantity',
+                      breakQty: id === 'random' ? 'random' : Number(id),
+                    })
+                  }
+                />
+              </FieldRow>
+
               {state.breakMode === 'time' && (
                 <SliderField
                   label="Hold each caption"
@@ -141,9 +151,12 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                   min={1}
                   max={6}
                   step={0.5}
+                  minLabel="Snappy"
+                  maxLabel="Slow"
                   onChange={(v) => patch({ breakSecs: v })}
                 />
               )}
+
               <ToggleField
                 label="Apply to all phrases"
                 hint="Off means this caption only"
@@ -164,7 +177,7 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                     type="button"
                     onClick={() => patch({ font: font.name }, true)}
                     className={cn(
-                      'flex items-center justify-between rounded-[10px] border px-3 py-2 transition-colors',
+                      'flex items-center justify-between rounded-xl border px-3 py-2 transition-colors duration-[var(--dur-tap)]',
                       state.font === font.name
                         ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                         : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
@@ -189,7 +202,25 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                 readout={`${state.fontSize}`}
                 min={24}
                 max={120}
+                minLabel="Small"
+                maxLabel="Large"
                 onChange={(v) => patch({ fontSize: v })}
+              />
+              {/* Line spacing was missing entirely — the stage had 1.15
+                  hardcoded, so multi-line captions could not be tightened or
+                  opened up at all. Mobile has had this since LayoutTab; the
+                  range matches, and the value is a raw line-height so it
+                  means the same thing in both places. */}
+              <SliderField
+                label="Line spacing"
+                value={state.lineHeight}
+                readout={state.lineHeight.toFixed(2)}
+                min={0.8}
+                max={2.4}
+                step={0.01}
+                minLabel="Tight"
+                maxLabel="Loose"
+                onChange={(v) => patch({ lineHeight: v })}
               />
               <SliderField
                 label="Character spacing"
@@ -198,6 +229,8 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                 min={-0.05}
                 max={0.3}
                 step={0.01}
+                minLabel="Tighter"
+                maxLabel="Wider"
                 onChange={(v) => patch({ charSpacing: v })}
               />
               <ToggleField
@@ -205,6 +238,36 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                 hint="Ordio sizes each line to the canvas"
                 checked={state.autoFit}
                 onChange={(v) => patch({ autoFit: v })}
+              />
+            </Section>
+
+            {/* Stroke was reachable only by picking a preset that happened to
+                set it: Street applies a 3px stroke and nothing could change or
+                clear it afterwards. Glow was worse — a state field nothing
+                wrote and nothing drew, so it is wired to the stage here rather
+                than given a slider that does nothing. */}
+            <Section label="Edge">
+              <SliderField
+                label="Stroke width"
+                value={state.strokeW}
+                readout={`${state.strokeW}px`}
+                min={0}
+                max={8}
+                step={0.5}
+                minLabel="None"
+                maxLabel="Heavy"
+                onChange={(v) => patch({ strokeW: v })}
+              />
+              <SliderField
+                label="Glow"
+                value={state.glow}
+                readout={`${Math.round(state.glow * 100)}%`}
+                min={0}
+                max={1}
+                step={0.05}
+                minLabel="Off"
+                maxLabel="Strong"
+                onChange={(v) => patch({ glow: v })}
               />
             </Section>
 

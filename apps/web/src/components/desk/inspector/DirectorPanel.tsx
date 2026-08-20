@@ -18,7 +18,7 @@ export function DirectorPanel({ state, patch, onReroll }: DirectorPanelProps) {
   return (
     <PanelBody>
       <Section label="Looks">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {LOOKS.map((look) => {
             const preset = PRESETS.find((p) => p.id === look.preset);
             const isActive = state.preset === look.preset && state.artwork === look.comp;
@@ -45,13 +45,13 @@ export function DirectorPanel({ state, patch, onReroll }: DirectorPanelProps) {
                   )
                 }
                 className={cn(
-                  'flex flex-col gap-1 rounded-xl border px-3.5 py-3 text-left transition-colors',
+                  'flex flex-col gap-1 rounded-xl border px-3 py-3 text-left transition-colors duration-[var(--dur-tap)]',
                   isActive
                     ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                     : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
                 )}
               >
-                <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+                <span className="ord-type-label font-semibold text-[var(--ord-paper)]">
                   {look.name}
                 </span>
                 <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.35] text-[var(--text-muted)]">

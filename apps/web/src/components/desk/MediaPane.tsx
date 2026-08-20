@@ -50,7 +50,7 @@ export function MediaPane({ onRecord, onUpload, onSelectClip }: MediaPaneProps) 
   return (
     <div
       data-scroll
-      className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[18px] pt-1.5 pb-[18px]"
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-2 pb-4"
     >
       <section className="flex flex-col gap-2">
         <span className="ord-eyebrow">Bring in audio</span>
@@ -59,13 +59,13 @@ export function MediaPane({ onRecord, onUpload, onSelectClip }: MediaPaneProps) 
             key={id}
             type="button"
             onClick={on}
-            className="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-[var(--ord-paper)]/5 p-3 text-left transition-colors hover:border-[var(--border-hairline)]"
+            className="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-[var(--ord-paper)]/5 p-3 text-left transition-colors duration-[var(--dur-tap)] hover:border-[var(--border-hairline)]"
           >
-            <span className="flex size-[34px] flex-none items-center justify-center rounded-[9px] bg-[var(--ord-paper)]/8 text-[var(--ord-paper)]">
+            <span className="flex size-[34px] flex-none items-center justify-center rounded-xl bg-[var(--ord-paper)]/8 text-[var(--ord-paper)]">
               <Glyph size={17} />
             </span>
-            <span className="flex flex-1 flex-col gap-0.5">
-              <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+            <span className="flex flex-1 flex-col gap-1">
+              <span className="ord-type-label font-semibold text-[var(--ord-paper)]">
                 {label}
               </span>
               <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.35] text-[var(--text-muted)]">
@@ -93,7 +93,7 @@ export function MediaPane({ onRecord, onUpload, onSelectClip }: MediaPaneProps) 
               onClick={() => onSelectClip(session.id, session.name, session.durationMs)}
               className={listRow({ selected: false }) + ' items-center'}
             >
-              <span className="flex size-[30px] flex-none items-center justify-center rounded-lg bg-[var(--ord-paper)]/8 text-[var(--text-body)]">
+              <span className="flex size-[30px] flex-none items-center justify-center rounded-xl bg-[var(--ord-paper)]/8 text-[var(--text-body)]">
                 <ClipGlyph size={15} />
               </span>
               <span className="min-w-0 flex-1 truncate font-[family-name:var(--font-display)] ord-type-caption text-[var(--ord-paper)]">

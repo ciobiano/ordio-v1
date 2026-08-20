@@ -62,7 +62,7 @@ export function DeskTopBar({
         </button>
       </div>
 
-      <div className="flex flex-none items-center gap-2.5">
+      <div className="flex flex-none items-center gap-2">
         <button
           type="button"
           onClick={onShortcuts}
@@ -72,7 +72,7 @@ export function DeskTopBar({
           <KeyboardGlyph size={16} />
         </button>
 
-        <div className="flex gap-0.5">
+        <div className="flex gap-1">
           <button
             type="button"
             onClick={onUndo}

@@ -11,6 +11,7 @@
  */
 
 import { cn } from '@/lib/utils';
+import { CollapseButton, CollapsedStrip } from './PanelCollapse';
 import type { DeskLine, LeftMode } from '@/lib/desk/deskState';
 import { MediaPane } from './MediaPane';
 import { TranscriptPane } from './TranscriptPane';
@@ -18,6 +19,8 @@ import { TranscriptPane } from './TranscriptPane';
 interface LeftPanelProps {
   mode: LeftMode;
   clipName: string | null;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   /* media */
   onRecord: () => void;
   onUpload: () => void;
@@ -43,25 +46,50 @@ interface LeftPanelProps {
   onAutoHighlight: () => void;
   onSplit: () => void;
   onMerge: (direction: 'up' | 'down') => void;
+  onDelete: () => void;
   onCopy: () => void;
+  editing: number | null;
+  onBeginEdit: (index: number | null) => void;
+  onCommitEdit: (index: number, text: string) => void;
 }
 
-export function LeftPanel({ mode, clipName, ...rest }: LeftPanelProps) {
+export function LeftPanel({
+  mode,
+  clipName,
+  collapsed,
+  onToggleCollapse,
+  ...rest
+}: LeftPanelProps) {
   const isTranscript = mode === 'transcript';
+  /* The strip names whichever state the column is in, so expanding it holds
+     no surprise about what comes back. */
+  const title = isTranscript ? 'Transcript' : 'Media';
+
+  if (collapsed) {
+    return (
+      <aside className="ord-transcript is-collapsed" aria-label={title}>
+        <CollapsedStrip side="left" label={title} onExpand={onToggleCollapse} />
+      </aside>
+    );
+  }
 
   return (
-    <aside className="ord-transcript">
+    <aside className="ord-transcript" aria-label={title}>
+      <div className="flex flex-none items-center justify-end px-2 pt-2">
+        <CollapseButton side="left" label="Hide panel" onClick={onToggleCollapse} />
+      </div>
+
       {isTranscript && clipName && (
-        <div className="flex flex-none items-center gap-2 border-b border-[var(--border-hairline)] px-4 py-2.5">
+        <div className="flex flex-none items-center gap-2 border-b border-[var(--border-hairline)] px-4 py-2">
           <button
             type="button"
             onClick={rest.onClearClip}
             title="Back to your clips"
-            className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--ord-paper)]/8 hover:text-[var(--ord-paper)]"
+            className="flex size-6 flex-none cursor-pointer items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors duration-[var(--dur-tap)] hover:bg-[var(--ord-paper)]/8 hover:text-[var(--ord-paper)]"
           >
             ←
           </button>
-          <span className="min-w-0 flex-1 truncate ord-type-caption font-bold text-[var(--ord-paper)]">
+          <span className="min-w-0 flex-1 truncate ord-type-subtitle font-bold text-[var(--ord-paper)]">
             {clipName}
           </span>
         </div>
@@ -94,7 +122,11 @@ export function LeftPanel({ mode, clipName, ...rest }: LeftPanelProps) {
             onAutoHighlight={rest.onAutoHighlight}
             onSplit={rest.onSplit}
             onMerge={rest.onMerge}
+            onDelete={rest.onDelete}
             onCopy={rest.onCopy}
+            editing={rest.editing}
+            onBeginEdit={rest.onBeginEdit}
+            onCommitEdit={rest.onCommitEdit}
           />
         ) : (
           <MediaPane

@@ -87,26 +87,26 @@ export function ExportSheet({
     <DeskSheet title="Export" onClose={onClose}>
       {state.exStage === 'setup' && (
         <>
-          <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+          <span className="ord-type-title font-bold text-[var(--ord-paper)]">
             Export
           </span>
 
           <div className="flex flex-col gap-2 overflow-y-auto">
             <span className="ord-eyebrow">What you get</span>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {KINDS.map((kind) => (
                 <button
                   key={kind.id}
                   type="button"
                   onClick={() => patch({ exKind: kind.id })}
                   className={cn(
-                    'flex flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors',
+                    'flex flex-col gap-1 rounded-xl border px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
                     state.exKind === kind.id
                       ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                       : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
                   )}
                 >
-                  <span className="ord-type-footnote font-bold text-[var(--ord-paper)]">
+                  <span className="ord-type-footnote font-semibold text-[var(--ord-paper)]">
                     {kind.label}
                   </span>
                   <span className="ord-type-micro text-[var(--text-muted)]">
@@ -119,7 +119,7 @@ export function ExportSheet({
             {isVideo ? (
               <>
                 <span className="ord-eyebrow pt-1">Resolution</span>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   {RESOLUTIONS.map((res) => (
                     <button
                       key={res.id}
@@ -141,14 +141,14 @@ export function ExportSheet({
             ) : (
               <>
                 <span className="ord-eyebrow pt-1">Preview</span>
-                <pre className="ord-type-micro m-0 max-h-40 overflow-auto rounded-lg border border-[var(--border-hairline)] bg-[var(--ord-ink)] p-3 font-[family-name:var(--font-mono)] whitespace-pre-wrap text-[var(--text-body)]">
+                <pre className="ord-type-micro m-0 max-h-40 overflow-auto rounded-xl border border-[var(--border-hairline)] bg-[var(--ord-ink)] p-3 font-[family-name:var(--font-mono)] whitespace-pre-wrap text-[var(--text-body)]">
                   {preview || 'Nothing to export yet.'}
                 </pre>
               </>
             )}
           </div>
 
-          <div className="flex gap-2.5 pt-1.5">
+          <div className="flex gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
@@ -173,7 +173,7 @@ export function ExportSheet({
 
       {state.exStage === 'running' && (
         <>
-          <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+          <span className="ord-type-title font-bold text-[var(--ord-paper)]">
             Rendering
           </span>
           <div
@@ -185,7 +185,7 @@ export function ExportSheet({
           >
             {/* Progress is position over time, not a choice — paper. */}
             <div
-              className="h-full rounded-full bg-[var(--ord-paper)] transition-[width] duration-150"
+              className="h-full rounded-full bg-[var(--ord-paper)] transition-[width] duration-[var(--dur-snap)]"
               style={{ width: `${state.exportPct}%` }}
             />
           </div>
@@ -202,7 +202,7 @@ export function ExportSheet({
 
       {state.exStage === 'done' && (
         <>
-          <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+          <span className="ord-type-title font-bold text-[var(--ord-paper)]">
             Ready
           </span>
           <p className="ord-type-footnote m-0 text-[var(--text-muted)]">

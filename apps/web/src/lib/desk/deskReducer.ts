@@ -36,6 +36,7 @@ export type DeskAction =
   | { type: 'editWord'; row: number; index: number; text: string }
   | { type: 'splitRow' }
   | { type: 'mergeRow'; direction: 'up' | 'down' }
+  | { type: 'deleteRow'; row: number }
   | { type: 'replaceAll' }
   | { type: 'undo' }
   | { type: 'redo' };
@@ -156,9 +157,21 @@ export function deskReducer(store: DeskStore, action: DeskAction): DeskStore {
     }
 
     case 'splitRow': {
-      const at = s.cursor;
       const row = s.lines[s.selRow];
-      if (at === null || !row || at <= 0 || at >= row.words.length) return store;
+      if (!row || row.words.length < 2) return store;
+
+      /* No cursor placed? Split at the playhead, the way mobile does. The
+         desktop previously just disabled the button, which meant a row you
+         had not clicked into could not be split at all — the capability was
+         there and unreachable. Falls back to the midpoint when the playhead
+         sits outside this row. */
+      const at =
+        s.cursor ??
+        (() => {
+          const i = row.words.findIndex((w) => s.t >= w.start && s.t < w.end);
+          return i > 0 ? i : Math.ceil(row.words.length / 2);
+        })();
+      if (at <= 0 || at >= row.words.length) return store;
 
       const head = row.words.slice(0, at);
       const tail = row.words.slice(at);
@@ -184,6 +197,58 @@ export function deskReducer(store: DeskStore, action: DeskAction): DeskStore {
         ...s.lines.slice(target + 2),
       ];
       return commit(store, { ...s, lines, selRow: target, cursor: null });
+    }
+
+    /**
+     * Remove one caption row.
+     *
+     * Mobile has this and the desktop did not, which is the gap being closed.
+     * Mobile's model does not transfer directly though: there, `transcript`
+     * and `captionGroups` are two stores, so deleting a group drops the
+     * caption while every word stays put and nothing after it shifts in time.
+     * Here `lines` is the only store — the words and the grouping are the same
+     * array — so what "delete" removes has to be decided rather than copied.
+     *
+     * Undo covers it either way, so it needs no confirm. Cutting audio is the
+     * Trim panel's job and must not happen here.
+     */
+    case 'deleteRow': {
+      const row = s.lines[action.row];
+      if (!row || s.lines.length <= 1) return store;
+
+      /* The words go with it.
+         The alternative — keep the words and fold them into the neighbouring
+         row — is what mobile's guarantee implies, but here it would just be
+         Merge with a different label, and Merge is already the button next to
+         this one. A control called Delete that does not delete is worse than
+         one that does. The audio is untouched either way: that span plays with
+         no caption over it. */
+      const offset = s.lines
+        .slice(0, action.row)
+        .reduce((n, l) => n + l.words.length, 0);
+      const removed = row.words.length;
+
+      const lines = s.lines.filter((_, i) => i !== action.row);
+
+      /* `accents` holds document-wide flat word indices, so removing words
+         from the middle invalidates every index after them. Drop the ones
+         inside the deleted span, shift the rest back. Missing this is the
+         quiet kind of bug: emphasis silently lands on the wrong words. */
+      const accents = s.accents
+        .filter((i) => i < offset || i >= offset + removed)
+        .map((i) => (i >= offset + removed ? i - removed : i));
+
+      /* Word timings are absolute, so nothing after this moves in time and
+         `cutPauses` stays valid. Only the selection needs rescuing — deleting
+         the last row leaves selRow pointing past the end. */
+      return commit(store, {
+        ...s,
+        lines,
+        accents,
+        selRow: Math.min(action.row, lines.length - 1),
+        cursor: null,
+        editing: null,
+      });
     }
 
     case 'replaceAll': {

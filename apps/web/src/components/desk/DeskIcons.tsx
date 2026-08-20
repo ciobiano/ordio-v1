@@ -88,6 +88,14 @@ export const PlusGlyph = (p: GlyphProps) => (
 
 /* ─── Rail tools ─── */
 
+/* Presets — stacked cards, one lifted. Reads as "a whole look", not a setting. */
+export const PresetsGlyph = (p: GlyphProps) => (
+  <Svg {...p}>
+    <rect x="3" y="7" width="12" height="14" rx="2" />
+    <path d="M8 4h11a2 2 0 0 1 2 2v11" />
+  </Svg>
+);
+
 export const StyleGlyph = (p: GlyphProps) => (
   <Svg {...p}>
     <path d="M4 7h16M4 12h10M4 17h6" />

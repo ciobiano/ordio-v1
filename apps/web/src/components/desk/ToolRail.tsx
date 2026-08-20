@@ -3,15 +3,18 @@
 /**
  * The far-right tool column.
  *
- * Six tools, not the design's seven: Media moved to the morphing left column,
- * so picking a clip and editing it are no longer on opposite sides of the
- * screen. See memory/project_desk_left_panel_morphs.md.
+ * Seven tools. Media moved out to the morphing left column, so picking a clip
+ * and editing it are no longer on opposite sides of the screen; Presets moved
+ * in from inside the Style panel, because a preset writes across every Style
+ * tab and is where imported artwork will land.
+ * See memory/project_desk_left_panel_morphs.md.
  */
 
 import { railButton } from '@/lib/desk/deskVariants';
 import { TOOL_COPY, type ToolId } from '@/lib/desk/deskCatalog';
 import {
   AudioGlyph,
+  PresetsGlyph,
   DirectorGlyph,
   ReframeGlyph,
   StyleGlyph,
@@ -20,6 +23,7 @@ import {
 } from './DeskIcons';
 
 const TOOLS: { id: ToolId; label: string; Glyph: typeof StyleGlyph }[] = [
+  { id: 'presets', label: 'Presets', Glyph: PresetsGlyph },
   { id: 'style', label: 'Style', Glyph: StyleGlyph },
   { id: 'timing', label: 'Timing', Glyph: TimingGlyph },
   { id: 'audio', label: 'Audio', Glyph: AudioGlyph },
@@ -48,7 +52,7 @@ export function ToolRail({ tool, onSelect, disabled }: ToolRailProps) {
           className={railButton({ selected: tool === id })}
         >
           <Glyph size={18} />
-          <span className="ord-type-micro font-bold uppercase tracking-[0.06em]">
+          <span className="ord-type-caps">
             {label}
           </span>
         </button>

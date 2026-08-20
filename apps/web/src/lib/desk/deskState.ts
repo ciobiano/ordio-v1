@@ -34,6 +34,10 @@ export interface DeskLine {
 export interface DeskState {
   /* Shell */
   leftMode: LeftMode;
+  /* Collapse is chrome, not document state — deliberately outside Snapshot so
+     undo never reopens a panel you closed. */
+  leftCollapsed: boolean;
+  inspectorCollapsed: boolean;
   tool: ToolId;
   sheet: SheetId;
   styleTab: StyleTab;
@@ -66,8 +70,12 @@ export interface DeskState {
   fontSize: number;
   align: 'start' | 'center' | 'end';
   vAlign: 'auto' | 'top' | 'middle' | 'bottom';
+  /* Stored as a raw line-height multiplier, the same shape as
+     StyleConfig.lineHeight in packages/shared. */
+  lineHeight: number;
   charSpacing: number;
   strokeW: number;
+  /* 0–1. Rendered as a text-shadow halo in the stage colour. */
   glow: number;
   strokeColor: string;
   activeWordColor: string;
@@ -120,6 +128,8 @@ export interface DeskState {
 
 export const INITIAL_DESK_STATE: DeskState = {
   leftMode: 'media',
+  leftCollapsed: false,
+  inspectorCollapsed: false,
   tool: 'style',
   sheet: null,
   styleTab: 'animation',
@@ -148,9 +158,10 @@ export const INITIAL_DESK_STATE: DeskState = {
   fontSize: 56,
   align: 'center',
   vAlign: 'auto',
+  lineHeight: 1.15,
   charSpacing: 0,
   strokeW: 0,
-  glow: 0.5,
+  glow: 0,
   strokeColor: '#0a0b0a',
   activeWordColor: '#0a0b0a',
   activeWordBg: '#c6ff3d',

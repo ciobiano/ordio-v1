@@ -65,7 +65,7 @@ export function DeskSheet({
     <div
       onClick={close}
       className={cn(
-        'fixed inset-0 z-60 flex justify-center bg-[var(--ord-ink)]/72 p-6 backdrop-blur-[2px]',
+        'fixed inset-0 z-60 flex justify-center bg-[var(--ord-ink)]/72 p-4 backdrop-blur-[2px]',
         align === 'top' ? 'items-start pt-[12vh]' : 'items-center'
       )}
     >
@@ -77,7 +77,7 @@ export function DeskSheet({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'ord-animate-fade flex max-h-full flex-col gap-3.5 overflow-hidden rounded-[18px] border border-[var(--border-hairline)] bg-[var(--surface-card)] p-6 outline-none',
+          'ord-animate-fade flex max-h-full flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--surface-card)] p-4 outline-none',
           width === 'wide' ? 'w-[560px]' : 'w-[420px]',
           'max-w-full'
         )}

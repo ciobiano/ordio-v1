@@ -38,13 +38,13 @@ export function Transport({
   const pct = duration > 0 ? Math.min(100, (t / duration) * 100) : 0;
 
   return (
-    <div className="flex h-[50px] flex-none items-center gap-3 px-5 pb-2">
+    <div className="flex h-[50px] flex-none items-center gap-3 px-4 pb-2">
       <button
         type="button"
         onClick={onTogglePlay}
         disabled={duration === 0}
         title="Play · space"
-        className="flex size-[38px] flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)] text-[var(--ord-ink)] transition-transform active:scale-[0.96] disabled:opacity-40"
+        className="flex size-[38px] flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)] text-[var(--ord-ink)] transition-transform duration-[var(--dur-tap)] active:scale-[0.96] disabled:opacity-40"
       >
         {playing ? <PauseGlyph /> : <PlayGlyph />}
       </button>
@@ -86,7 +86,7 @@ export function Transport({
         </div>
       </div>
 
-      <div className="flex flex-none gap-1.5">
+      <div className="flex flex-none gap-2">
         <button
           type="button"
           onClick={onToggleSafe}

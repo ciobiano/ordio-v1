@@ -50,7 +50,7 @@ export function TrimPanel({
         label="Detected pauses"
         hint={pauses.length ? 'Click to cut' : 'No long pauses in this clip.'}
       >
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {pauses.map((pause) => (
             <button
               key={pause.at}
@@ -77,7 +77,7 @@ export function TrimPanel({
       </Section>
 
       <Section label="Bulk">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onCutAllPauses} className={chip({ size: 'md' })}>
             Cut every pause
           </button>

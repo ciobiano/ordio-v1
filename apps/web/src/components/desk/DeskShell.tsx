@@ -136,6 +136,14 @@ export function DeskShell() {
       } else if (meta && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         patch({ findOpen: true });
+      } else if (e.key === 'Escape') {
+        patch({ cursor: null, editing: null });
+      } else if (e.key === '[') {
+        e.preventDefault();
+        patch({ leftCollapsed: !state.leftCollapsed });
+      } else if (e.key === ']') {
+        e.preventDefault();
+        patch({ inspectorCollapsed: !state.inspectorCollapsed });
       } else if (e.code === 'Space') {
         e.preventDefault();
         togglePlay();
@@ -152,7 +160,19 @@ export function DeskShell() {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, jumpWord, seek, t, patch, state.sheet]);
+    // The collapse flags are read inside the handler, so they belong here —
+    // without them a stale closure would toggle from the value at bind time
+    // and the panel would flip back on the second press.
+  }, [
+    togglePlay,
+    jumpWord,
+    seek,
+    t,
+    patch,
+    state.sheet,
+    state.leftCollapsed,
+    state.inspectorCollapsed,
+  ]);
 
   const handleCopy = useCallback(() => {
     void navigator.clipboard.writeText(words.map((w) => w.text).join(' '));
@@ -247,7 +267,11 @@ export function DeskShell() {
           findText={state.findText}
           replaceWith={state.replaceWith}
           copied={state.copied}
-          onSelectRow={(selRow) => patch({ selRow, cursor: null })}
+          onSelectRow={(selRow) => {
+            patch({ selRow, cursor: null, editing: null });
+            const line = state.lines[selRow];
+            if (line) seek(line.start);
+          }}
           onSetCursor={(cursor) => patch({ cursor })}
           onToggleAccent={(index) => dispatch({ type: 'toggleAccent', index })}
           onToggleFind={() => patch({ findOpen: !state.findOpen })}
@@ -258,6 +282,15 @@ export function DeskShell() {
           onSplit={() => dispatch({ type: 'splitRow' })}
           onMerge={(direction) => dispatch({ type: 'mergeRow', direction })}
           onCopy={handleCopy}
+          onDelete={() => dispatch({ type: 'deleteRow', row: state.selRow })}
+          editing={state.editing}
+          onBeginEdit={(editing) => patch({ editing })}
+          onCommitEdit={(index, text) => {
+            dispatch({ type: 'editWord', row: state.selRow, index, text });
+            patch({ editing: null });
+          }}
+          collapsed={state.leftCollapsed}
+          onToggleCollapse={() => patch({ leftCollapsed: !state.leftCollapsed })}
         />
 
         <div className="ord-player">
@@ -308,6 +341,10 @@ export function DeskShell() {
             patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)
           }
           onReroll={() => undefined}
+          collapsed={state.inspectorCollapsed}
+          onToggleCollapse={() =>
+            patch({ inspectorCollapsed: !state.inspectorCollapsed })
+          }
         />
 
         <ToolRail
@@ -327,7 +364,11 @@ export function DeskShell() {
         trimOut={state.trimOut}
         bedLabel={state.bed === 'none' ? 'No music bed' : state.bed}
         onSeek={seek}
-        onSelectRow={(selRow) => patch({ selRow, cursor: null })}
+        onSelectRow={(selRow) => {
+          patch({ selRow, cursor: null, editing: null });
+          const line = state.lines[selRow];
+          if (line) seek(line.start);
+        }}
         onZoom={(delta) =>
           patch({ zoom: Math.min(6, Math.max(1, state.zoom + delta)) })
         }

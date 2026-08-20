@@ -33,6 +33,35 @@ export function Section({
   );
 }
 
+/**
+ * A labelled sub-row inside a section: icon, name, then the control beneath.
+ *
+ * Mobile groups related choices this way rather than stacking bare chip rows,
+ * and the reason holds on desktop — two unlabelled rows of chips under one
+ * heading give no clue which is which, or that they are two questions at all.
+ */
+export function FieldRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="flex items-center gap-2">
+        <span className="flex-none text-[var(--text-muted)]">{icon}</span>
+        <span className="flex-1 ord-type-footnote font-semibold text-[var(--text-body)]">
+          {label}
+        </span>
+      </span>
+      {children}
+    </div>
+  );
+}
+
 export function SliderField({
   label,
   value,
@@ -40,6 +69,8 @@ export function SliderField({
   min,
   max,
   step = 1,
+  minLabel,
+  maxLabel,
   onChange,
 }: {
   label: string;
@@ -48,11 +79,15 @@ export function SliderField({
   min: number;
   max: number;
   step?: number;
+  /* The two ends of the range in plain words. Numbers already live in the
+     readout, so captions here say what the range means instead. */
+  minLabel?: string;
+  maxLabel?: string;
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="flex items-center justify-between ord-type-footnote font-bold text-[var(--text-body)]">
+    <label className="flex flex-col gap-2">
+      <span className="flex items-center justify-between ord-type-footnote font-semibold text-[var(--text-body)]">
         {label}
         {/* A numeric readout reports state, it does not offer a choice —
             so it is paper. Acid here put the accent on every slider in
@@ -69,6 +104,12 @@ export function SliderField({
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
+      {minLabel && maxLabel && (
+        <span className="flex justify-between ord-type-micro text-[var(--text-muted)]">
+          <span>{minLabel}</span>
+          <span>{maxLabel}</span>
+        </span>
+      )}
     </label>
   );
 }
@@ -92,8 +133,8 @@ export function ToggleField({
       onClick={() => onChange(!checked)}
       className="flex cursor-pointer items-center justify-between gap-3 text-left"
     >
-      <span className="flex flex-col gap-0.5">
-        <span className="ord-type-footnote font-bold text-[var(--text-body)]">{label}</span>
+      <span className="flex flex-col gap-1">
+        <span className="ord-type-footnote font-semibold text-[var(--text-body)]">{label}</span>
         {hint && (
           <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.3] text-[var(--text-muted)]">
             {hint}
@@ -102,7 +143,7 @@ export function ToggleField({
       </span>
       <span
         className={cn(
-          'flex h-[23px] w-[42px] flex-none items-center rounded-full border-2 border-[var(--ord-ink)] p-0.5 transition-colors',
+          'flex h-[23px] w-[42px] flex-none items-center rounded-full border-2 border-[var(--ord-ink)] p-1 transition-colors duration-[var(--dur-tap)]',
           checked
             ? 'justify-end bg-[var(--ord-acid)]'
             : 'justify-start bg-[var(--ord-paper)]/20'
@@ -126,12 +167,14 @@ export function ChipRow<T extends string>({
   wrap = true,
 }: {
   options: readonly ChipOption<T>[];
-  value: T;
+  /* null selects nothing — a row can be a live control while the setting it
+     writes is not the one currently in force. */
+  value: T | null;
   onChange: (id: T) => void;
   wrap?: boolean;
 }) {
   return (
-    <div className={cn('flex gap-1.5', wrap && 'flex-wrap')}>
+    <div className={cn('flex gap-2', wrap && 'flex-wrap')}>
       {options.map((option) => (
         <button
           key={option.id}
@@ -157,7 +200,7 @@ export function ColourField({
 }) {
   return (
     <label className="flex items-center justify-between gap-3">
-      <span className="ord-type-footnote font-bold text-[var(--text-body)]">{label}</span>
+      <span className="ord-type-footnote font-semibold text-[var(--text-body)]">{label}</span>
       <input
         type="color"
         value={value}
@@ -173,7 +216,7 @@ export function PanelBody({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-scroll
-      className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[18px] pt-1.5 pb-[18px]"
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-2 pb-4"
     >
       {children}
     </div>

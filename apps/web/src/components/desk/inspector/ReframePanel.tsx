@@ -17,21 +17,21 @@ export function ReframePanel({ state, patch }: ReframePanelProps) {
   return (
     <PanelBody>
       <Section label="Aspect ratio">
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
           {FORMATS.map((format) => (
             <button
               key={format.id}
               type="button"
               onClick={() => patch({ format: format.id })}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1.5 rounded-[10px] border py-2.5 transition-colors',
+                'flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border py-2 transition-colors duration-[var(--dur-tap)]',
                 state.format === format.id
                   ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                   : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
               )}
             >
               <span
-                className="block rounded-sm bg-[var(--text-body)]"
+                className="block rounded-full bg-[var(--text-body)]"
                 style={{ width: format.w, height: format.h }}
               />
               <span className="ord-mono">{format.label}</span>

@@ -63,9 +63,9 @@ export function PlayerStage({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-5">
+    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
         <div
-          className="relative flex-none overflow-hidden rounded-[14px] shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+          className="relative flex-none overflow-hidden rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
           style={{
             aspectRatio: `${rw} / ${rh}`,
             height: 'min(100%, 640px)',
@@ -87,11 +87,11 @@ export function PlayerStage({
               }}
             >
               <div
-                className="w-full rounded-[10px] font-bold [text-wrap:pretty]"
+                className="w-full rounded-xl font-bold [text-wrap:pretty]"
                 style={{
                   fontFamily,
                   fontSize: `${state.fontSize / 8}cqw`,
-                  lineHeight: 1.15,
+                  lineHeight: state.lineHeight,
                   letterSpacing: `${state.charSpacing}em`,
                   textAlign: state.align,
                   textTransform: state.capCase === 'none' ? 'none' : state.capCase,
@@ -100,6 +100,11 @@ export function PlayerStage({
                   padding: state.capBgOn ? '0.3em 0.5em' : undefined,
                   WebkitTextStroke: state.strokeW
                     ? `${state.strokeW}px ${state.strokeColor}`
+                    : undefined,
+                  /* Halo in the text's own colour — a glow that introduces a
+                     second hue reads as a drop shadow, not as light. */
+                  textShadow: state.glow
+                    ? `0 0 ${state.glow * 0.5}em ${state.textColor}`
                     : undefined,
                 }}
               >
@@ -111,7 +116,7 @@ export function PlayerStage({
                       return (
                         <span
                           key={`${li}-${wi}`}
-                          className="rounded-md"
+                          className="rounded-xl"
                           style={{
                             color: isActive ? state.activeWordColor : undefined,
                             background:
@@ -133,11 +138,11 @@ export function PlayerStage({
           )}
 
           {state.visual === 'bars' && (
-            <div className="pointer-events-none absolute right-[9%] bottom-[7%] left-[9%] flex h-[34px] items-center gap-[5px]">
+            <div className="pointer-events-none absolute right-[9%] bottom-[7%] left-[9%] flex h-[34px] items-center gap-1">
               {bars.map((h, i) => (
                 <span
                   key={i}
-                  className="flex-1 rounded-sm"
+                  className="flex-1 rounded-full"
                   style={{ background: state.waveColor, height: `${h}%` }}
                 />
               ))}
@@ -161,7 +166,7 @@ export function PlayerStage({
           {state.safeShow && state.safe !== 'none' && (
             <div className="pointer-events-none absolute inset-0">
               <div
-                className="absolute right-[4%] left-[4%] rounded-md border border-dashed border-[rgba(255,255,234,0.5)]"
+                className="absolute right-[4%] left-[4%] rounded-xl border border-dashed border-[rgba(255,255,234,0.5)]"
                 style={{ top: safe.top, bottom: safe.bottom }}
               />
               <div
@@ -172,13 +177,13 @@ export function PlayerStage({
                 className="absolute inset-x-0 bottom-0 bg-[rgba(255,0,102,0.14)]"
                 style={{ height: safe.bottom }}
               />
-              <span className="ord-mono absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-md bg-[rgba(6,6,6,0.7)] px-[7px] py-0.5 ord-type-micro text-[var(--ord-paper)]">
+              <span className="ord-mono absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-xl bg-[rgba(6,6,6,0.7)] px-2 py-1 ord-type-micro text-[var(--ord-paper)]">
                 {safe.label}
               </span>
             </div>
           )}
 
-          <div className="ord-mono pointer-events-none absolute top-2 right-2 rounded-md bg-[rgba(6,6,6,0.66)] px-2 py-[3px] ord-type-micro tracking-[0.08em] text-[var(--ord-paper)]">
+          <div className="ord-mono pointer-events-none absolute top-2 right-2 rounded-xl bg-[rgba(6,6,6,0.66)] px-2 py-1 ord-type-micro text-[var(--ord-paper)]">
             {rw}:{rh}
           </div>
 
@@ -186,7 +191,7 @@ export function PlayerStage({
             <button
               type="button"
               onClick={onShowCaptions}
-              className="absolute right-2 bottom-2 cursor-pointer rounded-[9px] border-0 bg-[var(--ord-acid)] px-[13px] py-[7px] ord-type-footnote font-bold text-[var(--ord-ink)]"
+              className="absolute right-2 bottom-2 cursor-pointer rounded-xl border-0 bg-[var(--ord-acid)] px-3 py-2 ord-type-footnote font-bold text-[var(--ord-ink)]"
             >
               Show captions
             </button>

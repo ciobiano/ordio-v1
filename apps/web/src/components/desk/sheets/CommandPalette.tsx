@@ -72,10 +72,10 @@ export function CommandPalette({ actions, onClose }: CommandPaletteProps) {
           setCursor(0);
         }}
         onKeyDown={onKeyDown}
-        className="ord-type-label h-11 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--ord-paper)]/6 px-3.5 text-[var(--ord-paper)] outline-none focus-visible:border-[var(--ord-acid)]"
+        className="ord-type-label h-11 w-full rounded-xl border border-[var(--border-hairline)] bg-[var(--ord-paper)]/6 px-3 text-[var(--ord-paper)] outline-none focus-visible:border-[var(--ord-acid)]"
       />
 
-      <div ref={listRef} className="flex max-h-[46vh] flex-col gap-0.5 overflow-y-auto">
+      <div ref={listRef} className="flex max-h-[46vh] flex-col gap-1 overflow-y-auto">
         {matches.length === 0 ? (
           <span className="ord-type-footnote px-1 py-3 text-[var(--text-muted)]">
             Nothing matches “{query.trim()}”.
@@ -88,7 +88,7 @@ export function CommandPalette({ actions, onClose }: CommandPaletteProps) {
               onMouseEnter={() => setCursor(i)}
               onClick={() => run(action)}
               className={cn(
-                'flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors',
+                'flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
                 i === clamped
                   ? 'bg-[var(--ord-acid)]/12'
                   : 'bg-transparent hover:bg-[var(--ord-paper)]/5'

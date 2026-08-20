@@ -10,6 +10,7 @@
 export const DESK_DURATION_FALLBACK = 26;
 
 export type ToolId =
+  | 'presets'
   | 'style'
   | 'timing'
   | 'audio'
@@ -17,8 +18,16 @@ export type ToolId =
   | 'reframe'
   | 'director';
 
-/** Media is deliberately absent — it lives in the morphing left column. */
+/**
+ * Media is deliberately absent — it lives in the morphing left column.
+ *
+ * Presets is a category of its own rather than a row inside Style. It writes
+ * across every Style tab, so it was never a Style setting; and it is where
+ * imported artwork and video will land, which is a different kind of thing
+ * again from a slider.
+ */
 export const TOOL_COPY: Record<ToolId, { title: string; hint: string }> = {
+  presets: { title: 'Presets', hint: 'A whole look in one tap — type, colour and motion together' },
   style: { title: 'Caption style', hint: 'Everything here lands on the canvas live' },
   timing: { title: 'Word timing', hint: 'Nudge any word until the highlight lands on the beat' },
   audio: { title: 'Audio', hint: 'Voice level, and a bed underneath it' },

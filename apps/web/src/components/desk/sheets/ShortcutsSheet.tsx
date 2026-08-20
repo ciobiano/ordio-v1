@@ -12,6 +12,8 @@ const SHORTCUTS = [
   { what: 'Split at the cursor', keys: 'S' },
   { what: 'Find and replace', keys: '⌘F' },
   { what: 'Undo · redo', keys: '⌘Z · ⇧⌘Z' },
+  { what: 'Hide or show the left panel', keys: '[' },
+  { what: 'Hide or show the inspector', keys: ']' },
   { what: 'Search actions', keys: '⌘K' },
   { what: 'Export', keys: '⌘E' },
 ];
@@ -19,11 +21,11 @@ const SHORTCUTS = [
 export function ShortcutsSheet({ onClose }: { onClose: () => void }) {
   return (
     <DeskSheet title="Keyboard shortcuts" onClose={onClose}>
-      <span className="ord-type-label font-bold text-[var(--ord-paper)]">
+      <span className="ord-type-title font-bold text-[var(--ord-paper)]">
         Keyboard shortcuts
       </span>
 
-      <ul className="flex list-none flex-col gap-0.5 overflow-y-auto p-0">
+      <ul className="flex list-none flex-col gap-1 overflow-y-auto p-0">
         {SHORTCUTS.map((shortcut) => (
           <li
             key={shortcut.what}
