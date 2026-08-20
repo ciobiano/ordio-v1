@@ -196,9 +196,22 @@ alerts silently fall back to inherited size.
 That CVA is now deleted, so the fix is to pick a real ACID role from DESIGN.md §Type:
 `body` (15→17px), `label` (13→14px), `caption` (12→13px) or `footnote` (11→12px).
 
-- [ ] Choose the role (`TODO(human)` in `ExportFooter.tsx`)
-- [ ] Apply the same choice to `ExportOverlay.tsx:111`
-- [ ] Verify: `tsc`, tests, and a look at the export screen
+- [x] Chose `text-acid-label` (13 → 14px) for both sites
+- [x] Applied to `ExportFooter.tsx:17` and `ExportOverlay.tsx:111`
+- [x] `tsc` clean · 485/485 tests · `next build` green
+
+**Why `label`.** The message names the controls beside it ("adjust trim handles"), so it
+should read at the size of a control's name rather than as prose. It is also not the
+smallest role available — `caption` and `footnote` sit below it — which matters for text
+carrying a required action.
+
+**The fix turned out better than a token swap.** `--text-acid-label` is registered inside
+`@theme` in globals.css, so Tailwind v4 emits a real `text-acid-label` utility that pulls
+its paired `--line-height` and `--letter-spacing` automatically. Using the utility instead
+of `text-[length:var(…)]` therefore fixes the dead token, removes an arbitrary value, and
+makes DESIGN.md's "one triple per role, never split" rule enforced by the framework rather
+than by reviewer discipline. **Prefer the generated `text-acid-*` utility over
+`text-[length:var(--text-acid-*)]` everywhere.**
 
 ---
 

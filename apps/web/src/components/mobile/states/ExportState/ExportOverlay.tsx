@@ -108,7 +108,7 @@ export function ExportOverlay({
 
             {exporter.error && !exporter.isExporting && (
               <div className="flex flex-col gap-4">
-                <p role="alert" className="text-[length:var(--text-callout)] text-red-300/90">
+                <p role="alert" className="text-acid-label text-red-300/90">
                   {exporter.error}
                 </p>
                 <Button
