@@ -34,6 +34,7 @@ export type DeskAction =
   | { type: 'jumpWord'; direction: 1 | -1 }
   | { type: 'toggleAccent'; index: number }
   | { type: 'editWord'; row: number; index: number; text: string }
+  | { type: 'nudgeWord'; index: number; delta: number }
   | { type: 'splitRow' }
   | { type: 'mergeRow'; direction: 'up' | 'down' }
   | { type: 'deleteRow'; row: number }
@@ -154,6 +155,68 @@ export function deskReducer(store: DeskStore, action: DeskAction): DeskStore {
             }
       );
       return commit(store, { ...s, lines, editing: null });
+    }
+
+    /**
+     * Shift one word's timing, so the highlight lands on the beat.
+     *
+     * The Timing panel has offered these buttons since it was written; the
+     * shell handed it `() => undefined`, so every press did nothing. This is
+     * the implementation behind them.
+     *
+     * `index` is a document-wide flat word index, matching how `accents` and
+     * `activeWordIndex` already address words, so the panel does not need to
+     * know which row a word is in.
+     *
+     * Neighbours are the clamp. A word dragged past the one before it would
+     * make the transcript non-monotonic, and every consumer downstream —
+     * active-word lookup, caption segmentation, the export renderer — assumes
+     * start times only ever increase. Leaving a 1ms gap rather than allowing
+     * equality keeps `t >= start && t < end` selecting exactly one word.
+     */
+    case 'nudgeWord': {
+      const words = flatWords(s.lines);
+      const word = words[action.index];
+      if (!word) return store;
+
+      const EPSILON = 0.001;
+      const floor = (words[action.index - 1]?.end ?? 0) + EPSILON;
+      /* No next word means the clip's end is the wall — and before hydration
+         reports a duration, the word's own end plus a second stands in, so a
+         nudge is never silently clamped to zero. */
+      const ceiling =
+        (words[action.index + 1]?.start ?? (s.duration || word.end + 1)) - EPSILON;
+      const span = word.end - word.start;
+
+      let start = word.start + action.delta;
+      if (start < floor) start = floor;
+      if (start + span > ceiling) start = ceiling - span;
+      /* A word longer than the space between its neighbours cannot move. */
+      if (start < floor) return store;
+      if (Math.abs(start - word.start) < EPSILON) return store;
+
+      const shift = start - word.start;
+      let seen = 0;
+      const lines = s.lines.map((line) => {
+        const from = seen;
+        seen += line.words.length;
+        if (action.index < from || action.index >= seen) return line;
+        const next = line.words.map((w, i) =>
+          from + i === action.index
+            ? { ...w, start: w.start + shift, end: w.end + shift }
+            : w
+        );
+        /* The row's own bounds follow its words, or the timeline block and
+           the caption it draws stop agreeing about when the line runs. */
+        return {
+          ...line,
+          words: next,
+          start: Math.min(...next.map((w) => w.start)),
+          end: Math.max(...next.map((w) => w.end)),
+        };
+      });
+
+      return commit(store, { ...s, lines });
     }
 
     case 'splitRow': {
