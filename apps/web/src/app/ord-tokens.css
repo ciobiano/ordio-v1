@@ -53,8 +53,30 @@
   --font-display: var(--acid-font-body);
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* ─── Motion ─── */
-  --ease-snap: cubic-bezier(0.2, 0.9, 0.1, 1);
+  /* ─── Motion. Two durations, both from the acid system.
+         The editor previously ran on four hand-picked numbers (150 inherited
+         from Tailwind, plus 150, 180 and 200 written by hand) while these two
+         tokens sat unused. Tap is for a colour changing under the pointer;
+         snap is for something moving or appearing. ─── */
+  --ease-snap: var(--acid-ease-snap);
+  --dur-tap: var(--acid-dur-tap);
+  --dur-snap: var(--acid-dur-snap);
+
+  /* ─── Spacing. One 4px scale for every inset in the editor.
+         Twelve distinct horizontal paddings were in use, six of them exactly
+         once — values picked to make a single component look right rather
+         than drawn from a scale, which left the three panels without a shared
+         left edge. ─── */
+  --pad-gutter: 16px;  /* panel edge — the shared vertical line */
+  --pad-card: 12px;    /* inside a card or list row */
+  --pad-snug: 8px;     /* inside a chip or timeline block */
+  --pad-hair: 4px;     /* icon padding, marker insets */
+
+  /* ─── Radius. Three, and each one means something.
+         Nine were in use and none of them encoded a difference in kind. ─── */
+  --r-pill: 100px;     /* anything that toggles, and inline marks */
+  --r-card: 12px;      /* panels, cards, blocks, buttons */
+  --r-sheet: 16px;     /* the sheet layer, and only that */
 }
 
 @keyframes ord-fade {
