@@ -9,6 +9,7 @@ import { chip } from '@/lib/desk/deskVariants';
 import type { DeskState, StyleTab } from '@/lib/desk/deskState';
 import type { BreakMode } from '@Ordio/engine/captions/breaks';
 import { ANIMS, FONTS, VISUALS } from '@/lib/desk/deskCatalog';
+import { useDeskFonts } from '@/lib/desk/useDeskFonts';
 import {
   ChipRow,
   ColourField,
@@ -57,6 +58,10 @@ interface StylePanelProps {
 }
 
 export function StylePanel({ state, patch }: StylePanelProps) {
+  // The Typeface list sets fontFamily on every row; unloaded, they all render
+  // in the same fallback and the list shows ten identical names.
+  useDeskFonts(FONTS.map((f) => f.name));
+
   return (
     <>
       <div className="flex flex-none gap-1 px-4 pb-2">

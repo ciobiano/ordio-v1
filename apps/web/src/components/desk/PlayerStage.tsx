@@ -14,6 +14,7 @@ import type { Word } from '@Ordio/shared';
 import { buildSegmentsForMode } from '@Ordio/engine/captions/breaks';
 import type { DeskState } from '@/lib/desk/deskState';
 import { FONTS, RATIO, SAFE } from '@/lib/desk/deskCatalog';
+import { useDeskFonts } from '@/lib/desk/useDeskFonts';
 
 interface PlayerStageProps {
   state: DeskState;
@@ -30,6 +31,8 @@ export function PlayerStage({
   activeWordIndex,
   onShowCaptions,
 }: PlayerStageProps) {
+  useDeskFonts([state.font]);
+
   const [rw, rh] = RATIO[state.format];
   const safe = SAFE[state.safe];
   const fontFamily =
