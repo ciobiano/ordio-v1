@@ -8,10 +8,14 @@
  * turned off would be worse than not offering one.
  */
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Word } from '@Ordio/shared';
 import { chip, solidButton } from '@/lib/variants';
+import { useCaptureStore, useUIStore } from '@/stores';
+import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
+import { deskStyleConfig, frameSize } from '@/lib/desktop/deskStyleConfig';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { DeskSheet } from './DeskSheet';
 
@@ -54,15 +58,65 @@ export function ExportSheet({
 }: ExportSheetProps) {
   const isVideo = state.exKind === 'mp4';
 
-  /* Drive the progress bar while a render is running. */
+  /**
+   * A real encode, replacing a setInterval that bumped a counter to 100 and
+   * declared the export done. It produced no file — the button rendered a
+   * progress bar and nothing else, which is worse than no button, because the
+   * bar is a claim that work happened.
+   */
+  const exporter = useVideoExporter();
+  const audioBuffer = useCaptureStore((s) => s.mixedBuffer ?? s.audioBuffer);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const runExport = useCallback(async () => {
+    if (!audioBuffer) return;
+    onStart();
+
+    /* The encoder draws frames onto whatever canvas it is handed, so this is
+       a surface, not a view — it never enters the document. The desk's own
+       preview stays DOM, which is what lets it use real CSS text wrapping. */
+    const { width, height } = frameSize(state.format);
+    const canvas = canvasRef.current ?? document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvasRef.current = canvas;
+
+    /* The engine reads its StyleConfig from the store, so the desk's own
+       style has to be published there first — otherwise the export encodes
+       whatever the mobile screen last set and every choice in the Style
+       panel is silently dropped. */
+    useUIStore.getState().setStyle(deskStyleConfig(state));
+
+    await exporter.startExport(canvas, audioBuffer, true);
+  }, [audioBuffer, exporter, onStart, state]);
+
+  /* Progress and completion come from the encoder now, not a timer. */
   useEffect(() => {
     if (state.exStage !== 'running') return;
-    const timer = window.setInterval(() => {
-      const next = Math.min(100, state.exportPct + 4);
-      patch(next >= 100 ? { exportPct: 100, exStage: 'done' } : { exportPct: next });
-    }, 120);
-    return () => window.clearInterval(timer);
-  }, [state.exStage, state.exportPct, patch]);
+    patch({ exportPct: Math.round(exporter.exportProgress) });
+  }, [exporter.exportProgress, state.exStage, patch]);
+
+  useEffect(() => {
+    if (state.exStage === 'running' && exporter.exportedUrl) {
+      patch({ exStage: 'done', exportPct: 100 });
+    }
+  }, [exporter.exportedUrl, state.exStage, patch]);
+
+  useEffect(() => {
+    if (state.exStage === 'running' && exporter.error) {
+      toast.error(exporter.error);
+      patch({ exStage: 'setup', exportPct: 0 });
+    }
+  }, [exporter.error, state.exStage, patch]);
+
+  const download = useCallback(() => {
+    if (!exporter.exportedUrl) return;
+    const ext = fileExtension(exporter.exportMimeType ?? 'video/webm');
+    const a = document.createElement('a');
+    a.href = exporter.exportedUrl;
+    a.download = `ordio-${Date.now()}.${ext}`;
+    a.click();
+  }, [exporter.exportedUrl, exporter.exportMimeType]);
 
   const preview = (() => {
     if (isVideo || words.length === 0) return '';
@@ -158,8 +212,8 @@ export function ExportSheet({
             </button>
             <button
               type="button"
-              onClick={onStart}
-              disabled={words.length === 0}
+              onClick={runExport}
+              disabled={words.length === 0 || !audioBuffer}
               className={cn(
                 solidButton({ tone: 'acid', size: 'lg' }),
                 'flex-[1.3] disabled:opacity-40'
@@ -192,7 +246,10 @@ export function ExportSheet({
           <span className="ord-mono">{state.exportPct}%</span>
           <button
             type="button"
-            onClick={() => patch({ exStage: 'setup', exportPct: 0 })}
+            onClick={() => {
+              exporter.cancelExport();
+              patch({ exStage: 'setup', exportPct: 0 });
+            }}
             className={cn(chip({ size: 'md' }), 'h-11 justify-center')}
           >
             Cancel
@@ -205,14 +262,28 @@ export function ExportSheet({
           <span className="ord-type-title font-bold text-[var(--ord-paper)]">
             Ready
           </span>
+          {/* It said "saved to your clips", and nothing saved it anywhere.
+              The encoder hands back a blob URL, so what actually exists is a
+              file to download. */}
           <p className="ord-type-footnote m-0 text-[var(--text-muted)]">
             Your {KINDS.find((k) => k.id === state.exKind)?.label.toLowerCase()} is
-            saved to your clips.
+            ready.
           </p>
           <button
             type="button"
+            onClick={download}
+            disabled={!exporter.exportedUrl}
+            className={cn(
+              solidButton({ tone: 'acid', size: 'lg' }),
+              'justify-center disabled:opacity-40'
+            )}
+          >
+            Download
+          </button>
+          <button
+            type="button"
             onClick={onClose}
-            className={cn(solidButton({ tone: 'acid', size: 'lg' }), 'justify-center')}
+            className={cn(chip({ size: 'md' }), 'h-11 justify-center')}
           >
             Done
           </button>

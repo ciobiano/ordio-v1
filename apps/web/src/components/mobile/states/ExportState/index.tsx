@@ -80,7 +80,10 @@ export default function ExportState({
   const [panelOpen, setPanelOpen] = useState(false);
   const { isLocked } = useFeatureGates();
 
-  const audioBuffer = useCaptureStore((s) => s.audioBuffer);
+  /* The mix when a bed was placed on the desk, the bare voice otherwise.
+     Export does not need to know a bed exists — it encodes whatever the
+     capture store says the finished audio is. */
+  const audioBuffer = useCaptureStore((s) => s.mixedBuffer ?? s.audioBuffer);
   const transcript = useProcessingStore((s) => s.transcript);
   const trimmer = useAudioTrimmer(playback.duration);
   const history = useExportHistory({ playback, trimmer });

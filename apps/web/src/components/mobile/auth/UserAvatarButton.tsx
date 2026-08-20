@@ -26,7 +26,18 @@ function setStoredAvatar(id: string) {
   localStorage.setItem(STORAGE_KEY, id);
 }
 
-export default function UserAvatarButton() {
+interface UserAvatarButtonProps {
+  /**
+   * `md` (40px) is the mobile header's size. The desk's top bar runs 30–34px
+   * controls, where 40 reads as an outsized blob beside the Export button, so
+   * it gets `sm`. A size prop rather than a second component: the avatar
+   * picker, Manage Account and Sign Out are the same menu on both.
+   */
+  size?: 'sm' | 'md';
+}
+
+export default function UserAvatarButton({ size = 'md' }: UserAvatarButtonProps) {
+  const px = size === 'sm' ? 32 : 40;
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const [selected, setSelected] = useState(AVATARS[0]);
@@ -50,14 +61,17 @@ export default function UserAvatarButton() {
         <div
           role="button"
           tabIndex={0}
-          className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-transform duration-100 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent cursor-pointer"
+          className={cn(
+            'rounded-full overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-transform duration-100 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent cursor-pointer',
+            size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+          )}
           aria-label="Open user menu"
         >
           <Image
             src={`/Avatars/${selected}.svg`}
             alt="User avatar"
-            width={40}
-            height={40}
+            width={px}
+            height={px}
             className="w-full h-full object-cover"
           />
         </div>

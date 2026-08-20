@@ -118,15 +118,10 @@ export const SAFE: Record<SafeId, { label: string; top: string; bottom: string }
   reels: { label: 'Reels', top: '10%', bottom: '24%' },
 };
 
-export const BEDS = [
-  { id: 'none', label: 'None' },
-  { id: 'lofi', label: 'Lo-fi' },
-  { id: 'pulse', label: 'Pulse' },
-  { id: 'warm', label: 'Warm keys' },
-  { id: 'upload', label: 'Upload' },
-] as const;
-
-export type BedId = (typeof BEDS)[number]['id'];
+/* The BEDS catalog is gone. It listed lofi / pulse / warm / upload as if they
+   were choices; the repo has never contained an audio file for any of them,
+   and nothing read the selection. Music now arrives by being dropped on the
+   timeline — see lib/audio/bedGeometry.ts. */
 
 export const LOOKS = [
   { name: 'Neon Pop', hint: 'Acid on Zip, one word at a time', comp: 'Zip', preset: 'hype' },

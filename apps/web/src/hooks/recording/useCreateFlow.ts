@@ -126,6 +126,16 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [micDenied, setMicDenied] = useState(false);
+  /**
+   * Why the last start attempt failed, when it was not a permission refusal.
+   *
+   * `startRecording` resolves to `undefined` for every failure — no device, a
+   * device held by another app, an insecure origin, a constraint nothing can
+   * satisfy — and only a denial was being reported. Everything else returned
+   * silently, so a microphone that could not open looked exactly like a button
+   * that was not wired to anything. Which is what it was reported as.
+   */
+  const [startError, setStartError] = useState<string | null>(null);
   const [processingAlert, setProcessingAlert] = useState<ProcessingAlertState | null>(null);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
@@ -206,6 +216,7 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
   const handleStartRecording = useCallback(async () => {
     setIsStarting(true);
     setProcessingAlert(null);
+    setStartError(null);
     transcription.clearTranscript();
     try {
       const stream = await recorder.startRecording();
@@ -216,16 +227,28 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
         if (isDenied) {
           setMicDenied(true);
           micPermission.recordDenial();
+        } else {
+          setStartError(
+            recorder.error ?? 'Ordio could not open your microphone. Check that no other app is using it.'
+          );
         }
         return;
       }
       setMicDenied(false);
+      setStartError(null);
       micPermission.recordGrant();
       analyser.connectStream(stream);
       setMicStream(stream);
       live.resetCaptions();
       live.startLive(stream);
       setCurrentState('recording');
+    } catch (err) {
+      /* Callers fire this without awaiting, so an unhandled rejection here
+         disappears entirely and the UI simply never changes. */
+      console.error('[useCreateFlow] startRecording', err);
+      setStartError(
+        err instanceof Error ? err.message : 'Recording could not start. Try again.'
+      );
     } finally {
       setIsStarting(false);
     }
@@ -358,6 +381,8 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
     isSpeaking,
     isStarting,
     micDenied,
+    startError,
+    dismissStartError: () => setStartError(null),
     processingAlert,
     processingProgress,
     stagedFile,

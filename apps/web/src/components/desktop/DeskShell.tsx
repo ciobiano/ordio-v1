@@ -18,15 +18,19 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { Word } from '@Ordio/shared';
 import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useSessionHydration } from '@/hooks/session/useSessionHydration';
 import { useCreateFlow } from '@/hooks/recording/useCreateFlow';
-import { useProcessingStore } from '@/stores';
+import { useCaptureStore, useProcessingStore } from '@/stores';
 import { deriveCapturePhase } from '@/lib/capture/phase';
 import type { CapturePhase, RecordingSubPhase } from '@/lib/capture/types';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
+import { bedFromDrop, type BedClip } from '@/lib/audio/bedGeometry';
+import { readBedSource, type BedSource } from '@/lib/audio/bedPeaks';
+import { useBedMix } from '@/hooks/audio/useBedMix';
 import {
   deskReducer,
   INITIAL_DESK_HISTORY,
@@ -42,6 +46,14 @@ import { ToolStrip } from './tools/ToolStrip';
 import { ToolPanel } from './tools/ToolPanel';
 import { TimelineDeck } from './TimelineDeck';
 import { ExportSheet } from './sheets/ExportSheet';
+import { DeskSettingsSheet } from './sheets/DeskSettingsSheet';
+import {
+  DeskClipPicker,
+  DeskEpisodeError,
+  DeskEpisodeProgress,
+  DeskFileConfirm,
+  DeskProcessingAlert,
+} from './sheets/DeskUploadSheets';
 import { ShortcutsSheet } from './sheets/ShortcutsSheet';
 import { CommandPalette, type PaletteAction } from './sheets/CommandPalette';
 import { TOOL_COPY, type ToolId } from '@/lib/desktop/deskCatalog';
@@ -123,6 +135,50 @@ export function DeskShell() {
     if (flow.currentState === 'idle') setElapsed(0);
   }, [flow.currentState]);
 
+  /* ── The music bed ────────────────────────────────────────────────
+     Peaks live here rather than in desk state: they are derived from the
+     dropped file, cost a full decode to produce, and would be snapshotted
+     into every undo entry alongside the trim they describe. */
+  const [bedSource, setBedSource] = useState<BedSource | null>(null);
+  const [bedLoading, setBedLoading] = useState(false);
+
+  const handleDropBed = useCallback(
+    async (file: File, atSecond: number) => {
+      setBedLoading(true);
+      try {
+        const source = await readBedSource(file);
+        const url = URL.createObjectURL(file);
+        setBedSource(source);
+        patch(
+          { bed: bedFromDrop(file.name, url, source.duration, atSecond) },
+          true
+        );
+      } catch (err) {
+        console.error('[DeskShell] bed decode', err);
+        toast.error(`${file.name} could not be read as audio.`);
+      } finally {
+        setBedLoading(false);
+      }
+    },
+    [patch]
+  );
+
+  /* Dragging fires continuously, so the moving value is not undoable — one
+     entry is pushed when the pointer is released instead of sixty. */
+  const handleChangeBed = useCallback(
+    (next: BedClip) => patch({ bed: next }),
+    [patch]
+  );
+  const handleCommitBed = useCallback(() => patch({}, true), [patch]);
+
+  const handleRemoveBed = useCallback(() => {
+    /* The object URL is the only thing here the browser will not reclaim on
+       its own — every dropped file leaks a decoded copy without this. */
+    if (state.bed) URL.revokeObjectURL(state.bed.url);
+    setBedSource(null);
+    patch({ bed: null }, true);
+  }, [state.bed, patch]);
+
   const pressStartedAt = useRef(0);
   const pressActive = useRef(false);
 
@@ -197,6 +253,37 @@ export function DeskShell() {
   }, [words]);
 
   const seek = useCallback((next: number) => playback.seek(next), [playback]);
+
+  /* ── Preview hears the mix ────────────────────────────────────────
+     The same buffer the exporter will encode, so the bed cannot sound one way
+     in the editor and another in the file. */
+  const { mixed, mixing } = useBedMix({
+    bed: state.bed,
+    voiceLevel: state.voiceLevel,
+    musicLevel: state.musicLevel,
+    duck: state.duck,
+    words,
+  });
+
+  const setMixedBuffer = useCaptureStore((s) => s.setMixedBuffer);
+
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    if (!mixed) return;
+    /* Hand the same buffer to the exporter. Preview and export therefore
+       cannot disagree: there is one mix, and both consume it. */
+    setMixedBuffer(mixed);
+    /* Swapping the buffer restarts playback from zero, so the position is
+       carried across by hand. Without this, nudging the music level would
+       throw you back to the top of the clip every time. */
+    const at = playback.currentTime;
+    wasPlaying.current = playback.isPlaying;
+    playback.load(mixed);
+    if (at > 0) playback.seek(at);
+    if (wasPlaying.current) void playback.play();
+    // Only a new mix should reload; playback identity changes every tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixed]);
 
   const togglePlay = useCallback(() => {
     if (playback.isPlaying) playback.pause();
@@ -437,7 +524,7 @@ export function DeskShell() {
              capture stage carries no duplicate of them. */
           onRecord={handlePressStart}
           onUpload={() => flow.fileInputRef.current?.click()}
-          onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
+          onOpenSettings={() => patch({ sheet: 'settings' })}
           onSelectClip={(clipId, clipName, durationMs) =>
             dispatch({
               type: 'selectClip',
@@ -497,6 +584,7 @@ export function DeskShell() {
               audioLevel={flow.audioLevel}
               isSpeaking={flow.isSpeaking}
               micDenied={flow.micDenied}
+              startError={flow.startError}
               canRecord={flow.capabilities.canRecord}
               isStarting={flow.isStarting}
               processingProgress={flow.processingProgress}
@@ -517,7 +605,7 @@ export function DeskShell() {
             onRestart={handleRestartCapture}
             onProcess={flow.handleProceed}
             onCancel={handleCancelCapture}
-            onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
+            onOpenSettings={() => patch({ sheet: 'settings' })}
             playing={playback.isPlaying}
             t={t}
             duration={duration}
@@ -580,7 +668,13 @@ export function DeskShell() {
         selRow={state.selRow}
         trimIn={state.trimIn}
         trimOut={state.trimOut}
-        bedLabel={state.bed === 'none' ? 'No music bed' : state.bed}
+        bed={state.bed}
+        bedSource={bedSource}
+        bedLoading={bedLoading}
+        onDropBed={handleDropBed}
+        onChangeBed={handleChangeBed}
+        onCommitBed={handleCommitBed}
+        onRemoveBed={handleRemoveBed}
         onSeek={seek}
         onSelectRow={(selRow) => {
           patch({ selRow, cursor: null, editing: null });
@@ -602,6 +696,12 @@ export function DeskShell() {
         onChange={flow.handleFileSelect}
       />
 
+      {state.sheet === 'settings' && (
+        <DeskSettingsSheet
+          onClose={() => patch({ sheet: null })}
+          onLocked={flow.setUpgradeTarget}
+        />
+      )}
       {state.sheet === 'export' && (
         <ExportSheet
           state={state}
@@ -618,6 +718,60 @@ export function DeskShell() {
         <CommandPalette
           actions={paletteActions}
           onClose={() => patch({ sheet: null })}
+        />
+      )}
+
+      {/* The upload path, which had no surfaces on the desk at all. Choosing
+          a file started the pipeline and nothing rendered its states: a short
+          file staged and waited on a confirmation that was never drawn, and a
+          long one ingested behind a toast and appeared to hang. */}
+      {flow.stagedFile && (
+        <DeskFileConfirm
+          file={flow.stagedFile}
+          onConfirm={flow.handleFileConfirm}
+          onCancel={() => flow.setStagedFile(null)}
+        />
+      )}
+
+      {(flow.episode.phase === 'ingesting' ||
+        flow.episode.phase === 'transcribing' ||
+        flow.episode.phase === 'finding') && (
+        <DeskEpisodeProgress
+          phase={flow.episode.phase}
+          progress={flow.episode.progress}
+          onCancel={flow.episode.cancel}
+        />
+      )}
+
+      {flow.episode.phase === 'picking' && (
+        <DeskClipPicker
+          candidates={flow.episode.candidates}
+          episodeFile={flow.episode.episodeFile}
+          episodeWords={flow.episode.episodeWords}
+          onClose={flow.episode.cancel}
+          onPicked={(sessionId) => {
+            /* The clip opens on this desk rather than navigating, the same
+               way a recording does — the editor is already on screen. */
+            flow.episode.cancel();
+            selectSession(sessionId);
+          }}
+        />
+      )}
+
+      {flow.episode.phase === 'error' && (
+        <DeskEpisodeError
+          message={flow.episode.error ?? 'Something went wrong.'}
+          partialAvailable={flow.episode.partialAvailable}
+          onUsePartial={flow.episode.usePartialTranscript}
+          onDismiss={flow.episode.cancel}
+        />
+      )}
+
+      {flow.processingAlert && (
+        <DeskProcessingAlert
+          alert={flow.processingAlert}
+          onDisableEnhancement={flow.handleDisableEnhancement}
+          onDismiss={flow.dismissAlert}
         />
       )}
 
