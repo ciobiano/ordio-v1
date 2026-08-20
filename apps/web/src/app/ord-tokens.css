@@ -1,0 +1,98 @@
+/* ── Ordio Desktop Editor: token adapter ─────────────────────
+   NOT a second palette. The desktop editor was transcribed from a Claude
+   Design export that names its tokens `--ord-*` / `--surface-*` / `--text-*`,
+   and its own palette was a pale chartreuse system that would have made
+   /create change brand at the desktop breakpoint.
+
+   So every name below is an ALIAS onto the acid system in globals.css. The
+   lime tokens stay the single source of truth: change --acid-accent once and
+   the editor follows, because no editor component holds a literal colour.
+
+   Keeping the `--ord-*` names (rather than sweeping 21 files) means the
+   components still read as the design that produced them, and re-syncing
+   against a future design export stays a one-file diff. */
+
+[data-ord] {
+  /* ─── Ground and ink ─── */
+  --ord-ink: var(--acid-bg-base);
+  --ord-paper: var(--acid-text-1);
+
+  /* ─── The signature. Same role as in DESIGN.md: a chosen value, or the
+         one commit action. Never position, never decoration. ─── */
+  --ord-acid: var(--acid-accent);
+  --ord-on-acid: var(--acid-on-accent);
+
+  /* ─── Semantic accents. The editor uses rose only for destructive trim
+         boundaries and cyan only for caption emphasis, so they map onto
+         the acid system's error and info rather than raw hues. ─── */
+  --ord-rose: var(--acid-error);
+  --ord-cyan: var(--acid-info);
+
+  /* ─── Track identity. Two hues, so the timeline reads at a glance without
+         the accent having to mark position. ─── */
+  --track-speech: var(--acid-track-speech);
+  --track-speech-fill: var(--acid-track-speech-fill);
+  --track-music: var(--acid-track-music);
+  --track-music-fill: var(--acid-track-music-fill);
+
+  /* ─── Surfaces ─── */
+  --surface-raised: var(--acid-surface-1);
+  --surface-card: var(--acid-surface-2);
+
+  /* ─── Text ─── */
+  --text-body: var(--acid-text-2);
+  --text-muted: var(--acid-text-3);
+
+  /* ─── Borders ─── */
+  --border-hairline: var(--acid-border-subtle);
+
+  /* ─── Type. Nunito across both viewports — the editor gets no faces of
+         its own. Caption typefaces the user picks for their video are a
+         separate concern and live in deskCatalog.ts. ─── */
+  --font-core: var(--acid-font-display);
+  --font-display: var(--acid-font-body);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ─── Motion. Two durations, both from the acid system.
+         The editor previously ran on four hand-picked numbers (150 inherited
+         from Tailwind, plus 150, 180 and 200 written by hand) while these two
+         tokens sat unused. Tap is for a colour changing under the pointer;
+         snap is for something moving or appearing. ─── */
+  --ease-snap: var(--acid-ease-snap);
+  --dur-tap: var(--acid-dur-tap);
+  --dur-snap: var(--acid-dur-snap);
+
+  /* ─── Spacing. One 4px scale for every inset in the editor.
+         Twelve distinct horizontal paddings were in use, six of them exactly
+         once — values picked to make a single component look right rather
+         than drawn from a scale, which left the three panels without a shared
+         left edge. ─── */
+  --pad-gutter: 16px;  /* panel edge — the shared vertical line */
+  --pad-card: 12px;    /* inside a card or list row */
+  --pad-snug: 8px;     /* inside a chip or timeline block */
+  --pad-hair: 4px;     /* icon padding, marker insets */
+
+  /* ─── Radius. Four, and each one means something.
+         Nine were in use and none of them encoded a difference in kind.
+         Three was the first attempt and it was one too few: it forced inline
+         text marks onto the pill, which turns a short word like "a" or "so"
+         into a circle. An inline mark is not a control, and that is a real
+         category rather than drift back toward nine ad-hoc values. ─── */
+  --r-pill: 100px;     /* genuinely pill or circular: chips, knobs, switches */
+  --r-mark: 6px;       /* inline marks that sit inside a line of text */
+  --r-card: 12px;      /* panels, cards, blocks, buttons */
+  --r-sheet: 16px;     /* the sheet layer, and only that */
+
+  /* ─── The sticker press, from the acid system.
+         A hard ink offset, no blur. On press the element travels 3px into its
+         own shadow as the shadow vanishes — physical movement, never an
+         opacity dim. Mobile's ordStickerBtn names Export as the case for it;
+         the desktop had re-invented a generic active:scale instead. ─── */
+  --shadow-sticker: var(--acid-shadow-sticker-sm);
+  --ring-accent: var(--acid-accent-ring);
+}
+
+@keyframes ord-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}

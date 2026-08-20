@@ -1,0 +1,409 @@
+/* ── Ordio Desktop Editor structure ──────────────────────────
+   The design pins exact pixel sizes (58px bar, 330px transcript,
+   372px inspector, 72px rail, 212px timeline). Those are not on
+   Tailwind's scale, and the house rule bans arbitrary values in
+   JSX, so the geometry lives here as named classes and the CVA
+   layer in lib/ordVariants.ts composes them.
+
+   Every class is prefixed `ord-` and only ever renders inside
+   [data-ord], where the palette in ord-tokens.css is defined. */
+
+/* ─── Shell ─── */
+.ord-shell {
+  height: 100vh;
+  min-height: 720px;
+  min-width: 1080px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ord-ink);
+  color: var(--ord-paper);
+  font-family: var(--font-core);
+}
+
+.ord-workrow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ─── Top bar ─── */
+.ord-topbar {
+  flex: 0 0 auto;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: var(--pad-gutter);
+  padding: 0 var(--pad-gutter);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+
+.ord-searchbar {
+  width: min(400px, 100%);
+  height: 34px;
+  border-radius: var(--r-card);
+  background: rgba(255, 255, 234, 0.06);
+  border: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  gap: var(--pad-snug);
+  padding: 0 var(--pad-card);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ─── Columns ─── */
+.ord-transcript {
+  flex: 0 1 330px;
+  width: 330px;
+  min-width: 262px;
+  display: flex;
+  flex-direction: column;
+  /* Ink, not a raised surface. With the timeline already on the base, a
+     lifted side column made the editor look like three products stacked
+     side by side. The hairline borders carry the division instead. */
+  background: var(--ord-ink);
+  border-right: 1px solid var(--border-hairline);
+  transition: flex-basis var(--dur-snap) var(--ease-snap), width var(--dur-snap) var(--ease-snap);
+}
+
+.ord-player {
+  flex: 1 1 480px;
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ord-ink);
+}
+
+.ord-inspector {
+  flex: 0 1 372px;
+  width: 372px;
+  min-width: 312px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ord-ink);
+  border-left: 1px solid var(--border-hairline);
+  transition: flex-basis var(--dur-snap) var(--ease-snap), width var(--dur-snap) var(--ease-snap);
+}
+
+/* ─── Collapsed columns ───
+   A collapsed panel becomes a 44px strip rather than going to zero width.
+   Width 0 removes the only way back to it with a pointer; the strip keeps
+   the expand control exactly where the panel was, so collapsing is
+   reversible in the same place it happened. 44px also clears the 24x24
+   minimum target size in WCAG 2.2 SC 2.5.8 with room for the label. */
+.ord-transcript.is-collapsed,
+.ord-inspector.is-collapsed {
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  overflow: hidden;
+}
+
+.ord-collapsed-strip {
+  flex: 1;
+  min-height: 0;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: var(--pad-snug) 0;
+}
+
+/* Reading bottom-to-top keeps the label upright from the reader's left,
+   which is the convention for a vertical spine. */
+.ord-collapsed-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ord-transcript,
+  .ord-inspector {
+    transition: none;
+  }
+}
+
+.ord-rail {
+  flex: 0 0 auto;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--pad-snug) 0;
+  /* One step off the base, same role as the design's darker rail. */
+  background: var(--acid-bg-subtle);
+  border-left: 1px solid var(--border-hairline);
+}
+
+.ord-rail-btn {
+  position: relative;
+  width: 58px;
+  height: 54px;
+  border-radius: var(--r-card);
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* Selection marker.
+   The selected tool used to be a solid lime slab — 58x54 of the loudest
+   colour in the system, sitting permanently on screen next to an Export
+   button that is also solid lime. Two full-strength lime blocks means
+   neither reads as "the one thing", which is the whole job lime has here.
+
+   Colour over a large area gets a tint; the saturated value moves to small
+   foreground marks — this bar, the icon, and the label. Same amount of
+   information, a fraction of the shout. */
+.ord-rail-btn[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--ord-acid);
+}
+
+/* ─── Timeline ─── */
+.ord-timeline {
+  flex: 0 0 auto;
+  /* 38 head + 20 ruler + 58 captions + 36 music.
+     Was 190px with an audio waveform row; the stage already plays the audio
+     back, so a second amplitude read-out was decoration taking 52px. */
+  height: 152px;
+  display: flex;
+  flex-direction: column;
+  /* The deepest ground in the system, the same one mobile stands on. The
+     timeline is the floor of the editor — anything raised above ink here
+     reads as a panel floating over the black rather than the base itself. */
+  background: var(--ord-ink);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.ord-timeline-head {
+  flex: 0 0 auto;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--pad-gutter);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Vertical scroll lives here so gutter and tracks move together. Dormant
+   with three tracks — they fit exactly — and load-bearing the moment a
+   second bed, an overlay or a b-roll track lands. */
+.ord-timeline-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-y: auto;
+}
+
+.ord-track-gutter {
+  flex: 0 0 auto;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-hairline);
+}
+
+.ord-track-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  /* visible, not hidden — the row above owns the Y axis now. */
+  overflow-y: visible;
+}
+
+/* ─── Scrollbars ───
+   One rule for every scroller in the editor. `data-scroll` was already on the
+   four panes as a marker and had no styling behind it, so those panes drew the
+   OS default while only the timeline was themed — three different scrollbars
+   in one window.
+
+   6px, and transparent at rest: the thumb fades in on hover or when focus
+   enters the pane, so a still editor shows no chrome it does not need. */
+[data-scroll],
+.ord-timeline-body {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color var(--dur-snap) var(--ease-snap);
+}
+
+[data-scroll]:hover,
+[data-scroll]:focus-within,
+.ord-timeline-body:hover,
+.ord-timeline-body:focus-within {
+  scrollbar-color: color-mix(in srgb, var(--ord-paper) 24%, transparent) transparent;
+}
+
+[data-scroll]::-webkit-scrollbar,
+.ord-timeline-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-scroll]::-webkit-scrollbar-track,
+.ord-timeline-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-scroll]::-webkit-scrollbar-thumb,
+.ord-timeline-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: var(--r-pill);
+  transition: background var(--dur-snap) var(--ease-snap);
+}
+
+[data-scroll]:hover::-webkit-scrollbar-thumb,
+[data-scroll]:focus-within::-webkit-scrollbar-thumb,
+.ord-timeline-body:hover::-webkit-scrollbar-thumb,
+.ord-timeline-body:focus-within::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ord-paper) 24%, transparent);
+}
+
+[data-scroll]::-webkit-scrollbar-thumb:hover,
+.ord-timeline-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ord-paper) 38%, transparent);
+}
+
+/* The one exception. This scroller was reported as having no affordance at
+   all — a zoomed timeline gave no sign it could be panned — so its thumb
+   rests faint rather than fully invisible, and brightens like the rest.
+   Auto-hiding it completely would reintroduce the bug it was fixed for. */
+.ord-track-scroll {
+  scrollbar-color: color-mix(in srgb, var(--ord-paper) 12%, transparent) transparent;
+}
+
+.ord-track-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ord-paper) 12%, transparent);
+}
+
+/* Track heights, named for the row they carry. */
+/* Stays put while the tracks scroll under it, so you never lose the clock. */
+.ord-track-ruler {
+  height: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ord-ink);
+}
+.ord-track-captions { height: 58px; }
+.ord-track-music { height: 36px; }
+
+/* ─── Type roles ───
+   Every size in the editor resolves to a step on the acid scale in
+   globals.css — the same ladder mobile draws from. The design export
+   specified 8 hand-picked pixel values (13.5px, 12.5px, 11.5px, 9.5px…);
+   those are gone. Roles, not sizes, so a scale change lands everywhere. */
+
+/* ─── The top of the editor's scale ───
+   The editor drew from four steps and put 49 of its 51 text spans inside a
+   10–14px band — a range of about 1.8x, which is too flat for size to rank
+   anything. A section heading, a field label and a track name all measured
+   within two pixels of each other, so the reader's cheapest cue returned the
+   same answer everywhere and the work fell entirely to weight and colour.
+   These two steps come from the shared scale rather than being invented, and
+   take the editor's range to roughly 2.6x. */
+.ord-type-title {
+  font-size: var(--acid-text-headline);
+  line-height: var(--acid-leading-headline);
+  letter-spacing: var(--acid-tracking-headline);
+}
+
+.ord-type-subtitle {
+  font-size: var(--acid-text-body);
+  line-height: var(--acid-leading-body);
+  letter-spacing: var(--acid-tracking-body);
+}
+
+.ord-type-label {
+  font-size: var(--acid-text-label);
+  line-height: var(--acid-leading-label);
+  letter-spacing: var(--acid-tracking-label);
+}
+
+.ord-type-caption {
+  font-size: var(--acid-text-caption);
+  line-height: var(--acid-leading-caption);
+  letter-spacing: var(--acid-tracking-caption);
+}
+
+.ord-type-footnote {
+  font-size: var(--acid-text-footnote);
+  line-height: var(--acid-leading-footnote);
+  letter-spacing: var(--acid-tracking-footnote);
+}
+
+/* Dense tool chrome: ruler ticks, rail labels, mono readouts. */
+.ord-type-micro {
+  font-size: var(--acid-text-micro);
+  line-height: var(--acid-leading-micro);
+  letter-spacing: var(--acid-tracking-micro);
+}
+
+/* Uppercase micro label — the rail's tool names, the timeline's track names,
+   a collapsed column's spine.
+   These were written three times with hand-picked tracking: 0.06em on the
+   rail, 0.08em in the timeline gutter, 0.05em on the bed label. One role, so
+   one value. Caps carry no ascender or descender variation, so the letters
+   have nothing but their own sidebearings separating them — at 10px that
+   needs materially more tracking than lowercase, which is why 0.06em read as
+   cramped. */
+.ord-type-caps {
+  font-size: var(--acid-text-micro);
+  line-height: var(--acid-leading-micro);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* 600, not 700. Caps plus 0.14em tracking plus a muted colour already set
+   this apart from everything around it; adding weight on top was a fourth
+   signal for one job, and heavy small caps lose their counters. */
+.ord-eyebrow {
+  font-size: var(--acid-text-footnote);
+  font-weight: 600;
+  line-height: var(--acid-leading-eyebrow);
+  letter-spacing: var(--acid-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ord-mono {
+  font-family: var(--font-mono);
+  font-size: var(--acid-text-micro);
+  line-height: var(--acid-leading-micro);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ord-kbd {
+  font-family: var(--font-mono);
+  font-size: var(--acid-text-micro);
+  padding: 2px var(--pad-hair);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--ord-paper) 8%, transparent);
+}
+
+/* ─── Motion ─── */
+.ord-animate-fade {
+  animation: ord-fade var(--dur-snap) var(--ease-snap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ord-animate-fade { animation: none; }
+}

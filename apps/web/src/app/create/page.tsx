@@ -26,8 +26,11 @@ const MobileCaptureFlow = dynamic(
   { ssr: false }
 );
 
-const StudioDesk = dynamic(
-  () => import('@/components/studio/StudioDesk').then((m) => m.StudioDesk),
+// The desktop editor, rebuilt from the "Ordio Desktop Editor" design export.
+// It replaces StudioDesk at desktop widths; StudioDesk itself is now unused by
+// this route and can go once the editor reaches parity on export.
+const DeskShell = dynamic(
+  () => import('@/components/desk/DeskShell').then((m) => m.DeskShell),
   { ssr: false }
 );
 
@@ -36,7 +39,7 @@ export default function CreatePage() {
 
   return (
     <main id="main-content" className="relative min-h-dvh">
-      {isDesktop ? <StudioDesk /> : <MobileCaptureFlow />}
+      {isDesktop ? <DeskShell /> : <MobileCaptureFlow />}
     </main>
   );
 }
