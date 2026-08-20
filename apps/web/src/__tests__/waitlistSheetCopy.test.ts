@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { copyFor } from '@/components/soul/modals/WaitlistSheet';
+import { copyFor } from '@/components/mobile/modals/WaitlistSheet';
 
 /**
  * The waitlist sheet is where every ceiling in the product terminates. These

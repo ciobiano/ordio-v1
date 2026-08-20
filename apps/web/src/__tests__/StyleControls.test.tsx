@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import StyleControls from '@/components/soul/captions/StyleControls';
+import StyleControls from '@/components/mobile/captions/StyleControls';
 
 // Covers the Style panel's tab strip, which had no coverage. The bodies are
 // mocked out — what is under test is the strip: that every tab is reachable,
@@ -11,13 +11,13 @@ import StyleControls from '@/components/soul/captions/StyleControls';
 // pure CSS. jsdom has no layout engine and no Tailwind stylesheet, so asserting
 // them here would only re-state class names; they are verified on device.
 
-vi.mock('@/components/soul/captions/style/tabs/MotionTab', () => ({ MotionTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/ColorsTab', () => ({ ColorsTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/FontTab', () => ({ FontTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/BreaksTab', () => ({ BreaksTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/TemplatesTab', () => ({ TemplatesTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/LayoutTab', () => ({ LayoutTab: () => null }));
-vi.mock('@/components/soul/captions/style/tabs/VisualTab', () => ({ VisualTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/MotionTab', () => ({ MotionTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/ColorsTab', () => ({ ColorsTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/FontTab', () => ({ FontTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/BreaksTab', () => ({ BreaksTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/TemplatesTab', () => ({ TemplatesTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/LayoutTab', () => ({ LayoutTab: () => null }));
+vi.mock('@/components/mobile/captions/style/tabs/VisualTab', () => ({ VisualTab: () => null }));
 
 const TAB_LABELS = ['Motion', 'Colors', 'Font', 'Breaks', 'Templates', 'Layout', 'Visual'];
 

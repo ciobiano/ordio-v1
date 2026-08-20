@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { shouldStartSheetDrag } from '@/components/soul/states/ExportState/sheetDragIntent';
+import { shouldStartSheetDrag } from '@/components/mobile/states/ExportState/sheetDragIntent';
 
 /**
  * Reframe is a vaul drawer and swipes closed from anywhere. The in-flow panels

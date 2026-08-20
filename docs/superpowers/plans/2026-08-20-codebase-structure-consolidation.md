@@ -68,7 +68,7 @@ now dead.
 
 ---
 
-### Task 2: Rename folders to match their contents
+### Task 2: Rename folders to match their contents ✅ DONE 2026-08-20
 
 Pure rename plus import rewriting. No logic changes.
 
@@ -82,12 +82,22 @@ Pure rename plus import rewriting. No logic changes.
 | `hooks/studio/` | `hooks/session/` | Its three surviving hooks serve both implementations |
 | `lib/desk/` | `lib/desktop/` | Follows the component rename |
 
-- [ ] **Step 1: Rename `components/primitives/` → `components/media/`** and rewrite imports
-- [ ] **Step 2: Rename `hooks/studio/` → `hooks/session/`** and rewrite imports
-- [ ] **Step 3: Rename `components/soul/` → `components/mobile/`** and rewrite imports
-- [ ] **Step 4: Rename `components/desk/` → `components/desktop/`** and rewrite imports
-- [ ] **Step 5: Rename `lib/desk/` → `lib/desktop/`** and rewrite imports
-- [ ] **Step 6: `pnpm type-check && pnpm test && pnpm build`**
+- [x] Rename `components/primitives/` → `components/media/`
+- [x] Rename `hooks/studio/` → `hooks/session/`
+- [x] Rename `components/soul/` → `components/mobile/`
+- [x] Rename `components/desk/` → `components/desktop/`
+- [x] Rename `lib/desk/` → `lib/desktop/`
+- [x] Rename `mobile/captions/style/primitives/` → `controls/` — added during execution, because
+      the committed glossary retires "primitive" and this nested folder would have contradicted it
+- [x] 104 alias specifiers rewritten across 53 files, plus 8 files for the nested rename
+- [x] `tsc --noEmit` clean · 485/485 tests · `next build` succeeds, all routes present
+
+**Trap hit during execution.** The alias rewrite (`@/components/...`) missed a *relative* import:
+`components/NavigationTransition.tsx` imported `./primitives/overlay/TransitionOverlay`. `tsc`
+caught it. Meanwhile 16 `../primitives/` imports under `mobile/captions/style/tabs/` pointed at a
+**different, unrenamed** `primitives` folder and correctly needed no change at that moment.
+**A folder rename must sweep relative imports as well as aliased ones, and must confirm which
+folder a relative path actually resolves to.**
 
 `components/ui/` keeps its name and contents — it holds generic interface atoms and is
 correctly named already.

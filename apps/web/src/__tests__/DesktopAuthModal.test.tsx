@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { DesktopAuthModal } from '@/components/soul/auth/DesktopAuthModal';
+import { DesktopAuthModal } from '@/components/mobile/auth/DesktopAuthModal';
 
 vi.mock('@clerk/nextjs', () => ({
   useClerk: () => ({ openSignUp: vi.fn() }),

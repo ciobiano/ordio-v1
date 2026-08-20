@@ -5,7 +5,7 @@ import {
   parseSwipeHintState,
   serializeSwipeHintState,
   shouldShowSwipeHint,
-} from '@/components/soul/capture/swipeHintPolicy';
+} from '@/components/mobile/capture/swipeHintPolicy';
 
 /**
  * The hint used to be "once, ever" — a flag set on the first render with

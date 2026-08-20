@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCaptionActivationDoubleTap } from '@/components/primitives/video/canvas-preview/captionActivationGesture';
+import { isCaptionActivationDoubleTap } from '@/components/media/video/canvas-preview/captionActivationGesture';
 
 describe('captionActivationGesture', () => {
   it('does not activate on the first tap', () => {

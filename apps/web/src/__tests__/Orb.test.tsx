@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Orb } from '@/components/primitives/orb/Orb';
+import { Orb } from '@/components/media/orb/Orb';
 
 describe('Orb', () => {
   it('renders as a button with accessible label when onClick provided', () => {

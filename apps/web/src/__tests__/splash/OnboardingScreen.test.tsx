@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { OnboardingScreen } from '@/components/splash/OnboardingScreen';
 
-vi.mock('@/components/soul/auth/OnboardingAuthTray', () => ({
+vi.mock('@/components/mobile/auth/OnboardingAuthTray', () => ({
   OnboardingAuthTray: () => <div data-testid="auth-tray-stub" />,
 }));
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldCloseOnGrabStripClick } from '@/components/soul/states/ExportState/grabStripIntent';
+import { shouldCloseOnGrabStripClick } from '@/components/mobile/states/ExportState/grabStripIntent';
 
 // The sheet's grab strip is both a drag handle and a tap-to-close button. Once
 // the sheet started tracking the thumb 1:1 those two roles began to collide,

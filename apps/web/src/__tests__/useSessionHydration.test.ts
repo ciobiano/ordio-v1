@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useSessionHydration } from '@/hooks/studio/useSessionHydration';
+import { useSessionHydration } from '@/hooks/session/useSessionHydration';
 
 const setAudioBuffer = vi.fn();
 const setAudioBlob = vi.fn();

@@ -11,7 +11,7 @@ import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
 import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
-import ExportState from '@/components/soul/states/ExportState';
+import ExportState from '@/components/mobile/states/ExportState';
 
 
 export default function ExportPage({ params }: { params: Promise<{ sessionId: string }> }) {

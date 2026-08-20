@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { toast } from 'sonner';
-import CanvasPreview from '@/components/primitives/video/CanvasPreview';
+import CanvasPreview from '@/components/media/video/CanvasPreview';
 import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
@@ -28,7 +28,7 @@ vi.mock('@Ordio/engine/loaders', () => ({
   loadGraphic: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@/components/primitives/video/canvas-preview/useBackgroundVideo', () => ({
+vi.mock('@/components/media/video/canvas-preview/useBackgroundVideo', () => ({
   useBackgroundVideo: vi.fn().mockReturnValue({ bgVideo: null, bgLoading: false }),
 }));
 

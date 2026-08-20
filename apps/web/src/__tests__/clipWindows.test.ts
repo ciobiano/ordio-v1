@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';
-import { windowTranscript } from '@/components/soul/clips/ClipPickerSheet';
+import { windowTranscript } from '@/components/mobile/clips/ClipPickerSheet';
 
 const mk = (start: number, end: number) => ({ start, end, hookText: 'h', rationale: 'r' });
 

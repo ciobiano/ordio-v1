@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ExportState from '@/components/soul/states/ExportState';
+import ExportState from '@/components/mobile/states/ExportState';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
 // Covers ExportState's own orchestration logic, which had zero test coverage:
@@ -8,14 +8,14 @@ import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 // gate ordering (video-background creator gate checked before the billing
 // onExportStart gate, before any exporter.startExport call).
 
-vi.mock('@/components/soul/states/ExportState/ExportCanvas', () => ({ ExportCanvas: () => null }));
-vi.mock('@/components/soul/states/ExportState/ExportControls', () => ({ ExportControls: () => null }));
-vi.mock('@/components/soul/states/ExportState/ExportFooter', () => ({ ExportFooter: () => null }));
-vi.mock('@/components/soul/states/ExportState/ExportOverlay', () => ({ ExportOverlay: () => null }));
-vi.mock('@/components/soul/states/ExportState/DiscardDialog', () => ({ DiscardDialog: () => null }));
-vi.mock('@/components/soul/states/ExportState/ReframeSheet', () => ({ ReframeSheet: () => null }));
-vi.mock('@/components/soul/states/ExportState/transport/TransportBar', () => ({ TransportBar: () => null }));
-vi.mock('@/components/soul/captions/DirectorSheet', () => ({ DirectorSheet: () => null }));
+vi.mock('@/components/mobile/states/ExportState/ExportCanvas', () => ({ ExportCanvas: () => null }));
+vi.mock('@/components/mobile/states/ExportState/ExportControls', () => ({ ExportControls: () => null }));
+vi.mock('@/components/mobile/states/ExportState/ExportFooter', () => ({ ExportFooter: () => null }));
+vi.mock('@/components/mobile/states/ExportState/ExportOverlay', () => ({ ExportOverlay: () => null }));
+vi.mock('@/components/mobile/states/ExportState/DiscardDialog', () => ({ DiscardDialog: () => null }));
+vi.mock('@/components/mobile/states/ExportState/ReframeSheet', () => ({ ReframeSheet: () => null }));
+vi.mock('@/components/mobile/states/ExportState/transport/TransportBar', () => ({ TransportBar: () => null }));
+vi.mock('@/components/mobile/captions/DirectorSheet', () => ({ DirectorSheet: () => null }));
 
 vi.mock('@/hooks/export/useExportHistory', () => ({
   useExportHistory: () => ({

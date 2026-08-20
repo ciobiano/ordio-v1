@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { CaptureSidebar } from '@/components/soul/capture/CaptureSidebar';
+import { CaptureSidebar } from '@/components/mobile/capture/CaptureSidebar';
 
 const mockSignOut = vi.fn();
 const mockOpenUserProfile = vi.fn();
