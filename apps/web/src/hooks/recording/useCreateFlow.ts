@@ -79,8 +79,37 @@ function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState
 
 // ── Hook ─────────────────────────────────────────────────────────────
 
-export function useCreateFlow() {
+export interface CreateFlowOptions {
+  /**
+   * What to do once processing has produced a session.
+   *
+   * Mobile has nowhere to put an editor, so it navigates to
+   * `/create/export/[sessionId]` — the default when this is omitted. The
+   * desktop shell already *is* the editor: the clip it just recorded should
+   * appear in the stage it is looking at, not one route away. Passing a
+   * handler here replaces the navigation rather than running alongside it,
+   * so exactly one of the two happens.
+   */
+  onSessionReady?: (sessionId: string) => void;
+}
+
+export function useCreateFlow(options: CreateFlowOptions = {}) {
   const router = useRouter();
+  const { onSessionReady } = options;
+
+  /* Held in a ref so the three call sites below keep stable identities even
+     when the caller passes a fresh closure on every render. */
+  const onSessionReadyRef = useRef(onSessionReady);
+  onSessionReadyRef.current = onSessionReady;
+
+  const deliverSession = useCallback(
+    (sessionId: string) => {
+      const handle = onSessionReadyRef.current;
+      if (handle) handle(sessionId);
+      else router.push(`/create/export/${sessionId}`);
+    },
+    [router]
+  );
   const { currentState, setCurrentState, setUpgradeTarget } = useUIStore();
   const resetUI = useUIStore((s) => s.resetUI);
   const resetCapture = useCaptureStore((s) => s.resetCapture);
@@ -227,22 +256,22 @@ export function useCreateFlow() {
     try {
       const sessionId = await processAudio(recorder.audioBlob);
       if (!sessionId) return;
-      router.push(`/create/export/${sessionId}`);
+      deliverSession(sessionId);
     } catch (err) {
       handleProcessingFailure(err);
     }
-  }, [recorder.audioBlob, processAudio, router, handleProcessingFailure]);
+  }, [recorder.audioBlob, processAudio, deliverSession, handleProcessingFailure]);
 
   const handleResumeRecovery = useCallback(async (blob: Blob) => {
     setProcessingAlert(null);
     try {
       const sessionId = await processAudio(blob);
       if (!sessionId) return;
-      router.push(`/create/export/${sessionId}`);
+      deliverSession(sessionId);
     } catch (err) {
       handleProcessingFailure(err);
     }
-  }, [processAudio, router, handleProcessingFailure]);
+  }, [processAudio, deliverSession, handleProcessingFailure]);
 
   useRecordingRecovery(handleResumeRecovery);
 
@@ -294,11 +323,11 @@ export function useCreateFlow() {
     try {
       const sessionId = await processAudio(file);
       if (!sessionId) return;
-      router.push(`/create/export/${sessionId}`);
+      deliverSession(sessionId);
     } catch (err) {
       handleProcessingFailure(err);
     }
-  }, [stagedFile, processAudio, router, handleProcessingFailure]);
+  }, [stagedFile, processAudio, deliverSession, handleProcessingFailure]);
 
   // ── Reset / settings ─────────────────────────────────────────────
 
@@ -359,6 +388,9 @@ export function useCreateFlow() {
 
     // Long-episode clip-finder pipeline
     episode,
+
+    /** Where a finished session goes — navigation, or the caller's handler. */
+    deliverSession,
 
     // Processing
     handleReset,

@@ -24,6 +24,7 @@ interface LeftPanelProps {
   /* media */
   onRecord: () => void;
   onUpload: () => void;
+  onOpenSettings: () => void;
   onSelectClip: (sessionId: string, name: string, durationMs: number) => void;
   /* transcript */
   onClearClip: () => void;
@@ -132,6 +133,7 @@ export function LeftPanel({
           <MediaPane
             onRecord={rest.onRecord}
             onUpload={rest.onUpload}
+            onOpenSettings={rest.onOpenSettings}
             onSelectClip={rest.onSelectClip}
           />
         )}

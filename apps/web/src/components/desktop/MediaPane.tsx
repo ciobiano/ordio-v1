@@ -9,9 +9,11 @@
  */
 
 import { useConvexAuth, usePaginatedQuery } from 'convex/react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Settings01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
 import { formatDuration } from '@/components/saved-audio/formatters';
-import { listRow } from '@/lib/variants';
+import { iconButton, listRow } from '@/lib/variants';
 import { ClipGlyph, MicGlyph, UploadGlyph } from './DeskIcons';
 
 const PAGE_SIZE = 20;
@@ -19,10 +21,16 @@ const PAGE_SIZE = 20;
 interface MediaPaneProps {
   onRecord: () => void;
   onUpload: () => void;
+  onOpenSettings: () => void;
   onSelectClip: (sessionId: string, name: string, durationMs: number) => void;
 }
 
-export function MediaPane({ onRecord, onUpload, onSelectClip }: MediaPaneProps) {
+export function MediaPane({
+  onRecord,
+  onUpload,
+  onOpenSettings,
+  onSelectClip,
+}: MediaPaneProps) {
   const { isAuthenticated } = useConvexAuth();
   const { results: sessions, status } = usePaginatedQuery(
     api.sessions.listMySessionsPaginated,
@@ -53,7 +61,21 @@ export function MediaPane({ onRecord, onUpload, onSelectClip }: MediaPaneProps) 
       className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-2 pb-4"
     >
       <section className="flex flex-col gap-2">
-        <span className="ord-eyebrow">Bring in audio</span>
+        {/* Audio settings sit with the actions they affect. They govern the
+            microphone and enhancement, so a playback transport was never
+            their home. */}
+        <span className="flex items-center justify-between gap-2">
+          <span className="ord-eyebrow">Bring in audio</span>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            title="Audio settings"
+            aria-label="Audio settings"
+            className={iconButton({ tone: 'bare', size: 'sm' })}
+          >
+            <HugeiconsIcon icon={Settings01Icon} size={14} strokeWidth={2} />
+          </button>
+        </span>
         {actions.map(({ id, label, hint, Glyph, on }) => (
           <button
             key={id}

@@ -37,7 +37,15 @@ export interface DeskState {
   /* Collapse is chrome, not document state — deliberately outside Snapshot so
      undo never reopens a panel you closed. */
   leftCollapsed: boolean;
-  inspectorCollapsed: boolean;
+  /**
+   * Whether the tool strip's panel is showing.
+   *
+   * Replaces `inspectorCollapsed`, and is not simply its inverse. The docked
+   * inspector was always open on some tool and could only be hidden as a whole
+   * column; the strip's panel has a genuine closed state where the canvas gets
+   * the room, and `tool` then records which panel would come back.
+   */
+  toolOpen: boolean;
   tool: ToolId;
   sheet: SheetId;
   styleTab: StyleTab;
@@ -129,7 +137,8 @@ export interface DeskState {
 export const INITIAL_DESK_STATE: DeskState = {
   leftMode: 'media',
   leftCollapsed: false,
-  inspectorCollapsed: false,
+  /* Closed on arrival: nothing is loaded, so there is nothing to style. */
+  toolOpen: false,
   tool: 'style',
   sheet: null,
   styleTab: 'animation',
@@ -184,7 +193,7 @@ export const INITIAL_DESK_STATE: DeskState = {
   waveColor: '#c6ff3d',
   bgColor: '#0a0b0a',
 
-  format: 'square',
+  format: 'vertical',
   fit: 'fill',
   safe: 'none',
   safeShow: false,
