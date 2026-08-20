@@ -18,7 +18,7 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { SidebarLeftIcon, SidebarRightIcon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { iconButton } from '@/lib/desktop/deskVariants';
+import { iconButton } from '@/lib/variants';
 
 type Side = 'left' | 'right';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { ordFieldLabel, ordFieldHint } from '@/lib/ordioVariants';
+import { ordFieldLabel, ordFieldHint } from '@/lib/variants';
 import { ColorSwatch } from './ColorSwatch';
 
 interface ColorRowProps {

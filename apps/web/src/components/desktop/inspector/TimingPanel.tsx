@@ -3,7 +3,7 @@
 /** Word timing — nudge the selected word until the highlight lands on the beat. */
 
 import type { Word } from '@Ordio/shared';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { PanelBody, Section } from './InspectorFields';
 

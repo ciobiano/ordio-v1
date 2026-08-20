@@ -14,7 +14,7 @@
 
 import { useMemo,useState } from 'react';
 import { cn } from '@/lib/utils';
-import { iconButton, trackBlock } from '@/lib/desktop/deskVariants';
+import { iconButton, trackBlock } from '@/lib/variants';
 import type { DeskLine } from '@/lib/desktop/deskState';
 import { MinusGlyph, PlusGlyph } from './DeskIcons';
 

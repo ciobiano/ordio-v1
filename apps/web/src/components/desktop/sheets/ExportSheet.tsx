@@ -11,7 +11,7 @@
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { Word } from '@Ordio/shared';
-import { chip, solidButton } from '@/lib/desktop/deskVariants';
+import { chip, solidButton } from '@/lib/variants';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { DeskSheet } from './DeskSheet';
 

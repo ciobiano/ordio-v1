@@ -6,7 +6,7 @@ import { CropIcon, FullScreenIcon, SquareArrowExpand01Icon, MagicWand01Icon } fr
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 import { captureSheetSurface } from '@/lib/variants';
-import { ordStickerBtn, ordGhostBtn, ordOptionCard } from '@/lib/ordioVariants';
+import { ordStickerBtn, ordGhostBtn, ordOptionCard } from '@/lib/variants';
 import { useUIStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import type { FormatVariant } from '@/stores';

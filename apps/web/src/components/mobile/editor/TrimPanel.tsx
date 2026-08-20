@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ordGhostBtn, ordStickerBtn } from '@/lib/ordioVariants';
+import { ordGhostBtn, ordStickerBtn } from '@/lib/variants';
 import { Separator } from '@/components/ui/separator';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { detectSilentRegions } from '@Ordio/engine/media';

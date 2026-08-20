@@ -11,7 +11,7 @@
 import { useConvexAuth, usePaginatedQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import { formatDuration } from '@/components/saved-audio/formatters';
-import { listRow } from '@/lib/desktop/deskVariants';
+import { listRow } from '@/lib/variants';
 import { ClipGlyph, MicGlyph, UploadGlyph } from './DeskIcons';
 
 const PAGE_SIZE = 20;

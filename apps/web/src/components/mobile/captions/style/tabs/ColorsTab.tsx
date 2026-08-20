@@ -2,7 +2,7 @@
 
 import { useUIStore } from '@/stores';
 import { getCaptionStylePreset } from '@Ordio/engine';
-import { ordSectionLabel, ordFieldCard } from '@/lib/ordioVariants';
+import { ordSectionLabel, ordFieldCard } from '@/lib/variants';
 import { ColorRow } from '../controls/ColorRow';
 import { ColorSwatch } from '../controls/ColorSwatch';
 import { SliderRow } from '../controls/SliderRow';

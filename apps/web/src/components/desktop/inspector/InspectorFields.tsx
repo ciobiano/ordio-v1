@@ -9,7 +9,7 @@
  */
 
 import { cn } from '@/lib/utils';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 
 export function Section({
   label,

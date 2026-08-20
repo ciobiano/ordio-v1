@@ -3,7 +3,7 @@
 /** Ratio, fit, and the safe zone you post into. */
 
 import { cn } from '@/lib/utils';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { FORMATS, SAFE, type SafeId } from '@/lib/desktop/deskCatalog';
 import { ChipRow, PanelBody, Section } from './InspectorFields';

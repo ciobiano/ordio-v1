@@ -2,7 +2,7 @@
 
 /** Trim handles, detected pauses, and the two bulk cuts. */
 
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { PanelBody, Section, SliderField } from './InspectorFields';
 

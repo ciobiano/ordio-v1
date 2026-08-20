@@ -10,7 +10,7 @@
  * See memory/project_desk_left_panel_morphs.md.
  */
 
-import { railButton } from '@/lib/desktop/deskVariants';
+import { railButton } from '@/lib/variants';
 import { TOOL_COPY, type ToolId } from '@/lib/desktop/deskCatalog';
 import {
   AudioGlyph,

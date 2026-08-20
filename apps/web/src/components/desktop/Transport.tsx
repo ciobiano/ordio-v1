@@ -3,7 +3,7 @@
 /** Play/pause, clock, scrub bar, and the two canvas overlay toggles. */
 
 import { cn } from '@/lib/utils';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import { PauseGlyph, PlayGlyph } from './DeskIcons';
 
 interface TransportProps {

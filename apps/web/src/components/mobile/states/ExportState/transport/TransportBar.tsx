@@ -11,7 +11,7 @@ import {
   Redo02Icon,
 } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { ordStickerBtn } from '@/lib/ordioVariants';
+import { ordStickerBtn } from '@/lib/variants';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { UseExportHistoryReturn } from '@/hooks/export/useExportHistory';
 import { Scrubber } from './Scrubber';

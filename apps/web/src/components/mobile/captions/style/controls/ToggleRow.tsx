@@ -7,7 +7,7 @@ import {
   ordFieldCard,
   ordFieldLabel,
   ordFieldHint,
-} from '@/lib/ordioVariants';
+} from '@/lib/variants';
 
 interface ToggleRowProps {
   label: string;

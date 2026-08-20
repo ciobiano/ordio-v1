@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
-import { ordFieldLabel } from '@/lib/ordioVariants';
+import { ordFieldLabel } from '@/lib/variants';
 
 interface SliderRowProps {
   label: string;

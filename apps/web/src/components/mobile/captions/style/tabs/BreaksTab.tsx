@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useProcessingStore, useUIStore } from '@/stores';
 import type { BreakSettings } from '@/stores';
 import type { BreakMode, BreakQuantity } from '@Ordio/engine/captions/breaks';
-import { ordChip, ordFieldLabel } from '@/lib/ordioVariants';
+import { ordChip, ordFieldLabel } from '@/lib/variants';
 import { SliderRow } from '../controls/SliderRow';
 import { ToggleRow } from '../controls/ToggleRow';
 

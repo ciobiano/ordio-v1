@@ -3,7 +3,7 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { SquareLock02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { ordLockBadge } from '@/lib/ordioVariants';
+import { ordLockBadge } from '@/lib/variants';
 
 interface LockPinProps {
   size?: 'sm' | 'md';

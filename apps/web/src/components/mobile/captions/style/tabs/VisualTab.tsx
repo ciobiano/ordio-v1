@@ -5,7 +5,7 @@ import { useUIStore } from '@/stores';
 import { getCaptionStylePreset, type CaptionStylePreset } from '@Ordio/engine';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import { cn } from '@/lib/utils';
-import { ordOptionCard } from '@/lib/ordioVariants';
+import { ordOptionCard } from '@/lib/variants';
 import type { GraphicStyleId, WaveformVariant } from '@/stores';
 import type { FeatureKey } from '@/lib/featureGates';
 import { OptionCard } from '../controls/OptionCard';

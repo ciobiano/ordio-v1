@@ -1,4 +1,8 @@
-import { cva } from 'class-variance-authority';
+/**
+ * Stateful inputs: segments, toggles, chips, pills, option cards.
+ */
+
+import { cva, type VariantProps } from 'class-variance-authority';
 
 /**
  * CVA variants for the export-screen redesign.
@@ -144,7 +148,7 @@ export const ordCheckPill = cva(
 
 export const ordChip = cva(
   'shrink-0 h-[42px] px-4 cursor-pointer whitespace-nowrap border-2 rounded-xl ' +
-    'font-semibold text-[13px] ' +
+    'font-semibold text-[length:var(--text-caption)] ' +
     'transition-colors duration-[var(--acid-dur-tap)] ease-[var(--acid-ease-snap)] ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--acid-accent-ring)]',
   {
@@ -180,113 +184,6 @@ export const ordChip = cva(
   }
 );
 
-/* ------------------------------------------------------------------ *
- * Sticker button — the design's signature press.
- * ------------------------------------------------------------------ */
-
-export const ordStickerBtn = cva(
-  'inline-flex items-center justify-center gap-2 cursor-pointer font-semibold ' +
-    'transition-transform duration-[var(--acid-dur-tap)] ease-[var(--acid-ease-snap)] ' +
-    'motion-reduce:transition-none ' +
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--acid-accent-ring)] ' +
-    'disabled:opacity-40 disabled:cursor-not-allowed',
-  {
-    variants: {
-      /**
-       * Declared BEFORE `tone` on purpose. CVA emits variant classes in key
-       * order, so anything a tone needs to override (premiumSoft's rule) has to
-       * come after the elevation that would otherwise win on merge order.
-       */
-      elevation: {
-        /**
-         * The signature press. A hard ink offset, no blur, and on press the
-         * element travels 3px into its own shadow as the shadow vanishes —
-         * physical movement, never an opacity dim.
-         *
-         * For things sitting on the canvas or the page: the Add FAB, Export.
-         */
-        raised:
-          'border-[3px] border-[color:var(--acid-bg-base)] shadow-[var(--acid-shadow-sticker-sm)] ' +
-          'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ' +
-          'motion-reduce:active:translate-x-0 motion-reduce:active:translate-y-0 ' +
-          'disabled:active:translate-x-0 disabled:active:translate-y-0',
-        /**
-         * For anything inside a sheet, drawer or panel.
-         *
-         * A sticker needs a surface to peel off. The shadow is `--acid-bg-base`
-         * (#0a0b0a), which reads against the page and all but vanishes against
-         * `--sheet-bg` (#141517) — so in a sheet you got the 3px ink border
-         * reading as a gap and no peel to show for it. A sheet is also already
-         * the raised layer; lifting a button off it is a second claim on the
-         * same depth.
-         */
-        flat: 'shadow-none active:scale-[0.97] motion-reduce:active:scale-100 disabled:active:scale-100',
-      },
-      tone: {
-        accent: 'bg-[color:var(--acid-accent)] text-[color:var(--acid-on-accent)]',
-        premium: 'bg-[color:var(--acid-premium)] text-[color:var(--acid-on-accent)]',
-        paper: 'bg-[color:var(--acid-text-1)] text-[color:var(--acid-on-accent)]',
-        /**
-         * Tinted rather than filled — a wash of the accent behind a solid rule
-         * of it. For a button that sits among the transport controls and should
-         * read as available without shouting over the artwork behind it.
-         *
-         * Carries its own rule because it is the one tone that is an outline;
-         * pair it with `elevation: 'flat'`, which is the only combination that
-         * makes sense.
-         */
-        premiumSoft:
-          'bg-[color:var(--acid-premium)]/15 text-[color:var(--acid-premium)] ' +
-          'border-2 border-[color:var(--acid-premium)]/55 ' +
-          'hover:bg-[color:var(--acid-premium)]/25',
-      },
-      shape: { pill: 'rounded-full', square: 'rounded-2xl', round: 'rounded-full' },
-      size: {
-        sm: 'h-11 px-4 text-sm',
-        md: 'h-[46px] px-5 text-[17px]',
-        lg: 'h-12 px-6 text-[15px]',
-        icon: 'w-12 h-12 p-0',
-      },
-    },
-    defaultVariants: { elevation: 'raised', tone: 'accent', shape: 'pill', size: 'md' },
-  }
-);
-
-/** Quiet counterpart — Cancel, Reset, Not now, Done. */
-export const ordGhostBtn = cva(
-  'inline-flex items-center justify-center cursor-pointer font-semibold rounded-full ' +
-    'border-2 border-[color:var(--acid-border-default)] bg-transparent ' +
-    'text-[color:var(--acid-text-2)] transition-colors duration-[var(--acid-dur-tap)] ' +
-    'hover:text-[color:var(--acid-text-1)] ' +
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--acid-accent-ring)] ' +
-    'disabled:opacity-40 disabled:cursor-not-allowed',
-  {
-    variants: {
-      size: { sm: 'h-[38px] px-4 text-xs', md: 'h-11 px-4 text-sm', lg: 'h-12 px-4 text-[15px]' },
-    },
-    defaultVariants: { size: 'md' },
-  }
-);
-
-/* ------------------------------------------------------------------ *
- * Static class strings — repeated enough to name.
- * ------------------------------------------------------------------ */
-
-/** UPPERCASE structural label. Uses the ACID eyebrow tracking. */
-export const ordSectionLabel =
-  'text-[length:var(--acid-text-footnote)] font-semibold uppercase ' +
-  'tracking-[var(--acid-tracking-eyebrow)] text-[color:var(--acid-text-3)]';
-
-/** The recessed card a slider or toggle row sits in. */
-export const ordFieldCard = 'flex flex-col gap-2 p-3 rounded-2xl bg-white/[0.05]';
-
-/** Row label — sentence case, the thing a control is named by. */
-export const ordFieldLabel = 'text-[13px] font-semibold text-[color:var(--acid-text-2)]';
-
-/** Secondary line under a field label. */
-export const ordFieldHint =
-  'text-[11px] leading-tight text-[color:var(--acid-text-3)]';
-
 /** Padlock badge pinned to a gated control. */
 export const ordLockBadge = cva(
   'absolute flex items-center justify-center rounded-full ' +
@@ -300,3 +197,57 @@ export const ordLockBadge = cva(
     defaultVariants: { size: 'sm', position: 'tile' },
   }
 );
+
+/** Pill chip — languages, break modes, beds, ratios, animation choices. */
+export const chip = cva(
+  'inline-flex items-center gap-[5px] rounded-full border font-bold cursor-pointer transition-colors duration-[var(--dur-tap)]',
+  {
+    variants: {
+      selected: {
+        // Border + wash is the whole marker. Adding acid *text* on top made
+        // one boolean shout three times, and a panel of a dozen chips is
+        // where the accent stopped reading as "you chose this".
+        true: 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/15 text-[var(--ord-paper)]',
+        false:
+          'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5 text-[var(--text-body)] hover:text-[var(--ord-paper)]',
+      },
+      size: {
+        sm: 'h-7 px-[10px] ord-type-footnote',
+        md: 'h-8 px-3 ord-type-footnote',
+      },
+    },
+    defaultVariants: { selected: false, size: 'sm' },
+  }
+);
+
+/** A word chip inside the expanded transcript row. */
+export const wordChip = cva(
+  'rounded-md px-1 py-1 ord-type-label cursor-text transition-colors duration-[var(--dur-tap)]',
+  {
+    variants: {
+      state: {
+        idle: 'bg-transparent text-[var(--text-body)]',
+        accent: 'bg-transparent text-[var(--ord-cyan)]',
+        active: 'bg-[var(--ord-acid)] text-[var(--ord-ink)]',
+      },
+    },
+    defaultVariants: { state: 'idle' },
+  }
+);
+
+export const acidPill = cva(
+  'flex-1 text-center font-acid-body font-medium ' +
+  'text-acid-label rounded-acid-md py-2.5 ' +
+  'transition-colors duration-[var(--acid-duration-micro)] cursor-pointer select-none',
+  {
+    variants: {
+      active: {
+        true: 'bg-acid-accent-soft text-acid-accent shadow-[inset_0_0_0_1px_var(--acid-accent-ring)]',
+        false: 'text-acid-text-2 hover:text-acid-text-1',
+      },
+    },
+    defaultVariants: { active: false },
+  }
+);
+
+export type ChipProps = VariantProps<typeof chip>;

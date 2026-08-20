@@ -5,7 +5,7 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Clock01Icon, DashboardSquare02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import type { DeskState, StyleTab } from '@/lib/desktop/deskState';
 import type { BreakMode } from '@Ordio/engine/captions/breaks';
 import { ANIMS, FONTS, VISUALS } from '@/lib/desktop/deskCatalog';

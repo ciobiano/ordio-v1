@@ -17,7 +17,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { chip, iconButton, listRow, wordChip } from '@/lib/desktop/deskVariants';
+import { chip, iconButton, listRow, wordChip } from '@/lib/variants';
 import type { DeskLine } from '@/lib/desktop/deskState';
 import { SearchGlyph } from './DeskIcons';
 

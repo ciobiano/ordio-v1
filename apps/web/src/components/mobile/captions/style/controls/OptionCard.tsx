@@ -3,7 +3,7 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { ordOptionCard, ordCheckPill, ordFieldHint } from '@/lib/ordioVariants';
+import { ordOptionCard, ordCheckPill, ordFieldHint } from '@/lib/variants';
 import { LockPin } from './LockPin';
 
 interface OptionCardProps {

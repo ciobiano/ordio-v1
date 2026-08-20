@@ -4,7 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import { Mic01Icon, Upload04Icon, Image02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { ordSectionLabel, ordFieldHint } from '@/lib/ordioVariants';
+import { ordSectionLabel, ordFieldHint } from '@/lib/variants';
 
 interface AddPanelProps {
   onUploadBackdrop: () => void;

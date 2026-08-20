@@ -8,7 +8,7 @@
  */
 
 import { Logo } from '@/components/media/Logo';
-import { iconButton, solidButton } from '@/lib/desktop/deskVariants';
+import { iconButton, solidButton } from '@/lib/variants';
 import {
   KeyboardGlyph,
   RedoGlyph,

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ordSegmentTrack, ordSegmentBtn, ordSectionLabel } from '@/lib/ordioVariants';
+import { ordSegmentTrack, ordSegmentBtn, ordSectionLabel } from '@/lib/variants';
 
 export interface SegmentedOption<T extends string> {
   value: T;

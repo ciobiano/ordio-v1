@@ -3,7 +3,7 @@
 /** Three looks built from this clip, plus a reroll. */
 
 import { cn } from '@/lib/utils';
-import { chip } from '@/lib/desktop/deskVariants';
+import { chip } from '@/lib/variants';
 import { LOOKS, PRESETS } from '@/lib/desktop/deskCatalog';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { PanelBody, Section } from './InspectorFields';
