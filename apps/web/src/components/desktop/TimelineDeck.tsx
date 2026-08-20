@@ -16,6 +16,9 @@ import { useMemo,useState } from 'react';
 import { cn } from '@/lib/utils';
 import { iconButton, trackBlock } from '@/lib/variants';
 import type { DeskLine } from '@/lib/desktop/deskState';
+import type { BedClip } from '@/lib/audio/bedGeometry';
+import type { BedSource } from '@/lib/audio/bedPeaks';
+import { BedTrack } from './BedTrack';
 import { MinusGlyph, PlusGlyph } from './DeskIcons';
 
 interface TimelineDeckProps {
@@ -26,10 +29,17 @@ interface TimelineDeckProps {
   selRow: number;
   trimIn: number;
   trimOut: number;
-  bedLabel: string;
   onSeek: (t: number) => void;
   onSelectRow: (row: number) => void;
   onZoom: (delta: number) => void;
+  /* Music */
+  bed: BedClip | null;
+  bedSource: BedSource | null;
+  bedLoading: boolean;
+  onDropBed: (file: File, atSecond: number) => void;
+  onChangeBed: (next: BedClip) => void;
+  onCommitBed: () => void;
+  onRemoveBed: () => void;
 }
 
 const TRACKS = [
@@ -181,15 +191,20 @@ export function TimelineDeck(props: TimelineDeckProps) {
               ))}
             </div>
 
-            <div className="ord-track-music relative border-t border-[var(--border-hairline)]">
-              <div
-                className={cn(
-                  trackBlock({ tone: 'music' }),
-                  'inset-x-0 top-1 bottom-1 cursor-default px-2 ord-mono'
-                )}
-              >
-                {props.bedLabel}
-              </div>
+            {/* Was a static strip printing the name of a bed that did not
+                exist. Now the track itself: drop a sound on it, slide it, trim
+                it from either end. */}
+            <div className="ord-track-music relative border-t border-[var(--border-hairline)] px-0 py-1">
+              <BedTrack
+                bed={props.bed}
+                source={props.bedSource}
+                duration={duration}
+                loading={props.bedLoading}
+                onDropFile={props.onDropBed}
+                onChange={props.onChangeBed}
+                onCommit={props.onCommitBed}
+                onRemove={props.onRemoveBed}
+              />
             </div>
 
             {/* Trim shading spans every track, because a trim removes time from

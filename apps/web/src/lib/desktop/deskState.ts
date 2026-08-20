@@ -12,14 +12,8 @@
 
 import type { Word } from '@Ordio/shared';
 import type { BreakMode, BreakQuantity } from '@Ordio/engine/captions/breaks';
-import type {
-  AnimId,
-  BedId,
-  FormatId,
-  SafeId,
-  ToolId,
-  VisualId,
-} from './deskCatalog';
+import type { AnimId, FormatId, SafeId, ToolId, VisualId } from './deskCatalog';
+import type { BedClip } from '@/lib/audio/bedGeometry';
 
 export type LeftMode = 'media' | 'transcript';
 export type SheetId = 'export' | 'shortcuts' | 'palette' | 'settings' | null;
@@ -123,7 +117,16 @@ export interface DeskState {
   /* Audio */
   voiceLevel: number;
   normalize: boolean;
-  bed: BedId;
+  /**
+   * The sound dropped onto the Music track, or nothing.
+   *
+   * Was `bed: BedId` — one of four names (`lofi`, `pulse`, `warm`, `upload`)
+   * with no audio behind any of them and no mixing code anywhere in the repo.
+   * Four options that did nothing beside a fifth that could not. A dropped
+   * file is the whole feature: it carries its own source, its position on the
+   * timeline, and the region of it you actually want.
+   */
+  bed: BedClip | null;
   musicLevel: number;
   duck: boolean;
 
@@ -204,7 +207,7 @@ export const INITIAL_DESK_STATE: DeskState = {
 
   voiceLevel: 100,
   normalize: true,
-  bed: 'none',
+  bed: null,
   musicLevel: 24,
   duck: true,
 

@@ -526,3 +526,139 @@
 @media (prefers-reduced-motion: reduce) {
   .ord-animate-fade { animation: none; }
 }
+
+/* ─── The Music track ───
+   A drop target that becomes a trimmable block. The waveform inside it is the
+   point: the stage never plays the bed back, so without an outline both
+   handles are dragged against a blank rectangle. */
+.ord-bedtrack {
+  position: relative;
+  height: 34px;
+  border-radius: var(--r-mark);
+  background: var(--track-music-fill);
+  border: 1px dashed transparent;
+  transition: border-color var(--dur-tap), background var(--dur-tap);
+  /* The block is dragged with the pointer, so the browser must not also
+     interpret the gesture as a scroll. */
+  touch-action: none;
+}
+
+.ord-bedtrack.is-over {
+  border-color: var(--ord-acid);
+  background: var(--acid-accent-soft, rgba(198, 255, 61, 0.14));
+}
+
+.ord-bedtrack-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+}
+
+.ord-bedclip {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  min-width: 10px;
+  border-radius: var(--r-mark);
+  background: var(--track-music);
+  border: 1px solid var(--border-hairline);
+  overflow: hidden;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+}
+
+.ord-bedclip:active {
+  cursor: grabbing;
+}
+
+.ord-bedclip-wave {
+  position: absolute;
+  inset: 3px 6px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.ord-bedclip-wave i {
+  flex: 1;
+  min-width: 1px;
+  border-radius: 1px;
+  background: var(--ord-ink);
+}
+
+.ord-bedclip-name {
+  position: relative;
+  z-index: 1;
+  padding: 0 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ord-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 10px of grab target at each end. Below about 8px a trim handle is a game of
+   pixel-hunting, and the block itself is only 30px tall to aim within. */
+.ord-bedclip-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border: 0;
+  padding: 0;
+  background: var(--ord-ink);
+  opacity: 0.28;
+  cursor: ew-resize;
+  transition: opacity var(--dur-tap);
+}
+
+.ord-bedclip-handle:hover,
+.ord-bedclip-handle:focus-visible {
+  opacity: 0.55;
+  outline: none;
+}
+
+.ord-bedclip-handle.is-start { left: 0; }
+.ord-bedclip-handle.is-end { right: 0; }
+
+.ord-bedclip-remove {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border: 0;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: var(--ord-ink);
+  color: var(--ord-paper);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-tap);
+}
+
+.ord-bedclip:hover .ord-bedclip-remove,
+.ord-bedclip-remove:focus-visible {
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ord-bedtrack,
+  .ord-bedclip-handle,
+  .ord-bedclip-remove {
+    transition: none;
+  }
+}

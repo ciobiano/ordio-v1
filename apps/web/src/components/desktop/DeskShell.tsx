@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { Word } from '@Ordio/shared';
 import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
@@ -27,6 +28,8 @@ import { useProcessingStore } from '@/stores';
 import { deriveCapturePhase } from '@/lib/capture/phase';
 import type { CapturePhase, RecordingSubPhase } from '@/lib/capture/types';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
+import { bedFromDrop, type BedClip } from '@/lib/audio/bedGeometry';
+import { readBedSource, type BedSource } from '@/lib/audio/bedPeaks';
 import {
   deskReducer,
   INITIAL_DESK_HISTORY,
@@ -130,6 +133,50 @@ export function DeskShell() {
   useEffect(() => {
     if (flow.currentState === 'idle') setElapsed(0);
   }, [flow.currentState]);
+
+  /* ── The music bed ────────────────────────────────────────────────
+     Peaks live here rather than in desk state: they are derived from the
+     dropped file, cost a full decode to produce, and would be snapshotted
+     into every undo entry alongside the trim they describe. */
+  const [bedSource, setBedSource] = useState<BedSource | null>(null);
+  const [bedLoading, setBedLoading] = useState(false);
+
+  const handleDropBed = useCallback(
+    async (file: File, atSecond: number) => {
+      setBedLoading(true);
+      try {
+        const source = await readBedSource(file);
+        const url = URL.createObjectURL(file);
+        setBedSource(source);
+        patch(
+          { bed: bedFromDrop(file.name, url, source.duration, atSecond) },
+          true
+        );
+      } catch (err) {
+        console.error('[DeskShell] bed decode', err);
+        toast.error(`${file.name} could not be read as audio.`);
+      } finally {
+        setBedLoading(false);
+      }
+    },
+    [patch]
+  );
+
+  /* Dragging fires continuously, so the moving value is not undoable — one
+     entry is pushed when the pointer is released instead of sixty. */
+  const handleChangeBed = useCallback(
+    (next: BedClip) => patch({ bed: next }),
+    [patch]
+  );
+  const handleCommitBed = useCallback(() => patch({}, true), [patch]);
+
+  const handleRemoveBed = useCallback(() => {
+    /* The object URL is the only thing here the browser will not reclaim on
+       its own — every dropped file leaks a decoded copy without this. */
+    if (state.bed) URL.revokeObjectURL(state.bed.url);
+    setBedSource(null);
+    patch({ bed: null }, true);
+  }, [state.bed, patch]);
 
   const pressStartedAt = useRef(0);
   const pressActive = useRef(false);
@@ -589,7 +636,13 @@ export function DeskShell() {
         selRow={state.selRow}
         trimIn={state.trimIn}
         trimOut={state.trimOut}
-        bedLabel={state.bed === 'none' ? 'No music bed' : state.bed}
+        bed={state.bed}
+        bedSource={bedSource}
+        bedLoading={bedLoading}
+        onDropBed={handleDropBed}
+        onChangeBed={handleChangeBed}
+        onCommitBed={handleCommitBed}
+        onRemoveBed={handleRemoveBed}
         onSeek={seek}
         onSelectRow={(selRow) => {
           patch({ selRow, cursor: null, editing: null });
