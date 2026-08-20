@@ -42,6 +42,14 @@ import { ToolStrip } from './tools/ToolStrip';
 import { ToolPanel } from './tools/ToolPanel';
 import { TimelineDeck } from './TimelineDeck';
 import { ExportSheet } from './sheets/ExportSheet';
+import { DeskSettingsSheet } from './sheets/DeskSettingsSheet';
+import {
+  DeskClipPicker,
+  DeskEpisodeError,
+  DeskEpisodeProgress,
+  DeskFileConfirm,
+  DeskProcessingAlert,
+} from './sheets/DeskUploadSheets';
 import { ShortcutsSheet } from './sheets/ShortcutsSheet';
 import { CommandPalette, type PaletteAction } from './sheets/CommandPalette';
 import { TOOL_COPY, type ToolId } from '@/lib/desktop/deskCatalog';
@@ -437,7 +445,7 @@ export function DeskShell() {
              capture stage carries no duplicate of them. */
           onRecord={handlePressStart}
           onUpload={() => flow.fileInputRef.current?.click()}
-          onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
+          onOpenSettings={() => patch({ sheet: 'settings' })}
           onSelectClip={(clipId, clipName, durationMs) =>
             dispatch({
               type: 'selectClip',
@@ -497,6 +505,7 @@ export function DeskShell() {
               audioLevel={flow.audioLevel}
               isSpeaking={flow.isSpeaking}
               micDenied={flow.micDenied}
+              startError={flow.startError}
               canRecord={flow.capabilities.canRecord}
               isStarting={flow.isStarting}
               processingProgress={flow.processingProgress}
@@ -517,7 +526,7 @@ export function DeskShell() {
             onRestart={handleRestartCapture}
             onProcess={flow.handleProceed}
             onCancel={handleCancelCapture}
-            onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
+            onOpenSettings={() => patch({ sheet: 'settings' })}
             playing={playback.isPlaying}
             t={t}
             duration={duration}
@@ -602,6 +611,12 @@ export function DeskShell() {
         onChange={flow.handleFileSelect}
       />
 
+      {state.sheet === 'settings' && (
+        <DeskSettingsSheet
+          onClose={() => patch({ sheet: null })}
+          onLocked={flow.setUpgradeTarget}
+        />
+      )}
       {state.sheet === 'export' && (
         <ExportSheet
           state={state}
@@ -618,6 +633,60 @@ export function DeskShell() {
         <CommandPalette
           actions={paletteActions}
           onClose={() => patch({ sheet: null })}
+        />
+      )}
+
+      {/* The upload path, which had no surfaces on the desk at all. Choosing
+          a file started the pipeline and nothing rendered its states: a short
+          file staged and waited on a confirmation that was never drawn, and a
+          long one ingested behind a toast and appeared to hang. */}
+      {flow.stagedFile && (
+        <DeskFileConfirm
+          file={flow.stagedFile}
+          onConfirm={flow.handleFileConfirm}
+          onCancel={() => flow.setStagedFile(null)}
+        />
+      )}
+
+      {(flow.episode.phase === 'ingesting' ||
+        flow.episode.phase === 'transcribing' ||
+        flow.episode.phase === 'finding') && (
+        <DeskEpisodeProgress
+          phase={flow.episode.phase}
+          progress={flow.episode.progress}
+          onCancel={flow.episode.cancel}
+        />
+      )}
+
+      {flow.episode.phase === 'picking' && (
+        <DeskClipPicker
+          candidates={flow.episode.candidates}
+          episodeFile={flow.episode.episodeFile}
+          episodeWords={flow.episode.episodeWords}
+          onClose={flow.episode.cancel}
+          onPicked={(sessionId) => {
+            /* The clip opens on this desk rather than navigating, the same
+               way a recording does — the editor is already on screen. */
+            flow.episode.cancel();
+            selectSession(sessionId);
+          }}
+        />
+      )}
+
+      {flow.episode.phase === 'error' && (
+        <DeskEpisodeError
+          message={flow.episode.error ?? 'Something went wrong.'}
+          partialAvailable={flow.episode.partialAvailable}
+          onUsePartial={flow.episode.usePartialTranscript}
+          onDismiss={flow.episode.cancel}
+        />
+      )}
+
+      {flow.processingAlert && (
+        <DeskProcessingAlert
+          alert={flow.processingAlert}
+          onDisableEnhancement={flow.handleDisableEnhancement}
+          onDismiss={flow.dismissAlert}
         />
       )}
 

@@ -68,6 +68,8 @@ interface DeskCaptureStageProps {
   audioLevel: number;
   isSpeaking: boolean;
   micDenied: boolean;
+  /** Why the last start attempt failed, if it was not a permission refusal. */
+  startError: string | null;
   canRecord: boolean;
   isStarting: boolean;
   processingProgress: number;
@@ -83,6 +85,7 @@ export function DeskCaptureStage({
   audioLevel,
   isSpeaking,
   micDenied,
+  startError,
   canRecord,
   isStarting,
   processingProgress,
@@ -143,10 +146,18 @@ export function DeskCaptureStage({
       </motion.div>
 
       <div className="flex min-h-[58px] w-full max-w-[34ch] flex-col items-center justify-center gap-1">
-        {micDenied && isIdle ? (
-          <p className="text-center ord-type-body text-[var(--ord-rose)]">
-            Ordio cannot reach your microphone. Allow it in your browser, then
-            try again.
+        {isIdle && (micDenied || startError) ? (
+          /* A failed start has to say so. Returning silently made a broken
+             microphone and an unwired button look identical from here. */
+          <p role="alert" className="text-center ord-type-body text-[var(--ord-rose)]">
+            {micDenied
+              ? 'Ordio cannot reach your microphone. Allow it in your browser, then try again.'
+              : startError}
+          </p>
+        ) : !canRecord && isIdle ? (
+          <p role="alert" className="text-center ord-type-body text-[var(--ord-rose)]">
+            This browser cannot record audio. Try Chrome or Edge, or upload a
+            file instead.
           </p>
         ) : showCaption ? (
           <div aria-live="polite" className="flex w-full flex-col items-center gap-1">

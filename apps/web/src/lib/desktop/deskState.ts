@@ -22,7 +22,7 @@ import type {
 } from './deskCatalog';
 
 export type LeftMode = 'media' | 'transcript';
-export type SheetId = 'export' | 'shortcuts' | 'palette' | null;
+export type SheetId = 'export' | 'shortcuts' | 'palette' | 'settings' | null;
 export type StyleTab = 'animation' | 'type' | 'colour' | 'layout';
 
 export interface DeskLine {

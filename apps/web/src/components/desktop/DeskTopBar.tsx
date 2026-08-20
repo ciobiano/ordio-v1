@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * Top bar: identity, ⌘K search, history, export.
+ * Top bar: identity, ⌘K search, history, export, account.
  *
  * The design's "Creator preview" toggle is gone with the rest of the tier —
  * there is nothing left for it to preview.
  */
 
 import { Logo } from '@/components/media/Logo';
+import UserAvatarButton from '@/components/mobile/auth/UserAvatarButton';
 import { iconButton, solidButton } from '@/lib/variants';
 import {
   KeyboardGlyph,
@@ -103,6 +104,14 @@ export function DeskTopBar({
             ⌘E
           </span>
         </button>
+
+        {/* Account. The desk had no way to reach the avatar picker, Manage
+            Account or Sign Out — signing in was the last thing the app said
+            about who you were. Sized down to sit with the other top-bar
+            controls rather than tower over them. */}
+        <span className="ml-1 flex items-center border-l border-[var(--border-hairline)] pl-3">
+          <UserAvatarButton size="sm" />
+        </span>
       </div>
     </header>
   );

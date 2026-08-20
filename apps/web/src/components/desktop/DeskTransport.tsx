@@ -271,7 +271,11 @@ export function DeskTransport({
         <button
           type="button"
           onClick={onCancel}
-          aria-label="Discard and start over"
+          /* The visible label is "Cancel", so the accessible name has to
+             contain it — WCAG 2.5.3. Speech-control users say what they see,
+             and "Discard and start over" left the one word on the button
+             unable to activate it. */
+          aria-label="Cancel and discard this take"
           className={captureRoundBtn({ tone: 'neutral' })}
         >
           <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
