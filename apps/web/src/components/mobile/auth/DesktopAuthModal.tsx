@@ -6,7 +6,7 @@ import { acidHeading } from '@/lib/variants';
 import { OnboardingAuthTray } from './OnboardingAuthTray';
 
 /**
- * Desktop sign-in gate: a small centred card over the blurred, inert workspace.
+ * Desktop sign-in gate: a small centred card over the dimmed, inert workspace.
  *
  * The mobile onboarding screen is a full-bleed column — orb centred in the
  * viewport, auth buttons spanning the full width, eyebrow pinned to the bottom.
@@ -19,19 +19,22 @@ import { OnboardingAuthTray } from './OnboardingAuthTray';
  * desktop — the workspace is already there behind you, sign in to reach it —
  * rather than presenting sign-up as the whole screen.
  *
- * This restores the shape of the modal that used to live at /studio. That one
- * was deleted for its contents, not its layout: it drew its own logo as a
- * rounded square holding the letter "O" on a hardcoded
- * `linear-gradient(135deg,#C6FF3D,#6BE0FF)`, and cycled six phrases through a
- * typewriter that took ~22 seconds to get round. The container was always right;
- * the decoration was the problem. It now uses the real mark and a static line.
+ * Dimmed rather than blurred. `backdrop-blur-2xl` over a dark workspace
+ * destroys the only proof the product exists: at that radius the desk stops
+ * being a desk and becomes noise. A wash plus a light blur keeps its shape
+ * legible while leaving no doubt which layer is in front.
+ *
+ * The card holds four things and no more — the mark, one line, the tray, and
+ * what it costs. It previously carried a sample frame of a captioned clip as a
+ * second column; the desk behind already does that job, and doing it twice made
+ * a 620px card out of 400px of content.
  */
 export function DesktopAuthModal() {
   const reducedMotion = useReducedMotion();
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-acid-bg-base/70 px-6 backdrop-blur-2xl"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-acid-bg-base/78 px-6 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Sign in to Ordio"
@@ -40,18 +43,28 @@ export function DesktopAuthModal() {
         initial={reducedMotion ? false : { opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-        className="flex w-full max-w-100 flex-col items-center gap-6 rounded-3xl border border-acid-border-subtle bg-acid-surface-1 p-8"
+        className="flex w-full max-w-102 flex-col gap-5 rounded-3xl border border-acid-border-subtle bg-acid-surface-1 p-7"
       >
+        {/* The real mark. Logo.tsx exists so a second surface cannot invent a
+            third version of it — this is the call site its docstring is about. */}
         <Logo />
 
-        <h1 className={`${acidHeading({ level: 'headline' })} text-center`}>
-          Record. Transcribe. Share.
-        </h1>
+        {/* One line, and it names what you leave with rather than listing the
+            steps. "Record. Transcribe. Share." was three verbs that could sit
+            on any audio tool. Headline, not display: a 400px card has no room
+            for a display line, and DESIGN.md allows one per screen at most. */}
+        <h1 className={acidHeading({ level: 'headline' })}>Voice in. Video out.</h1>
 
         <OnboardingAuthTray
           redirectUrlComplete="/create"
           className="flex w-full flex-col gap-2.5"
         />
+
+        {/* The cost, stated. Ordio takes no money, and a stranger at a sign-in
+            wall has no way to know that unless it is written down. */}
+        <p className="text-acid-footnote text-acid-text-3">
+          Free, with no card. Your recordings stay on your account.
+        </p>
       </motion.div>
     </div>
   );
