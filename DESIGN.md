@@ -1,7 +1,7 @@
 # Ordio Design System
 
 > The contract for the ACID system. Tokens live in `apps/web/src/app/globals.css`;
-> component variants in `apps/web/src/lib/ordioVariants.ts` and `lib/variants.ts`.
+> component variants in `apps/web/src/lib/variants/`, split by concern.
 > This file says what they *mean*. If a colour appears on screen and you cannot
 > point at the rule below that licenses it, it is a bug.
 
@@ -212,7 +212,7 @@ One `display` line per screen, maximum.
 
 ## 9. Component inventory
 
-Every variant is CVA in `lib/ordioVariants.ts`. No hardcoded Tailwind variant
+Every variant is CVA in `lib/variants/`. No hardcoded Tailwind variant
 strings in JSX, no arbitrary values — dynamic values go through CSS custom
 properties, never inline `style` (the one sanctioned exception is a colour swatch
 rendering a user-chosen hex, which cannot be a token by definition).

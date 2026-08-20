@@ -1,6 +1,6 @@
 'use client';
 
-import { OnboardingAuthTray } from '@/components/soul/auth/OnboardingAuthTray';
+import { OnboardingAuthTray } from '@/components/mobile/auth/OnboardingAuthTray';
 import { acidEyebrow } from '@/lib/variants';
 import { SplashShell } from './SplashShell';
 

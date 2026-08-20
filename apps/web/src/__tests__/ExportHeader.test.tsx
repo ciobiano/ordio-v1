@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ExportHeader } from '@/components/soul/states/ExportState/ExportHeader';
+import { ExportHeader } from '@/components/mobile/states/ExportState/ExportHeader';
 
 describe('components/soul/states/ExportState: ExportHeader', () => {
   const baseProps = {

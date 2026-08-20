@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { CaptureScreen } from '@/components/soul/capture/CaptureScreen';
+import { CaptureScreen } from '@/components/mobile/capture/CaptureScreen';
 
 vi.mock('next/dynamic', () => ({
   default: () => () => null,

@@ -1,6 +1,6 @@
 // apps/web/src/__tests__/capture-phase.test.ts
 import { describe, it, expect } from 'vitest';
-import { deriveCapturePhase, deriveStatusText, TOO_QUIET_THRESHOLD } from '@/components/soul/capture/phase';
+import { deriveCapturePhase, deriveStatusText, TOO_QUIET_THRESHOLD } from '@/components/mobile/capture/phase';
 
 describe('deriveCapturePhase', () => {
   it('is idle when currentState is idle', () => {

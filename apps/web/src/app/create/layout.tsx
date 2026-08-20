@@ -7,10 +7,10 @@ import { useUIStore } from '@/stores';
 import { useCapabilities } from '@/hooks/recording/useCapabilities';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useAuth } from '@clerk/nextjs';
-import { CapabilityBanner } from '@/components/primitives';
-import { WaitlistSheet } from '@/components/soul';
+import { CapabilityBanner } from '@/components/media';
+import { WaitlistSheet } from '@/components/mobile';
 import { SplashScreen } from '@/components/splash/SplashScreen';
-import { DesktopAuthModal } from '@/components/soul/auth/DesktopAuthModal';
+import { DesktopAuthModal } from '@/components/mobile/auth/DesktopAuthModal';
 import { useIsDesktopViewport } from '@/hooks/useBreakpoint';
 import { useOverlayLoading } from '@/components/NavigationTransition';
 

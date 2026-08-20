@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeSidebarRevealPx, SIDEBAR_REVEAL_RATIO } from '@/components/soul/capture/sidebarReveal';
+import { computeSidebarRevealPx, SIDEBAR_REVEAL_RATIO } from '@/components/mobile/capture/sidebarReveal';
 
 describe('computeSidebarRevealPx', () => {
   it('computes the reveal distance as a rounded percentage of container width', () => {

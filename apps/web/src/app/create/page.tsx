@@ -20,7 +20,7 @@ import { useIsDesktopViewport } from '@/hooks/useBreakpoint';
 
 const MobileCaptureFlow = dynamic(
   () =>
-    import('@/components/soul/capture/MobileCaptureFlow').then(
+    import('@/components/mobile/capture/MobileCaptureFlow').then(
       (m) => m.MobileCaptureFlow
     ),
   { ssr: false }
@@ -30,7 +30,7 @@ const MobileCaptureFlow = dynamic(
 // It replaces StudioDesk at desktop widths; StudioDesk itself is now unused by
 // this route and can go once the editor reaches parity on export.
 const DeskShell = dynamic(
-  () => import('@/components/desk/DeskShell').then((m) => m.DeskShell),
+  () => import('@/components/desktop/DeskShell').then((m) => m.DeskShell),
   { ssr: false }
 );
 

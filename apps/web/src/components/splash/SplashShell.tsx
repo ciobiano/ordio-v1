@@ -2,8 +2,8 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Orb } from '@/components/primitives/orb/Orb';
-import { Logo } from '@/components/primitives/Logo';
+import { Orb } from '@/components/media/orb/Orb';
+import { Logo } from '@/components/media/Logo';
 
 export const SPLASH_EASE = [0.22, 1, 0.36, 1] as const;
 

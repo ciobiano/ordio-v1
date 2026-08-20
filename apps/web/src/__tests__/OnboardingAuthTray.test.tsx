@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { OnboardingAuthTray } from '@/components/soul/auth/OnboardingAuthTray';
+import { OnboardingAuthTray } from '@/components/mobile/auth/OnboardingAuthTray';
 
 const openSignUp = vi.fn();
 const openSignIn = vi.fn();

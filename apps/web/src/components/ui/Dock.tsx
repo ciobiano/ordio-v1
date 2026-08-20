@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { IconSvgElement } from '@hugeicons/react'
-import { ordStickerBtn } from '@/lib/ordioVariants'
+import { ordStickerBtn } from '@/lib/variants'
 
 type DockItem = {
   id: string
