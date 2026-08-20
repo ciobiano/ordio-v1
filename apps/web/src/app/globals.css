@@ -97,12 +97,15 @@
   /* ─── Text ─── */
   --acid-text-1: #f4f5ef;
   --acid-text-2: rgba(244, 245, 239, 0.64);
-  /* Raised 0.42 → 0.58 for WCAG AA. At 0.42 this composites to
-     rgb(114,115,114) on --acid-surface-1 — 3.83:1, under the 4.5:1 floor,
-     and it carries the smallest text in the app (timestamps, eyebrows,
-     hints). 0.58 lands 6.22:1. The failing value never appeared in any
-     source file, which is why it survived review for so long. */
-  --acid-text-3: rgba(244, 245, 239, 0.58);
+  /* 0.48, not 0.58. The earlier fix took this from 0.42 (3.83:1 — a real AA
+     failure) straight to 0.58, which cleared the floor and in the same stroke
+     collapsed the gap to --acid-text-2 above it: the two tiers that rank
+     secondary text ended up 1.19:1 apart, which is one colour written twice.
+     0.48 clears 4.5:1 on both grounds the token is used against — 4.63:1 over
+     --acid-bg-base, 4.67:1 over --acid-surface-1 — and restores 1.64:1 of
+     separation. Raising an accessibility floor compresses everything above
+     it; the ratio to the background is only half the check. */
+  --acid-text-3: rgba(244, 245, 239, 0.48);
   --acid-text-4: rgba(244, 245, 239, 0.24);
 
   /* ─── Accent — electric lime, the signature ─── */
@@ -127,10 +130,14 @@
      out of the timeline except on the block you have actually selected.
      Shared, not desktop-only: mobile draws the same two hues wherever it
      shows speech against music. */
-  --acid-track-speech: #4b3fc9;
-  --acid-track-speech-fill: rgba(96, 84, 214, 0.34);
-  --acid-track-music: #a8325b;
-  --acid-track-music-fill: rgba(190, 62, 104, 0.26);
+  /* Saturation scales inversely with area. The border and the gutter dot are
+     small, so they carry the vivid value; the block fill covers a 58px band,
+     so it is a low tint of the same hue. The first pass had the fill at 0.34
+     and read as a slab of colour rather than a labelled track. */
+  --acid-track-speech: #7a6ce8;
+  --acid-track-speech-fill: rgba(75, 63, 201, 0.16);
+  --acid-track-music: #d4557f;
+  --acid-track-music-fill: rgba(168, 50, 91, 0.14);
 
   /* Gated-feature marker. The export-screen design used a dedicated rose for
      this; ACID has no premium role, so it aliases the existing amber rather
