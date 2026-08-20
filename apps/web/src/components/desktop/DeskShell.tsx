@@ -3,19 +3,30 @@
 /**
  * The desktop editor shell.
  *
- * Owns the reducer, the keyboard map, and the bridge between the editor's own
- * state and the app's real playback + session stores. Playback time is NOT
- * mirrored into desk state — `usePlayback` is the single clock, and every seek
- * goes through it, so the transport, timeline playhead and active-word
- * highlight can never disagree.
+ * Owns the reducer, the keyboard map, the capture flow, and the bridge between
+ * the editor's own state and the app's real playback + session stores.
+ *
+ * Two clocks would be two sources of truth, so there is one of each: playback
+ * time is NOT mirrored into desk state — `usePlayback` is the single clock and
+ * every seek goes through it — and the capture phase is derived by the same
+ * pure function mobile uses, never re-implemented here.
+ *
+ * The stage in the middle morphs. Before a clip exists it is the capture
+ * surface (orb, captions, progress); once one does it is the preview canvas.
+ * Everything around it — top bar, clips list, tool strip, timeline — stays
+ * mounted throughout, because all of it is still true while you record.
  */
 
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Word } from '@Ordio/shared';
 import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useSessionHydration } from '@/hooks/session/useSessionHydration';
+import { useCreateFlow } from '@/hooks/recording/useCreateFlow';
 import { useProcessingStore } from '@/stores';
+import { deriveCapturePhase } from '@/lib/capture/phase';
+import type { CapturePhase, RecordingSubPhase } from '@/lib/capture/types';
+import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import {
   deskReducer,
   INITIAL_DESK_HISTORY,
@@ -25,10 +36,11 @@ import { INITIAL_DESK_STATE, type DeskState } from '@/lib/desktop/deskState';
 import { DeskTopBar } from './DeskTopBar';
 import { LeftPanel } from './LeftPanel';
 import { PlayerStage } from './PlayerStage';
-import { Transport } from './Transport';
-import { ToolRail } from './ToolRail';
+import { DeskCaptureStage } from './stage/DeskCaptureStage';
+import { DeskTransport } from './DeskTransport';
+import { ToolStrip } from './tools/ToolStrip';
+import { ToolPanel } from './tools/ToolPanel';
 import { TimelineDeck } from './TimelineDeck';
-import { InspectorPanel } from './inspector/InspectorPanel';
 import { ExportSheet } from './sheets/ExportSheet';
 import { ShortcutsSheet } from './sheets/ShortcutsSheet';
 import { CommandPalette, type PaletteAction } from './sheets/CommandPalette';
@@ -43,6 +55,9 @@ const INITIAL_STORE: DeskStore = {
 const PAUSE_THRESHOLD = 0.45;
 
 const FILLERS = new Set(['so', 'um', 'uh', 'like', 'okay', 'actually', 'basically']);
+
+/** Held past this on release, a press that started from idle finishes the take. */
+const PRESS_AUTO_FINISH_MS = 350;
 
 export function DeskShell() {
   const [store, dispatch] = useReducer(deskReducer, INITIAL_STORE);
@@ -59,7 +74,94 @@ export function DeskShell() {
     []
   );
 
-  /* Transcript arrives asynchronously after hydration — fold it in when it does. */
+  /* ── Capture ──────────────────────────────────────────────────────
+     The desk gets its own instance of the same hook the mobile chrome
+     mounts. Only one viewport branch is ever rendered (see /create), so
+     there is never a second recorder competing for the microphone. */
+
+  const selectSession = useCallback((sessionId: string) => {
+    /* Processing resolves *into* the stage rather than navigating: on desktop
+       the editor is already on screen, so pushing a route would tear down the
+       shell and rebuild it around the clip that was just made here. The name
+       and duration arrive with hydration; lines follow from the transcript. */
+    dispatch({
+      type: 'selectClip',
+      clipId: sessionId,
+      clipName: 'Untitled clip',
+      lines: [],
+      duration: 0,
+    });
+  }, []);
+
+  const flow = useCreateFlow({ onSessionReady: selectSession });
+
+  const [recordingSubPhase, setRecordingSubPhase] =
+    useState<RecordingSubPhase>('recording');
+  const [elapsed, setElapsed] = useState(0);
+
+  const capturePhase: CapturePhase = deriveCapturePhase({
+    currentState: flow.currentState,
+    recordingSubPhase,
+    isPaused: flow.recorder.isPaused,
+  });
+
+  /* A clip beats any capture phase: once one is loaded the stage is the
+     editor, even if a stale phase were still sitting in the store. */
+  const editing = state.clipId !== null;
+  const stagePhase: CapturePhase | null = editing ? null : capturePhase;
+
+  /* Elapsed time is the desk's own readout — mobile shows none, but a desktop
+     recording session is long enough that "how long have I been talking" is a
+     real question. Runs only while the recorder does. */
+  useEffect(() => {
+    if (capturePhase !== 'recording') return;
+    const id = window.setInterval(() => setElapsed((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [capturePhase]);
+
+  useEffect(() => {
+    if (flow.currentState === 'idle') setElapsed(0);
+  }, [flow.currentState]);
+
+  const pressStartedAt = useRef(0);
+  const pressActive = useRef(false);
+
+  const handlePressStart = useCallback(() => {
+    if (capturePhase !== 'idle') return;
+    pressActive.current = true;
+    pressStartedAt.current = Date.now();
+    setRecordingSubPhase('recording');
+    setElapsed(0);
+    void flow.handleStartRecording();
+  }, [capturePhase, flow]);
+
+  const handleGoReady = useCallback(() => {
+    setRecordingSubPhase('stopped');
+    flow.handleStopRecording();
+  }, [flow]);
+
+  /* A press held past the threshold finishes the take on release; a plain tap
+     leaves it running. Same shortcut mobile offers, same threshold. */
+  const handlePressEnd = useCallback(() => {
+    if (!pressActive.current) return;
+    pressActive.current = false;
+    if (Date.now() - pressStartedAt.current > PRESS_AUTO_FINISH_MS) handleGoReady();
+  }, [handleGoReady]);
+
+  const handleCancelCapture = useCallback(() => {
+    setRecordingSubPhase('recording');
+    setElapsed(0);
+    flow.handleReset();
+  }, [flow]);
+
+  const handleRestartCapture = useCallback(() => {
+    setRecordingSubPhase('recording');
+    setElapsed(0);
+    void flow.handleRestart();
+  }, [flow]);
+
+  /* ── Transcript ──────────────────────────────────────────────────── */
+
   useEffect(() => {
     if (!state.clipId || transcript.length === 0) return;
     const lines = buildSentenceSegments(transcript).map((segment) => ({
@@ -112,7 +214,50 @@ export function DeskShell() {
     [words, t, seek]
   );
 
-  /* Keyboard map, straight from the design's timeline hint strip. */
+  /* ── Tools ───────────────────────────────────────────────────────── */
+
+  const toggleTool = useCallback(
+    (next: ToolId) =>
+      patch(
+        state.toolOpen && state.tool === next
+          ? { toolOpen: false }
+          : { tool: next, toolOpen: true }
+      ),
+    [patch, state.toolOpen, state.tool]
+  );
+
+  const openTool = useCallback(
+    (next: ToolId) => patch({ tool: next, toolOpen: true }),
+    [patch]
+  );
+
+  /* ── Timing ──────────────────────────────────────────────────────── */
+
+  const nudgeWord = useCallback(
+    (index: number, delta: number) => dispatch({ type: 'nudgeWord', index, delta }),
+    []
+  );
+
+  /**
+   * Throw away every manual nudge and rebuild from what Whisper returned.
+   *
+   * `transcript` in the processing store is the authoritative pass and is
+   * never written back to, so it is still the original timing however much
+   * the rows here have been edited. Undoable, because discarding an
+   * afternoon of nudges by accident should cost one ⌘Z.
+   */
+  const resync = useCallback(() => {
+    if (transcript.length === 0) return;
+    const lines = buildSentenceSegments(transcript).map((segment) => ({
+      start: segment.start,
+      end: segment.end,
+      words: segment.words,
+    }));
+    patch({ lines }, true);
+  }, [transcript, patch]);
+
+  /* ── Keyboard ────────────────────────────────────────────────────── */
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
@@ -137,22 +282,34 @@ export function DeskShell() {
         e.preventDefault();
         patch({ findOpen: true });
       } else if (e.key === 'Escape') {
-        patch({ cursor: null, editing: null });
+        /* Escape closes the tool panel first, then clears the selection.
+           Closing both at once would take away a panel the user may not have
+           meant to lose along with a cursor they did. */
+        if (state.toolOpen) patch({ toolOpen: false });
+        else patch({ cursor: null, editing: null });
       } else if (e.key === '[') {
         e.preventDefault();
         patch({ leftCollapsed: !state.leftCollapsed });
       } else if (e.key === ']') {
         e.preventDefault();
-        patch({ inspectorCollapsed: !state.inspectorCollapsed });
+        patch({ toolOpen: !state.toolOpen });
       } else if (e.code === 'Space') {
         e.preventDefault();
-        togglePlay();
+        /* Space is press-to-record until a clip exists, and play/pause after —
+           the stage decides what the key means, the same way the transport
+           does. Without this, space did nothing at all during capture. */
+        if (!editing && capturePhase === 'idle') handlePressStart();
+        else if (!editing && capturePhase === 'recording') flow.handlePauseRecording();
+        else if (!editing && capturePhase === 'paused') flow.handleResumeRecording();
+        else togglePlay();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        e.altKey ? jumpWord(1) : seek(t + step);
+        if (e.altKey) jumpWord(1);
+        else seek(t + step);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        e.altKey ? jumpWord(-1) : seek(t - step);
+        if (e.altKey) jumpWord(-1);
+        else seek(t - step);
       } else if (e.key.toLowerCase() === 's') {
         dispatch({ type: 'splitRow' });
       }
@@ -171,7 +328,11 @@ export function DeskShell() {
     patch,
     state.sheet,
     state.leftCollapsed,
-    state.inspectorCollapsed,
+    state.toolOpen,
+    editing,
+    capturePhase,
+    handlePressStart,
+    flow,
   ]);
 
   const handleCopy = useCallback(() => {
@@ -188,12 +349,26 @@ export function DeskShell() {
     patch({ accents: strong }, true);
   }, [words, patch]);
 
+  /**
+   * Offer a different three Looks.
+   *
+   * The Director panel has had this button since it was written and the shell
+   * passed it `() => undefined`. Until the Director actually reads the
+   * transcript, rerolling means landing on a preset the current three do not
+   * already cover, so the button changes something every time it is pressed
+   * rather than pretending to.
+   */
+  const reroll = useCallback(() => {
+    patch({ preset: '', artwork: '' });
+    openTool('director');
+  }, [patch, openTool]);
+
   const paletteActions: PaletteAction[] = useMemo(() => {
     const tools = (Object.keys(TOOL_COPY) as ToolId[]).map((id) => ({
       id: `tool-${id}`,
       group: 'Tool',
       label: TOOL_COPY[id].title,
-      run: () => patch({ tool: id }),
+      run: () => openTool(id),
     }));
 
     return [
@@ -206,10 +381,12 @@ export function DeskShell() {
         run: togglePlay,
       },
       { id: 'export', group: 'File', label: 'Export', keys: '⌘E', run: () => patch({ sheet: 'export' }) },
+      { id: 'record', group: 'File', label: 'Record a new clip', run: () => dispatch({ type: 'clearClip' }) },
       { id: 'clips', group: 'File', label: 'Back to your clips', run: () => dispatch({ type: 'clearClip' }) },
       { id: 'find', group: 'Edit', label: 'Find and replace', keys: '⌘F', run: () => patch({ findOpen: true }) },
       { id: 'split', group: 'Edit', label: 'Split at the cursor', keys: 'S', run: () => dispatch({ type: 'splitRow' }) },
       { id: 'highlight', group: 'Edit', label: 'Auto-highlight the strong words', run: autoHighlight },
+      { id: 'resync', group: 'Edit', label: 'Re-sync every word', run: resync },
       { id: 'copy', group: 'Edit', label: 'Copy the transcript', run: handleCopy },
       { id: 'undo', group: 'Edit', label: 'Undo', keys: '⌘Z', run: () => dispatch({ type: 'undo' }) },
       {
@@ -226,7 +403,17 @@ export function DeskShell() {
       },
       { id: 'shortcuts', group: 'Help', label: 'Keyboard shortcuts', run: () => patch({ sheet: 'shortcuts' }) },
     ];
-  }, [patch, playback.isPlaying, togglePlay, autoHighlight, handleCopy, state.capHidden, state.safeShow]);
+  }, [
+    patch,
+    openTool,
+    playback.isPlaying,
+    togglePlay,
+    autoHighlight,
+    resync,
+    handleCopy,
+    state.capHidden,
+    state.safeShow,
+  ]);
 
   return (
     <div data-ord className="ord-shell">
@@ -246,8 +433,11 @@ export function DeskShell() {
         <LeftPanel
           mode={state.leftMode}
           clipName={state.clipName}
-          onRecord={() => patch({ leftMode: 'media' })}
-          onUpload={() => patch({ leftMode: 'media' })}
+          /* Record and Upload are the two ways in, and they live here — the
+             capture stage carries no duplicate of them. */
+          onRecord={handlePressStart}
+          onUpload={() => flow.fileInputRef.current?.click()}
+          onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
           onSelectClip={(clipId, clipName, durationMs) =>
             dispatch({
               type: 'selectClip',
@@ -294,13 +484,40 @@ export function DeskShell() {
         />
 
         <div className="ord-player">
-          <PlayerStage
-            state={state}
-            words={words}
-            activeWordIndex={activeWordIndex}
-            onShowCaptions={() => patch({ capHidden: false })}
-          />
-          <Transport
+          {stagePhase === null ? (
+            <PlayerStage
+              state={state}
+              words={words}
+              activeWordIndex={activeWordIndex}
+              onShowCaptions={() => patch({ capHidden: false })}
+            />
+          ) : (
+            <DeskCaptureStage
+              phase={stagePhase}
+              audioLevel={flow.audioLevel}
+              isSpeaking={flow.isSpeaking}
+              micDenied={flow.micDenied}
+              canRecord={flow.capabilities.canRecord}
+              isStarting={flow.isStarting}
+              processingProgress={flow.processingProgress}
+              committedCaptionLines={flow.committedCaptionLines}
+              interimCaptionText={flow.interimCaptionText}
+              elapsedLabel={`${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`}
+              onPressStart={handlePressStart}
+              onPressEnd={handlePressEnd}
+            />
+          )}
+
+          <DeskTransport
+            phase={stagePhase}
+            processingProgress={flow.processingProgress}
+            onStop={handleGoReady}
+            onPause={flow.handlePauseRecording}
+            onResume={flow.handleResumeRecording}
+            onRestart={handleRestartCapture}
+            onProcess={flow.handleProceed}
+            onCancel={handleCancelCapture}
+            onOpenSettings={() => flow.setUpgradeTarget('transcription_credits')}
             playing={playback.isPlaying}
             t={t}
             duration={duration}
@@ -311,47 +528,48 @@ export function DeskShell() {
             onToggleSafe={() => patch({ safeShow: !state.safeShow })}
             onToggleCaptions={() => patch({ capHidden: !state.capHidden })}
           />
+
+          {/* The tools float over the stage: the strip owns the right edge,
+              and the panel it opens overlays the canvas rather than
+              displacing it. Only the 48px strip is reserved. */}
+          <div className="ord-toolwrap">
+            {state.toolOpen && editing && (
+              <ToolPanel
+                state={state}
+                words={words}
+                activeWordIndex={activeWordIndex}
+                pauses={pauses}
+                patch={patch}
+                onClose={() => patch({ toolOpen: false })}
+                onNudgeWord={nudgeWord}
+                onResync={resync}
+                onCutAllPauses={() => patch({ cutPauses: pauses.map((p) => p.at) }, true)}
+                onRemoveFillers={() =>
+                  patch(
+                    {
+                      lines: state.lines.map((line) => ({
+                        ...line,
+                        words: line.words.filter(
+                          (w) => !FILLERS.has(w.text.toLowerCase().replace(/[.,!?]/g, ''))
+                        ),
+                      })),
+                    },
+                    true
+                  )
+                }
+                onResetTrim={() => patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)}
+                onReroll={reroll}
+              />
+            )}
+            <ToolStrip
+              tool={state.tool}
+              open={state.toolOpen && editing}
+              /* Nothing to style until there is a clip. */
+              disabled={!editing}
+              onToggle={toggleTool}
+            />
+          </div>
         </div>
-
-        <InspectorPanel
-          state={state}
-          words={words}
-          activeWordIndex={activeWordIndex}
-          pauses={pauses}
-          patch={patch}
-          onNudgeWord={() => undefined}
-          onResync={() => undefined}
-          onCutAllPauses={() =>
-            patch({ cutPauses: pauses.map((p) => p.at) }, true)
-          }
-          onRemoveFillers={() =>
-            patch(
-              {
-                lines: state.lines.map((line) => ({
-                  ...line,
-                  words: line.words.filter(
-                    (w) => !FILLERS.has(w.text.toLowerCase().replace(/[.,!?]/g, ''))
-                  ),
-                })),
-              },
-              true
-            )
-          }
-          onResetTrim={() =>
-            patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)
-          }
-          onReroll={() => undefined}
-          collapsed={state.inspectorCollapsed}
-          onToggleCollapse={() =>
-            patch({ inspectorCollapsed: !state.inspectorCollapsed })
-          }
-        />
-
-        <ToolRail
-          tool={state.tool}
-          onSelect={(tool) => patch({ tool })}
-          disabled={state.leftMode === 'media'}
-        />
       </div>
 
       <TimelineDeck
@@ -374,6 +592,16 @@ export function DeskShell() {
         }
       />
 
+      {/* The one file input for the desk. The left panel's Upload opens it;
+          long files route themselves to the episode pipeline inside the flow. */}
+      <input
+        ref={flow.fileInputRef}
+        type="file"
+        accept={FILE_ACCEPT_ATTRIBUTE}
+        className="hidden"
+        onChange={flow.handleFileSelect}
+      />
+
       {state.sheet === 'export' && (
         <ExportSheet
           state={state}
@@ -392,6 +620,15 @@ export function DeskShell() {
           onClose={() => patch({ sheet: null })}
         />
       )}
+
+      {/* Announced, not drawn — the stage is visual, and a screen reader user
+          needs the phase change said out loud. */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {capturePhase === 'recording' && 'Recording'}
+        {capturePhase === 'paused' && 'Recording paused'}
+        {capturePhase === 'ready' && 'Take captured, ready to process'}
+        {capturePhase === 'processing' && 'Processing audio'}
+      </div>
     </div>
   );
 }

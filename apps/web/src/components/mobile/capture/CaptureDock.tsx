@@ -13,7 +13,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { captureCenterSlot, captureRecordHero, captureRoundBtn } from '@/lib/variants';
-import type { CapturePhase } from './types';
+import type { CapturePhase } from '@/lib/capture/types';
 
 interface CaptureDockProps {
   phase: CapturePhase;

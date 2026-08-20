@@ -1,6 +1,6 @@
-// apps/web/src/components/soul/capture/types.ts
+// apps/web/src/lib/capture/types.ts
 
-/** The five visual phases the Unified Capture screen morphs through. */
+/** The five phases a capture surface morphs through, on any viewport. */
 export type CapturePhase = 'idle' | 'recording' | 'paused' | 'ready' | 'processing';
 
 /** Local recording sub-phase, distinct from `paused` — mirrors the old RecordingState's phase. */

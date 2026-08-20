@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Menu01Icon, ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 import { captureNavBtn } from '@/lib/variants';
-import type { CapturePhase } from './types';
+import type { CapturePhase } from '@/lib/capture/types';
 
 const UserAvatarButton = dynamic(() => import('@/components/mobile/auth/UserAvatarButton'), {
   ssr: false,

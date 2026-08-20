@@ -34,7 +34,13 @@
   align-items: center;
   gap: var(--pad-gutter);
   padding: 0 var(--pad-gutter);
-  background: var(--surface-raised);
+  /* Ink, like every other piece of desk chrome. A raised top bar was one of
+     four near-blacks inside a single viewport — ink, a recessed well, a
+     lifted bar and a frame one notch off the ground, all within about ten
+     units of luminance. That spread is below the threshold where anyone can
+     rank them, so it read as an inconsistent black rather than as depth.
+     The hairline does the separating. See DESIGN.md section 3. */
+  background: var(--ord-ink);
   border-bottom: 1px solid var(--border-hairline);
 }
 
@@ -69,6 +75,7 @@
 }
 
 .ord-player {
+  position: relative;
   flex: 1 1 480px;
   min-width: 400px;
   display: flex;
@@ -76,15 +83,10 @@
   background: var(--ord-ink);
 }
 
-.ord-inspector {
-  flex: 0 1 372px;
-  width: 372px;
-  min-width: 312px;
-  display: flex;
-  flex-direction: column;
-  background: var(--ord-ink);
-  border-left: 1px solid var(--border-hairline);
-  transition: flex-basis var(--dur-snap) var(--ease-snap), width var(--dur-snap) var(--ease-snap);
+/* The strip owns the right edge, so the stage keeps clear of it. The panel
+   is deliberately NOT reserved — it floats over the canvas. */
+.ord-player > :first-child {
+  padding-right: 64px;
 }
 
 /* ─── Collapsed columns ───
@@ -93,8 +95,7 @@
    the expand control exactly where the panel was, so collapsing is
    reversible in the same place it happened. 44px also clears the 24x24
    minimum target size in WCAG 2.2 SC 2.5.8 with room for the label. */
-.ord-transcript.is-collapsed,
-.ord-inspector.is-collapsed {
+.ord-transcript.is-collapsed {
   flex: 0 0 44px;
   width: 44px;
   min-width: 44px;
@@ -122,58 +123,176 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ord-transcript,
-  .ord-inspector {
+  .ord-transcript {
     transition: none;
   }
 }
 
-.ord-rail {
-  flex: 0 0 auto;
-  width: 72px;
+/* ─── The floating tool strip ───
+   A vertical column of icons over the right edge of the stage, and the panel
+   it opens. Replaces the 72px rail plus the 372px inspector: those reserved
+   444px permanently, whether or not a tool was in use. This reserves 48px,
+   and the panel overlays the canvas rather than displacing it. */
+.ord-toolwrap {
+  position: absolute;
+  top: var(--pad-card);
+  right: var(--pad-card);
+  bottom: var(--pad-card);
+  z-index: 5;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: var(--pad-snug) 0;
-  /* One step off the base, same role as the design's darker rail. */
-  background: var(--acid-bg-subtle);
-  border-left: 1px solid var(--border-hairline);
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--pad-snug);
+  /* The wrapper is a hit-testing hole; only its children take the pointer,
+     so the canvas underneath stays clickable everywhere they are not. */
+  pointer-events: none;
 }
 
-.ord-rail-btn {
-  position: relative;
-  width: 58px;
-  height: 54px;
-  border-radius: var(--r-card);
-  border: 0;
+.ord-toolwrap > * {
+  pointer-events: auto;
+}
+
+.ord-toolstrip {
+  flex: none;
+  order: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 5px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-hairline);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+}
+
+.ord-tool-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
+  border: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
   cursor: pointer;
 }
 
-/* Selection marker.
-   The selected tool used to be a solid lime slab — 58x54 of the loudest
-   colour in the system, sitting permanently on screen next to an Export
-   button that is also solid lime. Two full-strength lime blocks means
-   neither reads as "the one thing", which is the whole job lime has here.
+/* Opens to the LEFT of the strip. The strip is on the right edge, so a panel
+   opening outward would run off the window. */
+.ord-toolpanel {
+  flex: none;
+  order: 1;
+  width: 336px;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-sheet);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.6);
+  animation: ord-slide-in var(--dur-snap) var(--ease-snap) both;
+}
 
-   Colour over a large area gets a tint; the saturated value moves to small
-   foreground marks — this bar, the icon, and the label. Same amount of
-   information, a fraction of the shout. */
-.ord-rail-btn[aria-pressed='true']::before {
-  content: '';
-  position: absolute;
-  left: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 26px;
+@keyframes ord-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─── The transport ───
+   One bar, five states. The capture dock and the playback transport are the
+   same strip of screen morphing, not two bars taking turns — putting the dock
+   inside the stage instead is what left this sitting below it permanently
+   disabled. Height is the whole morph: a dock button needs room for its
+   label, playback does not. */
+.ord-transport {
+  flex: none;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  gap: var(--pad-card);
+  padding: 0 var(--pad-gutter);
+  border-top: 1px solid var(--border-hairline);
+  transition: height var(--dur-snap) var(--ease-snap);
+}
+
+.ord-transport[data-mode='playback'] {
+  height: 52px;
+}
+
+/* Idle has no take, so the bar has nothing to control. Absent, not disabled:
+   a greyed-out bar claims the controls exist but are unavailable, and here
+   they do not exist yet. Its presence is itself the signal that you have
+   something to work with. */
+.ord-transport.is-idle {
+  height: 0;
+  border-top: 0;
+  overflow: hidden;
+}
+
+@keyframes ord-eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ord-transport,
+  .ord-toolpanel {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Scrubber. A range input so the keyboard gets arrow-key seeking for free;
+   the filled portion is painted from a custom property the component sets,
+   because a gradient stop is a continuously changing value and cannot be a
+   token. */
+.ord-scrub {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  appearance: none;
+  -webkit-appearance: none;
   border-radius: var(--r-pill);
-  background: var(--ord-acid);
+  background: linear-gradient(
+    to right,
+    var(--text-body) 0 var(--ord-scrub-pct, 0%),
+    rgba(244, 245, 239, 0.12) var(--ord-scrub-pct, 0%) 100%
+  );
+  cursor: pointer;
+}
+
+.ord-scrub::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--r-pill);
+  background: var(--ord-paper);
+  border: 0;
+}
+
+.ord-scrub::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: var(--r-pill);
+  background: var(--ord-paper);
+  border: 0;
 }
 
 /* ─── Timeline ─── */

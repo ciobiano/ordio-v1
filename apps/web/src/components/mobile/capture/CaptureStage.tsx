@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Orb } from '@/components/media/orb/Orb';
-import { deriveStatusText } from './phase';
+import { deriveStatusText } from '@/lib/capture/phase';
 /**
  * The idle prompt is static. It used to type itself out and cycle between two
  * phrases on a 42ms/char, 2000ms-hold, 26ms/char-delete loop — motion that ran
@@ -12,7 +12,7 @@ import { deriveStatusText } from './phase';
  * be readable.
  */
 const IDLE_PROMPT = 'Press and hold to record';
-import type { CapturePhase } from './types';
+import type { CapturePhase } from '@/lib/capture/types';
 
 interface CaptureStageProps {
   phase: CapturePhase;

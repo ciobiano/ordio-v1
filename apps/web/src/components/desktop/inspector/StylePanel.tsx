@@ -274,6 +274,17 @@ export function StylePanel({ state, patch }: StylePanelProps) {
                 maxLabel="Strong"
                 onChange={(v) => patch({ glow: v })}
               />
+              {/* The stroke colour was a state field the stage read and no
+                  control wrote: picking Street gave you a 3px black outline
+                  that could be widened, thinned or removed but never
+                  recoloured. Only shown once there is a stroke to colour. */}
+              {state.strokeW > 0 && (
+                <ColourField
+                  label="Stroke colour"
+                  value={state.strokeColor}
+                  onChange={(v) => patch({ strokeColor: v })}
+                />
+              )}
             </Section>
 
             <Section label="Capitalisation">

@@ -219,23 +219,31 @@ export const ordGhostBtn = cva(
  * nothing on a dark rail. `enabled:` keeps both off the disabled state.
  */
 /**
- * Rail tool button.
+ * Tool strip button — one icon in the floating vertical strip.
  *
- * Selected is a lime tint plus lime foreground, not a lime fill — see the
- * marker rule in ord-editor.css for why. Hover is declared per selection
- * state on purpose: a single hover rule out-specified the selected rule once
- * before and painted near-white text on the lime fill at about 1.1:1.
+ * Open is ink at full weight, never lime. The open panel is already the
+ * loudest possible signal that a tool is selected, and DESIGN.md bans the
+ * accent from marking position for exactly this reason: a lime button beside
+ * an open lime-free panel doubles a signal that was not ambiguous.
+ *
+ * Hover is declared per state on purpose. A single hover rule out-specified
+ * the open rule once before and painted near-white on near-white.
  */
-export const railButton = cva('ord-rail-btn transition-colors duration-[var(--dur-tap)]', {
-  variants: {
-    selected: {
-      true: 'bg-[var(--ord-acid)]/14 text-[var(--ord-acid)] enabled:hover:bg-[var(--ord-acid)]/22',
-      false:
-        'bg-transparent text-[var(--text-muted)] enabled:hover:bg-[var(--ord-paper)]/8 enabled:hover:text-[var(--ord-paper)]',
+export const deskToolButton = cva(
+  'ord-tool-btn transition-colors duration-[var(--dur-tap)] ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] ' +
+    'disabled:cursor-default disabled:opacity-35',
+  {
+    variants: {
+      open: {
+        true: 'bg-[var(--ord-paper)] text-[var(--ord-ink)] enabled:hover:bg-[var(--ord-paper)]',
+        false:
+          'bg-transparent text-[var(--text-muted)] enabled:hover:bg-[var(--ord-paper)]/10 enabled:hover:text-[var(--ord-paper)]',
+      },
     },
-  },
-  defaultVariants: { selected: false },
-});
+    defaultVariants: { open: false },
+  }
+);
 
 /** Square-ish icon button in the top bar and panel headers. */
 export const iconButton = cva(
@@ -309,6 +317,6 @@ export const solidButton = cva(
   }
 );
 
-export type RailButtonProps = VariantProps<typeof railButton>;
+export type DeskToolButtonProps = VariantProps<typeof deskToolButton>;
 export type IconButtonProps = VariantProps<typeof iconButton>;
 export type SolidButtonProps = VariantProps<typeof solidButton>;
