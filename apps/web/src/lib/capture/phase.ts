@@ -1,4 +1,10 @@
-// apps/web/src/components/soul/capture/phase.ts
+// apps/web/src/lib/capture/phase.ts
+//
+// Lives in lib/, not under either viewport, because both mount it. These are
+// pure total functions over three booleans — no DOM, no store, no phone
+// assumptions — so the desktop shell derives its stage from the same source
+// mobile derives its screen from. ADR 0001 keeps the two *implementations*
+// separate; it does not ask them to disagree about what a phase is.
 import type { CapturePhase, DeriveStatusInput, DerivePhaseInput, StatusText } from './types';
 
 /** Audio level below this is treated as "too quiet to register" — matches getQualityBadge. */

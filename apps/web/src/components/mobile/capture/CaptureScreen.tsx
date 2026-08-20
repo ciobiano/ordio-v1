@@ -23,9 +23,9 @@ import { CaptureStage } from './CaptureStage';
 import { CaptureDock } from './CaptureDock';
 import { CaptureSidebar } from './CaptureSidebar';
 import { UploadActionSheet } from './UploadActionSheet';
-import { deriveCapturePhase } from './phase';
+import { deriveCapturePhase } from '@/lib/capture/phase';
 import { computeSidebarRevealPx } from './sidebarReveal';
-import type { RecordingSubPhase } from './types';
+import type { RecordingSubPhase } from '@/lib/capture/types';
 
 const RecordingSettingsSheet = dynamic(
   () => import('@/components/mobile/recording/RecordingSettingsSheet').then((m) => ({ default: m.RecordingSettingsSheet })),
