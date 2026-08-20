@@ -1,7 +1,5 @@
-// Shared long-episode routing decision, used by both the mobile create flow
-// (useCreateFlow.ts) and the desktop studio flow (useStudioFlow.ts) so a
-// dropped/uploaded file routes to the clip-finder pipeline the same way on
-// both surfaces.
+// Long-episode routing decision for the create flow (useCreateFlow.ts), so a
+// dropped or uploaded file routes to the clip-finder pipeline consistently.
 import { EPISODE_ROUTE_THRESHOLD_SEC } from '@Ordio/engine/media/episodePlan';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/fileValidation';
 

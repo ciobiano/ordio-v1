@@ -18,8 +18,8 @@ interface TrimPanelProps {
   currentTime?: number;
   /**
    * Trim-local undo pair. The export screen omits these — its undo lives in the
-   * transport bar, backed by one history across captions and trim. Studio still
-   * passes them because it keeps its own edit history in `useStudioEdits`.
+   * transport bar, backed by one history across captions and trim. No caller
+   * currently passes them; the desktop editor uses its own TrimPanel.
    */
   onUndo?: () => void;
   onRedo?: () => void;

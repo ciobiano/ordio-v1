@@ -2,10 +2,10 @@
 //
 // Lifted verbatim out of app/create/page.tsx when that route became responsive.
 // The extraction is what makes the switch safe: `useCreateFlow` starts a
-// recorder, an analyser and a live-transcription session, and `useStudioFlow`
-// starts its own. If the route called either hook directly, the desktop branch
-// would run both at once — two microphone streams competing for one device. Each
-// chrome therefore owns its hook, and the route only chooses between components.
+// recorder, an analyser and a live-transcription session. If the route called it
+// directly, both viewport branches' hooks would mount at once — two microphone
+// streams competing for one device. Each chrome therefore owns its own hooks, and
+// the route only chooses between components.
 'use client';
 
 import dynamic from 'next/dynamic';
