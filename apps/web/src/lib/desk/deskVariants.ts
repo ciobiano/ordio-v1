@@ -82,22 +82,54 @@ export const iconButton = cva(
   }
 );
 
-/** Solid commit buttons. The acid fill is the single export action. */
+/**
+ * Solid commit buttons — the acid fill is the single export action.
+ *
+ * Brought in line with mobile's `ordStickerBtn`, whose own docstring names
+ * Export as the case for the raised treatment. The desktop had a generic
+ * `active:scale-[0.97]`, no focus ring at all, and no reduced-motion or
+ * disabled guards — so a keyboard user got the browser default outline on a
+ * lime fill, and a disabled button still animated under the pointer.
+ *
+ * `elevation` is declared BEFORE `tone` on purpose: CVA emits variant classes
+ * in key order and tailwind-merge resolves a conflict in favour of the later
+ * key, so anything a tone needs to override has to come after the elevation.
+ * See memory/pitfall_cva_variant_key_order.
+ */
 export const solidButton = cva(
-  'flex items-center justify-center gap-2 rounded-[11px] border-0 font-bold cursor-pointer transition-transform duration-[var(--dur-tap)] active:scale-[0.97]',
+  'flex items-center justify-center gap-2 rounded-xl border-0 font-bold cursor-pointer ' +
+    'transition-transform duration-[var(--dur-tap)] ease-[var(--ease-snap)] motion-reduce:transition-none ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] ' +
+    'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ord-ink)] ' +
+    'disabled:opacity-40 disabled:cursor-not-allowed',
   {
     variants: {
+      elevation: {
+        /** Sitting on the page or the canvas — the top bar's Export. */
+        raised:
+          'border-[3px] border-[var(--ord-ink)] shadow-[var(--shadow-sticker)] ' +
+          'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ' +
+          'motion-reduce:active:translate-x-0 motion-reduce:active:translate-y-0 ' +
+          'disabled:active:translate-x-0 disabled:active:translate-y-0',
+        /**
+         * Inside a sheet, drawer or panel. A sticker needs a surface to peel
+         * off: the shadow is ink, which reads against the page and all but
+         * vanishes against the sheet, leaving a 3px border that looks like a
+         * gap and no peel to show for it. A sheet is already the raised layer.
+         */
+        flat: 'shadow-none active:scale-[0.97] motion-reduce:active:scale-100 disabled:active:scale-100',
+      },
       tone: {
         acid: 'bg-[var(--ord-acid)] text-[var(--ord-ink)]',
         paper: 'bg-[var(--ord-paper)] text-[var(--ord-ink)]',
       },
       size: {
         sm: 'h-[30px] px-3 ord-type-footnote',
-        md: 'h-[38px] px-5 ord-type-label',
-        lg: 'h-11 px-6 ord-type-label',
+        md: 'h-[38px] px-4 ord-type-label',
+        lg: 'h-11 px-4 ord-type-label',
       },
     },
-    defaultVariants: { tone: 'acid', size: 'md' },
+    defaultVariants: { elevation: 'flat', tone: 'acid', size: 'md' },
   }
 );
 
@@ -125,7 +157,7 @@ export const listRow = cva(
 
 /** A word chip inside the expanded transcript row. */
 export const wordChip = cva(
-  'rounded-full px-1 py-1 ord-type-label cursor-text transition-colors duration-[var(--dur-tap)]',
+  'rounded-md px-1 py-1 ord-type-label cursor-text transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       state: {
@@ -147,7 +179,7 @@ export const wordChip = cva(
  * that — see memory/pitfall_cva_variant_key_order.
  */
 export const trackBlock = cva(
-  'absolute flex items-center overflow-hidden rounded-lg border cursor-pointer whitespace-nowrap transition-colors duration-[var(--dur-tap)]',
+  'absolute flex items-center overflow-hidden rounded-xl border cursor-pointer whitespace-nowrap transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       tone: {

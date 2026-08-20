@@ -274,7 +274,7 @@ export function TranscriptPane(props: TranscriptPaneProps) {
                               // Sized to the content so the row does not
                               // reflow while you type.
                               style={{ width: `${Math.max(3, word.text.length + 1)}ch` }}
-                              className="rounded-full border-2 border-[var(--ord-acid)] bg-[var(--ord-acid)]/14 px-1 py-1 ord-type-label text-[var(--ord-paper)] outline-none"
+                              className="rounded-md border-2 border-[var(--ord-acid)] bg-[var(--ord-acid)]/14 px-1 py-1 ord-type-label text-[var(--ord-paper)] outline-none"
                             />
                           ) : (
                             <span

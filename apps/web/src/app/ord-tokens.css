@@ -72,11 +72,24 @@
   --pad-snug: 8px;     /* inside a chip or timeline block */
   --pad-hair: 4px;     /* icon padding, marker insets */
 
-  /* ─── Radius. Three, and each one means something.
-         Nine were in use and none of them encoded a difference in kind. ─── */
-  --r-pill: 100px;     /* anything that toggles, and inline marks */
+  /* ─── Radius. Four, and each one means something.
+         Nine were in use and none of them encoded a difference in kind.
+         Three was the first attempt and it was one too few: it forced inline
+         text marks onto the pill, which turns a short word like "a" or "so"
+         into a circle. An inline mark is not a control, and that is a real
+         category rather than drift back toward nine ad-hoc values. ─── */
+  --r-pill: 100px;     /* genuinely pill or circular: chips, knobs, switches */
+  --r-mark: 6px;       /* inline marks that sit inside a line of text */
   --r-card: 12px;      /* panels, cards, blocks, buttons */
   --r-sheet: 16px;     /* the sheet layer, and only that */
+
+  /* ─── The sticker press, from the acid system.
+         A hard ink offset, no blur. On press the element travels 3px into its
+         own shadow as the shadow vanishes — physical movement, never an
+         opacity dim. Mobile's ordStickerBtn names Export as the case for it;
+         the desktop had re-invented a generic active:scale instead. ─── */
+  --shadow-sticker: var(--acid-shadow-sticker-sm);
+  --ring-accent: var(--acid-accent-ring);
 }
 
 @keyframes ord-fade {

@@ -7,7 +7,6 @@
  * there is nothing left for it to preview.
  */
 
-import { cn } from '@/lib/utils';
 import { Logo } from '@/components/primitives/Logo';
 import { iconButton, solidButton } from '@/lib/desk/deskVariants';
 import {
@@ -97,7 +96,7 @@ export function DeskTopBar({
           type="button"
           onClick={onExport}
           disabled={!canExport}
-          className={cn(solidButton({ tone: 'acid' }), 'disabled:opacity-40')}
+          className={solidButton({ tone: 'acid', elevation: 'raised' })}
         >
           Export
           <span className="font-[family-name:var(--font-mono)] ord-type-micro opacity-60">
