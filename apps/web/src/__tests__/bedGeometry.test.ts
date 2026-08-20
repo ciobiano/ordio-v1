@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   MIN_BED_SEC,
   bedDuration,
@@ -188,5 +188,51 @@ describe('speech spans for ducking', () => {
     const spans = speechSpans([w(0, 2), w(1, 1.5), w(1.2, 3)]);
     expect(spans).toEqual([{ start: 0, end: 3 }]);
     for (const s of spans) expect(s.end).toBeGreaterThan(s.start);
+  });
+});
+
+/* ── The mix reaches export ──────────────────────────────────────────
+   Preview and export are different routes reading the same store, so the
+   contract between them is worth pinning: export must encode the mix when
+   one exists, the voice when it does not, and never a mix built on a take
+   that has since been replaced. */
+
+import { useCaptureStore } from '@/stores';
+
+const buffer = (tag: string) => ({ tag }) as unknown as AudioBuffer;
+
+describe('the mixed buffer in the capture store', () => {
+  beforeEach(() => useCaptureStore.getState().resetCapture());
+
+  it('starts with nothing mixed', () => {
+    expect(useCaptureStore.getState().mixedBuffer).toBeNull();
+  });
+
+  it('is what export prefers once a bed has been mixed', () => {
+    const store = useCaptureStore.getState();
+    store.setAudioBuffer(buffer('voice'));
+    store.setMixedBuffer(buffer('mixed'));
+
+    const s = useCaptureStore.getState();
+    expect((s.mixedBuffer ?? s.audioBuffer)).toEqual(buffer('mixed'));
+  });
+
+  it('falls through to the voice when no bed was placed', () => {
+    useCaptureStore.getState().setAudioBuffer(buffer('voice'));
+    const s = useCaptureStore.getState();
+    expect((s.mixedBuffer ?? s.audioBuffer)).toEqual(buffer('voice'));
+  });
+
+  /* The one that would ship the wrong audio: a mix built on the previous
+     take, still sitting here when a new recording arrives. */
+  it('is dropped when a new take replaces the voice', () => {
+    const store = useCaptureStore.getState();
+    store.setAudioBuffer(buffer('voice one'));
+    store.setMixedBuffer(buffer('mixed one'));
+    useCaptureStore.getState().setAudioBuffer(buffer('voice two'));
+
+    const s = useCaptureStore.getState();
+    expect(s.mixedBuffer).toBeNull();
+    expect((s.mixedBuffer ?? s.audioBuffer)).toEqual(buffer('voice two'));
   });
 });

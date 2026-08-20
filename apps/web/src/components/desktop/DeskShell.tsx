@@ -24,12 +24,13 @@ import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useSessionHydration } from '@/hooks/session/useSessionHydration';
 import { useCreateFlow } from '@/hooks/recording/useCreateFlow';
-import { useProcessingStore } from '@/stores';
+import { useCaptureStore, useProcessingStore } from '@/stores';
 import { deriveCapturePhase } from '@/lib/capture/phase';
 import type { CapturePhase, RecordingSubPhase } from '@/lib/capture/types';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import { bedFromDrop, type BedClip } from '@/lib/audio/bedGeometry';
 import { readBedSource, type BedSource } from '@/lib/audio/bedPeaks';
+import { useBedMix } from '@/hooks/audio/useBedMix';
 import {
   deskReducer,
   INITIAL_DESK_HISTORY,
@@ -252,6 +253,37 @@ export function DeskShell() {
   }, [words]);
 
   const seek = useCallback((next: number) => playback.seek(next), [playback]);
+
+  /* ── Preview hears the mix ────────────────────────────────────────
+     The same buffer the exporter will encode, so the bed cannot sound one way
+     in the editor and another in the file. */
+  const { mixed, mixing } = useBedMix({
+    bed: state.bed,
+    voiceLevel: state.voiceLevel,
+    musicLevel: state.musicLevel,
+    duck: state.duck,
+    words,
+  });
+
+  const setMixedBuffer = useCaptureStore((s) => s.setMixedBuffer);
+
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    if (!mixed) return;
+    /* Hand the same buffer to the exporter. Preview and export therefore
+       cannot disagree: there is one mix, and both consume it. */
+    setMixedBuffer(mixed);
+    /* Swapping the buffer restarts playback from zero, so the position is
+       carried across by hand. Without this, nudging the music level would
+       throw you back to the top of the clip every time. */
+    const at = playback.currentTime;
+    wasPlaying.current = playback.isPlaying;
+    playback.load(mixed);
+    if (at > 0) playback.seek(at);
+    if (wasPlaying.current) void playback.play();
+    // Only a new mix should reload; playback identity changes every tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixed]);
 
   const togglePlay = useCallback(() => {
     if (playback.isPlaying) playback.pause();
