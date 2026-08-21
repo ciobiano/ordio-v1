@@ -7,7 +7,14 @@
  * is two shapes; PNG is zlib plus a header.
  *
  * Kept as a script so the icons can be redrawn if the accent changes, instead
- * of being two binaries nobody knows how to reproduce.
+ * of being binaries nobody knows how to reproduce.
+ *
+ * It also writes favicon.ico. The SVG is the better icon and every current
+ * browser prefers it — but every browser also requests /favicon.ico by
+ * convention whether or not the page links to one, and that request was
+ * returning a 404. A browser that cannot fetch the file keeps whatever it
+ * already had cached, and what it had cached was the Next.js default: the
+ * Vercel triangle. The tab kept showing it long after the SVG was correct.
  *
  *   node scripts/generate-app-icons.mjs
  */
@@ -121,6 +128,43 @@ function png(size) {
   ]);
 }
 
+/**
+ * Wrap PNGs in an ICO container.
+ *
+ * ICO predates PNG and its original payload is a headerless BMP, but every
+ * browser since IE11 reads PNG-in-ICO, and writing BMP would mean a second
+ * encoder and its own alpha mask. Several sizes in one file because the OS
+ * picks per context — 16 for the tab, 32 for the bookmark bar, 48 for the
+ * desktop shortcut — and downscaling a single large one blurs the dot.
+ */
+function ico(sizes) {
+  const images = sizes.map((size) => ({ size, data: png(size) }));
+
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // 1 = icon
+  header.writeUInt16LE(images.length, 4);
+
+  const ENTRY = 16;
+  let offset = header.length + ENTRY * images.length;
+
+  const entries = images.map(({ size, data }) => {
+    const entry = Buffer.alloc(ENTRY);
+    entry[0] = size >= 256 ? 0 : size; // 0 means 256
+    entry[1] = size >= 256 ? 0 : size;
+    entry[2] = 0; // palette size; 0 for truecolour
+    entry[3] = 0; // reserved
+    entry.writeUInt16LE(1, 4); // colour planes
+    entry.writeUInt16LE(32, 6); // bits per pixel
+    entry.writeUInt32LE(data.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    offset += data.length;
+    return entry;
+  });
+
+  return Buffer.concat([header, ...entries, ...images.map((i) => i.data)]);
+}
+
 mkdirSync(OUT, { recursive: true });
 for (const size of [192, 512]) {
   const file = join(OUT, `icon-${size}.png`);
@@ -128,3 +172,11 @@ for (const size of [192, 512]) {
   writeFileSync(file, bytes);
   console.log(`icon-${size}.png  ${size}x${size}  ${(bytes.length / 1024).toFixed(1)} KB`);
 }
+
+/* The app directory, not public/ — it is a Next.js file convention, and
+   putting it in public/ would serve it without the cache-busting query and
+   without the link tag. */
+const FAVICON = join(HERE, '..', 'apps', 'web', 'src', 'app', 'favicon.ico');
+const icoBytes = ico([16, 32, 48]);
+writeFileSync(FAVICON, icoBytes);
+console.log(`favicon.ico   16+32+48   ${(icoBytes.length / 1024).toFixed(1)} KB`);
