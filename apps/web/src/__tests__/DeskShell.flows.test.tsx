@@ -88,6 +88,7 @@ vi.mock('@Ordio/convex', () => ({
   api: {
     sessions: { listMySessionsPaginated: 'x', getSession: 'x', getAudioUrl: 'x', createSession: 'x' },
     jobs: { generateUploadUrl: 'x' },
+    credits: { getMyCredits: 'x' },
   },
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -258,6 +259,35 @@ describe('DeskShell — the transport follows the phase', () => {
     render(<DeskShell />);
     expect(screen.queryByRole('button', { name: /Pause recording/i })).toBeNull();
     expect(screen.getByRole('button', { name: /^Cancel and discard/i })).toBeInTheDocument();
+  });
+
+  /* `processingProgress` is a percentage. Read as a fraction and multiplied by
+     100 it put the fill at 1000% wide, which the browser clips — so the bar
+     was solid and motionless from the first tick and reported as broken.
+     Asserting the figure rather than the width, because the width is what was
+     wrong and the figure is what the user reads. */
+  it('reports how far processing has actually got', () => {
+    flow.currentState = 'processing';
+    flow.processingProgress = 42;
+    render(<DeskShell />);
+    expect(screen.getByText('42%')).toBeInTheDocument();
+    expect(screen.queryByText('4200%')).toBeNull();
+    flow.processingProgress = 0;
+  });
+
+  it('does not show processing as complete before it has started', () => {
+    flow.currentState = 'processing';
+    flow.processingProgress = 10;
+    render(<DeskShell />);
+    expect(screen.getByText('10%')).toBeInTheDocument();
+    /* The step list read as fully done at this value for the same reason. */
+    const steps = screen.getAllByText(/Decoding the audio|Laying out captions/);
+    expect(steps.length).toBeGreaterThan(0);
+    expect(screen.getByText('Laying out captions').closest('li')).toHaveAttribute(
+      'data-state',
+      'todo'
+    );
+    flow.processingProgress = 0;
   });
 });
 

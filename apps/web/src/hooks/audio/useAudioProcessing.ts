@@ -16,6 +16,8 @@ import {
   shouldTranscodeForWhisper,
   WHISPER_SIZE_LIMIT,
 } from '@Ordio/engine/media/whisperAudio';
+import type { Word } from '@Ordio/shared/schemas';
+import { expectedTranscribeMs, transcribeProgressAt } from '@/lib/audio/transcribeProgress';
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
@@ -185,7 +187,25 @@ export function useAudioProcessing(
           return storageId as GenericId<'_storage'>;
         })();
 
-        const [words, storageId] = await Promise.all([transcriptionTask, uploadTask]);
+        /* Whisper reports nothing until it returns, so this step is projected
+           from the audio length rather than left as a 40-point hold. The
+           ceiling is one short of the step's end: only the response itself
+           may draw the step as finished. */
+        const transcribeStart = Date.now();
+        const expectedMs = expectedTranscribeMs(decoded.duration);
+        const creep = window.setInterval(() => {
+          setProcessingProgress(
+            transcribeProgressAt(Date.now() - transcribeStart, expectedMs, baseTranscribe + 5, 84)
+          );
+        }, 250);
+
+        let words: Word[];
+        let storageId: GenericId<'_storage'>;
+        try {
+          [words, storageId] = await Promise.all([transcriptionTask, uploadTask]);
+        } finally {
+          window.clearInterval(creep);
+        }
 
         if (words.length > 0) {
           setTranscript(words);
