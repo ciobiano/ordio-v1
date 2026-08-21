@@ -26,7 +26,7 @@
  * any more, so nothing could ever have triggered it.
  */
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireUser, getCurrentUser } from "./auth";
 import {
@@ -109,6 +109,38 @@ export const ensureWelcomeGrant = mutation({
     const credits = balanceOf(user) + WELCOME_GRANT_CREDITS;
     await ctx.db.patch(user._id, { credits, welcomeGrantedAt: Date.now() });
     return { granted: true, credits };
+  },
+});
+
+/**
+ * Set an account's balance by hand.
+ *
+ * `internalMutation`, so it has no public surface at all — no browser can
+ * reach it, only the CLI or dashboard with a deploy key. That is the whole
+ * reason it is safe to have a function that mints credits: the boundary is the
+ * deployment credential, not an auth check that could be got around.
+ *
+ * It exists because a balance can legitimately end up somewhere no user action
+ * can recover from. A shortfall settle is allowed to push the balance below
+ * zero on purpose — it is what stops an under-reporting client from getting
+ * free work — but an account stuck there is refused every future hold, and
+ * nothing in the product can lift it. Support needs a lever.
+ *
+ *   npx convex run credits:setBalance '{"email":"a@b.c","credits":300}' --prod
+ */
+export const setBalance = internalMutation({
+  args: { email: v.string(), credits: v.number() },
+  handler: async (ctx, { email, credits }): Promise<{ email: string; before: number; after: number }> => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .unique();
+
+    if (!user) throw new Error(`No user with email ${email}`);
+
+    const before = balanceOf(user);
+    await ctx.db.patch(user._id, { credits });
+    return { email, before, after: credits };
   },
 });
 

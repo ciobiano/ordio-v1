@@ -152,6 +152,15 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
   const vad = useVAD(recorder.isRecording, micStream);
   const episode = useEpisodeIngestion();
 
+  /* The episode pipeline reports running out of credits as state rather than
+     by throwing, because it can stop mid-run with usable chunks already paid
+     for. Either way the response is the same as the short path's: the upgrade
+     sheet, not a retry. Without this the long-upload path was the one place a
+     spent balance surfaced as "Episode processing failed". */
+  useEffect(() => {
+    if (episode.outOfCredits) setUpgradeTarget('transcription_credits');
+  }, [episode.outOfCredits, setUpgradeTarget]);
+
   // Surface live-caption failures once; recording itself is unaffected.
   const lastLiveErrorRef = useRef<string | null>(null);
   useEffect(() => {
