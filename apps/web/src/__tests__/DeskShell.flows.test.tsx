@@ -69,6 +69,9 @@ vi.mock('@/hooks/playback/usePlayback', () => ({
     pause: vi.fn(),
     seek: vi.fn(),
     load: vi.fn(),
+    /* The canvas subscribes to the clock rather than re-rendering per frame,
+       so the mock has to offer the subscription and an unsubscribe. */
+    registerTimeListener: () => () => {},
   }),
 }));
 vi.mock('@/hooks/session/useSessionHydration', () => ({ useSessionHydration: () => {} }));
@@ -78,9 +81,14 @@ vi.mock('@/hooks/auth/useFeatureGates', () => ({
 vi.mock('@/hooks/clips/useClipPicker', () => ({
   useClipPicker: () => ({ pick: vi.fn(), pickingIndex: null, busy: false }),
 }));
+/* Saved clips the media pane will list. Mutable so a test can put one there
+   and click into the editor — several surfaces only exist once a clip is
+   loaded, and with none the desk is still on the capture stage. */
+const sessions: { id: string; name: string; durationMs: number }[] = [];
+
 vi.mock('convex/react', () => ({
-  useConvexAuth: () => ({ isAuthenticated: false }),
-  usePaginatedQuery: () => ({ results: [], status: 'Exhausted' }),
+  useConvexAuth: () => ({ isAuthenticated: true }),
+  usePaginatedQuery: () => ({ results: sessions, status: 'Exhausted' }),
   useMutation: () => vi.fn(),
   useQuery: () => undefined,
 }));
@@ -89,6 +97,7 @@ vi.mock('@Ordio/convex', () => ({
     sessions: { listMySessionsPaginated: 'x', getSession: 'x', getAudioUrl: 'x', createSession: 'x' },
     jobs: { generateUploadUrl: 'x' },
     credits: { getMyCredits: 'x' },
+    backgrounds: { getBackgroundUrl: 'x', listMyBackgrounds: 'x', uploadBackground: 'x' },
   },
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -117,7 +126,16 @@ function reset() {
   flow.startError = null;
   flow.episode.phase = 'idle';
   flow.episode.candidates = [];
+  sessions.length = 0;
   vi.clearAllMocks();
+}
+
+/** Render with a clip loaded, which is what puts the desk in the editor. */
+function renderEditing() {
+  sessions.push({ id: 'clip-1', name: 'Take one', durationMs: 30_000 });
+  const view = render(<DeskShell />);
+  fireEvent.click(screen.getByRole('button', { name: /Take one/i }));
+  return view;
 }
 
 describe('DeskShell — bringing audio in', () => {
@@ -318,3 +336,37 @@ describe('DeskShell — the account menu', () => {
     expect(screen.getByText('Sign Out')).toBeInTheDocument();
   });
 });
+
+describe('DeskShell — trim commits', () => {
+  beforeEach(reset);
+
+  /* The handles wrote two numbers that shaded the timeline and were read by
+     nothing: export took the whole buffer however much you trimmed. The
+     panel's own hint said "cuts commit with Apply" while offering no Apply. */
+  it('offers a way to commit a trim', () => {
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Trim$/i }));
+    expect(screen.getByRole('button', { name: /Apply cuts/i })).toBeInTheDocument();
+  });
+
+  /* Destructive, so it must not be pressable when it would do nothing. */
+  it('keeps Apply out of reach until something is actually cut', () => {
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Trim$/i }));
+    expect(screen.getByRole('button', { name: /Apply cuts/i })).toBeDisabled();
+  });
+});
+
+describe('DeskShell — the canvas is the real renderer', () => {
+  beforeEach(reset);
+
+  /* The desk used to paint captions in DOM, stacking every segment of the
+     transcript on the frame at once. The engine draws the line being spoken.
+     Asserting on the canvas element rather than on caption text, because the
+     absence of that text is the fix. */
+  it('draws the clip on a canvas rather than in markup', () => {
+    renderEditing();
+    expect(document.querySelector('canvas')).not.toBeNull();
+  });
+});
+
