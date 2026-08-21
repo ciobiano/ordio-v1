@@ -1,3 +1,6 @@
+import type { CaptionMechanic } from '@Ordio/engine';
+import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
+
 /**
  * Static option tables for the desktop editor, transcribed from the design's
  * runtime constants.
@@ -36,15 +39,23 @@ export const TOOL_COPY: Record<ToolId, { title: string; hint: string }> = {
   director: { title: 'Director', hint: 'Three looks built from this clip' },
 };
 
-export const ANIMS = [
-  { id: 'reveal', label: 'Reveal', hint: 'Sentence holds, each word lights as spoken' },
-  { id: 'pop', label: 'Pop', hint: 'One word at a time, on its own beat' },
-  { id: 'cut', label: 'Cut', hint: 'Short phrase, hard cut' },
-  { id: 'karaoke', label: 'Karaoke', hint: 'Block holds, highlight moves word to word' },
-  { id: 'bounce', label: 'Bounce', hint: 'Word scales in on its start frame' },
-] as const;
+/**
+ * The reveal animations, taken from the one list both viewports read.
+ *
+ * The desk kept its own list of five, under its own names, and a sixth of
+ * those names — `bounce` — described an animation the engine does not have.
+ * Nothing caught it, because the desk's picker was not connected to the
+ * renderer at all: `deskStyleConfig` pinned `captionStyleId` to a constant, so
+ * every desk export ran the phrase-cut style whatever the panel showed.
+ *
+ * Re-exported rather than redefined so the two cannot drift again. The id is
+ * the engine's mechanic, which is also what `deskStyleConfig` needs to resolve
+ * a style bundle — a private vocabulary in between was the thing that let the
+ * mapping go missing without anyone noticing.
+ */
+export const ANIMS = CAPTION_ANIMATIONS;
 
-export type AnimId = (typeof ANIMS)[number]['id'];
+export type AnimId = CaptionMechanic;
 
 export const FONTS = [
   { name: 'Inter', label: 'Neutral', family: "'Inter', sans-serif" },
@@ -73,12 +84,12 @@ export interface CaptionPreset {
 }
 
 export const PRESETS: CaptionPreset[] = [
-  { id: 'hype', name: 'Hype', sample: 'BUILT THIS', font: 'Montserrat', textCase: 'uppercase', text: '#f4f5ef', wordBg: '#c6ff3d', wordText: '#0a0b0a', stroke: 0, anim: 'pop' },
-  { id: 'clean', name: 'Clean', sample: 'built this', font: 'Inter', textCase: 'none', text: '#f4f5ef', wordBg: '#f4f5ef', wordText: '#0a0b0a', stroke: 0, anim: 'reveal' },
-  { id: 'karaoke', name: 'Karaoke', sample: 'built this', font: 'Outfit', textCase: 'none', text: '#f4f5ef', wordBg: '#6be0ff', wordText: '#0a0b0a', stroke: 0, anim: 'karaoke' },
-  { id: 'street', name: 'Street', sample: 'BUILT THIS', font: 'Space Grotesk', textCase: 'uppercase', text: '#c6ff3d', wordBg: '#ff5c5c', wordText: '#f4f5ef', stroke: 3, anim: 'pop' },
-  { id: 'cinema', name: 'Cinema', sample: 'built this', font: 'Instrument Serif', textCase: 'none', text: '#f4f5ef', wordBg: '#f4f5ef', wordText: '#0a0b0a', stroke: 0, anim: 'cut' },
-  { id: 'sticker', name: 'Sticker', sample: 'Built This', font: 'Poppins', textCase: 'capitalize', text: '#0a0b0a', wordBg: '#c6ff3d', wordText: '#0a0b0a', stroke: 0, anim: 'bounce' },
+  { id: 'hype', name: 'Hype', sample: 'BUILT THIS', font: 'Montserrat', textCase: 'uppercase', text: '#f4f5ef', wordBg: '#c6ff3d', wordText: '#0a0b0a', stroke: 0, anim: 'word-swap' },
+  { id: 'clean', name: 'Clean', sample: 'built this', font: 'Inter', textCase: 'none', text: '#f4f5ef', wordBg: '#f4f5ef', wordText: '#0a0b0a', stroke: 0, anim: 'progressive-reveal' },
+  { id: 'karaoke', name: 'Karaoke', sample: 'built this', font: 'Outfit', textCase: 'none', text: '#f4f5ef', wordBg: '#6be0ff', wordText: '#0a0b0a', stroke: 0, anim: 'static-highlight' },
+  { id: 'street', name: 'Street', sample: 'BUILT THIS', font: 'Space Grotesk', textCase: 'uppercase', text: '#c6ff3d', wordBg: '#ff5c5c', wordText: '#f4f5ef', stroke: 3, anim: 'word-swap' },
+  { id: 'cinema', name: 'Cinema', sample: 'built this', font: 'Instrument Serif', textCase: 'none', text: '#f4f5ef', wordBg: '#f4f5ef', wordText: '#0a0b0a', stroke: 0, anim: 'phrase-cut' },
+  { id: 'sticker', name: 'Sticker', sample: 'Built This', font: 'Poppins', textCase: 'capitalize', text: '#0a0b0a', wordBg: '#c6ff3d', wordText: '#0a0b0a', stroke: 0, anim: 'word-swap' },
 ];
 
 export const VISUALS = [

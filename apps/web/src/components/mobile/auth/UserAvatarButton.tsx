@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useUser, useClerk } from '@clerk/nextjs';
+import { useQuery } from 'convex/react';
+import { api } from '@Ordio/convex';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -55,6 +57,12 @@ export default function UserAvatarButton({ size = 'md' }: UserAvatarButtonProps)
   const displayName = user?.firstName ?? user?.username ?? 'User';
   const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
 
+  /* Undefined while the query is in flight, null when signed out — both mean
+     "nothing to show yet" rather than "zero", which would be a different and
+     alarming claim. */
+  const credits = useQuery(api.credits.getMyCredits);
+  const spent = credits !== undefined && credits !== null && credits.credits <= 0;
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger>
@@ -85,6 +93,32 @@ export default function UserAvatarButton({ size = 'md' }: UserAvatarButtonProps)
               {email && <span className="text-xs text-muted-foreground truncate">{email}</span>}
             </div>
           </DropdownMenuLabel>
+
+          <DropdownMenuSeparator />
+
+          {/* The balance is the only thing that decides whether recording will
+              work at all, and it was readable nowhere in the product — running
+              out surfaced as a waitlist sheet with no stated cause. */}
+          {credits !== undefined && credits !== null && (
+            <div className="px-3 py-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Credits</span>
+                <span
+                  className={cn(
+                    'text-sm font-medium tabular-nums',
+                    spent ? 'text-destructive' : 'text-foreground'
+                  )}
+                >
+                  {credits.credits}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {spent
+                  ? 'Out of transcription credits'
+                  : `About ${credits.minutes} min of transcription left`}
+              </p>
+            </div>
+          )}
 
           <DropdownMenuSeparator />
 

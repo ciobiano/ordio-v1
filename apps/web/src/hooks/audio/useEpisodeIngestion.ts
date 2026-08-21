@@ -4,6 +4,7 @@ import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
 import { ingestEpisode, EpisodeIngestError } from '@Ordio/engine/media/episodeIngest';
 import { isSparseTranscript } from '@Ordio/engine/media/episodePlan';
 import { transcribeChunk } from '@/lib/transcription/transcribeChunk';
+import { InsufficientCreditsError } from '@/lib/transcription/insufficientCredits';
 import { mergeChunkTranscripts } from '@/lib/transcription/mergeChunkTranscripts';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
@@ -18,6 +19,11 @@ export interface UseEpisodeIngestionReturn {
   episodeWords: Word[]; // merged episode-absolute transcript
   error: string | null;
   partialAvailable: boolean; // a chunk failed twice; offer partial
+  /**
+   * The run stopped because the balance ran out, not because anything broke.
+   * Callers show the upgrade sheet for this; a retry cannot succeed.
+   */
+  outOfCredits: boolean;
   startEpisode: (file: File) => Promise<void>;
   usePartialTranscript: () => Promise<void>;
   cancel: () => void; // explicit exit → 'idle' (design rule)
@@ -42,6 +48,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
   const [episodeWords, setEpisodeWords] = useState<Word[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [partialAvailable, setPartialAvailable] = useState(false);
+  const [outOfCredits, setOutOfCredits] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   // In-memory resume state (session-only per design): transcribed chunks survive a failure.
@@ -58,6 +65,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     setCandidates([]);
     setEpisodeFile(null);
     setEpisodeWords([]);
+    setOutOfCredits(false);
     setError(null);
     setPartialAvailable(false);
   }, []);
@@ -105,6 +113,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     setEpisodeFile(file);
     setError(null);
     setPartialAvailable(false);
+    setOutOfCredits(false);
     transcribedRef.current = [];
     try {
       // Phase 1: ingest (0–40%)
@@ -122,10 +131,25 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       for (let i = 0; i < result.chunks.length; i++) {
         const chunk = result.chunks[i]!;
         try {
-          const words = await transcribeChunk(chunk.blob, abort.signal);
+          const words = await transcribeChunk(chunk.blob, abort.signal, chunk.durationSec);
           transcribedRef.current.push({ startSec: chunk.startSec, words });
         } catch (err) {
           if (err instanceof DOMException && err.name === 'AbortError') throw err;
+          /* Out of credits is not a chunk that failed — it is the pipeline
+             hitting the spend cap, and every remaining chunk would be refused
+             identically, so the loop stops here rather than grinding through
+             the rest. Whatever already transcribed was paid for and is still
+             offered as a partial, on the same principle as a failed chunk. */
+          if (err instanceof InsufficientCreditsError) {
+            setOutOfCredits(true);
+            if (transcribedRef.current.length > 0) {
+              setPartialAvailable(true);
+              setError('You ran out of credits partway through this episode.');
+              setPhase('error');
+              return;
+            }
+            throw err;
+          }
           // Chunk failed twice (transcribeChunk retries internally). Per design:
           // never silently discard already-spent upload data — offer partial.
           if (transcribedRef.current.length > 0) {
@@ -151,9 +175,11 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
         return;
       }
       const message =
-        err instanceof EpisodeIngestError
-          ? err.message
-          : 'Episode processing failed. Please try again.';
+        err instanceof InsufficientCreditsError
+          ? 'You are out of transcription credits.'
+          : err instanceof EpisodeIngestError
+            ? err.message
+            : 'Episode processing failed. Please try again.';
       console.error('[useEpisodeIngestion]', err);
       setError(message);
       setPhase('error');
@@ -186,9 +212,9 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
   return useMemo(
     () => ({
       phase, progress, candidates, episodeFile, episodeWords, error, partialAvailable,
-      startEpisode, usePartialTranscript, cancel,
+      outOfCredits, startEpisode, usePartialTranscript, cancel,
     }),
     [phase, progress, candidates, episodeFile, episodeWords, error, partialAvailable,
-      startEpisode, usePartialTranscript, cancel]
+      outOfCredits, startEpisode, usePartialTranscript, cancel]
   );
 }

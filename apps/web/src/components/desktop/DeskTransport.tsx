@@ -42,6 +42,7 @@ interface DeskTransportProps {
   /** null once a clip is loaded — the bar becomes the playback transport. */
   phase: CapturePhase | null;
   /* capture */
+  /** 0–100, as `useAudioProcessing` reports it. Not a 0–1 fraction. */
   processingProgress: number;
   onStop: () => void;
   onPause: () => void;
@@ -174,6 +175,12 @@ export function DeskTransport({
   const isRecording = phase === 'recording' || phase === 'paused';
   const isReady = phase === 'ready';
   const isProcessing = phase === 'processing';
+  /* `processingProgress` is a percentage, not a fraction. Reading it as a
+     fraction and multiplying by 100 put the fill at 1000% wide, which a
+     browser simply clips: the bar was full and motionless from the first
+     tick, which is what a broken progress bar looks like. Clamped because a
+     stage that overshoots must not paint outside the button. */
+  const pct = Math.max(0, Math.min(100, Math.round(processingProgress)));
 
   return (
     <div className="ord-transport" data-mode="capture">
@@ -231,10 +238,19 @@ export function DeskTransport({
             </span>
           )}
           {isProcessing && (
-            <span
-              className="absolute inset-y-0 left-0 rounded-full bg-[var(--ord-paper)] transition-[width] duration-[120ms] ease-linear"
-              style={{ width: `${Math.round(processingProgress * 100)}%` }}
-            />
+            <>
+              <span
+                className="ord-progress-fill"
+                style={{ ['--ord-progress-pct' as string]: `${pct}%` }}
+              />
+              {/* The fill alone is a white bar of unknown length — legible as
+                  motion, not as a position. The figure is what makes it a
+                  measurement, and it sits above the fill so it survives being
+                  overtaken. */}
+              <span className="relative ord-type-label font-semibold tabular-nums text-[var(--ord-ink)] mix-blend-difference">
+                {pct}%
+              </span>
+            </>
           )}
         </button>
       </Slot>

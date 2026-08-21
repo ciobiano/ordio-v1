@@ -13,6 +13,10 @@ interface TrimPanelProps {
   onCutAllPauses: () => void;
   onRemoveFillers: () => void;
   onReset: () => void;
+  /** Cut the audio and transcript for real. Destructive, hence a button. */
+  onApply: () => void;
+  /** Whether the handles currently describe a cut worth applying. */
+  hasPendingCuts: boolean;
 }
 
 export function TrimPanel({
@@ -22,6 +26,8 @@ export function TrimPanel({
   onCutAllPauses,
   onRemoveFillers,
   onReset,
+  onApply,
+  hasPendingCuts,
 }: TrimPanelProps) {
   return (
     <PanelBody>
@@ -88,6 +94,29 @@ export function TrimPanel({
             Reset
           </button>
         </div>
+      </Section>
+
+      {/* Everything above this is pending. Dragging a handle moves a marker;
+          nothing is removed from the audio until Apply, which is what lets you
+          browse a cut before committing to it. The phone works the same way,
+          and the desk previously had neither the button nor the commit behind
+          it — the handles wrote two numbers that only shaded the timeline. */}
+      <Section
+        label="Commit"
+        hint={
+          hasPendingCuts
+            ? 'Rewrites the audio and the transcript together. Undo brings it back.'
+            : 'Move a handle or pick a pause to cut.'
+        }
+      >
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={!hasPendingCuts}
+          className={chip({ size: 'md', selected: hasPendingCuts })}
+        >
+          Apply cuts
+        </button>
       </Section>
     </PanelBody>
   );

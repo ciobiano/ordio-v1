@@ -2,6 +2,12 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import type { Word } from '@Ordio/shared/schemas'
+import {
+  keptSampleRanges,
+  shiftTranscript,
+  sliceChannels,
+  type TrimPlan,
+} from '@/lib/audio/trimGeometry'
 
 interface TrimState {
   startTime: number
@@ -86,101 +92,33 @@ export function useAudioTrimmer(duration: number): UseAudioTrimmerReturn {
     setDeletedSilenceRanges(new Map())
   }, [])
 
-  const getTrimmedTranscript = useCallback(
-    (transcript: Word[]): Word[] => {
-      const kept = transcript.filter(
-        (w, i) =>
-          !deletedWordIndices.has(i) &&
-          w.end > startTime &&
-          w.start < endTime
-      )
-
-      // All time ranges removed before each word: deleted words + silence ranges
-      const deletedWordRanges = transcript
-        .map((w, i) => ({ ...w, index: i }))
-        .filter((w) => deletedWordIndices.has(w.index))
-        .sort((a, b) => a.start - b.start)
-
-      const silenceRanges = Array.from(deletedSilenceRanges.values())
-        .sort((a, b) => a.start - b.start)
-
-      return kept.map((word) => {
-        const wordDeletedBefore = deletedWordRanges
-          .filter((d) => d.end <= word.start)
-          .reduce((sum, d) => sum + (d.end - d.start), 0)
-
-        const silenceDeletedBefore = silenceRanges
-          .filter((r) => r.end <= word.start)
-          .reduce((sum, r) => sum + (r.end - r.start), 0)
-
-        const headTrim = startTime
-
-        return {
-          ...word,
-          start: word.start - headTrim - wordDeletedBefore - silenceDeletedBefore,
-          end: word.end - headTrim - wordDeletedBefore - silenceDeletedBefore,
-        }
-      })
-    },
+  const planFor = useCallback(
+    (transcript: Word[]): TrimPlan => ({
+      startTime,
+      endTime,
+      deletedRanges: [
+        ...transcript
+          .map((w, i) => ({ start: w.start, end: w.end, index: i }))
+          .filter((w) => deletedWordIndices.has(w.index))
+          .map(({ start, end }) => ({ start, end })),
+        ...Array.from(deletedSilenceRanges.values()).map((r) => ({ start: r.start, end: r.end })),
+      ],
+    }),
     [startTime, endTime, deletedWordIndices, deletedSilenceRanges]
   )
 
+  const getTrimmedTranscript = useCallback(
+    (transcript: Word[]): Word[] => shiftTranscript(planFor(transcript), transcript),
+    [planFor]
+  )
+
   const getTrimmedAudio = useCallback(
-    (audioBuffer: AudioBuffer, transcript: Word[]): Float32Array[] => {
-      const { sampleRate, numberOfChannels } = audioBuffer
-      const startSample = Math.floor(startTime * sampleRate)
-      const endSample = Math.floor(endTime * sampleRate)
-
-      // Merge word-based and silence-based deleted ranges
-      const wordDeletedRanges = transcript
-        .map((w, i) => ({ ...w, index: i }))
-        .filter((w) => deletedWordIndices.has(w.index))
-        .map((w) => ({
-          start: Math.floor(w.start * sampleRate),
-          end: Math.floor(w.end * sampleRate),
-        }))
-
-      const silenceDeletedRanges = Array.from(deletedSilenceRanges.values()).map((r) => ({
-        start: Math.floor(r.start * sampleRate),
-        end: Math.floor(r.end * sampleRate),
-      }))
-
-      const allDeletedRanges = [...wordDeletedRanges, ...silenceDeletedRanges].sort(
-        (a, b) => a.start - b.start
-      )
-
-      const keptRanges: Array<{ start: number; end: number }> = []
-      let cursor = startSample
-      for (const del of allDeletedRanges) {
-        if (del.end <= startSample || del.start >= endSample) continue
-        const delStart = Math.max(del.start, startSample)
-        const delEnd = Math.min(del.end, endSample)
-        if (cursor < delStart) {
-          keptRanges.push({ start: cursor, end: delStart })
-        }
-        // Never move cursor backward (handles overlapping ranges)
-        cursor = Math.max(cursor, delEnd)
-      }
-      if (cursor < endSample) {
-        keptRanges.push({ start: cursor, end: endSample })
-      }
-
-      const totalSamples = keptRanges.reduce((sum, r) => sum + (r.end - r.start), 0)
-      const channels: Float32Array[] = []
-      for (let ch = 0; ch < numberOfChannels; ch++) {
-        const source = audioBuffer.getChannelData(ch)
-        const output = new Float32Array(totalSamples)
-        let offset = 0
-        for (const range of keptRanges) {
-          const segment = source.subarray(range.start, range.end)
-          output.set(segment, offset)
-          offset += segment.length
-        }
-        channels.push(output)
-      }
-      return channels
-    },
-    [startTime, endTime, deletedWordIndices, deletedSilenceRanges]
+    (audioBuffer: AudioBuffer, transcript: Word[]): Float32Array[] =>
+      sliceChannels(
+        audioBuffer,
+        keptSampleRanges(planFor(transcript), audioBuffer.sampleRate)
+      ),
+    [planFor]
   )
 
   const trimState: TrimState = useMemo(

@@ -22,6 +22,8 @@ import { toast } from 'sonner';
 import type { Word } from '@Ordio/shared';
 import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
+import { useDeskStyleSync } from '@/lib/desktop/useDeskStyleSync';
+import { useDeskTrimCommit } from '@/lib/desktop/useDeskTrimCommit';
 import { useSessionHydration } from '@/hooks/session/useSessionHydration';
 import { useCreateFlow } from '@/hooks/recording/useCreateFlow';
 import { useCaptureStore, useProcessingStore } from '@/stores';
@@ -76,6 +78,10 @@ export function DeskShell() {
   const { state, history } = store;
 
   const playback = usePlayback();
+  /* Every desk edit lands in the store the renderer reads, immediately —
+     rather than only at the moment Export is pressed, which is what let the
+     canvas and the encoded file disagree. */
+  useDeskStyleSync(state);
   useSessionHydration(state.clipId, playback);
 
   const transcript = useProcessingStore((s) => s.transcript);
@@ -251,6 +257,18 @@ export function DeskShell() {
     }
     return found;
   }, [words]);
+
+  /* Trim is pending until Apply, and Apply rewrites the audio and transcript
+     together — see `useDeskTrimCommit`. The handles used to write two numbers
+     that shaded the timeline and nothing else. */
+  const trim = useDeskTrimCommit({
+    state,
+    words,
+    duration,
+    pauses,
+    patch,
+    onCommitted: (buffer) => playback.load(buffer),
+  });
 
   const seek = useCallback((next: number) => playback.seek(next), [playback]);
 
@@ -436,20 +454,6 @@ export function DeskShell() {
     patch({ accents: strong }, true);
   }, [words, patch]);
 
-  /**
-   * Offer a different three Looks.
-   *
-   * The Director panel has had this button since it was written and the shell
-   * passed it `() => undefined`. Until the Director actually reads the
-   * transcript, rerolling means landing on a preset the current three do not
-   * already cover, so the button changes something every time it is pressed
-   * rather than pretending to.
-   */
-  const reroll = useCallback(() => {
-    patch({ preset: '', artwork: '' });
-    openTool('director');
-  }, [patch, openTool]);
-
   const paletteActions: PaletteAction[] = useMemo(() => {
     const tools = (Object.keys(TOOL_COPY) as ToolId[]).map((id) => ({
       id: `tool-${id}`,
@@ -574,9 +578,9 @@ export function DeskShell() {
           {stagePhase === null ? (
             <PlayerStage
               state={state}
-              words={words}
-              activeWordIndex={activeWordIndex}
+              playback={playback}
               onShowCaptions={() => patch({ capHidden: false })}
+              onLocked={flow.setUpgradeTarget}
             />
           ) : (
             <DeskCaptureStage
@@ -646,7 +650,9 @@ export function DeskShell() {
                   )
                 }
                 onResetTrim={() => patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)}
-                onReroll={reroll}
+                onApplyTrim={trim.commit}
+                onLocked={flow.setUpgradeTarget}
+                hasPendingCuts={trim.hasPendingCuts}
               />
             )}
             <ToolStrip

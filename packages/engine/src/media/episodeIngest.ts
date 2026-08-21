@@ -33,7 +33,15 @@ const TARGET_RATE = 16_000;
 export interface EpisodeIngestResult {
   durationSec: number;
   strategy: IngestStrategy;
-  chunks: Array<{ startSec: number; blob: Blob }>;
+  /**
+   * `durationSec` is the decoded length of the window, not the wall between
+   * `startSec` values — the last window is short, and a silence-aligned plan
+   * makes every window a different length. It is carried because the credit
+   * hold is sized from it: a chunk that declares nothing is held at the
+   * one-credit floor and then settled at full price, which overdraws the
+   * balance by the whole episode.
+   */
+  chunks: Array<{ startSec: number; durationSec: number; blob: Blob }>;
   energy: number[];
 }
 
@@ -90,7 +98,7 @@ export async function ingestEpisode(
     const chunkSec = strategy === 'opus' ? OPUS_CHUNK_SEC : WAV_CHUNK_SEC;
     const windows = planChunkWindows(durationSec, chunkSec);
     const energyAcc = createEnergyAccumulator(durationSec);
-    const chunks: Array<{ startSec: number; blob: Blob }> = [];
+    const chunks: Array<{ startSec: number; durationSec: number; blob: Blob }> = [];
 
     for (let i = 0; i < windows.length; i++) {
       if (opts.signal.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -116,7 +124,7 @@ export async function ingestEpisode(
       energyAcc.add(mono.getChannelData(0), start, TARGET_RATE);
       const blob = await encodeChunk(mono, strategy);
       if (opts.signal.aborted) throw new DOMException('Aborted', 'AbortError');
-      chunks.push({ startSec: start, blob });
+      chunks.push({ startSec: start, durationSec: mono.duration, blob });
       opts.onProgress?.((i + 1) / windows.length);
     }
 

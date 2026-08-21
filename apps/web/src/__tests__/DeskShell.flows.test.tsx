@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const flow = vi.hoisted(() => ({
   currentState: 'idle' as 'idle' | 'recording' | 'processing',
@@ -69,6 +69,9 @@ vi.mock('@/hooks/playback/usePlayback', () => ({
     pause: vi.fn(),
     seek: vi.fn(),
     load: vi.fn(),
+    /* The canvas subscribes to the clock rather than re-rendering per frame,
+       so the mock has to offer the subscription and an unsubscribe. */
+    registerTimeListener: () => () => {},
   }),
 }));
 vi.mock('@/hooks/session/useSessionHydration', () => ({ useSessionHydration: () => {} }));
@@ -78,9 +81,14 @@ vi.mock('@/hooks/auth/useFeatureGates', () => ({
 vi.mock('@/hooks/clips/useClipPicker', () => ({
   useClipPicker: () => ({ pick: vi.fn(), pickingIndex: null, busy: false }),
 }));
+/* Saved clips the media pane will list. Mutable so a test can put one there
+   and click into the editor — several surfaces only exist once a clip is
+   loaded, and with none the desk is still on the capture stage. */
+const sessions: { id: string; name: string; durationMs: number }[] = [];
+
 vi.mock('convex/react', () => ({
-  useConvexAuth: () => ({ isAuthenticated: false }),
-  usePaginatedQuery: () => ({ results: [], status: 'Exhausted' }),
+  useConvexAuth: () => ({ isAuthenticated: true }),
+  usePaginatedQuery: () => ({ results: sessions, status: 'Exhausted' }),
   useMutation: () => vi.fn(),
   useQuery: () => undefined,
 }));
@@ -88,6 +96,8 @@ vi.mock('@Ordio/convex', () => ({
   api: {
     sessions: { listMySessionsPaginated: 'x', getSession: 'x', getAudioUrl: 'x', createSession: 'x' },
     jobs: { generateUploadUrl: 'x' },
+    credits: { getMyCredits: 'x' },
+    backgrounds: { getBackgroundUrl: 'x', listMyBackgrounds: 'x', uploadBackground: 'x' },
   },
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -107,6 +117,7 @@ vi.mock('@/components/media/orb/Orb', () => ({
 }));
 
 import { DeskShell } from '@/components/desktop/DeskShell';
+import { useDirectorStore } from '@/stores';
 
 function reset() {
   flow.currentState = 'idle';
@@ -116,7 +127,16 @@ function reset() {
   flow.startError = null;
   flow.episode.phase = 'idle';
   flow.episode.candidates = [];
+  sessions.length = 0;
   vi.clearAllMocks();
+}
+
+/** Render with a clip loaded, which is what puts the desk in the editor. */
+function renderEditing() {
+  sessions.push({ id: 'clip-1', name: 'Take one', durationMs: 30_000 });
+  const view = render(<DeskShell />);
+  fireEvent.click(screen.getByRole('button', { name: /Take one/i }));
+  return view;
 }
 
 describe('DeskShell — bringing audio in', () => {
@@ -259,6 +279,35 @@ describe('DeskShell — the transport follows the phase', () => {
     expect(screen.queryByRole('button', { name: /Pause recording/i })).toBeNull();
     expect(screen.getByRole('button', { name: /^Cancel and discard/i })).toBeInTheDocument();
   });
+
+  /* `processingProgress` is a percentage. Read as a fraction and multiplied by
+     100 it put the fill at 1000% wide, which the browser clips — so the bar
+     was solid and motionless from the first tick and reported as broken.
+     Asserting the figure rather than the width, because the width is what was
+     wrong and the figure is what the user reads. */
+  it('reports how far processing has actually got', () => {
+    flow.currentState = 'processing';
+    flow.processingProgress = 42;
+    render(<DeskShell />);
+    expect(screen.getByText('42%')).toBeInTheDocument();
+    expect(screen.queryByText('4200%')).toBeNull();
+    flow.processingProgress = 0;
+  });
+
+  it('does not show processing as complete before it has started', () => {
+    flow.currentState = 'processing';
+    flow.processingProgress = 10;
+    render(<DeskShell />);
+    expect(screen.getByText('10%')).toBeInTheDocument();
+    /* The step list read as fully done at this value for the same reason. */
+    const steps = screen.getAllByText(/Decoding the audio|Laying out captions/);
+    expect(steps.length).toBeGreaterThan(0);
+    expect(screen.getByText('Laying out captions').closest('li')).toHaveAttribute(
+      'data-state',
+      'todo'
+    );
+    flow.processingProgress = 0;
+  });
 });
 
 describe('DeskShell — audio settings', () => {
@@ -288,3 +337,70 @@ describe('DeskShell — the account menu', () => {
     expect(screen.getByText('Sign Out')).toBeInTheDocument();
   });
 });
+
+describe('DeskShell — trim commits', () => {
+  beforeEach(reset);
+
+  /* The handles wrote two numbers that shaded the timeline and were read by
+     nothing: export took the whole buffer however much you trimmed. The
+     panel's own hint said "cuts commit with Apply" while offering no Apply. */
+  it('offers a way to commit a trim', () => {
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Trim$/i }));
+    expect(screen.getByRole('button', { name: /Apply cuts/i })).toBeInTheDocument();
+  });
+
+  /* Destructive, so it must not be pressable when it would do nothing. */
+  it('keeps Apply out of reach until something is actually cut', () => {
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Trim$/i }));
+    expect(screen.getByRole('button', { name: /Apply cuts/i })).toBeDisabled();
+  });
+});
+
+describe('DeskShell — the canvas is the real renderer', () => {
+  beforeEach(reset);
+
+  /* The desk used to paint captions in DOM, stacking every segment of the
+     transcript on the frame at once. The engine draws the line being spoken.
+     Asserting on the canvas element rather than on caption text, because the
+     absence of that text is the fix. */
+  it('draws the clip on a canvas rather than in markup', () => {
+    renderEditing();
+    expect(document.querySelector('canvas')).not.toBeNull();
+  });
+});
+
+describe('DeskShell — Director reads the clip', () => {
+  beforeEach(() => {
+    reset();
+    useDirectorStore.getState().reset();
+  });
+
+  /* The panel used to list three hardcoded looks and a reroll that re-picked
+     from the same static three. Nothing was read, so the names were there
+     before the clip was. */
+  it('has no looks to show until it has read something', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Director$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Reroll the three/i })).toBeEnabled()
+    );
+    expect(screen.queryByRole('button', { name: /Apply the ".*" look/i })).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it('asks the director for looks rather than reciting a list', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Director$/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/direct');
+    vi.unstubAllGlobals();
+  });
+});
+

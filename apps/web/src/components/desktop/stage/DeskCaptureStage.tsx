@@ -15,6 +15,7 @@
 import { motion } from 'framer-motion';
 import { Orb } from '@/components/media/orb/Orb';
 import { deriveStatusText } from '@/lib/capture/phase';
+import { PROCESSING_STEPS, processingStepState } from '@/lib/capture/processingSteps';
 import type { CapturePhase } from '@/lib/capture/types';
 
 /**
@@ -56,12 +57,6 @@ function orbIntensityFor(phase: CapturePhase, audioLevel: number) {
 }
 
 /** The four stages of processing, in the order useAudioProcessing runs them. */
-const PROCESSING_STEPS = [
-  { at: 0, label: 'Decoding the audio' },
-  { at: 0.25, label: 'Cleaning it up' },
-  { at: 0.45, label: 'Transcribing' },
-  { at: 0.85, label: 'Laying out captions' },
-] as const;
 
 interface DeskCaptureStageProps {
   phase: CapturePhase;
@@ -72,6 +67,7 @@ interface DeskCaptureStageProps {
   startError: string | null;
   canRecord: boolean;
   isStarting: boolean;
+  /** 0–100, as `useAudioProcessing` reports it. Not a 0–1 fraction. */
   processingProgress: number;
   committedCaptionLines: string[];
   interimCaptionText: string;
@@ -186,14 +182,14 @@ export function DeskCaptureStage({
       {phase === 'processing' && (
         <ol className="flex w-full max-w-[34ch] flex-col gap-2">
           {PROCESSING_STEPS.map((step, i) => {
-            const next = PROCESSING_STEPS[i + 1];
-            const done = processingProgress >= (next ? next.at : 1);
-            const now = !done && processingProgress >= step.at;
+            const state = processingStepState(i, processingProgress);
+            const done = state === 'done';
+            const now = state === 'now';
             return (
               <li
                 key={step.label}
                 className="flex items-center gap-2 ord-type-footnote"
-                data-state={done ? 'done' : now ? 'now' : 'todo'}
+                data-state={state}
               >
                 <span
                   aria-hidden="true"

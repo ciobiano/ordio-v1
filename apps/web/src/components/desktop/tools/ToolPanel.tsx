@@ -27,6 +27,7 @@ import { ReframePanel } from '../inspector/ReframePanel';
 import { StylePanel } from '../inspector/StylePanel';
 import { TimingPanel } from '../inspector/TimingPanel';
 import { TrimPanel } from '../inspector/TrimPanel';
+import type { FeatureKey } from '@/lib/featureGates';
 
 interface ToolPanelProps {
   state: DeskState;
@@ -40,7 +41,10 @@ interface ToolPanelProps {
   onCutAllPauses: () => void;
   onRemoveFillers: () => void;
   onResetTrim: () => void;
-  onReroll: () => void;
+  onApplyTrim: () => void;
+  /** Route a gated backdrop to the upgrade sheet, as the phone does. */
+  onLocked?: (feature: FeatureKey) => void;
+  hasPendingCuts: boolean;
 }
 
 export function ToolPanel(props: ToolPanelProps) {
@@ -92,7 +96,9 @@ export function ToolPanel(props: ToolPanelProps) {
         </button>
       </div>
 
-      {state.tool === 'presets' && <PresetsPanel state={state} patch={patch} />}
+      {state.tool === 'presets' && (
+        <PresetsPanel state={state} patch={patch} onLocked={props.onLocked} />
+      )}
       {state.tool === 'style' && <StylePanel state={state} patch={patch} />}
       {state.tool === 'timing' && (
         <TimingPanel
@@ -112,11 +118,13 @@ export function ToolPanel(props: ToolPanelProps) {
           onCutAllPauses={props.onCutAllPauses}
           onRemoveFillers={props.onRemoveFillers}
           onReset={props.onResetTrim}
+          onApply={props.onApplyTrim}
+          hasPendingCuts={props.hasPendingCuts}
         />
       )}
       {state.tool === 'reframe' && <ReframePanel state={state} patch={patch} />}
       {state.tool === 'director' && (
-        <DirectorPanel state={state} patch={patch} onReroll={props.onReroll} />
+        <DirectorPanel state={state} patch={patch} />
       )}
     </aside>
   );

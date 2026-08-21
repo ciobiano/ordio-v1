@@ -13,7 +13,8 @@
  */
 
 import type { StyleConfig } from '@Ordio/shared';
-import { RATIO } from './deskCatalog';
+import { RATIO, FONTS } from './deskCatalog';
+import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
 import type { DeskState } from './deskState';
 
 /**
@@ -48,6 +49,17 @@ function faceFor(name: string): StyleConfig['fontFamily'] {
     : 'Inter';
 }
 
+/**
+ * The style bundle that runs a given animation.
+ *
+ * Falls back to the schema's own default rather than throwing: an unknown
+ * mechanic should cost the chosen animation, not the export.
+ */
+function styleIdFor(mechanic: DeskState['anim']): StyleConfig['captionStyleId'] {
+  const match = CAPTION_ANIMATIONS.find((option) => option.mechanic === mechanic);
+  return (match?.styleId as StyleConfig['captionStyleId']) ?? 'minimal-lower-third';
+}
+
 export function deskStyleConfig(state: DeskState): StyleConfig {
   const { width, height } = frameSize(state.format);
 
@@ -75,14 +87,80 @@ export function deskStyleConfig(state: DeskState): StyleConfig {
         ? Math.max(2, Math.min(12, state.breakQty))
         : undefined,
     backgroundScrim: 'flat',
-    captionStyleId: 'minimal-lower-third',
+    /* The animation the Motion panel is showing.
+   
+       This was pinned to 'minimal-lower-third'. The panel offered five
+       choices, the state recorded which one you picked, and this constant
+       threw it away — so every desk export ran a hard phrase cut regardless,
+       and no test noticed because a valid StyleConfig came out either way. */
+    captionStyleId: styleIdFor(state.anim),
     strokeWidth: state.strokeW > 0 ? Math.min(8, state.strokeW) : undefined,
     strokeColor: state.strokeW > 0 ? state.strokeColor : undefined,
     glowIntensity: state.glow > 0 ? state.glow : undefined,
     /* A halo in the text's own colour reads as light; a second hue reads as a
        drop shadow. Matches what PlayerStage draws. */
     glowColor: state.glow > 0 ? state.textColor : undefined,
+    /* The Reframe panel's fit, which previously stopped at the panel: a photo
+       or video backdrop was always composed with the default, whichever
+       button was lit. */
+    contentFit: state.fit,
     accentColor: state.emphasisColor,
     autoFit: state.autoFit,
   };
+}
+
+
+/**
+ * A StyleConfig read back into desk state.
+ *
+ * The inverse of `deskStyleConfig`, and it has to exist because the projection
+ * runs in one direction continuously: anything that writes the shared style
+ * directly — Director applying a look, most of all — would be overwritten by
+ * the desk's own values on the very next slider move. A look that vanishes
+ * when you touch anything is worse than a look that never applied.
+ *
+ * Partial on purpose. Only the fields the desk actually models come back;
+ * `background` has no desk equivalent and is deliberately left in the store,
+ * where `deskStyleConfig` never mentions it and so cannot clobber it.
+ *
+ * Kept beside its inverse so the two are read together. A field added to one
+ * and forgotten in the other is silent — it simply stops surviving.
+ */
+export function deskStateFromStyle(style: StyleConfig): Partial<DeskState> {
+  const patch: Partial<DeskState> = {
+    bgColor: style.backgroundColor,
+    textColor: style.textColor,
+    fontSize: style.fontSize,
+    waveColor: style.waveColor,
+    lineHeight: style.lineHeight,
+    align: style.textAlign,
+    /* The engine says "center", the desk says "middle". */
+    vAlign: style.verticalAlign === 'center' ? 'middle' : style.verticalAlign,
+    strokeW: style.strokeWidth ?? 0,
+    glow: style.glowIntensity ?? 0,
+  };
+
+  /* Only adopt a face the desk can offer in its own picker, or the Style panel
+     would show nothing selected while the canvas rendered something else. */
+  if (FONTS.some((f) => f.name === style.fontFamily)) {
+    patch.font = style.fontFamily;
+  }
+
+  /* Character spacing is stored in em by the desk and in pixels by the
+     renderer, so it is resolved back against the font size it was resolved
+     against on the way out. */
+  if (style.fontSize > 0) {
+    patch.charSpacing = (style.characterSpacing ?? 0) / style.fontSize;
+  }
+
+  if (style.strokeColor) patch.strokeColor = style.strokeColor;
+  if (style.accentColor) patch.emphasisColor = style.accentColor;
+  if (style.contentFit) patch.fit = style.contentFit;
+
+  const mechanic = CAPTION_ANIMATIONS.find(
+    (option) => option.styleId === style.captionStyleId
+  )?.mechanic;
+  if (mechanic) patch.anim = mechanic;
+
+  return patch;
 }

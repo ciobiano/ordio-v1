@@ -13,9 +13,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Word } from '@Ordio/shared';
 import { chip, solidButton } from '@/lib/variants';
-import { useCaptureStore, useUIStore } from '@/stores';
+import { useCaptureStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
-import { deskStyleConfig, frameSize } from '@/lib/desktop/deskStyleConfig';
+import { frameSize } from '@/lib/desktop/deskStyleConfig';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { DeskSheet } from './DeskSheet';
 
@@ -81,12 +81,10 @@ export function ExportSheet({
     canvas.height = height;
     canvasRef.current = canvas;
 
-    /* The engine reads its StyleConfig from the store, so the desk's own
-       style has to be published there first — otherwise the export encodes
-       whatever the mobile screen last set and every choice in the Style
-       panel is silently dropped. */
-    useUIStore.getState().setStyle(deskStyleConfig(state));
-
+    /* The style is already in the store — `useDeskStyleSync` publishes every
+       desk edit as it happens, which is also what the on-screen canvas reads.
+       Publishing again here would be a second writer of the same value, and a
+       second writer is how the two came apart in the first place. */
     await exporter.startExport(canvas, audioBuffer, true);
   }, [audioBuffer, exporter, onStart, state]);
 

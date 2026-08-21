@@ -38,7 +38,20 @@ interface CanvasPreviewProps {
    * underneath is untouched, so tapping the stage still plays.
    */
   hidePlayBadge?: boolean;
+  /**
+   * Draw the frame without captions.
+   *
+   * The desk has a CC toggle for reading the artwork underneath while
+   * composing. The engine has no captions-off flag — captions are drawn from
+   * the transcript — so the toggle is expressed by rendering against an empty
+   * one. Preview only: nothing here touches the stored transcript, so export
+   * is unaffected and the words come straight back when it is switched off.
+   */
+  hideCaptions?: boolean;
 }
+
+/** Stable identity, so an empty transcript does not re-run the render loop. */
+const NO_WORDS: never[] = [];
 
 function getFormatLabel(format: FormatVariant): string {
   switch (format) {
@@ -71,6 +84,7 @@ export default function CanvasPreview({
   gridSize = 24,
   onLocked,
   hidePlayBadge = false,
+  hideCaptions = false,
 }: CanvasPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const storeCanvasLayout = useUIStore((s) => s.canvasLayout);
@@ -134,7 +148,7 @@ export default function CanvasPreview({
     currentTimeRef,
     waveformDataRef,
     playback,
-    transcript,
+    transcript: hideCaptions ? NO_WORDS : transcript,
     style,
     canvasWidth,
     canvasHeight,

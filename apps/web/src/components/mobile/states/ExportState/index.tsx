@@ -17,6 +17,7 @@ import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } from '@/stores';
 import type { FeatureKey } from '@/lib/featureGates';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
+import { buildAudioBuffer } from '@/lib/audio/trimGeometry';
 
 interface UseVideoExporterShape {
   isExporting: boolean;
@@ -46,17 +47,6 @@ interface ExportStateProps {
   onLocked: (feature: FeatureKey) => void;
 }
 
-function buildAudioBuffer(channels: Float32Array[], sampleRate: number): AudioBuffer {
-  const buf = new AudioBuffer({
-    numberOfChannels: channels.length,
-    length: channels[0]?.length ?? 0,
-    sampleRate,
-  });
-  channels.forEach((ch, i) =>
-    buf.copyToChannel(new Float32Array(ch.buffer as ArrayBuffer, ch.byteOffset, ch.length), i)
-  );
-  return buf;
-}
 
 export default function ExportState({
   playback,

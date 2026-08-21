@@ -84,12 +84,12 @@ export function StylePanel({ state, patch }: StylePanelProps) {
               <div className="flex flex-col gap-1">
                 {ANIMS.map((anim) => (
                   <button
-                    key={anim.id}
+                    key={anim.mechanic}
                     type="button"
-                    onClick={() => patch({ anim: anim.id }, true)}
+                    onClick={() => patch({ anim: anim.mechanic }, true)}
                     className={cn(
                       'flex flex-col gap-1 rounded-xl border px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
-                      state.anim === anim.id
+                      state.anim === anim.mechanic
                         ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
                         : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5'
                     )}

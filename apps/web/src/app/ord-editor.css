@@ -240,6 +240,19 @@
   overflow: hidden;
 }
 
+/* Processing fill. The width is a continuously changing value, so it arrives
+   as a custom property rather than an inline width — same contract as the
+   scrubber above. */
+.ord-progress-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: var(--ord-progress-pct, 0%);
+  border-radius: var(--r-pill);
+  background: var(--ord-paper);
+  transition: width var(--dur-snap) linear;
+}
+
 @keyframes ord-eq {
   0%,
   100% {
