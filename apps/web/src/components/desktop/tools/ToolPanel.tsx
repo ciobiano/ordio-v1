@@ -45,7 +45,6 @@ interface ToolPanelProps {
   /** Route a gated backdrop to the upgrade sheet, as the phone does. */
   onLocked?: (feature: FeatureKey) => void;
   hasPendingCuts: boolean;
-  onReroll: () => void;
 }
 
 export function ToolPanel(props: ToolPanelProps) {
@@ -125,7 +124,7 @@ export function ToolPanel(props: ToolPanelProps) {
       )}
       {state.tool === 'reframe' && <ReframePanel state={state} patch={patch} />}
       {state.tool === 'director' && (
-        <DirectorPanel state={state} patch={patch} onReroll={props.onReroll} />
+        <DirectorPanel state={state} patch={patch} />
       )}
     </aside>
   );

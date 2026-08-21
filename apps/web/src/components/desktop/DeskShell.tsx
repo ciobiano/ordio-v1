@@ -454,20 +454,6 @@ export function DeskShell() {
     patch({ accents: strong }, true);
   }, [words, patch]);
 
-  /**
-   * Offer a different three Looks.
-   *
-   * The Director panel has had this button since it was written and the shell
-   * passed it `() => undefined`. Until the Director actually reads the
-   * transcript, rerolling means landing on a preset the current three do not
-   * already cover, so the button changes something every time it is pressed
-   * rather than pretending to.
-   */
-  const reroll = useCallback(() => {
-    patch({ preset: '', artwork: '' });
-    openTool('director');
-  }, [patch, openTool]);
-
   const paletteActions: PaletteAction[] = useMemo(() => {
     const tools = (Object.keys(TOOL_COPY) as ToolId[]).map((id) => ({
       id: `tool-${id}`,
@@ -667,7 +653,6 @@ export function DeskShell() {
                 onApplyTrim={trim.commit}
                 onLocked={flow.setUpgradeTarget}
                 hasPendingCuts={trim.hasPendingCuts}
-                onReroll={reroll}
               />
             )}
             <ToolStrip

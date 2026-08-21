@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { StyleConfigSchema } from '@Ordio/shared';
-import { deskStyleConfig, frameSize } from '@/lib/desktop/deskStyleConfig';
+import { deskStyleConfig, deskStateFromStyle, frameSize } from '@/lib/desktop/deskStyleConfig';
 import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
 import { INITIAL_DESK_STATE, type DeskState } from '@/lib/desktop/deskState';
 
@@ -167,6 +167,82 @@ describe('the controls that reach the renderer', () => {
      key here would blank their work on the next slider move. */
   it('leaves the backdrop alone', () => {
     expect('background' in deskStyleConfig(desk())).toBe(false);
+  });
+});
+
+/**
+ * Reading a style back into desk state.
+ *
+ * Director writes the shared style directly, and the desk republishes its own
+ * state over that store on every edit — so a look that does not come back into
+ * desk state survives exactly until the next slider moves. The round trip is
+ * the property that makes applying one stick.
+ */
+describe('a style read back into the desk', () => {
+  it('survives a round trip through the projection', () => {
+    const original = desk({
+      font: 'Montserrat',
+      fontSize: 64,
+      textColor: '#ff0066',
+      bgColor: '#101010',
+      waveColor: '#c6ff3d',
+      align: 'start',
+      lineHeight: 1.6,
+      charSpacing: 0.05,
+      vAlign: 'middle',
+      anim: 'static-highlight',
+      strokeW: 3,
+      strokeColor: '#0a0b0a',
+      glow: 0.5,
+      fit: 'auto',
+    });
+
+    const returned = deskStateFromStyle(deskStyleConfig(original));
+
+    expect(returned.font).toBe('Montserrat');
+    expect(returned.fontSize).toBe(64);
+    expect(returned.textColor).toBe('#ff0066');
+    expect(returned.bgColor).toBe('#101010');
+    expect(returned.waveColor).toBe('#c6ff3d');
+    expect(returned.align).toBe('start');
+    expect(returned.lineHeight).toBe(1.6);
+    expect(returned.charSpacing).toBeCloseTo(0.05);
+    expect(returned.vAlign).toBe('middle');
+    expect(returned.anim).toBe('static-highlight');
+    expect(returned.strokeW).toBe(3);
+    expect(returned.strokeColor).toBe('#0a0b0a');
+    expect(returned.glow).toBe(0.5);
+    expect(returned.fit).toBe('auto');
+  });
+
+  it('round trips every animation', () => {
+    for (const option of CAPTION_ANIMATIONS) {
+      const returned = deskStateFromStyle(deskStyleConfig(desk({ anim: option.mechanic })));
+      expect(returned.anim).toBe(option.mechanic);
+    }
+  });
+
+  /* A look can name a face the desk's own picker does not list. Adopting it
+     would leave the Style panel showing nothing selected while the canvas
+     rendered something else. */
+  it('ignores a typeface the desk cannot offer', () => {
+    const returned = deskStateFromStyle({
+      ...deskStyleConfig(desk()),
+      fontFamily: 'Instrument Sans',
+    });
+    expect(returned.font).toBeUndefined();
+  });
+
+  it('treats an absent stroke or glow as off rather than as unset', () => {
+    const returned = deskStateFromStyle(deskStyleConfig(desk({ strokeW: 0, glow: 0 })));
+    expect(returned.strokeW).toBe(0);
+    expect(returned.glow).toBe(0);
+  });
+
+  /* The backdrop lives only in the store — reading one back into desk state
+     would give the projection a chance to overwrite it. */
+  it('does not try to bring the backdrop across', () => {
+    expect('background' in deskStateFromStyle(deskStyleConfig(desk()))).toBe(false);
   });
 });
 

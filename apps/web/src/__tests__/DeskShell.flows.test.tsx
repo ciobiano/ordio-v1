@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const flow = vi.hoisted(() => ({
   currentState: 'idle' as 'idle' | 'recording' | 'processing',
@@ -117,6 +117,7 @@ vi.mock('@/components/media/orb/Orb', () => ({
 }));
 
 import { DeskShell } from '@/components/desktop/DeskShell';
+import { useDirectorStore } from '@/stores';
 
 function reset() {
   flow.currentState = 'idle';
@@ -367,6 +368,39 @@ describe('DeskShell — the canvas is the real renderer', () => {
   it('draws the clip on a canvas rather than in markup', () => {
     renderEditing();
     expect(document.querySelector('canvas')).not.toBeNull();
+  });
+});
+
+describe('DeskShell — Director reads the clip', () => {
+  beforeEach(() => {
+    reset();
+    useDirectorStore.getState().reset();
+  });
+
+  /* The panel used to list three hardcoded looks and a reroll that re-picked
+     from the same static three. Nothing was read, so the names were there
+     before the clip was. */
+  it('has no looks to show until it has read something', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Director$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Reroll the three/i })).toBeEnabled()
+    );
+    expect(screen.queryByRole('button', { name: /Apply the ".*" look/i })).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it('asks the director for looks rather than reciting a list', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    renderEditing();
+    fireEvent.click(screen.getByRole('button', { name: /^Director$/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/direct');
+    vi.unstubAllGlobals();
   });
 });
 
