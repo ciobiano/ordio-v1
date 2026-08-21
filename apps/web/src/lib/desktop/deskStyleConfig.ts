@@ -14,6 +14,7 @@
 
 import type { StyleConfig } from '@Ordio/shared';
 import { RATIO } from './deskCatalog';
+import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
 import type { DeskState } from './deskState';
 
 /**
@@ -48,6 +49,17 @@ function faceFor(name: string): StyleConfig['fontFamily'] {
     : 'Inter';
 }
 
+/**
+ * The style bundle that runs a given animation.
+ *
+ * Falls back to the schema's own default rather than throwing: an unknown
+ * mechanic should cost the chosen animation, not the export.
+ */
+function styleIdFor(mechanic: DeskState['anim']): StyleConfig['captionStyleId'] {
+  const match = CAPTION_ANIMATIONS.find((option) => option.mechanic === mechanic);
+  return (match?.styleId as StyleConfig['captionStyleId']) ?? 'minimal-lower-third';
+}
+
 export function deskStyleConfig(state: DeskState): StyleConfig {
   const { width, height } = frameSize(state.format);
 
@@ -75,13 +87,23 @@ export function deskStyleConfig(state: DeskState): StyleConfig {
         ? Math.max(2, Math.min(12, state.breakQty))
         : undefined,
     backgroundScrim: 'flat',
-    captionStyleId: 'minimal-lower-third',
+    /* The animation the Motion panel is showing.
+   
+       This was pinned to 'minimal-lower-third'. The panel offered five
+       choices, the state recorded which one you picked, and this constant
+       threw it away — so every desk export ran a hard phrase cut regardless,
+       and no test noticed because a valid StyleConfig came out either way. */
+    captionStyleId: styleIdFor(state.anim),
     strokeWidth: state.strokeW > 0 ? Math.min(8, state.strokeW) : undefined,
     strokeColor: state.strokeW > 0 ? state.strokeColor : undefined,
     glowIntensity: state.glow > 0 ? state.glow : undefined,
     /* A halo in the text's own colour reads as light; a second hue reads as a
        drop shadow. Matches what PlayerStage draws. */
     glowColor: state.glow > 0 ? state.textColor : undefined,
+    /* The Reframe panel's fit, which previously stopped at the panel: a photo
+       or video backdrop was always composed with the default, whichever
+       button was lit. */
+    contentFit: state.fit,
     accentColor: state.emphasisColor,
     autoFit: state.autoFit,
   };

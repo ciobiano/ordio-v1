@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { StyleConfigSchema } from '@Ordio/shared';
 import { deskStyleConfig, frameSize } from '@/lib/desktop/deskStyleConfig';
+import { CAPTION_ANIMATIONS } from '@/lib/captionAnimations';
 import { INITIAL_DESK_STATE, type DeskState } from '@/lib/desktop/deskState';
 
 const desk = (over: Partial<DeskState> = {}): DeskState => ({
@@ -117,3 +118,55 @@ describe('desk state as a StyleConfig', () => {
     }
   });
 });
+
+/**
+ * The two fields that were written into state, drawn in a panel, and then
+ * dropped on the way to the renderer.
+ *
+ * Both produced a valid StyleConfig either way, which is why nothing caught
+ * them: the export succeeded, it just ignored you.
+ */
+describe('the controls that reach the renderer', () => {
+  it('carries the animation the Motion panel is showing', () => {
+    /* This was pinned to a constant, so every desk export ran a hard phrase
+       cut whichever of the four you picked. */
+    expect(deskStyleConfig(desk({ anim: 'word-swap' })).captionStyleId).toBe('word-pop');
+    expect(deskStyleConfig(desk({ anim: 'static-highlight' })).captionStyleId).toBe('karaoke-chip');
+    expect(deskStyleConfig(desk({ anim: 'phrase-cut' })).captionStyleId).toBe(
+      'minimal-lower-third'
+    );
+    expect(deskStyleConfig(desk({ anim: 'progressive-reveal' })).captionStyleId).toBe(
+      'editorial-reveal'
+    );
+  });
+
+  it('resolves every animation the desk offers to a style the engine has', () => {
+    for (const option of CAPTION_ANIMATIONS) {
+      const config = deskStyleConfig(desk({ anim: option.mechanic }));
+      expect(config.captionStyleId).toBe(option.styleId);
+      expect(() => StyleConfigSchema.parse(config)).not.toThrow();
+    }
+  });
+
+  it('gives distinct animations distinct styles', () => {
+    const ids = CAPTION_ANIMATIONS.map(
+      (option) => deskStyleConfig(desk({ anim: option.mechanic })).captionStyleId
+    );
+    expect(new Set(ids).size).toBe(CAPTION_ANIMATIONS.length);
+  });
+
+  it('carries the content fit chosen in Reframe', () => {
+    expect(deskStyleConfig(desk({ fit: 'fill' })).contentFit).toBe('fill');
+    expect(deskStyleConfig(desk({ fit: 'fit' })).contentFit).toBe('fit');
+    /* 'auto' had no representation in desk state at all. */
+    expect(deskStyleConfig(desk({ fit: 'auto' })).contentFit).toBe('auto');
+  });
+
+  /* A background is not part of the desk's model, so the projection must not
+     mention it — the backdrop pickers write it straight to the store, and a
+     key here would blank their work on the next slider move. */
+  it('leaves the backdrop alone', () => {
+    expect('background' in deskStyleConfig(desk())).toBe(false);
+  });
+});
+

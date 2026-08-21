@@ -105,7 +105,9 @@ export interface DeskState {
 
   /* Frame */
   format: FormatId;
-  fit: 'fill' | 'fit';
+  /** Matches StyleConfig['contentFit'] — 'auto' was missing, so the desk
+   *  could not express the setting the phone defaults photo backdrops to. */
+  fit: 'fill' | 'fit' | 'auto';
   safe: SafeId;
   safeShow: boolean;
 
@@ -164,7 +166,7 @@ export const INITIAL_DESK_STATE: DeskState = {
   clipId: null,
   clipName: null,
 
-  anim: 'reveal',
+  anim: 'progressive-reveal',
   preset: 'clean',
   font: 'Outfit',
   fontSize: 56,
