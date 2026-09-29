@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, IBM_Plex_Sans, Geist, Geist_Mono, Instrument_Serif, Nunito } from 'next/font/google';
+import { Plus_Jakarta_Sans, IBM_Plex_Sans, Geist, Geist_Mono, Instrument_Serif, Montserrat, Nunito, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import Providers from '@/components/Providers';
 import './globals.css';
@@ -19,6 +19,22 @@ const instrumentSerif = Instrument_Serif({
   style: ['italic'],
   variable: '--font-next-serif',
   display: 'swap',
+});
+// Two caption faces drawn in the onboarding look cards. Not preloaded: only
+// onboarding uses them, and it can show them a beat late.
+const montserratSample = Montserrat({
+  subsets: ['latin'],
+  weight: '800',
+  variable: '--font-next-montserrat',
+  display: 'swap',
+  preload: false,
+});
+const spaceGroteskSample = Space_Grotesk({
+  subsets: ['latin'],
+  weight: '700',
+  variable: '--font-next-space-grotesk',
+  display: 'swap',
+  preload: false,
 });
 
 const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'});
@@ -93,7 +109,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning className={cn("dark font-sans", ibmPlexSans.variable, geistMonoHeading.variable, nunitoAcid.variable, geistUi.variable, geistMonoUi.variable, instrumentSerif.variable)}>
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={cn("dark font-sans", ibmPlexSans.variable, geistMonoHeading.variable, nunitoAcid.variable, geistUi.variable, geistMonoUi.variable, instrumentSerif.variable, montserratSample.variable, spaceGroteskSample.variable)}>
       <body className={`${plusJakarta.variable} antialiased`}>
         <a href="#main-content" className="skip-nav">Skip to main content</a>
         <Providers>{children}</Providers>

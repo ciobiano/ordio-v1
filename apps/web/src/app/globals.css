@@ -123,6 +123,14 @@
   /* The darker lip a lime button stands on; pressing sinks it into the lip. */
   --acid-accent-lip: #6e9412;
   --acid-error-lip: #a33a3a;
+  /* Paper buttons (onboarding, sign-up): paper on its own grey lip. */
+  --acid-paper-lip: #8f8e88;
+  /* A raised dark tile — inactive words and ratio chips in onboarding art. */
+  --acid-tile: #2a2c26;
+  --acid-tile-lip: #171814;
+  /* Two caption-look swatches used only as illustration in onboarding. */
+  --acid-look-street: #f0506e;
+  --acid-look-cinema: #f4a534;
 
   /* Reserved for the ONE hero headline + Orb live-audio state. Not a wash. */
   --acid-signal: linear-gradient(90deg, #c6ff3d, #6be0ff);
@@ -178,6 +186,9 @@
   --acid-font-mono: var(--font-next-geist-mono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --acid-font-serif: var(--font-next-serif), Georgia, serif;
   --acid-font-wordmark: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
+  /* Caption faces, drawn in onboarding samples only. */
+  --acid-font-caption-bold: var(--font-next-montserrat), ui-sans-serif, sans-serif;
+  --acid-font-caption-street: var(--font-next-space-grotesk), ui-sans-serif, sans-serif;
 
   /* ─── Expressive type scale ───────────────────────────────────
      Size / leading / tracking are ONE triple per role, never mixed
@@ -512,6 +523,12 @@
   --font-acid-mono: var(--acid-font-mono);
   --font-acid-serif: var(--acid-font-serif);
   --font-acid-wordmark: var(--acid-font-wordmark);
+  --font-acid-caption-bold: var(--acid-font-caption-bold);
+  --font-acid-caption-street: var(--acid-font-caption-street);
+  --color-acid-paper-lip: var(--acid-paper-lip);
+  --color-acid-tile: var(--acid-tile);
+  --color-acid-look-street: var(--acid-look-street);
+  --color-acid-look-cinema: var(--acid-look-cinema);
 
   /* ── Type scale as Tailwind utilities ──
      Each `text-acid-*` carries its OWN leading + tracking via v4's
