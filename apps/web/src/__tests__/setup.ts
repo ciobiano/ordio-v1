@@ -145,3 +145,20 @@ if (typeof globalThis.OffscreenCanvas === 'undefined') {
     }
   };
 }
+
+// vaul (OrdSheet) animates its exit with a CSS keyframe and Radix unmounts it
+// on `animationend`, which jsdom never fires — a closed sheet would stay in the
+// DOM forever. Tests assert on open/closed, not on the slide, so report no
+// animation for vaul's own nodes.
+const realGetComputedStyle = window.getComputedStyle.bind(window);
+window.getComputedStyle = ((element: Element, pseudo?: string | null) => {
+  const style = realGetComputedStyle(element, pseudo);
+  if (!element.hasAttribute('data-vaul-drawer') && !element.hasAttribute('data-vaul-overlay')) return style;
+  return new Proxy(style, {
+    get(target, prop) {
+      if (prop === 'animationName') return 'none';
+      const value = Reflect.get(target, prop, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}) as typeof window.getComputedStyle;

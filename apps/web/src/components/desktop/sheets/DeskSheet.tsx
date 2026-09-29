@@ -77,7 +77,7 @@ export function DeskSheet({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'ord-animate-fade flex max-h-full flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--surface-card)] p-4 outline-none',
+          'ord-animate-fade flex max-h-full flex-col gap-4 overflow-hidden rounded-[32px] border border-[var(--border-hairline)] bg-[var(--surface-raised)] p-5 shadow-[0_24px_80px_rgb(0_0_0/0.5)] outline-none',
           width === 'wide' ? 'w-[560px]' : 'w-[420px]',
           'max-w-full'
         )}

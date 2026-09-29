@@ -320,3 +320,54 @@ export const solidButton = cva(
 export type DeskToolButtonProps = VariantProps<typeof deskToolButton>;
 export type IconButtonProps = VariantProps<typeof iconButton>;
 export type SolidButtonProps = VariantProps<typeof solidButton>;
+
+/* ------------------------------------------------------------------ *
+ * Sheet buttons — the one button family every sheet uses.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Buttons at the foot of a sheet. Three tones and nothing else: `secondary`
+ * for the way out (Cancel, Maybe later), `primary` for the one commit, and
+ * `danger` for a commit that destroys something. Primary and danger stand on a
+ * darker lip of their own hue and sink into it on press — the sticker press,
+ * redrawn for a sheet, where an ink shadow would vanish into the surface.
+ */
+export const sheetButton = cva(
+  'h-12.5 w-full rounded-[14px] inline-flex items-center justify-center gap-2 px-4 text-[15px] ' +
+    'cursor-pointer border-none transition-[transform,box-shadow,background-color] duration-100 ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring ' +
+    'disabled:opacity-40 disabled:cursor-not-allowed motion-reduce:transition-none',
+  {
+    variants: {
+      tone: {
+        secondary: 'bg-acid-text-1/8 text-acid-text-1 font-medium hover:bg-acid-text-1/12 active:scale-[0.98]',
+        primary:
+          'bg-acid-accent text-acid-on-accent font-semibold shadow-[0_3px_0_var(--acid-accent-lip)] ' +
+          'active:translate-y-0.75 active:shadow-none disabled:active:translate-y-0',
+        danger:
+          'bg-acid-error text-acid-on-accent font-semibold shadow-[0_3px_0_var(--acid-error-lip)] ' +
+          'active:translate-y-0.75 active:shadow-none disabled:active:translate-y-0',
+      },
+    },
+    defaultVariants: { tone: 'secondary' },
+  }
+);
+
+/**
+ * A selectable row inside a sheet (a radio option, a picker entry). Selected
+ * rows take a lime rule and a faint lime wash — the accent marking a chosen
+ * value, which is the one thing DESIGN.md lets it mark.
+ */
+export const sheetOption = cva(
+  'w-full min-h-14 rounded-[14px] px-3.5 py-3 flex items-center gap-3 text-left cursor-pointer ' +
+    'transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring',
+  {
+    variants: {
+      selected: {
+        true: 'border-[1.5px] border-acid-accent bg-acid-accent/7',
+        false: 'border border-transparent bg-acid-text-1/5 hover:bg-acid-text-1/8',
+      },
+    },
+    defaultVariants: { selected: false },
+  }
+);

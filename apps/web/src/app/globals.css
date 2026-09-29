@@ -19,8 +19,15 @@
    Not a second palette — see the header of ord-tokens.css. */
 @import './ord-tokens.css';
 @import './ord-editor.css';
+/* Scroll-only scrollbars and the page-transition loader. */
+@import './ord-motion.css';
 
 @custom-variant dark (&:is(.dark *));
+
+/* Phones in a browser, not an app: an iPhone 12 in Safari leaves about 664px
+   of page, a Galaxy A20 in Chrome about 652px. Below 700px every screen trades
+   spacing for its content rather than pushing the dock under the toolbar. */
+@custom-variant short (@media (max-height: 700px));
 
 /* ── Main App Chrome (ChatGPT-iOS reference, DESIGN.md) ──────
    Light values are exact from the approved reference (ink/paper,
@@ -113,6 +120,9 @@
   --acid-accent-soft: rgba(198, 255, 61, 0.14);
   --acid-accent-ring: rgba(198, 255, 61, 0.4);
   --acid-on-accent: #0a0b0a; /* always ink text on lime fills */
+  /* The darker lip a lime button stands on; pressing sinks it into the lip. */
+  --acid-accent-lip: #6e9412;
+  --acid-error-lip: #a33a3a;
 
   /* Reserved for the ONE hero headline + Orb live-audio state. Not a wash. */
   --acid-signal: linear-gradient(90deg, #c6ff3d, #6be0ff);
@@ -161,8 +171,13 @@
   --acid-dur-snap: 220ms;
 
   /* ─── Fonts ─── */
-  --acid-font-display: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
-  --acid-font-body: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
+  /* Geist for all chrome; Nunito survives only as the wordmark's face
+     (--acid-font-wordmark), so the logo stays the logo. */
+  --acid-font-display: var(--font-next-geist), ui-sans-serif, system-ui, sans-serif;
+  --acid-font-body: var(--font-next-geist), ui-sans-serif, system-ui, sans-serif;
+  --acid-font-mono: var(--font-next-geist-mono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --acid-font-serif: var(--font-next-serif), Georgia, serif;
+  --acid-font-wordmark: var(--font-acid-nunito), ui-sans-serif, system-ui, sans-serif;
 
   /* ─── Expressive type scale ───────────────────────────────────
      Size / leading / tracking are ONE triple per role, never mixed
@@ -465,7 +480,7 @@
   --color-destructive: var(--destructive);
   --color-accent: var(--accent);
   --color-surface-sheet: var(--surface-sheet);
-  --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--acid-font-body);
   --font-heading: var(--acid-font-display);
   --font-body: var(--acid-font-body);
   --animate-wave-pulse: wave-pulse 1.4s ease-in-out infinite alternate;
@@ -494,6 +509,9 @@
   --color-acid-info: var(--acid-info);
   --font-acid-display: var(--acid-font-display);
   --font-acid-body: var(--acid-font-body);
+  --font-acid-mono: var(--acid-font-mono);
+  --font-acid-serif: var(--acid-font-serif);
+  --font-acid-wordmark: var(--acid-font-wordmark);
 
   /* ── Type scale as Tailwind utilities ──
      Each `text-acid-*` carries its OWN leading + tracking via v4's
@@ -619,6 +637,13 @@
 
 @utility safe-pt {
   padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* A bottom dock or sheet: 20px of breathing room, or the home-indicator inset
+   when that is larger. Never both — stacking them left a 54px gutter on
+   iPhones that the design never had. */
+@utility safe-pb-dock {
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -974,21 +999,6 @@ select {
   transform-origin: bottom;
 }
 
-/* ── Custom scrollbar (dark) ───────────────────────────────── */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 /* ── Landing page utilities ──────────────────────────────────── */
 @utility landing-container {
   width: 100%;
@@ -1134,23 +1144,6 @@ select {
     animation: none;
     opacity: 0.9;
   }
-}
-
-/* ── Capture screen: thin, subtle scrollbar for sidebar/sheet scroll areas ── */
-.capture-scroll-thin {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
-}
-.capture-scroll-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.capture-scroll-thin::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.4);
-  border-radius: 999px;
-}
-.capture-scroll-thin::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 /* ── Capture screen: glossy dark round buttons (nav, dock, sidebar) ── */

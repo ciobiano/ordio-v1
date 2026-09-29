@@ -6,6 +6,7 @@ import { ConvexReactClient } from 'convex/react';
 import { ThemeProvider } from 'next-themes';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NavigationTransition } from './NavigationTransition';
+import { ScrollReveal } from './ScrollReveal';
 import type { ReactNode } from 'react';
 
 const convex = new ConvexReactClient(
@@ -18,6 +19,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       <ClerkProvider signInFallbackRedirectUrl="/create" signUpFallbackRedirectUrl="/create">
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <TooltipProvider>
+            <ScrollReveal />
             <NavigationTransition>
               {children}
             </NavigationTransition>

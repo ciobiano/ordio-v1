@@ -4,20 +4,18 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Upload01Icon,
   Settings01Icon,
-  StopIcon,
   PauseIcon,
   PlayIcon,
   RefreshIcon,
   Cancel01Icon,
   Mic01Icon,
 } from '@hugeicons/core-free-icons';
-import { cn } from '@/lib/utils';
-import { captureCenterSlot, captureRecordHero, captureRoundBtn } from '@/lib/variants';
+import { captureCommitPill, captureRecordHero, captureRoundBtn, captureStopHero } from '@/lib/variants';
+import type { ReactNode } from 'react';
 import type { CapturePhase } from '@/lib/capture/types';
 
 interface CaptureDockProps {
   phase: CapturePhase;
-  progress: number;
   onOpenUpload: () => void;
   onRecordPressStart: () => void;
   onRecordPressEnd: () => void;
@@ -32,11 +30,8 @@ interface CaptureDockProps {
   onCancel: () => void;
 }
 
-const WAVE_HEIGHTS = [0.42, 0.75, 1, 0.6, 0.34];
-
 export function CaptureDock({
   phase,
-  progress,
   onOpenUpload,
   onRecordPressStart,
   onRecordPressEnd,
@@ -53,13 +48,13 @@ export function CaptureDock({
     // labeled icon buttons. (The old full-width "Upload audio or video" pill
     // read as a search field next to mobile browsers' URL bars.)
     return (
-      <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
+      <div className="relative z-20 shrink-0 px-5 pt-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] short:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex items-end justify-center gap-10 w-full">
           <div className="flex flex-col items-center gap-1.5">
             <button
               type="button"
               onClick={onOpenUpload}
-              className={captureRoundBtn({ tone: 'neutral' })}
+              className={captureRoundBtn({ tone: 'neutral', size: 'lg' })}
               aria-label="Upload audio or video"
             >
               <HugeiconsIcon icon={Upload01Icon} size={18} strokeWidth={2} />
@@ -83,7 +78,7 @@ export function CaptureDock({
             <button
               type="button"
               onClick={onOpenSettings}
-              className={captureRoundBtn({ tone: 'neutral' })}
+              className={captureRoundBtn({ tone: 'neutral', size: 'lg' })}
               aria-label="Settings"
             >
               <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={2} />
@@ -95,106 +90,81 @@ export function CaptureDock({
     );
   }
 
-  const isRecPaused = phase === 'recording' || phase === 'paused';
-  const isReady = phase === 'ready';
-  const isProcessing = phase === 'processing';
+  const dockClass = 'relative z-20 shrink-0 px-5 pt-5 safe-pb-dock short:pt-3';
 
-  return (
-    <div className="absolute left-0 right-0 bottom-0 px-5 pb-10 z-20">
-      <div className="flex items-end gap-3 w-full min-h-15">
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            type="button"
-            onClick={isRecPaused ? onGoReady : onOpenSettings}
-            className={captureRoundBtn({ tone: isRecPaused ? 'primary' : 'neutral' })}
-            aria-label={isRecPaused ? 'Stop and review recording' : 'Settings'}
-          >
-            {isRecPaused ? (
-              <HugeiconsIcon icon={StopIcon} size={20} strokeWidth={2} />
-            ) : (
-              <HugeiconsIcon icon={Settings01Icon} size={20} strokeWidth={2} />
-            )}
-          </button>
-          <span className="text-acid-footnote text-white/40" aria-hidden="true">
-            {isRecPaused ? 'Stop' : 'Settings'}
-          </span>
-        </div>
-
-        {/* Matches the flanking columns' button+label two-tier height (via an
-            invisible spacer) so `items-end` bottom-aligns this button with its
-            siblings' buttons instead of with their label baseline. */}
-        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={isReady ? onProcess : undefined}
-            className={cn(
-              captureCenterSlot({ phase: isRecPaused ? 'recordPaused' : isReady ? 'ready' : 'processing' }),
-              'w-full flex-none'
-            )}
-            aria-label={isReady ? 'Process recording' : undefined}
-            disabled={!isReady}
-          >
-            {isRecPaused && (
-              <div className="flex items-center justify-center gap-1.5 w-full h-full">
-                {WAVE_HEIGHTS.map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-1 rounded-[3px] bg-[#1c1c1e]"
-                    style={{
-                      height: `${18 + h * 24}px`,
-                      transform: phase === 'paused' ? `scaleY(${0.4 + h * 0.4})` : undefined,
-                      animation:
-                        phase === 'recording'
-                          ? `waveEq ${700 + i * 90}ms ease-in-out ${i * 90}ms infinite`
-                          : undefined,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-            {isReady && <span className="text-black font-semibold text-base whitespace-nowrap">Process recording</span>}
-            {isProcessing && (
-              <span
-                className="absolute left-0 top-0 bottom-0 bg-white rounded-full transition-[width] duration-120 ease-linear"
-                style={{ width: `${Math.round(progress)}%` }}
-              />
-            )}
-          </button>
-          <span className="text-acid-footnote text-transparent select-none" aria-hidden="true">·</span>
-        </div>
-
-        {!isProcessing && (
-          <div className="flex flex-col items-center gap-1.5">
-            <button
-              type="button"
-              onClick={phase === 'recording' ? onPause : phase === 'paused' ? onResume : onRestart}
-              className={captureRoundBtn({
-                tone: phase === 'recording' ? 'warning' : phase === 'paused' ? 'success' : 'danger',
-              })}
-              aria-label={phase === 'recording' ? 'Pause recording' : phase === 'paused' ? 'Resume recording' : 'Restart recording'}
-            >
-              {phase === 'recording' && <HugeiconsIcon icon={PauseIcon} size={18} strokeWidth={2} />}
-              {phase === 'paused' && <HugeiconsIcon icon={PlayIcon} size={18} strokeWidth={2} />}
-              {isReady && <HugeiconsIcon icon={RefreshIcon} size={18} strokeWidth={2} />}
+  if (phase === 'processing') {
+    return (
+      <div className={dockClass}>
+        <div className="flex justify-center">
+          <DockSlot label="Cancel">
+            <button type="button" onClick={onCancel} className={captureRoundBtn({ size: 'lg' })} aria-label="Cancel processing">
+              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
             </button>
-            <span className="text-acid-footnote text-white/40" aria-hidden="true">
-              {phase === 'recording' ? 'Pause' : phase === 'paused' ? 'Resume' : 'Restart'}
-            </span>
-          </div>
-        )}
-
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            className={captureRoundBtn({ tone: 'neutral' })}
-            aria-label="Cancel"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
-          </button>
-          <span className="text-acid-footnote text-white/40" aria-hidden="true">Cancel</span>
+          </DockSlot>
         </div>
       </div>
+    );
+  }
+
+  if (phase === 'ready') {
+    return (
+      <div className={dockClass}>
+        <div className="flex items-start gap-4">
+          <DockSlot label="Restart">
+            <button type="button" onClick={onRestart} className={captureRoundBtn({ size: 'lg' })} aria-label="Restart recording">
+              <HugeiconsIcon icon={RefreshIcon} size={20} strokeWidth={2} />
+            </button>
+          </DockSlot>
+          <button type="button" onClick={onProcess} className={captureCommitPill}>
+            Process recording
+          </button>
+          <DockSlot label="Discard">
+            <button type="button" onClick={onCancel} className={captureRoundBtn({ size: 'lg' })} aria-label="Discard recording">
+              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+            </button>
+          </DockSlot>
+        </div>
+      </div>
+    );
+  }
+
+  // recording | paused — the approved record dock: restart, stop, pause.
+  const isPaused = phase === 'paused';
+  return (
+    <div className={dockClass}>
+      <div className="flex items-center justify-between px-5">
+        <DockSlot label="Restart">
+          <button type="button" onClick={onRestart} className={captureRoundBtn({ size: 'lg' })} aria-label="Restart take">
+            <HugeiconsIcon icon={RefreshIcon} size={20} strokeWidth={2} />
+          </button>
+        </DockSlot>
+        <DockSlot label="Stop" strong>
+          <button type="button" onClick={onGoReady} className={captureStopHero} aria-label="Stop and review recording">
+            <span className="h-7.5 w-7.5 rounded-lg bg-acid-error short:h-6.5 short:w-6.5" />
+          </button>
+        </DockSlot>
+        <DockSlot label={isPaused ? 'Resume' : 'Pause'}>
+          <button
+            type="button"
+            onClick={isPaused ? onResume : onPause}
+            className={captureRoundBtn({ size: 'lg', tone: isPaused ? 'success' : 'neutral' })}
+            aria-label={isPaused ? 'Resume recording' : 'Pause recording'}
+          >
+            <HugeiconsIcon icon={isPaused ? PlayIcon : PauseIcon} size={20} strokeWidth={2} />
+          </button>
+        </DockSlot>
+      </div>
+    </div>
+  );
+}
+
+function DockSlot({ label, strong = false, children }: { label: string; strong?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-2 short:gap-1.5">
+      {children}
+      <span className={strong ? 'text-xs text-acid-text-2' : 'text-xs text-acid-text-3'} aria-hidden="true">
+        {label}
+      </span>
     </div>
   );
 }

@@ -8,20 +8,12 @@ import { toast } from 'sonner';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Search01Icon, PlusSignIcon, Settings01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
-import { captureGlossyBtn } from '@/lib/variants';
+import { captureGlossyBtn, sheetButton } from '@/lib/variants';
 import { formatDuration } from '@/components/saved-audio/formatters';
 import { RecordingRow } from './RecordingRow';
 import { useSwipeHint } from './useSwipeHint';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet';
+import { DangerBadge } from '@/components/ui/SheetGlyphs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,7 +134,7 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
       <div className="h-px bg-white/8 mx-5 my-3.5" />
 
       <div className="text-[15px] font-semibold text-white/50 px-5 pb-1.5">Recents</div>
-      <div className="flex-1 overflow-y-auto px-2 pb-3 capture-scroll-thin">
+      <div className="flex-1 overflow-y-auto px-2 pb-3">
         {sessions.map((session) => (
           <RecordingRow
             key={session.id}
@@ -193,33 +185,37 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
         </DropdownMenu>
       </div>
 
-      <AlertDialog
+      <OrdSheet
         open={pendingDelete !== null}
         onOpenChange={(open) => {
-          if (!open) setPendingDelete(null);
+          if (!open && !isDeleting) setPendingDelete(null);
         }}
-      >
-        <AlertDialogContent className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white">
-          <AlertDialogHeader className="place-items-start text-left">
-            <AlertDialogTitle className="text-white">Delete this recording?</AlertDialogTitle>
-            <AlertDialogDescription className="text-white/55">
-              {pendingDelete ? `"${pendingDelete.name}" will be permanently deleted.` : ''}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10">
+        dismissible={!isDeleting}
+        role="alertdialog"
+        title="Delete this recording?"
+        description={pendingDelete ? `"${pendingDelete.name}" will be permanently deleted.` : undefined}
+        icon={<DangerBadge kind="bin" />}
+        footer={
+          <OrdSheetActions>
+            <button
+              type="button"
+              className={sheetButton({ tone: 'secondary' })}
+              onClick={() => setPendingDelete(null)}
+              disabled={isDeleting}
+            >
               Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
+            </button>
+            <button
+              type="button"
+              className={sheetButton({ tone: 'danger' })}
               onClick={handleConfirmDelete}
               disabled={isDeleting}
-              className="rounded-2xl bg-[#ff453a] text-white hover:bg-[#ff453a]/90"
             >
               {isDeleting ? 'Deleting…' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </button>
+          </OrdSheetActions>
+        }
+      />
     </div>
   );
 }

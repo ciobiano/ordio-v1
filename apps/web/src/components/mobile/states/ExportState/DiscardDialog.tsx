@@ -1,15 +1,8 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet'
+import { DangerBadge } from '@/components/ui/SheetGlyphs'
+import { sheetButton } from '@/lib/variants'
 
 interface DiscardDialogProps {
   open: boolean
@@ -19,24 +12,23 @@ interface DiscardDialogProps {
 
 export function DiscardDialog({ open, onOpenChange, onConfirm }: DiscardDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Discard changes?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Your edits and recording will be lost. This cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive text-white hover:bg-destructive/90"
-          >
+    <OrdSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      role="alertdialog"
+      title="Discard changes?"
+      description="Your edits and recording will be lost. This cannot be undone."
+      icon={<DangerBadge kind="bin" />}
+      footer={
+        <OrdSheetActions>
+          <button type="button" className={sheetButton({ tone: 'secondary' })} onClick={() => onOpenChange(false)}>
+            Cancel
+          </button>
+          <button type="button" className={sheetButton({ tone: 'danger' })} onClick={onConfirm}>
             Discard
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </button>
+        </OrdSheetActions>
+      }
+    />
   )
 }

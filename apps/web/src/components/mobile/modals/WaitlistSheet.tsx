@@ -1,14 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '@Ordio/convex'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
-import { primaryBtn, captureSheetSurface } from '@/lib/variants'
+import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet'
+import { sheetButton } from '@/lib/variants'
 import type { FeatureKey } from '@/lib/featureGates'
 import type { UpgradeTarget } from '@/stores/uiStore'
 
@@ -103,61 +100,57 @@ export default function WaitlistSheet({ open, onClose, target }: WaitlistSheetPr
   }
 
   return (
-    <Drawer open={open} onOpenChange={(v) => !v && onClose()}>
-      <DrawerContent className={cn(captureSheetSurface, 'p-0 max-h-[85vh]')}>
-        <DrawerTitle className="sr-only">Join the waitlist</DrawerTitle>
-        <div className="w-full max-w-sm mx-auto px-6 py-6">
-          <div className="w-9 h-[5px] rounded-full bg-white/[0.25] mx-auto mb-5" aria-hidden="true" />
-
-          <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center mb-4 mx-auto">
-            <Image src="/icons/lock.svg" width={18} height={18} alt="" aria-hidden="true" className="invert opacity-50" />
-          </div>
-
-          <h2 className="text-sm font-semibold text-foreground text-center mb-2 leading-snug">
-            {onList ? 'You are on the list' : title}
-          </h2>
-
-          <p className="text-xs text-muted-foreground text-center leading-relaxed mb-6">
-            {onList ? 'We will email you when more minutes are available.' : body}
-          </p>
-
-          {!onList && (
-            <input
-              type="email"
-              value={value}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              aria-label="Email address"
-              className="w-full mb-2.5 px-4 py-3 rounded-full bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          )}
-
-          {status === 'error' && (
-            <p className="text-xs text-center text-destructive mb-2.5">
-              That did not save. Try again in a moment.
-            </p>
-          )}
-
-          <div className="flex flex-col gap-2.5">
-            {!onList && (
-              <Button
-                onClick={() => void handleJoin()}
-                disabled={status === 'saving' || !value.trim()}
-                className={cn(primaryBtn, 'w-full')}
-              >
-                {status === 'saving' ? 'Adding you…' : 'Join the waitlist'}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="w-full py-3 rounded-full text-muted-foreground text-sm font-semibold hover:text-foreground hover:bg-transparent"
+    <OrdSheet
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={onList ? 'You are on the list' : title}
+      description={onList ? 'We will email you when more minutes are available.' : body}
+      eyebrow={
+        !onList ? (
+          <span className="self-start rounded-full bg-acid-warning/12 px-2.5 py-1 font-acid-mono text-[11px] tracking-widest text-acid-warning">
+            COMING SOON
+          </span>
+        ) : undefined
+      }
+      showClose
+      footer={
+        onList ? (
+          <button type="button" onClick={onClose} className={sheetButton({ tone: 'secondary' })}>
+            Close
+          </button>
+        ) : (
+          <OrdSheetActions>
+            <button type="button" onClick={onClose} className={sheetButton({ tone: 'secondary' })}>
+              Maybe later
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleJoin()}
+              disabled={status === 'saving' || !value.trim()}
+              className={sheetButton({ tone: 'primary' })}
             >
-              {onList ? 'Close' : 'Maybe later'}
-            </Button>
-          </div>
-        </div>
-      </DrawerContent>
-    </Drawer>
+              {status === 'saving' ? 'Adding you…' : 'Join the waitlist'}
+            </button>
+          </OrdSheetActions>
+        )
+      }
+    >
+      {!onList && (
+        <input
+          type="email"
+          value={value}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          aria-label="Email address"
+          className="h-13 w-full rounded-[14px] border border-acid-text-1/8 bg-acid-text-1/5 px-4 text-[15px] text-acid-text-1 placeholder:text-acid-text-3 focus:border-acid-accent focus:outline-none"
+        />
+      )}
+
+      {status === 'error' && (
+        <p className="m-0 text-[13px] text-acid-error" role="alert">
+          That did not save. Try again in a moment.
+        </p>
+      )}
+    </OrdSheet>
   )
 }

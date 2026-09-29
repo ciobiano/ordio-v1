@@ -51,7 +51,7 @@
          separate concern and live in deskCatalog.ts. ─── */
   --font-core: var(--acid-font-display);
   --font-display: var(--acid-font-body);
-  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-mono: var(--acid-font-mono);
 
   /* ─── Motion. Two durations, both from the acid system.
          The editor previously ran on four hand-picked numbers (150 inherited

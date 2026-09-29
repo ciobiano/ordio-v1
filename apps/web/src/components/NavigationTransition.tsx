@@ -87,32 +87,58 @@ const modalVariants: Variants = {
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
+/**
+ * The loader has to stay up long enough to be read as the brand rather than a
+ * flicker: the mark takes ~700ms to assemble, so a route that resolves in 80ms
+ * still holds the overlay until the build has landed.
+ */
+const MIN_OVERLAY_MS = 900
+
 export function NavigationTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [navOverlay, setNavOverlay] = useState(false)
+  // True on the server render too, so first paint is the loader rather than
+  // the page flashing in before hydration adds the overlay on top of it.
+  const [navOverlay, setNavOverlay] = useState(true)
+  const [firstPaint, setFirstPaint] = useState(true)
   const [externalLoading, setExternalLoading] = useState(false)
   const prevPathname = useRef<string | null>(null)
+  const shownAt = useRef(0)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const overlayVisible = navOverlay || externalLoading
 
+  const hideOverlaySoon = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    const remaining = Math.max(0, MIN_OVERLAY_MS - (Date.now() - shownAt.current))
+    hideTimer.current = setTimeout(() => {
+      setNavOverlay(false)
+      setFirstPaint(false)
+    }, remaining)
+  }, [])
+
   useEffect(() => {
     if (prevPathname.current === null) {
-      // Initial page load — show overlay as entry animation then clear
       prevPathname.current = pathname
-      setNavOverlay(true)
-      const timer = setTimeout(() => setNavOverlay(false), 800)
-      return () => clearTimeout(timer)
+      shownAt.current = Date.now()
+      hideOverlaySoon()
+      return
     }
 
     if (pathname !== prevPathname.current) {
       prevPathname.current = pathname
-      setNavOverlay(false)
+      hideOverlaySoon()
     }
-  }, [pathname])
+  }, [pathname, hideOverlaySoon])
+
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+  }, [])
 
   const navigate = useCallback(
     (href: string) => {
+      if (hideTimer.current) clearTimeout(hideTimer.current)
+      shownAt.current = Date.now()
       setNavOverlay(true)
       router.push(href)
     },
@@ -138,7 +164,7 @@ export function NavigationTransition({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {overlayVisible && <TransitionOverlay />}
+        {overlayVisible && <TransitionOverlay instant={firstPaint} />}
       </AnimatePresence>
     </NavigationContext.Provider>
   )
