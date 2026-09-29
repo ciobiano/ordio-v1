@@ -136,7 +136,7 @@ export function OnboardingAuthTray({ redirectUrlComplete, className }: Onboardin
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={busy}
-        className="h-13.5 w-full rounded-2xl border border-acid-text-1/8 bg-acid-surface-2 px-4.5 text-[15px] text-acid-text-1 placeholder:text-acid-text-3 focus:border-acid-accent focus:outline-none"
+        className="h-13.5 w-full rounded-[16px] border border-acid-text-1/8 bg-acid-surface-2 px-4.5 text-[15px] text-acid-text-1 placeholder:text-acid-text-3 focus:border-acid-accent focus:outline-none"
       />
 
       <div className="min-h-5 flex-1" />

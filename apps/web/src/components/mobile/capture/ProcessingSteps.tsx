@@ -14,7 +14,14 @@ function StepIcon({ state }: { state: ProcessingStepState }) {
     return (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" className="shrink-0">
         <circle cx="9" cy="9" r="7.5" className="stroke-acid-text-1/16" strokeWidth="1.6" />
-        <path d="M9 1.5a7.5 7.5 0 0 1 7.5 7.5" className="ord-spin stroke-acid-accent" strokeWidth="1.6" strokeLinecap="round" />
+        <path
+          d="M9 1.5a7.5 7.5 0 0 1 7.5 7.5"
+          className="ord-spin stroke-acid-accent"
+          // Spin about the circle's centre, not the arc's own bounding box.
+          style={{ transformBox: 'view-box', transformOrigin: '9px 9px' }}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
@@ -41,7 +48,7 @@ export function ProcessingSteps({ progress, className }: { progress: number; cla
     <ol
       aria-label="Progress"
       className={cn(
-        'm-0 flex list-none flex-col rounded-3xl border border-acid-border-subtle bg-acid-bg-subtle px-5 py-2',
+        'm-0 flex list-none flex-col rounded-[22px] border border-acid-border-subtle bg-acid-bg-subtle px-5 py-2',
         className
       )}
     >

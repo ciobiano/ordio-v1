@@ -709,10 +709,15 @@ body {
   font-variant-ligatures: common-ligatures contextual;
 }
 
-/* Headings use the Apple-friendly heading font */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  font-weight: 700;
+/* Headings default to the display face. In the base layer, so a utility on a
+   heading (a weight, the serif accent, the article's mono) wins over it —
+   unlayered, this rule beat every utility and quietly set every heading in
+   the app in Geist Mono via a stray next/font variable of the same name. */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
 }
 
 button,

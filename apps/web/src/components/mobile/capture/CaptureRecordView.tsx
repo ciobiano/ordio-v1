@@ -138,7 +138,7 @@ export function CaptureRecordView({
 
       <section
         aria-label="Live transcript"
-        className="mt-5 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-3xl border border-acid-border-subtle bg-acid-bg-subtle p-5 short:mt-3 short:p-4"
+        className="mt-5 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-[22px] border border-acid-border-subtle bg-acid-bg-subtle p-5 short:mt-3 short:p-4"
       >
         <div className="flex items-center justify-between gap-3">
           <span className="font-acid-mono text-[11px] tracking-widest text-acid-text-3 uppercase">Live transcript</span>

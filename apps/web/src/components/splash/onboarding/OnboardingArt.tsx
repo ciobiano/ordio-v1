@@ -47,7 +47,7 @@ function LookCard({ name, photo, className, tone, big = false, children }: LookC
     <div
       className={cn(
         'absolute flex flex-col shadow-[0_24px_50px_rgb(0_0_0/0.55),inset_0_0_0_1.5px_rgb(255_255_255/0.3)]',
-        big ? 'w-49 gap-2.25 rounded-3xl p-2.75' : 'w-44.5 gap-2 rounded-[22px] p-2.5',
+        big ? 'w-49 gap-2.25 rounded-[24px] p-2.75' : 'w-44.5 gap-2 rounded-[22px] p-2.5',
         tone,
         className
       )}

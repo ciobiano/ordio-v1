@@ -15,7 +15,7 @@ export function OnboardingHeadline({
   className?: string;
 }) {
   return (
-    <Tag className={cn('m-0 text-[33px] leading-[1.08] font-bold tracking-[-0.03em] text-acid-text-1 short:text-[29px]', className)}>
+    <Tag className={cn('m-0 text-balance text-[33px] leading-[1.08] font-bold tracking-[-0.03em] text-acid-text-1 short:text-[29px]', className)}>
       {head}
       {breakBeforeAccent ? <br /> : ' '}
       <span className="font-acid-serif text-[1.2em] font-normal tracking-[-0.01em] italic">{accent}</span>

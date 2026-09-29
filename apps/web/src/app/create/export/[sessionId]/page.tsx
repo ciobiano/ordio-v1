@@ -7,6 +7,7 @@ import { api } from '@Ordio/convex';
 import { toast } from 'sonner';
 import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
+import { OrdioMark } from '@/components/ui/OrdioMark';
 import { usePlayback } from '@/hooks/playback/usePlayback';
 import { useExportGate } from '@/hooks/billing/useExportGate';
 import type { GenericId } from 'convex/values';
@@ -167,8 +168,9 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
   // Loading state: undefined = still fetching
   if (session === undefined || isHydrating || !audioBuffer) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <div className="w-5 h-5 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+      <div className="min-h-dvh flex items-center justify-center bg-acid-bg-base" role="status">
+        <span className="sr-only">Loading your recording</span>
+        <OrdioMark motion="pulse" size={120} className="text-acid-text-1" />
       </div>
     );
   }

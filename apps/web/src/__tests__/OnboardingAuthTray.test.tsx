@@ -31,7 +31,9 @@ import { useSignUp } from '@clerk/nextjs/legacy';
 
 const apple = () => screen.getByRole('button', { name: 'Continue with Apple' });
 const google = () => screen.getByRole('button', { name: 'Continue with Google' });
-const email = () => screen.getByRole('button', { name: 'Continue with email' });
+/** The email route: a field, then Continue, which opens Clerk's sign-up. */
+const email = () => screen.getByRole('button', { name: /^continue$/i });
+const emailField = () => screen.getByLabelText(/email address/i);
 
 /** The window between the press and the redirect — never settles. */
 const inFlight = () => authenticateWithRedirect.mockImplementation(() => new Promise(() => {}));
@@ -43,10 +45,23 @@ beforeEach(() => {
 });
 
 describe('OnboardingAuthTray wiring', () => {
-  it('calls openSignUp for Continue with email', () => {
+  it('calls openSignUp for Continue', () => {
     render(<OnboardingAuthTray redirectUrlComplete="/create" />);
     fireEvent.click(email());
     expect(openSignUp).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands a typed email to Clerk so it is not typed twice', () => {
+    render(<OnboardingAuthTray redirectUrlComplete="/create" />);
+    fireEvent.change(emailField(), { target: { value: '  ada@example.com ' } });
+    fireEvent.click(email());
+    expect(openSignUp).toHaveBeenCalledWith({ initialValues: { emailAddress: 'ada@example.com' } });
+  });
+
+  it('opens sign-in for Log in', () => {
+    render(<OnboardingAuthTray redirectUrlComplete="/create" />);
+    fireEvent.click(screen.getByRole('button', { name: /log in/i }));
+    expect(openSignIn).toHaveBeenCalledTimes(1);
   });
 
   it('starts an Apple OAuth redirect with the given completion URL', () => {
@@ -113,6 +128,7 @@ describe('OnboardingAuthTray pending state', () => {
     // reaches for Google, and two redirects race.
     expect(google()).toBeDisabled();
     expect(email()).toBeDisabled();
+    expect(emailField()).toBeDisabled();
   });
 
   it('ignores repeat presses instead of starting a second handoff', async () => {

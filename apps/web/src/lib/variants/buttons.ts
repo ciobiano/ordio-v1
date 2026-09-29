@@ -326,7 +326,7 @@ export const sheetOption = cva(
  * marks a chosen value or the one commit action inside the product.
  */
 export const paperButton = cva(
-  'inline-flex items-center justify-center gap-2 rounded-2xl border-none cursor-pointer ' +
+  'inline-flex items-center justify-center gap-2 rounded-[16px] border-none cursor-pointer ' +
     'bg-acid-text-1 text-acid-on-accent font-semibold shadow-[0_4px_0_var(--acid-paper-lip)] ' +
     'transition-[transform,box-shadow] duration-100 active:translate-y-1 active:shadow-none ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring ' +

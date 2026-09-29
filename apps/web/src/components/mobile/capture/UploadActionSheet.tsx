@@ -63,7 +63,7 @@ export function UploadActionSheet({ isOpen, onClose, fileInputRef }: UploadActio
             onClick={() => openPicker(accept, capture)}
             className={sheetOption({ selected: false })}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-acid-text-1/8 text-acid-text-1">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-acid-text-1/8 text-acid-text-1">
               <HugeiconsIcon icon={icon} size={20} strokeWidth={1.8} />
             </span>
             <span className="flex flex-col">

@@ -140,7 +140,7 @@ export function CaptureDock({
         </DockSlot>
         <DockSlot label="Stop" strong>
           <button type="button" onClick={onGoReady} className={captureStopHero} aria-label="Stop and review recording">
-            <span className="h-7.5 w-7.5 rounded-lg bg-acid-error short:h-6.5 short:w-6.5" />
+            <span className="h-7.5 w-7.5 rounded-[8px] bg-acid-error short:h-6.5 short:w-6.5" />
           </button>
         </DockSlot>
         <DockSlot label={isPaused ? 'Resume' : 'Pause'}>
