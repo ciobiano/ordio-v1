@@ -38,6 +38,13 @@
   /* ─── Surfaces ─── */
   --surface-raised: var(--acid-surface-1);
   --surface-card: var(--acid-surface-2);
+  /* The desk's areas are cards on the ink with 12px of ink between them.
+     Panels sit on --ord-panel; the stage one step deeper on --ord-stage, so
+     the video is the darkest thing in the window, the way a viewer is. */
+  --ord-panel: #111210;
+  --ord-stage: #0e0f0d;
+  --r-area: 22px;
+  --gap-area: 12px;
 
   /* ─── Text ─── */
   --text-body: var(--acid-text-2);

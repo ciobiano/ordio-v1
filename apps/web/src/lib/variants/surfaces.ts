@@ -41,11 +41,13 @@ export const canvasGridOverlay =
  * the row that is playing is already marked by its highlighted word.
  */
 export const listRow = cva(
-  'flex w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
+  'flex w-full cursor-pointer items-start gap-3 rounded-[14px] px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       selected: {
-        true: 'bg-[var(--ord-acid)]/12',
+        /* Paper, like a selected timeline block. Lime inside the row is kept
+           for the words you emphasised — the chosen values. */
+        true: 'bg-[var(--ord-paper)]/6',
         false: 'bg-transparent hover:bg-[var(--ord-paper)]/5',
       },
     },
@@ -62,23 +64,25 @@ export const listRow = cva(
  * that — see memory/pitfall_cva_variant_key_order.
  */
 export const trackBlock = cva(
-  'absolute flex items-center overflow-hidden rounded-xl border cursor-pointer whitespace-nowrap transition-colors duration-[var(--dur-tap)]',
+  'absolute flex items-center overflow-hidden rounded-[10px] border cursor-pointer whitespace-nowrap transition-colors duration-[var(--dur-tap)]',
   {
     variants: {
       tone: {
+        /* Caption blocks are paper-tinted, not hued. They are the words
+           themselves, and the playhead is the one lime thing on the timeline,
+           so the blocks stay quiet enough for it to read. */
         speech:
-          'border-[var(--track-speech)] bg-[var(--track-speech-fill)] text-[var(--ord-paper)]/70',
+          'border-transparent bg-[var(--ord-paper)]/7 text-[var(--text-body)] hover:bg-[var(--ord-paper)]/10',
         music:
           'border-[var(--track-music)] bg-[var(--track-music-fill)] text-[var(--ord-paper)]/70',
       },
       state: {
-        /* Under the playhead: brighten the words, nothing else. The playhead
-           already marks position, so a second position signal would be the
-           timeline saying the same thing twice in two colours. */
+        /* Under the playhead: brighten the words, nothing else. */
         idle: '',
         active: 'text-[var(--ord-paper)]',
-        /* Selected is a chosen value, which is the one thing lime is for. */
-        selected: 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/20 text-[var(--ord-paper)]',
+        /* Selected: raised a step and ringed in paper. */
+        selected:
+          'border-[var(--ord-paper)]/40 bg-[var(--ord-paper)]/14 text-[var(--ord-paper)]',
       },
     },
     defaultVariants: { tone: 'speech', state: 'idle' },

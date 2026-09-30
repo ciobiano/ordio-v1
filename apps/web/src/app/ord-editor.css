@@ -17,6 +17,8 @@
   min-width: 1080px;
   display: flex;
   flex-direction: column;
+  gap: var(--gap-area);
+  padding: 0 var(--gap-area) var(--gap-area);
   background: var(--ord-ink);
   color: var(--ord-paper);
   font-family: var(--font-core);
@@ -26,16 +28,29 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  gap: var(--gap-area);
+}
+
+/* ─── Areas ───
+   Every region of the desk is a card: 22px corners, a hairline, ink showing
+   through the 12px gutters. The old desk split one black sheet with hairline
+   rules, which made the panels read as parts of one flat surface rather than
+   things you work in. */
+.ord-area {
+  border-radius: var(--r-area);
+  border: 1px solid var(--border-hairline);
+  background: var(--ord-panel);
+  overflow: hidden;
 }
 
 /* ─── Top bar ─── */
 .ord-topbar {
   flex: 0 0 auto;
-  height: 58px;
+  height: 64px;
   display: flex;
   align-items: center;
   gap: var(--pad-gutter);
-  padding: 0 var(--pad-gutter);
+  padding: 0 var(--pad-snug);
   /* Ink, like every other piece of desk chrome. A raised top bar was one of
      four near-blacks inside a single viewport — ink, a recessed well, a
      lifted bar and a frame one notch off the ground, all within about ten
@@ -43,50 +58,37 @@
      rank them, so it read as an inconsistent black rather than as depth.
      The hairline does the separating. See DESIGN.md section 3. */
   background: var(--ord-ink);
-  border-bottom: 1px solid var(--border-hairline);
 }
 
-
-.ord-searchbar {
-  width: min(400px, 100%);
-  height: 34px;
-  border-radius: var(--r-card);
-  background: rgba(255, 255, 234, 0.06);
-  border: 1px solid var(--border-hairline);
-  display: flex;
-  align-items: center;
-  gap: var(--pad-snug);
-  padding: 0 var(--pad-card);
-  color: var(--text-muted);
-  cursor: pointer;
-}
 
 /* ─── Columns ─── */
 .ord-transcript {
-  flex: 0 1 330px;
-  width: 330px;
+  flex: 0 1 320px;
+  width: 320px;
   min-width: 262px;
   display: flex;
   flex-direction: column;
-  /* Ink, not a raised surface. With the timeline already on the base, a
-     lifted side column made the editor look like three products stacked
-     side by side. The hairline borders carry the division instead. */
-  background: var(--ord-ink);
-  border-right: 1px solid var(--border-hairline);
+  border-radius: var(--r-area);
+  border: 1px solid var(--border-hairline);
+  background: var(--ord-panel);
+  overflow: hidden;
   transition: flex-basis var(--dur-snap) var(--ease-snap), width var(--dur-snap) var(--ease-snap);
 }
 
 .ord-player {
   position: relative;
   flex: 1 1 480px;
-  min-width: 400px;
+  min-width: 360px;
   display: flex;
   flex-direction: column;
-  background: var(--ord-ink);
+  border-radius: var(--r-area);
+  border: 1px solid var(--border-hairline);
+  background: var(--ord-stage);
+  overflow: hidden;
 }
 
-/* The strip owns the right edge, so the stage keeps clear of it. The panel
-   is deliberately NOT reserved — it floats over the canvas. */
+/* The strip owns the stage's right edge, so the canvas keeps clear of it.
+   An open tool docks as its own card beside the stage (.ord-inspector). */
 .ord-player > :first-child {
   padding-right: 64px;
 }
@@ -182,21 +184,19 @@
   cursor: pointer;
 }
 
-/* Opens to the LEFT of the strip. The strip is on the right edge, so a panel
-   opening outward would run off the window. */
+/* An open tool docks as the desk's third card, beside the stage, rather
+   than floating over the canvas. Floating hid the caption you were styling
+   behind the panel styling it; docked, the stage shrinks and stays in view. */
 .ord-toolpanel {
-  flex: none;
-  order: 1;
-  width: 336px;
-  max-width: 100%;
-  max-height: 100%;
+  flex: 0 0 320px;
+  width: 320px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: var(--r-sheet);
-  background: var(--surface-raised);
+  border-radius: var(--r-area);
+  background: var(--ord-panel);
   border: 1px solid var(--border-hairline);
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.6);
   animation: ord-slide-in var(--dur-snap) var(--ease-snap) both;
 }
 
@@ -219,17 +219,25 @@
    label, playback does not. */
 .ord-transport {
   flex: none;
-  height: 84px;
+  height: 88px;
   display: flex;
   align-items: center;
   gap: var(--pad-card);
-  padding: 0 var(--pad-gutter);
-  border-top: 1px solid var(--border-hairline);
+  padding: 0 24px;
   transition: height var(--dur-snap) var(--ease-snap);
 }
 
 .ord-transport[data-mode='playback'] {
-  height: 52px;
+  height: 96px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* In the stacked playback bar the scrubber is a row, not a stretching cell. */
+.ord-transport[data-mode='playback'] .ord-scrub {
+  flex: none;
 }
 
 /* Idle has no take, so the bar has nothing to control. Absent, not disabled:
@@ -238,7 +246,6 @@
    something to work with. */
 .ord-transport.is-idle {
   height: 0;
-  border-top: 0;
   overflow: hidden;
 }
 
@@ -316,14 +323,13 @@
   /* 38 head + 20 ruler + 58 captions + 36 music.
      Was 190px with an audio waveform row; the stage already plays the audio
      back, so a second amplitude read-out was decoration taking 52px. */
-  height: 152px;
+  height: 168px;
   display: flex;
   flex-direction: column;
-  /* The deepest ground in the system, the same one mobile stands on. The
-     timeline is the floor of the editor — anything raised above ink here
-     reads as a panel floating over the black rather than the base itself. */
-  background: var(--ord-ink);
-  border-top: 1px solid var(--border-hairline);
+  border-radius: var(--r-area);
+  border: 1px solid var(--border-hairline);
+  background: var(--ord-panel);
+  overflow: hidden;
 }
 
 .ord-timeline-head {
@@ -332,8 +338,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 var(--pad-gutter);
-  border-bottom: 1px solid var(--border-hairline);
+  padding: 0 var(--pad-gutter) 0 18px;
 }
 
 /* Vertical scroll lives here so gutter and tracks move together. Dormant
@@ -348,10 +353,9 @@
 
 .ord-track-gutter {
   flex: 0 0 auto;
-  width: 100px;
+  width: 112px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-hairline);
 }
 
 .ord-track-scroll {
@@ -371,14 +375,14 @@
 /* Track heights, named for the row they carry. */
 /* Stays put while the tracks scroll under it, so you never lose the clock. */
 .ord-track-ruler {
-  height: 20px;
+  height: 24px;
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--ord-ink);
+  background: var(--ord-panel);
 }
-.ord-track-captions { height: 58px; }
-.ord-track-music { height: 36px; }
+.ord-track-captions { height: 52px; }
+.ord-track-music { height: 50px; }
 
 /* ─── Type roles ───
    Every size in the editor resolves to a step on the acid scale in
