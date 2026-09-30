@@ -12,7 +12,7 @@
  * Horizontal zoom widens the track surface; the gutter labels stay put.
  */
 
-import { useMemo,useState } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { trackBlock } from '@/lib/variants';
 import type { DeskLine } from '@/lib/desktop/deskState';

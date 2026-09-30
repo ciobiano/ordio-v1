@@ -275,7 +275,7 @@ export function DeskShell() {
   /* ── Preview hears the mix ────────────────────────────────────────
      The same buffer the exporter will encode, so the bed cannot sound one way
      in the editor and another in the file. */
-  const { mixed, mixing } = useBedMix({
+  const { mixed } = useBedMix({
     bed: state.bed,
     voiceLevel: state.voiceLevel,
     musicLevel: state.musicLevel,

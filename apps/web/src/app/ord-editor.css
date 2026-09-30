@@ -479,6 +479,17 @@
   background: color-mix(in srgb, var(--ord-paper) 8%, transparent);
 }
 
+/* ─── Sheet card focus ───
+   The card takes focus when a sheet opens so Tab starts inside it. The app's
+   global :focus-visible ring is unlayered, so it beat the card's own
+   outline-none and squared its 32px corners to 4px. The card is a container,
+   not a control; its controls keep their rings. */
+.ord-sheet-card:focus-visible {
+  outline: none;
+  box-shadow: 0 40px 120px rgb(0 0 0 / 0.7);
+  border-radius: 32px;
+}
+
 /* ─── Motion ─── */
 .ord-animate-fade {
   animation: ord-fade var(--dur-snap) var(--ease-snap);
