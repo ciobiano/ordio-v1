@@ -134,7 +134,6 @@ export interface DeskState {
 
   /* Export */
   exKind: 'mp4' | 'srt' | 'vtt' | 'txt';
-  exResolution: '720' | '1080' | '2160';
   exStage: 'setup' | 'running' | 'done';
   exportPct: number;
 }
@@ -214,7 +213,6 @@ export const INITIAL_DESK_STATE: DeskState = {
   duck: true,
 
   exKind: 'mp4',
-  exResolution: '1080',
   exStage: 'setup',
   exportPct: 0,
 };

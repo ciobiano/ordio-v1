@@ -12,9 +12,9 @@
  * Horizontal zoom widens the track surface; the gutter labels stay put.
  */
 
-import { useMemo,useState } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { iconButton, trackBlock } from '@/lib/variants';
+import { trackBlock } from '@/lib/variants';
 import type { DeskLine } from '@/lib/desktop/deskState';
 import type { BedClip } from '@/lib/audio/bedGeometry';
 import type { BedSource } from '@/lib/audio/bedPeaks';
@@ -43,8 +43,8 @@ interface TimelineDeckProps {
 }
 
 const TRACKS = [
-  { label: 'Captions', className: 'ord-track-captions', dot: 'bg-[var(--track-speech)]' },
-  { label: 'Music', className: 'ord-track-music', dot: 'bg-[var(--track-music)]' },
+  { label: 'Captions', className: 'ord-track-captions' },
+  { label: 'Music', className: 'ord-track-music' },
 ];
 
 type BlockState = 'idle' | 'active' | 'selected';
@@ -67,6 +67,10 @@ function blockState(isSelected: boolean, isUnderPlayhead: boolean): BlockState {
   if (isUnderPlayhead) return 'active';
   return 'idle';
 }
+
+const zoomBtn =
+  'flex size-7 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)]/7 ' +
+  'text-[var(--text-body)] transition-colors duration-[var(--dur-tap)] hover:text-[var(--ord-paper)]';
 
 export function TimelineDeck(props: TimelineDeckProps) {
   const { duration, t, zoom, lines, selRow, trimIn, trimOut } = props;
@@ -108,7 +112,8 @@ export function TimelineDeck(props: TimelineDeckProps) {
           <button
             type="button"
             onClick={() => props.onZoom(-0.5)}
-            className={cn(iconButton({ tone: 'outline', size: 'sm' }), 'size-[26px]')}
+            aria-label="Zoom out"
+            className={zoomBtn}
           >
             <MinusGlyph size={12} />
           </button>
@@ -116,7 +121,8 @@ export function TimelineDeck(props: TimelineDeckProps) {
           <button
             type="button"
             onClick={() => props.onZoom(0.5)}
-            className={cn(iconButton({ tone: 'outline', size: 'sm' }), 'size-[26px]')}
+            aria-label="Zoom in"
+            className={zoomBtn}
           >
             <PlusGlyph size={12} />
           </button>
@@ -135,10 +141,9 @@ export function TimelineDeck(props: TimelineDeckProps) {
               key={track.label}
               className={cn(
                 track.className,
-                'flex flex-none items-center gap-2 border-t border-[var(--border-hairline)] px-3 text-[var(--text-muted)]'
+                'flex flex-none items-center gap-2 px-4.5 text-[var(--text-muted)]'
               )}
             >
-              <span className={cn('size-1.5 flex-none rounded-full', track.dot)} />
               <span className="truncate ord-type-caps">
                 {track.label}
               </span>
@@ -166,7 +171,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
               ))}
             </div>
 
-            <div className="ord-track-captions relative border-t border-[var(--border-hairline)]">
+            <div className="ord-track-captions relative">
               {lines.map((line, row) => (
                 <button
                   key={`${line.start}-${row}`}
@@ -177,7 +182,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
                       tone: 'speech',
                       state: blockState(row === selRow, t >= line.start && t < line.end),
                     }),
-                    'top-1.5 bottom-1.5 px-2 font-[family-name:var(--font-display)] ord-type-footnote'
+                    'top-1.5 bottom-1.5 px-2.5 font-[family-name:var(--font-display)] ord-type-footnote'
                   )}
                   style={{
                     left: pct(line.start),
@@ -194,7 +199,7 @@ export function TimelineDeck(props: TimelineDeckProps) {
             {/* Was a static strip printing the name of a bed that did not
                 exist. Now the track itself: drop a sound on it, slide it, trim
                 it from either end. */}
-            <div className="ord-track-music relative border-t border-[var(--border-hairline)] px-0 py-1">
+            <div className="ord-track-music relative px-0 py-2">
               <BedTrack
                 bed={props.bed}
                 source={props.bedSource}
@@ -223,11 +228,14 @@ export function TimelineDeck(props: TimelineDeckProps) {
               />
             )}
 
+            {/* Lime, and the only lime on the timeline: where you are is the
+                thing you look for first, so it gets the colour that is found
+                first. Selection is paper, so the two never compete. */}
             <div
-              className="pointer-events-none absolute inset-y-0 w-0.5 bg-[var(--ord-paper)]"
+              className="pointer-events-none absolute inset-y-1 w-0.5 rounded-full bg-[var(--ord-acid)]"
               style={{ left: pct(t) }}
             >
-              <span className="absolute top-0 -left-[5px] h-[11px] w-3 rounded-full bg-[var(--ord-paper)]" />
+              <span className="absolute top-0 -left-[5px] size-3 rounded-full bg-[var(--ord-acid)]" />
             </div>
           </div>
         </div>

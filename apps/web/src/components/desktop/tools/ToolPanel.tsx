@@ -3,10 +3,10 @@
 /**
  * The panel the tool strip opens.
  *
- * Floats to the LEFT of the strip, because the strip is on the right edge and
- * a panel opening rightward would go off the window. It overlays the canvas
- * rather than displacing it — that is what floating buys, and why the resting
- * cost of the tools is the 48px strip alone.
+ * Docks as the desk's third card, to the right of the stage. It used to float
+ * over the canvas, which put the panel on top of the caption it was styling;
+ * docked, the stage shrinks and the caption stays in view. Closed, it costs
+ * nothing — the strip on the stage's edge is the only resting chrome.
  *
  * The seven panels themselves are unchanged. Only their container moved: this
  * replaces the always-open 372px inspector column, so every field, slider and
@@ -17,7 +17,6 @@ import { useEffect, useRef } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import type { Word } from '@Ordio/shared';
-import { iconButton } from '@/lib/variants';
 import type { DeskState } from '@/lib/desktop/deskState';
 import { TOOL_COPY } from '@/lib/desktop/deskCatalog';
 import { AudioPanel } from '../inspector/AudioPanel';
@@ -76,7 +75,7 @@ export function ToolPanel(props: ToolPanelProps) {
       /* Not a dialog: the canvas behind stays live and editable while this is
          open, so trapping focus here would be a lie about what is reachable. */
     >
-      <div className="flex flex-none items-start gap-2 px-4 pt-3 pb-2">
+      <div className="flex flex-none items-start gap-2 px-5 pt-4 pb-2">
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
             {copy.title}
@@ -90,7 +89,7 @@ export function ToolPanel(props: ToolPanelProps) {
           onClick={props.onClose}
           aria-label={`Close ${copy.title}`}
           title="Close · Esc"
-          className={iconButton({ tone: 'bare', size: 'sm' })}
+          className="flex size-9 flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)]/7 text-[var(--ord-paper)] transition-colors duration-[var(--dur-tap)] hover:bg-[var(--ord-paper)]/12"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={15} strokeWidth={2} />
         </button>

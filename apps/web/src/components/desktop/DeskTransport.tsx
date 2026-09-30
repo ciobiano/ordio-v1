@@ -27,15 +27,44 @@ import {
   StopIcon,
 } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
-import { captureCenterSlot, captureRoundBtn, iconButton } from '@/lib/variants';
+import { captureCenterSlot, captureRoundBtn } from '@/lib/variants';
 import type { CapturePhase } from '@/lib/capture/types';
 
 /** Bars in the recording EQ pill, staggered so the row reads as one waveform. */
 const EQ_BARS = [0.42, 0.78, 0.55, 0.94, 0.36, 0.7, 0.5, 0.86, 0.44];
 
-function formatClock(seconds: number) {
-  const safe = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
-  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
+const SKIP_SECONDS = 5;
+
+function clockParts(seconds: number) {
+  const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  const whole = Math.floor(safe);
+  return {
+    main: `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`,
+    hundredths: String(Math.floor((safe - whole) * 100)).padStart(2, '0'),
+  };
+}
+
+function formatClockPadded(seconds: number) {
+  return clockParts(seconds).main;
+}
+
+const roundGhost =
+  'flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)]/8 ' +
+  'text-[var(--ord-paper)] transition-colors duration-[var(--dur-tap)] hover:bg-[var(--ord-paper)]/12 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)]';
+
+/** A curved arrow with the skip distance inside it. */
+function SkipGlyph({ dir }: { dir: 'back' | 'forward' }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <g transform={dir === 'forward' ? 'translate(18 0) scale(-1 1)' : undefined}>
+        <path d="M4 9a5 5 0 1 0 1.6-3.7M4 3v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <text x="9" y="11.2" textAnchor="middle" fontSize="5.5" fontWeight="700" fill="currentColor">
+        {SKIP_SECONDS}
+      </text>
+    </svg>
+  );
 }
 
 interface DeskTransportProps {
@@ -123,21 +152,9 @@ export function DeskTransport({
 
   if (phase === null) {
     const pct = duration > 0 ? (t / duration) * 100 : 0;
+    const now = clockParts(t);
     return (
       <div className="ord-transport" data-mode="playback">
-        <button
-          type="button"
-          onClick={onTogglePlay}
-          aria-label={playing ? 'Pause' : 'Play'}
-          className={iconButton({ tone: 'outline', size: 'sm' })}
-        >
-          <HugeiconsIcon icon={playing ? PauseIcon : PlayIcon} size={15} strokeWidth={2} />
-        </button>
-
-        <span className="ord-mono flex-none tabular-nums">
-          {formatClock(t)} / {formatClock(duration)}
-        </span>
-
         <input
           type="range"
           className="ord-scrub"
@@ -150,24 +167,76 @@ export function DeskTransport({
           style={{ ['--ord-scrub-pct' as string]: `${pct}%` }}
         />
 
-        <button
-          type="button"
-          onClick={onToggleSafe}
-          aria-pressed={safeShow}
-          className={iconButton({ tone: safeShow ? 'active' : 'outline', size: 'sm' })}
-          title="Safe zones"
-        >
-          <span className="ord-type-micro px-1">Safe</span>
-        </button>
-        <button
-          type="button"
-          onClick={onToggleCaptions}
-          aria-pressed={!capHidden}
-          className={iconButton({ tone: capHidden ? 'outline' : 'active', size: 'sm' })}
-          title={capHidden ? 'Show captions' : 'Hide captions'}
-        >
-          <span className="ord-type-micro px-1">CC</span>
-        </button>
+        <div className="flex items-center justify-between gap-4">
+          <span className="w-44 flex-none font-[family-name:var(--font-mono)] text-[15px] tabular-nums text-[var(--ord-paper)]">
+            {now.main}
+            <span className="text-[var(--text-muted)]">
+              .{now.hundredths} / {formatClockPadded(duration)}
+            </span>
+          </span>
+
+          {/* Capture-dock shapes: round skip buttons either side of one big
+              paper play — the same controls the phone's record screen uses,
+              so the two ends of the product press the same way. */}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => onSeek(Math.max(0, t - SKIP_SECONDS))}
+              aria-label={`Back ${SKIP_SECONDS} seconds`}
+              className={roundGhost}
+            >
+              <SkipGlyph dir="back" />
+            </button>
+            <button
+              type="button"
+              onClick={onTogglePlay}
+              aria-label={playing ? 'Pause' : 'Play'}
+              className="flex size-14 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--ord-paper)] text-[var(--ord-ink)] transition-transform duration-[var(--dur-tap)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] motion-reduce:transition-none"
+            >
+              <HugeiconsIcon icon={playing ? PauseIcon : PlayIcon} size={20} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onSeek(Math.min(duration, t + SKIP_SECONDS))}
+              aria-label={`Forward ${SKIP_SECONDS} seconds`}
+              className={roundGhost}
+            >
+              <SkipGlyph dir="forward" />
+            </button>
+          </div>
+
+          <div className="flex w-44 flex-none justify-end gap-2">
+            <button
+              type="button"
+              onClick={onToggleSafe}
+              aria-pressed={safeShow}
+              title="Safe zones"
+              className={cn(
+                'h-8 cursor-pointer rounded-full border-0 px-3 font-[family-name:var(--font-mono)] text-[11px] tracking-wide transition-colors duration-[var(--dur-tap)]',
+                safeShow
+                  ? 'bg-[var(--ord-cyan)]/12 text-[var(--ord-cyan)]'
+                  : 'bg-[var(--ord-paper)]/8 text-[var(--text-body)] hover:text-[var(--ord-paper)]'
+              )}
+            >
+              SAFE ZONES
+            </button>
+            <button
+              type="button"
+              onClick={onToggleCaptions}
+              aria-pressed={!capHidden}
+              aria-label={capHidden ? 'Show captions' : 'Hide captions'}
+              title={capHidden ? 'Show captions' : 'Hide captions'}
+              className={cn(
+                'flex size-8 cursor-pointer items-center justify-center rounded-full border-0 font-[family-name:var(--font-mono)] text-[10px] transition-colors duration-[var(--dur-tap)]',
+                capHidden
+                  ? 'bg-transparent text-[var(--text-muted)] ring-1 ring-[var(--border-hairline)]'
+                  : 'bg-[var(--ord-paper)]/8 text-[var(--ord-paper)]'
+              )}
+            >
+              CC
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

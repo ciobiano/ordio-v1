@@ -1,117 +1,151 @@
 'use client';
 
 /**
- * Top bar: identity, ⌘K search, history, export, account.
+ * Top bar: where you are, what shape the video is, history, account, Export.
  *
- * The design's "Creator preview" toggle is gone with the rest of the tier —
- * there is nothing left for it to preview.
+ * Left is the lockup and a breadcrumb — your clips, then the one open. The
+ * centre is the aspect ratio, because it is the one choice that changes the
+ * whole canvas and the one people reach for first; it used to live two
+ * clicks deep in the Reframe tool. Right is history, account and Export, the
+ * single lime commit in the window.
+ *
+ * Search actions (⌘K) stays one click away as a round button; the full-width
+ * search field it replaces spent a third of the bar on a shortcut most people
+ * trigger from the keyboard.
  */
 
 import { Logo } from '@/components/media/Logo';
 import UserAvatarButton from '@/components/mobile/auth/UserAvatarButton';
-import { iconButton, solidButton } from '@/lib/variants';
-import {
-  KeyboardGlyph,
-  RedoGlyph,
-  SearchGlyph,
-  UndoGlyph,
-} from './DeskIcons';
+import { cn } from '@/lib/utils';
+import { FORMATS, type FormatId } from '@/lib/desktop/deskCatalog';
+import { RedoGlyph, SearchGlyph, UndoGlyph } from './DeskIcons';
 
 interface DeskTopBarProps {
-  sourceLine: string;
+  clipName: string | null;
+  format: FormatId;
+  /** The ratio control only means something once there is a clip to frame. */
+  canReframe: boolean;
   canUndo: boolean;
   canRedo: boolean;
   canExport: boolean;
+  onFormat: (format: FormatId) => void;
+  onClips: () => void;
   onSearch: () => void;
-  onShortcuts: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onExport: () => void;
 }
 
+const roundBtn =
+  'flex size-10 flex-none cursor-pointer items-center justify-center rounded-full border-0 ' +
+  'bg-[var(--ord-paper)]/7 text-[var(--ord-paper)] transition-colors duration-[var(--dur-tap)] ' +
+  'enabled:hover:bg-[var(--ord-paper)]/12 disabled:cursor-default disabled:opacity-40 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)]';
+
 export function DeskTopBar({
-  sourceLine,
+  clipName,
+  format,
+  canReframe,
   canUndo,
   canRedo,
   canExport,
+  onFormat,
+  onClips,
   onSearch,
-  onShortcuts,
   onUndo,
   onRedo,
   onExport,
 }: DeskTopBarProps) {
   return (
     <header className="ord-topbar">
-      {/* The one Ordio mark. Logo.tsx exists precisely so a new surface does
-          not invent its own stand-in — its docstring names the last one that
-          did (a rounded square holding an "O"), which is exactly what sat here
-          before. The wordmark is part of the lockup, so the only thing left to
-          stack is the source line. */}
-      <div className="flex flex-none items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-4.5">
+        {/* The one Ordio mark — Logo.tsx exists so no surface invents its own. */}
         <Logo size="sm" />
-        <span className="ord-mono">{sourceLine}</span>
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
+          {clipName ? (
+            <>
+              <button
+                type="button"
+                onClick={onClips}
+                className="cursor-pointer border-0 bg-transparent p-0 text-[var(--text-muted)] transition-colors duration-[var(--dur-tap)] hover:text-[var(--ord-paper)]"
+              >
+                Clips
+              </button>
+              <span className="text-[var(--ord-paper)]/30" aria-hidden="true">
+                /
+              </span>
+              <span aria-current="page" className="min-w-0 truncate font-medium text-[var(--ord-paper)]">
+                {clipName}
+              </span>
+            </>
+          ) : (
+            <span aria-current="page" className="text-[var(--text-muted)]">
+              Clips
+            </span>
+          )}
+        </nav>
       </div>
 
-      <div className="flex flex-1 justify-center">
-        <button type="button" onClick={onSearch} className="ord-searchbar">
-          <SearchGlyph size={14} />
-          <span className="flex-1 text-left font-[family-name:var(--font-display)] ord-type-caption">
-            Search actions
-          </span>
-          <span className="ord-kbd">⌘K</span>
-        </button>
-      </div>
-
-      <div className="flex flex-none items-center gap-2">
-        <button
-          type="button"
-          onClick={onShortcuts}
-          title="Keyboard shortcuts"
-          className={iconButton({ tone: 'outline' })}
+      {canReframe && (
+        <div
+          role="radiogroup"
+          aria-label="Aspect ratio"
+          className="flex h-10 flex-none gap-1 rounded-[14px] bg-[var(--ord-paper)]/6 p-1"
         >
-          <KeyboardGlyph size={16} />
+          {FORMATS.map((f) => {
+            const on = f.id === format;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onFormat(f.id)}
+                className={cn(
+                  'w-14.5 cursor-pointer rounded-[10px] border-0 font-[family-name:var(--font-mono)] text-xs transition-colors duration-[var(--dur-tap)]',
+                  on
+                    ? 'bg-[var(--ord-paper)] font-medium text-[var(--ord-ink)]'
+                    : 'bg-transparent text-[var(--text-body)] hover:text-[var(--ord-paper)]'
+                )}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-1 items-center justify-end gap-2">
+        <button type="button" onClick={onSearch} aria-label="Search actions" title="Search actions · ⌘K" className={roundBtn}>
+          <SearchGlyph size={15} />
+        </button>
+        <button type="button" onClick={onUndo} disabled={!canUndo} aria-label="Undo" title="Undo · ⌘Z" className={roundBtn}>
+          <UndoGlyph size={16} />
+        </button>
+        <button type="button" onClick={onRedo} disabled={!canRedo} aria-label="Redo" title="Redo · ⇧⌘Z" className={roundBtn}>
+          <RedoGlyph size={16} />
         </button>
 
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="Undo · ⌘Z"
-            className={iconButton({ tone: 'bare' })}
-          >
-            <UndoGlyph size={17} />
-          </button>
-          <button
-            type="button"
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="Redo · ⇧⌘Z"
-            className={iconButton({ tone: 'bare' })}
-          >
-            <RedoGlyph size={17} />
-          </button>
-        </div>
+        {/* Account: avatar picker, Manage Account, Sign Out. */}
+        <span className="ml-1 flex items-center">
+          <UserAvatarButton size="sm" />
+        </span>
 
         <button
           type="button"
           onClick={onExport}
           disabled={!canExport}
-          className={solidButton({ tone: 'acid', elevation: 'raised' })}
+          title="Export · ⌘E"
+          className={cn(
+            'ml-2 flex h-10 flex-none cursor-pointer items-center gap-2 rounded-[14px] border-0 px-4.5 text-sm font-semibold',
+            'bg-[var(--ord-acid)] text-[var(--ord-on-acid)] shadow-[0_3px_0_var(--acid-accent-lip)]',
+            'transition-[transform,box-shadow] duration-[var(--dur-tap)] enabled:active:translate-y-0.75 enabled:active:shadow-none',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ord-ink)]',
+            'disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none'
+          )}
         >
           Export
-          <span className="font-[family-name:var(--font-mono)] ord-type-micro opacity-60">
-            ⌘E
-          </span>
         </button>
-
-        {/* Account. The desk had no way to reach the avatar picker, Manage
-            Account or Sign Out — signing in was the last thing the app said
-            about who you were. Sized down to sit with the other top-bar
-            controls rather than tower over them. */}
-        <span className="ml-1 flex items-center border-l border-[var(--border-hairline)] pl-3">
-          <UserAvatarButton size="sm" />
-        </span>
       </div>
     </header>
   );

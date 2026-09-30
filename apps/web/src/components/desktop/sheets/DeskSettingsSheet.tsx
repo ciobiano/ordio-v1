@@ -18,7 +18,9 @@ import { useProcessingStore, type EnhanceTier } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import type { FeatureKey } from '@/lib/featureGates';
 import { cn } from '@/lib/utils';
-import { DeskSheet } from './DeskSheet';
+import { DeskSheet, DeskSheetHeader, DeskSheetLabel } from './DeskSheet';
+import { RadioDot } from '@/components/ui/SheetGlyphs';
+import { sheetButton, sheetOption } from '@/lib/variants';
 
 const TIERS: {
   value: EnhanceTier;
@@ -43,17 +45,14 @@ export function DeskSettingsSheet({ onClose, onLocked }: DeskSettingsSheetProps)
 
   return (
     <DeskSheet title="Audio settings" onClose={onClose}>
-      <div className="flex flex-col gap-1">
-        <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
-          Audio settings
-        </span>
-        <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
-          Applied when a recording is processed, not while it is captured.
-        </span>
-      </div>
+      <DeskSheetHeader
+        title="Audio settings"
+        subtitle="Applied when a recording is processed, not while it is captured."
+        onClose={onClose}
+      />
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="ord-eyebrow pb-2">Enhancement</legend>
+      <DeskSheetLabel>Enhancement</DeskSheetLabel>
+      <div role="radiogroup" aria-label="Enhancement" className="-mt-1.5 flex flex-col gap-2">
         {TIERS.map((tier) => {
           const locked = tier.gate ? isLocked(tier.gate) : false;
           const selected = enhanceTier === tier.value;
@@ -63,43 +62,28 @@ export function DeskSettingsSheet({ onClose, onLocked }: DeskSettingsSheetProps)
               type="button"
               role="radio"
               aria-checked={selected}
-              onClick={() =>
-                locked && tier.gate ? onLocked(tier.gate) : setEnhanceTier(tier.value)
-              }
-              className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors duration-[var(--dur-tap)]',
-                selected
-                  ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
-                  : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5 hover:bg-[var(--ord-paper)]/8',
-                locked && 'opacity-45'
-              )}
+              onClick={() => (locked && tier.gate ? onLocked(tier.gate) : setEnhanceTier(tier.value))}
+              className={cn(sheetOption({ selected }), locked && 'opacity-55')}
             >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'flex size-4 flex-none items-center justify-center rounded-full border-2',
-                  selected
-                    ? 'border-[var(--ord-acid)]'
-                    : 'border-[var(--text-muted)]'
-                )}
-              >
-                {selected && (
-                  <span className="size-1.5 rounded-full bg-[var(--ord-acid)]" />
-                )}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm font-medium text-[var(--ord-paper)]">{tier.label}</span>
+                <span className="text-xs text-[var(--text-muted)]">{tier.hint}</span>
               </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="ord-type-label font-semibold text-[var(--ord-paper)]">
-                  {tier.label}
-                </span>
-                <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
-                  {tier.hint}
-                </span>
-              </span>
-              {locked && <span className="ord-type-micro text-[var(--acid-premium)]">Locked</span>}
+              {locked ? (
+                <span className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide text-[var(--acid-premium)]">LOCKED</span>
+              ) : (
+                <RadioDot on={selected} />
+              )}
             </button>
           );
         })}
-      </fieldset>
+      </div>
+
+      <div className="flex justify-end pt-1">
+        <button type="button" onClick={onClose} className={cn(sheetButton({ tone: 'secondary' }), 'h-11 w-auto px-4.5 text-sm')}>
+          Done
+        </button>
+      </div>
     </DeskSheet>
   );
 }

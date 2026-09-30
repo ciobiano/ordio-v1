@@ -275,7 +275,7 @@ export function DeskShell() {
   /* ── Preview hears the mix ────────────────────────────────────────
      The same buffer the exporter will encode, so the bed cannot sound one way
      in the editor and another in the file. */
-  const { mixed, mixing } = useBedMix({
+  const { mixed } = useBedMix({
     bed: state.bed,
     voiceLevel: state.voiceLevel,
     musicLevel: state.musicLevel,
@@ -509,12 +509,15 @@ export function DeskShell() {
   return (
     <div data-ord className="ord-shell">
       <DeskTopBar
-        sourceLine={state.clipName ?? 'No clip selected'}
+        clipName={state.clipName}
+        format={state.format}
+        canReframe={editing}
         canUndo={history.past.length > 0}
         canRedo={history.future.length > 0}
         canExport={words.length > 0}
+        onFormat={(format) => patch({ format })}
+        onClips={() => dispatch({ type: 'clearClip' })}
         onSearch={() => patch({ sheet: 'palette' })}
-        onShortcuts={() => patch({ sheet: 'shortcuts' })}
         onUndo={() => dispatch({ type: 'undo' })}
         onRedo={() => dispatch({ type: 'redo' })}
         onExport={() => patch({ sheet: 'export' })}
@@ -621,40 +624,9 @@ export function DeskShell() {
             onToggleCaptions={() => patch({ capHidden: !state.capHidden })}
           />
 
-          {/* The tools float over the stage: the strip owns the right edge,
-              and the panel it opens overlays the canvas rather than
-              displacing it. Only the 48px strip is reserved. */}
+          {/* The strip floats over the stage's right edge; the tool it opens
+              docks as its own card beside the stage (below). */}
           <div className="ord-toolwrap">
-            {state.toolOpen && editing && (
-              <ToolPanel
-                state={state}
-                words={words}
-                activeWordIndex={activeWordIndex}
-                pauses={pauses}
-                patch={patch}
-                onClose={() => patch({ toolOpen: false })}
-                onNudgeWord={nudgeWord}
-                onResync={resync}
-                onCutAllPauses={() => patch({ cutPauses: pauses.map((p) => p.at) }, true)}
-                onRemoveFillers={() =>
-                  patch(
-                    {
-                      lines: state.lines.map((line) => ({
-                        ...line,
-                        words: line.words.filter(
-                          (w) => !FILLERS.has(w.text.toLowerCase().replace(/[.,!?]/g, ''))
-                        ),
-                      })),
-                    },
-                    true
-                  )
-                }
-                onResetTrim={() => patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)}
-                onApplyTrim={trim.commit}
-                onLocked={flow.setUpgradeTarget}
-                hasPendingCuts={trim.hasPendingCuts}
-              />
-            )}
             <ToolStrip
               tool={state.tool}
               open={state.toolOpen && editing}
@@ -664,6 +636,37 @@ export function DeskShell() {
             />
           </div>
         </div>
+
+        {state.toolOpen && editing && (
+          <ToolPanel
+            state={state}
+            words={words}
+            activeWordIndex={activeWordIndex}
+            pauses={pauses}
+            patch={patch}
+            onClose={() => patch({ toolOpen: false })}
+            onNudgeWord={nudgeWord}
+            onResync={resync}
+            onCutAllPauses={() => patch({ cutPauses: pauses.map((p) => p.at) }, true)}
+            onRemoveFillers={() =>
+              patch(
+                {
+                  lines: state.lines.map((line) => ({
+                    ...line,
+                    words: line.words.filter(
+                      (w) => !FILLERS.has(w.text.toLowerCase().replace(/[.,!?]/g, ''))
+                    ),
+                  })),
+                },
+                true
+              )
+            }
+            onResetTrim={() => patch({ trimIn: 0, trimOut: 0, cutPauses: [] }, true)}
+            onApplyTrim={trim.commit}
+            onLocked={flow.setUpgradeTarget}
+            hasPendingCuts={trim.hasPendingCuts}
+          />
+        )}
       </div>
 
       <TimelineDeck

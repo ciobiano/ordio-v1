@@ -10,6 +10,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DeskSheet } from './DeskSheet';
+import { SearchGlyph } from '../DeskIcons';
 
 export interface PaletteAction {
   id: string;
@@ -62,48 +63,69 @@ export function CommandPalette({ actions, onClose }: CommandPaletteProps) {
 
   return (
     <DeskSheet title="Search actions" onClose={onClose} width="wide" align="top">
-      <input
-        autoFocus
-        type="text"
-        value={query}
-        placeholder="Search actions"
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setCursor(0);
-        }}
-        onKeyDown={onKeyDown}
-        className="ord-type-label h-11 w-full rounded-xl border border-[var(--border-hairline)] bg-[var(--ord-paper)]/6 px-3 text-[var(--ord-paper)] outline-none focus-visible:border-[var(--ord-acid)]"
-      />
-
-      <div ref={listRef} className="flex max-h-[46vh] flex-col gap-1 overflow-y-auto">
-        {matches.length === 0 ? (
-          <span className="ord-type-footnote px-1 py-3 text-[var(--text-muted)]">
-            Nothing matches “{query.trim()}”.
+      <div className="-m-2 flex flex-col gap-2">
+        <div className="flex h-13 items-center gap-2.5 rounded-[14px] bg-[var(--ord-paper)]/5 px-3.5">
+          <SearchGlyph size={16} />
+          <input
+            autoFocus
+            type="text"
+            value={query}
+            aria-label="Search actions"
+            placeholder="Search actions"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-actions"
+            aria-activedescendant={matches[clamped] ? `palette-${matches[clamped].id}` : undefined}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setCursor(0);
+            }}
+            onKeyDown={onKeyDown}
+            className="h-10 flex-1 border-0 bg-transparent text-[15px] text-[var(--ord-paper)] outline-none placeholder:text-[var(--text-muted)] focus-visible:shadow-none focus-visible:outline-none"
+          />
+          <span className="flex h-6 items-center rounded-[7px] bg-[var(--ord-paper)]/8 px-2 font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-muted)]">
+            ESC
           </span>
-        ) : (
-          matches.map((action, i) => (
-            <button
-              key={action.id}
-              type="button"
-              onMouseEnter={() => setCursor(i)}
-              onClick={() => run(action)}
-              className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-[var(--dur-tap)]',
-                i === clamped
-                  ? 'bg-[var(--ord-acid)]/12'
-                  : 'bg-transparent hover:bg-[var(--ord-paper)]/5'
-              )}
-            >
-              <span className="ord-type-micro w-[68px] flex-none text-[var(--text-muted)] uppercase">
-                {action.group}
-              </span>
-              <span className="ord-type-footnote flex-1 text-[var(--ord-paper)]">
-                {action.label}
-              </span>
-              {action.keys && <span className="ord-kbd flex-none">{action.keys}</span>}
-            </button>
-          ))
-        )}
+        </div>
+
+        <div
+          ref={listRef}
+          id="palette-actions"
+          role="listbox"
+          aria-label="Actions"
+          className="flex max-h-[46vh] flex-col gap-0.5 overflow-y-auto"
+        >
+          {matches.length === 0 ? (
+            <span className="px-3.5 py-3 text-sm text-[var(--text-muted)]">Nothing matches “{query.trim()}”.</span>
+          ) : (
+            matches.map((action, i) => (
+              <button
+                key={action.id}
+                id={`palette-${action.id}`}
+                type="button"
+                role="option"
+                aria-selected={i === clamped}
+                tabIndex={-1}
+                onMouseEnter={() => setCursor(i)}
+                onClick={() => run(action)}
+                className={cn(
+                  'flex h-11 flex-none cursor-pointer items-center gap-3 rounded-[12px] border-0 px-3.5 text-left text-sm transition-colors duration-[var(--dur-tap)]',
+                  i === clamped ? 'bg-[var(--ord-paper)]/8 text-[var(--ord-paper)]' : 'bg-transparent text-[var(--text-body)]'
+                )}
+              >
+                <span className="flex-1">{action.label}</span>
+                <span className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide text-[var(--text-muted)] uppercase">
+                  {action.keys ?? action.group}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className="flex gap-4 px-1.5 pt-1.5 font-[family-name:var(--font-mono)] text-[11px] text-[var(--text-muted)]" aria-hidden="true">
+          <span>↑↓ MOVE</span>
+          <span>↵ RUN</span>
+        </div>
       </div>
     </DeskSheet>
   );

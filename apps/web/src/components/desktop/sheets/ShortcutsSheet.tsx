@@ -2,7 +2,7 @@
 
 /** Every key the editor listens for. Read-only. */
 
-import { DeskSheet } from './DeskSheet';
+import { DeskSheet, DeskSheetHeader } from './DeskSheet';
 
 const SHORTCUTS = [
   { what: 'Play or pause', keys: 'space' },
@@ -20,26 +20,22 @@ const SHORTCUTS = [
 
 export function ShortcutsSheet({ onClose }: { onClose: () => void }) {
   return (
-    <DeskSheet title="Keyboard shortcuts" onClose={onClose}>
-      <span className="ord-type-title font-bold text-[var(--ord-paper)]">
-        Keyboard shortcuts
-      </span>
+    <DeskSheet title="Keyboard shortcuts" onClose={onClose} width="split">
+      <DeskSheetHeader title="Keyboard shortcuts" onClose={onClose} />
 
-      <ul className="flex list-none flex-col gap-1 overflow-y-auto p-0">
+      <dl className="m-0 grid grid-cols-2 gap-x-6 overflow-y-auto">
         {SHORTCUTS.map((shortcut) => (
-          <li
+          <div
             key={shortcut.what}
-            className="flex items-center justify-between gap-4 border-b border-[var(--border-hairline)] py-2 last:border-b-0"
+            className="flex h-11 items-center justify-between gap-4 border-b border-[var(--ord-paper)]/6"
           >
-            <span className="ord-type-footnote text-[var(--text-body)]">
-              {shortcut.what}
-            </span>
-            <span className="ord-kbd flex-none text-[var(--ord-paper)]">
+            <dt className="text-sm text-[var(--text-body)]">{shortcut.what}</dt>
+            <dd className="m-0 flex h-6.5 min-w-6.5 flex-none items-center justify-center rounded-[7px] bg-[var(--ord-paper)]/8 px-2 font-[family-name:var(--font-mono)] text-xs text-[var(--ord-paper)] shadow-[inset_0_-1px_0_rgb(0_0_0/0.4)]">
               {shortcut.keys}
-            </span>
-          </li>
+            </dd>
+          </div>
         ))}
-      </ul>
+      </dl>
     </DeskSheet>
   );
 }

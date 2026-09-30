@@ -19,15 +19,15 @@
 import { formatFileSize, formatMediaType } from '@/lib/formatFileSize';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
 import { useClipPicker } from '@/hooks/clips/useClipPicker';
-import { solidButton } from '@/lib/variants';
+import { sheetButton } from '@/lib/variants';
 import { cn } from '@/lib/utils';
 import type { ProcessingAlertState } from '@/hooks/recording/useCreateFlow';
 import { DeskSheet } from './DeskSheet';
 
-const ghostButton =
-  'cursor-pointer rounded-xl border border-[var(--border-hairline)] bg-transparent px-4 py-2 ' +
-  'ord-type-label font-semibold text-[var(--text-body)] transition-colors duration-[var(--dur-tap)] ' +
-  'hover:bg-[var(--ord-paper)]/8 hover:text-[var(--ord-paper)] disabled:cursor-default disabled:opacity-40';
+/* The desk's sheet buttons: the same three tones as the phone's sheets, at
+   the compact size a pointer needs. */
+const ghostButton = cn(sheetButton({ tone: 'secondary' }), 'h-11 w-auto px-4.5 text-sm');
+const commitButton = cn(sheetButton({ tone: 'primary' }), 'h-11 w-auto px-5 text-sm');
 
 function formatTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -47,7 +47,7 @@ export function DeskFileConfirm({
   return (
     <DeskSheet title="Process this file?" onClose={onCancel}>
       <div className="flex flex-col gap-1">
-        <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
+        <span className="text-[17px] font-semibold text-[var(--ord-paper)]">
           Process this file?
         </span>
         <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
@@ -55,8 +55,8 @@ export function DeskFileConfirm({
         </span>
       </div>
 
-      <div className="flex items-center gap-3 rounded-xl bg-[var(--ord-paper)]/5 p-3">
-        <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-[var(--ord-paper)]/8 ord-type-micro font-bold text-[var(--text-body)]">
+      <div className="flex items-center gap-3 rounded-[14px] bg-[var(--ord-paper)]/5 p-3">
+        <span className="flex size-10 flex-none items-center justify-center rounded-[14px] bg-[var(--ord-paper)]/8 ord-type-micro font-bold text-[var(--text-body)]">
           {formatMediaType(file)}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -74,7 +74,7 @@ export function DeskFileConfirm({
         <button
           type="button"
           onClick={onConfirm}
-          className={solidButton({ tone: 'acid', elevation: 'flat' })}
+          className={commitButton}
         >
           Process audio
         </button>
@@ -103,7 +103,7 @@ export function DeskEpisodeProgress({
   return (
     <DeskSheet title={EPISODE_LABEL[phase]} onClose={onCancel}>
       <div className="flex flex-col gap-1">
-        <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
+        <span className="text-[17px] font-semibold text-[var(--ord-paper)]">
           {EPISODE_LABEL[phase]}
         </span>
         <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
@@ -153,7 +153,7 @@ export function DeskEpisodeError({
   return (
     <DeskSheet title="Something went wrong" onClose={onDismiss}>
       <div className="flex flex-col gap-1">
-        <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
+        <span className="text-[17px] font-semibold text-[var(--ord-paper)]">
           Something went wrong
         </span>
         <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.4] text-[var(--text-muted)]">
@@ -171,7 +171,7 @@ export function DeskEpisodeError({
           <button
             type="button"
             onClick={onUsePartial}
-            className={solidButton({ tone: 'acid', elevation: 'flat' })}
+            className={commitButton}
           >
             Use what transcribed
           </button>
@@ -205,7 +205,7 @@ export function DeskClipPicker({
   return (
     <DeskSheet title="Best moments" width="wide" onClose={busy ? () => {} : onClose}>
       <div className="flex flex-col gap-1">
-        <span className="ord-type-subtitle font-bold text-[var(--ord-paper)]">
+        <span className="text-[17px] font-semibold text-[var(--ord-paper)]">
           Best moments
         </span>
         <span className="font-[family-name:var(--font-display)] ord-type-footnote text-[var(--text-muted)]">
@@ -223,11 +223,11 @@ export function DeskClipPicker({
               disabled={busy || !episodeFile}
               onClick={() => pick(candidate, i)}
               className={cn(
-                'flex w-full cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left',
+                'flex w-full cursor-pointer flex-col gap-1 rounded-[14px] border p-3 text-left',
                 'transition-colors duration-[var(--dur-tap)] disabled:cursor-default',
                 pickingIndex === i
-                  ? 'border-[var(--ord-acid)] bg-[var(--ord-acid)]/12'
-                  : 'border-[var(--border-hairline)] bg-[var(--ord-paper)]/5 hover:bg-[var(--ord-paper)]/8',
+                  ? 'border-[1.5px] border-[var(--ord-acid)] bg-[var(--ord-acid)]/7'
+                  : 'border-transparent bg-[var(--ord-paper)]/5 hover:bg-[var(--ord-paper)]/8',
                 busy && pickingIndex !== i && 'opacity-40'
               )}
             >
@@ -268,7 +268,7 @@ export function DeskProcessingAlert({
   return (
     <div
       role="alert"
-      className="ord-animate-fade fixed top-4 left-1/2 z-70 w-[min(92vw,34rem)] -translate-x-1/2 rounded-2xl border border-[var(--ord-rose)]/40 bg-[var(--surface-card)] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.6)]"
+      className="ord-animate-fade fixed top-4 left-1/2 z-70 w-[min(92vw,34rem)] -translate-x-1/2 rounded-[22px] border border-[var(--ord-rose)]/40 bg-[var(--surface-raised)] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.6)]"
     >
       <div className="flex flex-col gap-1">
         <span className="ord-type-label font-bold text-[var(--ord-rose)]">
