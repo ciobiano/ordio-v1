@@ -10,8 +10,10 @@
 
 /* ─── Shell ─── */
 .ord-shell {
-  height: 100vh;
-  min-height: 720px;
+  /* dvh, not vh: vh is the viewport with the browser bars retracted, so a
+     100vh shell sits partly under Safari's toolbar until the user scrolls. */
+  height: 100dvh;
+  min-height: 640px;
   min-width: 1080px;
   display: flex;
   flex-direction: column;
@@ -361,68 +363,10 @@
 }
 
 /* ─── Scrollbars ───
-   One rule for every scroller in the editor. `data-scroll` was already on the
-   four panes as a marker and had no styling behind it, so those panes drew the
-   OS default while only the timeline was themed — three different scrollbars
-   in one window.
-
-   6px, and transparent at rest: the thumb fades in on hover or when focus
-   enters the pane, so a still editor shows no chrome it does not need. */
-[data-scroll],
-.ord-timeline-body {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color var(--dur-snap) var(--ease-snap);
-}
-
-[data-scroll]:hover,
-[data-scroll]:focus-within,
-.ord-timeline-body:hover,
-.ord-timeline-body:focus-within {
-  scrollbar-color: color-mix(in srgb, var(--ord-paper) 24%, transparent) transparent;
-}
-
-[data-scroll]::-webkit-scrollbar,
-.ord-timeline-body::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-[data-scroll]::-webkit-scrollbar-track,
-.ord-timeline-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-[data-scroll]::-webkit-scrollbar-thumb,
-.ord-timeline-body::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: var(--r-pill);
-  transition: background var(--dur-snap) var(--ease-snap);
-}
-
-[data-scroll]:hover::-webkit-scrollbar-thumb,
-[data-scroll]:focus-within::-webkit-scrollbar-thumb,
-.ord-timeline-body:hover::-webkit-scrollbar-thumb,
-.ord-timeline-body:focus-within::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ord-paper) 24%, transparent);
-}
-
-[data-scroll]::-webkit-scrollbar-thumb:hover,
-.ord-timeline-body::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--ord-paper) 38%, transparent);
-}
-
-/* The one exception. This scroller was reported as having no affordance at
-   all — a zoomed timeline gave no sign it could be panned — so its thumb
-   rests faint rather than fully invisible, and brightens like the rest.
-   Auto-hiding it completely would reintroduce the bug it was fixed for. */
-.ord-track-scroll {
-  scrollbar-color: color-mix(in srgb, var(--ord-paper) 12%, transparent) transparent;
-}
-
-.ord-track-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ord-paper) 12%, transparent);
-}
+   None of their own. ord-motion.css draws one 3px thumb for every scroller in
+   the app, visible only while that scroller is moving — the editor's panes and
+   timeline included. The hover-reveal that used to live here showed a thumb
+   whenever the pointer merely rested on a pane. */
 
 /* Track heights, named for the row they carry. */
 /* Stays put while the tracks scroll under it, so you never lose the clock. */

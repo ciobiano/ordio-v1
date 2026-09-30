@@ -3,6 +3,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Orb } from '@/components/media/orb/Orb';
 import { deriveStatusText } from '@/lib/capture/phase';
+import { OrdioMark } from '@/components/ui/OrdioMark';
+import { PROCESSING_STEPS, processingStepState } from '@/lib/capture/processingSteps';
+import { CaptureRecordView } from './CaptureRecordView';
+import { ProcessingSteps } from './ProcessingSteps';
 /**
  * The idle prompt is static. It used to type itself out and cycle between two
  * phrases on a 42ms/char, 2000ms-hold, 26ms/char-delete loop — motion that ran
@@ -22,6 +26,10 @@ interface CaptureStageProps {
   committedCaptionLines: string[];
   /** Text of the utterance currently being transcribed, if any. */
   interimCaptionText: string;
+  /** 0–100, from useAudioProcessing. */
+  processingProgress: number;
+  /** Changes when a take is thrown away, so the record clock starts from zero. */
+  takeId: number;
   onOrbClick?: () => void;
   onOrbPressStart?: () => void;
   onOrbPressEnd?: () => void;
@@ -65,10 +73,93 @@ export function CaptureStage({
   isSpeaking,
   committedCaptionLines,
   interimCaptionText,
+  processingProgress,
+  takeId,
   onOrbClick,
   onOrbPressStart,
   onOrbPressEnd,
 }: CaptureStageProps) {
+  if (phase === 'recording' || phase === 'paused' || phase === 'ready') {
+    return (
+      <CaptureRecordView
+        key={takeId}
+        phase={phase}
+        audioLevel={audioLevel}
+        isSpeaking={isSpeaking}
+        committedCaptionLines={committedCaptionLines}
+        interimCaptionText={interimCaptionText}
+      />
+    );
+  }
+
+  if (phase === 'processing') {
+    return <CaptureProcessingView progress={processingProgress} />;
+  }
+
+  return (
+    <IdleStage
+      phase={phase}
+      audioLevel={audioLevel}
+      isSpeaking={isSpeaking}
+      committedCaptionLines={committedCaptionLines}
+      interimCaptionText={interimCaptionText}
+      onOrbClick={onOrbClick}
+      onOrbPressStart={onOrbPressStart}
+      onOrbPressEnd={onOrbPressEnd}
+    />
+  );
+}
+
+/**
+ * Processing, in the record screen's own frame: the percentage where the clock
+ * was, the Ordio mark pulsing where the waveform was, and the four real
+ * pipeline stages where the transcript was — so nothing jumps when you tap
+ * Process, the content of each slot just changes.
+ */
+function CaptureProcessingView({ progress }: { progress: number }) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress)));
+  const current = PROCESSING_STEPS.find((_, i) => processingStepState(i, pct) === 'now');
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col px-4">
+      <div className="flex flex-col items-center gap-1.5 pt-6 short:pt-2">
+        <span
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          aria-label="Processing"
+          className="font-acid-mono text-6xl leading-none tracking-tighter text-acid-text-1 tabular-nums short:text-5xl"
+        >
+          {pct}
+          <span className="text-acid-text-3">%</span>
+        </span>
+        <span className="text-sm text-acid-text-3" aria-live="polite">
+          {current ? current.label : 'Finishing up'}
+        </span>
+      </div>
+
+      <div className="mt-7 flex h-33 shrink-0 items-center justify-center short:mt-4 short:h-22">
+        <OrdioMark motion="pulse" size={170} className="text-acid-text-1 short:w-36 short:h-auto" />
+      </div>
+
+      <ProcessingSteps progress={pct} className="mt-5 short:mt-3" />
+    </div>
+  );
+}
+
+type IdleStageProps = Omit<CaptureStageProps, 'processingProgress' | 'takeId'>;
+
+function IdleStage({
+  phase,
+  audioLevel,
+  isSpeaking,
+  committedCaptionLines,
+  interimCaptionText,
+  onOrbClick,
+  onOrbPressStart,
+  onOrbPressEnd,
+}: IdleStageProps) {
   const isIdle = phase === 'idle';
   const status = deriveStatusText({ phase, audioLevel, isSpeaking });
 
@@ -94,8 +185,9 @@ export function CaptureStage({
   const scale = ORB_TARGET_PX[phase] / BASE_ORB_PX;
 
   return (
-    <div className="absolute top-16 bottom-[150px] left-0 right-0 flex flex-col items-center justify-center overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
       <motion.div
+        className="short:scale-85"
         animate={{ scale }}
         transition={{ duration: 0.38, ease: EASE }}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}

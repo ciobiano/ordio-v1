@@ -121,13 +121,11 @@ export const proseCode = cva(
  * so passing the two through `cn()` drops one silently. The explicit `length:`
  * hint puts the class in the font-size group and lets size and colour coexist.
  *
- * No `font-*` class, because it would be dead code: globals.css sets `h1..h6`
- * to `--font-heading` as unlayered CSS, and unlayered rules beat `@layer
- * utilities` regardless of specificity. Headings here are monospace by
- * inheritance, which suits a technical article. Changing that means changing
- * the global rule, not adding a class.
+ * Monospace, explicitly: it suits a technical article. (It used to arrive by
+ * accident — an unlayered global heading rule pointed at a Geist Mono
+ * variable — which also made every other heading in the app mono.)
  */
-export const proseHeading = cva('text-acid-text-1', {
+export const proseHeading = cva('font-acid-mono text-acid-text-1', {
   variants: {
     level: {
       title: 'text-[length:var(--text-h1)] leading-[var(--leading-display)] tracking-[-1px]',

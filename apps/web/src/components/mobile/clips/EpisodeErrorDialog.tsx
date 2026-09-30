@@ -1,15 +1,8 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet';
+import { DangerBadge } from '@/components/ui/SheetGlyphs';
+import { sheetButton } from '@/lib/variants';
 
 interface EpisodeErrorDialogProps {
   message: string;
@@ -31,29 +24,29 @@ export function EpisodeErrorDialog({
   onDismiss,
 }: EpisodeErrorDialogProps) {
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onDismiss()}>
-      <AlertDialogContent
-        className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white"
-      >
-        <AlertDialogHeader className="place-items-start text-left">
-          <AlertDialogTitle className="text-white">Something went wrong</AlertDialogTitle>
-          <AlertDialogDescription className="text-white/55">{message}</AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10">
-            Dismiss
-          </AlertDialogCancel>
-          {partialAvailable && (
-            <AlertDialogAction
-              onClick={onUsePartial}
-              className="rounded-2xl bg-white text-slate-950 hover:bg-white/90"
-            >
+    <OrdSheet
+      open
+      onOpenChange={(open) => !open && onDismiss()}
+      role="alertdialog"
+      title="Something went wrong"
+      description={message}
+      icon={<DangerBadge kind="alert" />}
+      footer={
+        partialAvailable ? (
+          <OrdSheetActions>
+            <button type="button" className={sheetButton({ tone: 'secondary' })} onClick={onDismiss}>
+              Dismiss
+            </button>
+            <button type="button" className={sheetButton({ tone: 'primary' })} onClick={onUsePartial}>
               Use partial transcript
-            </AlertDialogAction>
-          )}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+            </button>
+          </OrdSheetActions>
+        ) : (
+          <button type="button" className={sheetButton({ tone: 'secondary' })} onClick={onDismiss}>
+            Dismiss
+          </button>
+        )
+      }
+    />
   );
 }

@@ -19,7 +19,8 @@ export const captureGlossyBtn =
   'capture-glossy-btn shrink-0 rounded-full flex items-center justify-center ' +
   'text-white cursor-pointer transition-transform duration-300';
 
-export const captureNavBtn = `${captureGlossyBtn} w-9 h-9`;
+/** 44px — the minimum touch target, and the size the approved capture design draws. */
+export const captureNavBtn = `${captureGlossyBtn} w-11 h-11`;
 
 /**
  * Idle-dock hero record button — the primary action, sized and colored like a
@@ -36,8 +37,13 @@ export const captureRecordHero =
  * review" action, `warning` (amber) for pause, `success` (green) for resume, `danger` (red)
  * for restart since it discards the current take.
  */
-export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-center justify-center', {
+export const captureRoundBtn = cva('shrink-0 rounded-full flex items-center justify-center transition-transform duration-150 active:scale-94', {
   variants: {
+    /** `md` is the desk transport's 40px; `lg` is the phone dock's 56px thumb target. */
+    size: {
+      md: 'w-10 h-10',
+      lg: 'w-14 h-14 short:w-12 short:h-12',
+    },
     tone: {
       neutral: `${captureGlossyBtn}`,
       primary: 'border-none cursor-pointer text-acid-on-accent bg-acid-accent',
@@ -46,8 +52,24 @@ export const captureRoundBtn = cva('shrink-0 w-10 h-10 rounded-full flex items-c
       danger: 'cursor-pointer text-acid-error bg-acid-error/16 border border-acid-error/50',
     },
   },
-  defaultVariants: { tone: 'neutral' },
+  defaultVariants: { tone: 'neutral', size: 'md' },
 });
+
+/**
+ * The take's primary control while recording: a coral stop square inside a
+ * ringed well, the shape every voice-memo app uses for "stop", so it is found
+ * without reading the label.
+ */
+export const captureStopHero =
+  'shrink-0 w-21 h-21 short:w-18 short:h-18 rounded-full flex items-center justify-center cursor-pointer ' +
+  'bg-acid-bg-base border-3 border-acid-error/40 shadow-[0_0_0_8px_color-mix(in_srgb,var(--acid-error)_8%,transparent)] ' +
+  'transition-transform duration-150 active:scale-94';
+
+/** The lime commit pill, raised on its own darker lip — the sticker press. */
+export const captureCommitPill =
+  'h-14 short:h-12 flex-1 min-w-0 rounded-full border-none cursor-pointer bg-acid-accent text-acid-on-accent ' +
+  'text-base font-semibold shadow-[0_3px_0_var(--acid-accent-lip)] transition-[transform,box-shadow] duration-100 ' +
+  'active:translate-y-0.75 active:shadow-none';
 
 /**
  * Center dock slot — waveform (recording/paused), "Process recording" pill (ready), or
@@ -66,13 +88,3 @@ export const captureCenterSlot = cva(
     },
   }
 );
-
-/**
- * Shared silhouette for all bottom sheets/drawers — solid dark bg, floating
- * inset, large radius, drop shadow. One definition so RecordingSettingsSheet,
- * UpgradeSheet, and the ExportControls mobile drawer share one shape.
- */
-export const captureSheetSurface =
-  'bg-[color:var(--sheet-bg)] rounded-4xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)] ' +
-  'data-[vaul-drawer-direction=bottom]:inset-x-auto data-[vaul-drawer-direction=bottom]:left-2.5 ' +
-  'data-[vaul-drawer-direction=bottom]:right-2.5 data-[vaul-drawer-direction=bottom]:bottom-3.5';

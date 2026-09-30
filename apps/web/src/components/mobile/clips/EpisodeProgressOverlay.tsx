@@ -1,15 +1,7 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Progress } from '@/components/ui/progress';
+import { OrdSheet } from '@/components/ui/OrdSheet';
+import { sheetButton } from '@/lib/variants';
 
 type EpisodePhase = 'ingesting' | 'transcribing' | 'finding';
 
@@ -31,31 +23,33 @@ interface EpisodeProgressOverlayProps {
  * a Cancel control wired to onCancel, no auto-dismiss.
  */
 export function EpisodeProgressOverlay({ phase, progress, onCancel }: EpisodeProgressOverlayProps) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress)));
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent
-        className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white"
-      >
-        <AlertDialogHeader className="place-items-start text-left">
-          <AlertDialogTitle className="text-white">{PHASE_LABELS[phase]}</AlertDialogTitle>
-          <AlertDialogDescription className="text-white/55">
-            This can take a few minutes for longer episodes.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <div className="flex flex-col gap-2">
-          <Progress value={progress} />
-          <span className="text-xs text-white/40 tabular-nums">{Math.round(progress)}%</span>
+    <OrdSheet
+      open
+      onOpenChange={(open) => !open && onCancel()}
+      role="alertdialog"
+      title={PHASE_LABELS[phase]}
+      description="This can take a few minutes for longer episodes."
+      footer={
+        <button type="button" onClick={onCancel} className={sheetButton({ tone: 'secondary' })}>
+          Cancel
+        </button>
+      }
+    >
+      <div className="flex items-center gap-3">
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          aria-label="Episode progress"
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-acid-text-1/8"
+        >
+          <div className="h-full rounded-full bg-acid-accent transition-[width] duration-200" style={{ width: `${pct}%` }} />
         </div>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel
-            className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10"
-          >
-            Cancel
-          </AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <span className="w-10 text-right font-acid-mono text-xs text-acid-text-3 tabular-nums">{pct}%</span>
+      </div>
+    </OrdSheet>
   );
 }

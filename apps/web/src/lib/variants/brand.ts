@@ -24,7 +24,7 @@ export const brandLogoDot = cva('rounded-full bg-acid-accent shrink-0', {
   defaultVariants: { size: 'sm' },
 });
 
-export const brandLogoWord = cva('font-acid-display font-bold text-acid-text-1', {
+export const brandLogoWord = cva('font-acid-wordmark font-extrabold text-acid-text-1', {
   variants: {
     size: {
       sm: 'text-acid-label',

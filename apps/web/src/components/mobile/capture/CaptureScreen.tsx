@@ -8,16 +8,9 @@ import type { ChangeEvent, RefObject } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
 import { FILE_ACCEPT_ATTRIBUTE } from '@/lib/fileValidation';
 import type { FeatureKey } from '@/lib/featureGates';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet';
+import { DangerBadge } from '@/components/ui/SheetGlyphs';
+import { sheetButton } from '@/lib/variants';
 import { CaptureHeader } from './CaptureHeader';
 import { CaptureStage } from './CaptureStage';
 import { CaptureDock } from './CaptureDock';
@@ -96,6 +89,8 @@ export function CaptureScreen({
   // on a single tap. Lives here, not in CaptureDock, so the header's back arrow
   // (a second entry point to the same cancel action) goes through the same gate.
   const [pendingAction, setPendingAction] = useState<'restart' | 'cancel' | null>(null);
+  // Bumped whenever a take is thrown away, so the record clock restarts at zero.
+  const [takeId, setTakeId] = useState(0);
   const { trigger } = useHaptics();
 
   const pressActiveRef = useRef(false);
@@ -157,6 +152,7 @@ export function CaptureScreen({
   const handleRestart = useCallback(() => {
     trigger('medium');
     setRecordingSubPhase('recording');
+    setTakeId((id) => id + 1);
     onRestart();
   }, [onRestart, trigger]);
 
@@ -168,6 +164,7 @@ export function CaptureScreen({
   const handleCancel = useCallback(() => {
     trigger('medium');
     setRecordingSubPhase('recording');
+    setTakeId((id) => id + 1);
     onCancel();
   }, [onCancel, trigger]);
 
@@ -197,7 +194,7 @@ export function CaptureScreen({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-[440px] h-dvh min-h-[720px] mx-auto overflow-hidden select-none"
+      className="relative w-full max-w-[440px] h-dvh mx-auto overflow-hidden select-none"
       style={{ perspective: '1400px' }}
     >
       {/* Sidebar sits behind the page at all times; revealed as the page slides right.
@@ -220,7 +217,7 @@ export function CaptureScreen({
       )}
 
       <motion.div
-        className="absolute inset-0 z-2 bg-black text-white overflow-hidden"
+        className="absolute inset-0 z-2 flex flex-col bg-acid-bg-base text-acid-text-1 overflow-hidden safe-pt"
         drag="x"
         dragControls={dragControls}
         dragListener={false}
@@ -249,7 +246,12 @@ export function CaptureScreen({
           />
         )}
 
-        <CaptureHeader phase={phase} onOpenFiles={() => setFilesOpen(true)} onBack={requestCancel} />
+        <CaptureHeader
+          phase={phase}
+          onOpenFiles={() => setFilesOpen(true)}
+          onBack={requestCancel}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
 
         <CaptureStage
           phase={phase}
@@ -257,6 +259,8 @@ export function CaptureScreen({
           isSpeaking={isSpeaking}
           committedCaptionLines={committedCaptionLines}
           interimCaptionText={interimCaptionText}
+          processingProgress={processingProgress}
+          takeId={takeId}
           // Orb only wires up pointer handlers when onClick is present (see Orb.tsx) — the click
           // itself is a no-op here since pointerdown/pointerup already handle start/finish.
           onOrbClick={() => {}}
@@ -266,7 +270,6 @@ export function CaptureScreen({
 
         <CaptureDock
           phase={phase}
-          progress={processingProgress}
           onOpenUpload={() => setUploadOpen(true)}
           onRecordPressStart={handlePrimaryDown}
           onRecordPressEnd={finishPress}
@@ -283,31 +286,28 @@ export function CaptureScreen({
 
         <RecordingSettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLocked={onLocked} />
 
-        <AlertDialog open={pendingAction !== null} onOpenChange={(open) => !open && setPendingAction(null)}>
-          <AlertDialogContent className="mobile-glass max-w-[calc(100%-1.5rem)] rounded-[2rem] border border-white/10 bg-slate-950/88 text-white">
-            <AlertDialogHeader className="place-items-start text-left">
-              <AlertDialogTitle className="text-white">
-                {pendingAction === 'restart' ? 'Restart recording?' : 'Discard recording?'}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-white/55">
-                {pendingAction === 'restart'
-                  ? 'This take will be discarded and you’ll start over.'
-                  : 'This recording will be lost.'}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-2xl border-white/10 bg-white/6 text-white hover:bg-white/10">
+        <OrdSheet
+          open={pendingAction !== null}
+          onOpenChange={(open) => !open && setPendingAction(null)}
+          role="alertdialog"
+          title={pendingAction === 'restart' ? 'Restart recording?' : 'Discard recording?'}
+          description={
+            pendingAction === 'restart'
+              ? 'This take will be discarded and you’ll start over.'
+              : 'This recording will be lost.'
+          }
+          icon={<DangerBadge kind="bin" />}
+          footer={
+            <OrdSheetActions>
+              <button type="button" className={sheetButton({ tone: 'secondary' })} onClick={() => setPendingAction(null)}>
                 Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmPendingAction}
-                className="rounded-2xl bg-[#ff453a] text-white hover:bg-[#ff453a]/90"
-              >
+              </button>
+              <button type="button" className={sheetButton({ tone: 'danger' })} onClick={confirmPendingAction}>
                 {pendingAction === 'restart' ? 'Restart' : 'Discard'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </button>
+            </OrdSheetActions>
+          }
+        />
 
         <input
           ref={fileInputRef}

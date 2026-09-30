@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { CropIcon, FullScreenIcon, SquareArrowExpand01Icon, MagicWand01Icon } from '@hugeicons/core-free-icons';
-import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
+import { OrdSheet, OrdSheetActions, OrdSheetLabel } from '@/components/ui/OrdSheet';
+import { RadioDot } from '@/components/ui/SheetGlyphs';
 import { cn } from '@/lib/utils';
-import { captureSheetSurface } from '@/lib/variants';
-import { ordStickerBtn, ordGhostBtn, ordOptionCard } from '@/lib/variants';
+import { sheetButton, sheetOption } from '@/lib/variants';
 import { useUIStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import type { FormatVariant } from '@/stores';
@@ -32,10 +30,10 @@ const FORMATS: FormatEntry[] = [
 
 type ContentFit = NonNullable<StyleConfig['contentFit']>;
 
-const FITS: { value: ContentFit; label: string; icon: typeof CropIcon; hint: string }[] = [
-  { value: 'fill', label: 'Fill', icon: FullScreenIcon, hint: 'Crop to cover the frame' },
-  { value: 'fit', label: 'Fit', icon: SquareArrowExpand01Icon, hint: 'Show all of it, letterboxed' },
-  { value: 'auto', label: 'Auto', icon: MagicWand01Icon, hint: 'Crop when the shapes are close' },
+const FITS: { value: ContentFit; label: string; hint: string }[] = [
+  { value: 'fill', label: 'Fill', hint: 'Crop to cover the frame' },
+  { value: 'fit', label: 'Fit', hint: 'Show all of it, letterboxed' },
+  { value: 'auto', label: 'Auto', hint: 'Crop when the shapes are close' },
 ];
 
 interface ReframeSheetProps {
@@ -83,131 +81,84 @@ export function ReframeSheet({ open, onClose, onLocked }: ReframeSheetProps) {
   };
 
   return (
-    <Drawer open={open} onOpenChange={(next) => !next && onClose()}>
-      <DrawerContent
-        className={cn(
-          captureSheetSurface,
-          'flex flex-col gap-4 p-0 px-4 pb-6 pt-4.5',
-          'sm:left-1/2 sm:max-w-[420px] sm:-translate-x-1/2'
-        )}
-      >
-        <DrawerTitle className="flex items-center gap-2.5 text-base font-semibold text-[color:var(--acid-text-1)]">
-          <HugeiconsIcon
-            icon={CropIcon}
-            size={18}
-            strokeWidth={2}
-            // A heading icon is decoration, not a chosen value — the two
-            // selected states below are what earn lime in this sheet.
-            className="text-[color:var(--acid-text-3)]"
-          />
-          Aspect ratio
-        </DrawerTitle>
-        <DrawerDescription className="sr-only">
-          Pick the shape of your exported canvas, then apply it.
-        </DrawerDescription>
-
-        <div className="grid grid-cols-4 gap-2">
-          {FORMATS.map((entry) => {
-            const locked = entry.gate ? isLocked(entry.gate) : false;
-            const active = pending === entry.value;
-
-            return (
-              <button
-                key={entry.value}
-                type="button"
-                aria-pressed={active}
-                aria-label={`${entry.label}${locked ? ' — requires Creator' : ''}`}
-                onClick={() => {
-                  if (locked && entry.gate) {
-                    onLocked(entry.gate);
-                    return;
-                  }
-                  setPending(entry.value);
-                }}
-                className={cn(
-                  ordOptionCard({ active }),
-                  'h-[76px] flex-col items-center justify-center gap-2 px-0'
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'block rounded-[4px] border-[2.5px]',
-                    active
-                      ? 'border-[color:var(--acid-accent)]'
-                      : 'border-[color:var(--acid-text-2)]'
-                  )}
-                  style={{ width: entry.width, height: entry.height }}
-                />
-                <span className="text-xs font-semibold text-[color:var(--acid-text-1)]">
-                  {entry.label}
-                </span>
-                {locked && <LockPin position="card" />}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2.5 pt-0.5">
-          <HugeiconsIcon
-            icon={FullScreenIcon}
-            size={18}
-            strokeWidth={2}
-            className="text-[color:var(--acid-text-3)]"
-          />
-          <span className="text-base font-semibold text-[color:var(--acid-text-1)]">Content fit</span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Content fit">
-          {FITS.map((fit) => {
-            const active = pendingFit === fit.value;
-            return (
-              <button
-                key={fit.value}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                aria-label={`${fit.label} — ${fit.hint}`}
-                onClick={() => setPendingFit(fit.value)}
-                className={cn(
-                  ordOptionCard({ active }),
-                  'h-16 flex-col items-center justify-center gap-1.5 px-0'
-                )}
-              >
-                <HugeiconsIcon
-                  icon={fit.icon}
-                  size={20}
-                  strokeWidth={2}
-                  className={
-                    active
-                      ? 'text-[color:var(--acid-accent)]'
-                      : 'text-[color:var(--acid-text-2)]'
-                  }
-                />
-                <span className="text-xs font-semibold text-[color:var(--acid-text-1)]">
-                  {fit.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex gap-2.5 pt-1.5">
-          <button type="button" onClick={onClose} className={cn(ordGhostBtn({ size: 'lg' }), 'flex-1')}>
+    <OrdSheet
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      title="Reframe"
+      description="Pick the shape of your exported canvas, then apply it."
+      showClose
+      footer={
+        <OrdSheetActions>
+          <button type="button" onClick={onClose} className={sheetButton({ tone: 'secondary' })}>
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleApply}
-            className={cn(
-              ordStickerBtn({ tone: 'accent', size: 'lg', elevation: 'flat' }),
-              'flex-1'
-            )}
-          >
+          <button type="button" onClick={handleApply} className={sheetButton({ tone: 'primary' })}>
             Apply
           </button>
-        </div>
-      </DrawerContent>
-    </Drawer>
+        </OrdSheetActions>
+      }
+    >
+      <OrdSheetLabel>Aspect ratio</OrdSheetLabel>
+      <div
+        role="radiogroup"
+        aria-label="Aspect ratio"
+        className="-mt-1 grid grid-cols-4 gap-1 rounded-[14px] bg-acid-text-1/6 p-1"
+      >
+        {FORMATS.map((entry) => {
+          const locked = entry.gate ? isLocked(entry.gate) : false;
+          const active = pending === entry.value;
+
+          return (
+            <button
+              key={entry.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              aria-label={`${entry.label}${locked ? ' — requires Creator' : ''}`}
+              onClick={() => {
+                if (locked && entry.gate) {
+                  onLocked(entry.gate);
+                  return;
+                }
+                setPending(entry.value);
+              }}
+              className={cn(
+                'relative flex h-16 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border-none font-acid-mono text-xs transition-colors duration-100',
+                active ? 'bg-acid-text-1 text-acid-on-accent' : 'bg-transparent text-acid-text-2 hover:bg-acid-text-1/6'
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className="block rounded-[3px] border-[1.5px] border-current"
+                style={{ width: entry.width * 0.9, height: entry.height * 0.9 }}
+              />
+              {entry.label}
+              {locked && <LockPin position="card" />}
+            </button>
+          );
+        })}
+      </div>
+
+      <OrdSheetLabel>Content fit</OrdSheetLabel>
+      <div className="-mt-1 flex flex-col gap-2" role="radiogroup" aria-label="Content fit">
+        {FITS.map((fit) => {
+          const active = pendingFit === fit.value;
+          return (
+            <button
+              key={fit.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setPendingFit(fit.value)}
+              className={sheetOption({ selected: active })}
+            >
+              <span className="w-11 text-[15px] font-medium text-acid-text-1">{fit.label}</span>
+              <span className="flex-1 text-[13px] text-acid-text-3">{fit.hint}</span>
+              <RadioDot on={active} />
+            </button>
+          );
+        })}
+      </div>
+    </OrdSheet>
   );
 }

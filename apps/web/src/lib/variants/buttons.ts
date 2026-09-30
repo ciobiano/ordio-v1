@@ -62,59 +62,7 @@ export const optionBtn = cva(
 /**
  * Acid pill — selectable tab/option (e.g. control dock: Captions/Style/Trim/Reframe).
  */
-/**
- * Onboarding auth tray buttons (mobile sign-up screen + desktop auth modal).
- * `apple` gets Apple's mandated light pill per HIG; `google` sits on the acid
- * dark surface system so the tray matches the desktop studio's palette.
- * These are the only two full-weight buttons — email sign-up/login is a
- * single tertiary link (see `authTrayLink`) so the tray reads as "one
- * decision, two ways" instead of a four-item menu.
- */
-export const authTrayBtn = cva(
-  'h-15.5 rounded-2xl flex items-center justify-center gap-2.5 font-black text-[length:var(--text-body-lg)] ' +
-  'tracking-[-0.01em] cursor-pointer transition-transform duration-150 active:scale-[0.985] ' +
-  // An OAuth handoff is a redirect, so these stay disabled until the browser
-  // leaves the page — there is no success state to return to.
-  'disabled:cursor-not-allowed disabled:active:scale-100',
-  {
-    variants: {
-      variant: {
-        apple: 'bg-white text-acid-bg-base',
-        google: 'bg-acid-surface-3 text-acid-text-1',
-      },
-      /**
-       * `waiting` is the button you pressed; `blocked` is every other button,
-       * disabled so a second provider cannot be started mid-handoff. They are
-       * dimmed differently on purpose — identical treatment would lose track of
-       * which provider is actually working.
-       */
-      state: {
-        idle: '',
-        waiting: 'disabled:opacity-100',
-        blocked: 'disabled:opacity-40',
-      },
-    },
-    defaultVariants: { variant: 'google', state: 'idle' },
-  }
-);
-
-/**
- * Tertiary "continue with email" link beneath the auth tray buttons —
- * opens the same Clerk sign-up modal, which already offers its own
- * "already have an account? Sign in" link, so this single entry point
- * covers both new and returning users.
- */
-export const authTrayLink =
-  'h-11 flex items-center justify-center font-acid-body font-medium ' +
-  'text-acid-label text-acid-text-2 cursor-pointer transition-colors ' +
-  'duration-[var(--acid-duration-micro)] hover:text-acid-text-1 ' +
-  'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-acid-text-2';
-
-/**
- * Spinner for a pending auth handoff. `currentColor` so it reads on both tray
- * buttons — the Apple one is white-on-dark, the Google one dark-on-surface, and a
- * fixed colour would vanish on one of them.
- */
+/** Spinner shown inside an auth button while its OAuth handoff is in flight. */
 export const authTraySpinner =
   'h-4.5 w-4.5 shrink-0 animate-spin rounded-full border-2 ' +
   'border-current/25 border-t-current';
@@ -320,3 +268,76 @@ export const solidButton = cva(
 export type DeskToolButtonProps = VariantProps<typeof deskToolButton>;
 export type IconButtonProps = VariantProps<typeof iconButton>;
 export type SolidButtonProps = VariantProps<typeof solidButton>;
+
+/* ------------------------------------------------------------------ *
+ * Sheet buttons — the one button family every sheet uses.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Buttons at the foot of a sheet. Three tones and nothing else: `secondary`
+ * for the way out (Cancel, Maybe later), `primary` for the one commit, and
+ * `danger` for a commit that destroys something. Primary and danger stand on a
+ * darker lip of their own hue and sink into it on press — the sticker press,
+ * redrawn for a sheet, where an ink shadow would vanish into the surface.
+ */
+export const sheetButton = cva(
+  'h-12.5 w-full rounded-[14px] inline-flex items-center justify-center gap-2 px-4 text-[15px] ' +
+    'cursor-pointer border-none transition-[transform,box-shadow,background-color] duration-100 ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring ' +
+    'disabled:opacity-40 disabled:cursor-not-allowed motion-reduce:transition-none',
+  {
+    variants: {
+      tone: {
+        secondary: 'bg-acid-text-1/8 text-acid-text-1 font-medium hover:bg-acid-text-1/12 active:scale-[0.98]',
+        primary:
+          'bg-acid-accent text-acid-on-accent font-semibold shadow-[0_3px_0_var(--acid-accent-lip)] ' +
+          'active:translate-y-0.75 active:shadow-none disabled:active:translate-y-0',
+        danger:
+          'bg-acid-error text-acid-on-accent font-semibold shadow-[0_3px_0_var(--acid-error-lip)] ' +
+          'active:translate-y-0.75 active:shadow-none disabled:active:translate-y-0',
+      },
+    },
+    defaultVariants: { tone: 'secondary' },
+  }
+);
+
+/**
+ * A selectable row inside a sheet (a radio option, a picker entry). Selected
+ * rows take a lime rule and a faint lime wash — the accent marking a chosen
+ * value, which is the one thing DESIGN.md lets it mark.
+ */
+export const sheetOption = cva(
+  'w-full min-h-14 rounded-[14px] px-3.5 py-3 flex items-center gap-3 text-left cursor-pointer ' +
+    'transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring',
+  {
+    variants: {
+      selected: {
+        true: 'border-[1.5px] border-acid-accent bg-acid-accent/7',
+        false: 'border border-transparent bg-acid-text-1/5 hover:bg-acid-text-1/8',
+      },
+    },
+    defaultVariants: { selected: false },
+  }
+);
+
+/**
+ * Paper button — onboarding and sign-up. Paper on a grey lip, sinking into it
+ * on press. Paper rather than lime because nothing has been chosen yet: lime
+ * marks a chosen value or the one commit action inside the product.
+ */
+export const paperButton = cva(
+  'inline-flex items-center justify-center gap-2 rounded-[16px] border-none cursor-pointer ' +
+    'bg-acid-text-1 text-acid-on-accent font-semibold shadow-[0_4px_0_var(--acid-paper-lip)] ' +
+    'transition-[transform,box-shadow] duration-100 active:translate-y-1 active:shadow-none ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-accent-ring ' +
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0 motion-reduce:transition-none',
+  {
+    variants: {
+      size: {
+        md: 'h-13 px-4 text-[15px]',
+        lg: 'h-13.5 px-5 text-base',
+      },
+    },
+    defaultVariants: { size: 'lg' },
+  }
+);

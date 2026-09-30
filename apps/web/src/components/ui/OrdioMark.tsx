@@ -1,135 +1,64 @@
-'use client'
-
-import { motion, useAnimation, type Variants } from 'framer-motion'
-import { useEffect } from 'react'
+import { cn } from '@/lib/utils'
 
 interface OrdioMarkProps {
   size?: number
   color?: string
+  /**
+   * `assemble`: the page-transition loader — arcs slide out, then pulse.
+   * `pulse`: already built, lime travels outward through the rings (in-screen progress).
+   * `still`: the static mark.
+   */
+  motion?: 'assemble' | 'pulse' | 'still'
+  className?: string
 }
 
-// Container: stagger children in, then loop-pulse the whole group
-const containerVariants: Variants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.05 },
-  },
-  loop: {
-    opacity: [1, 0.45, 1],
-    scale: [1, 0.88, 1],
-    transition: {
-      duration: 1.8,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-  exit: {
-    transition: { staggerChildren: 0.04, staggerDirection: -1 as const },
-  },
-}
+/**
+ * The Ordio arcs mark: a centre circle with three arc pairs either side.
+ *
+ * Animated in CSS rather than framer-motion. The previous version started its
+ * stagger from a useEffect, so nothing moved until hydration finished — by
+ * which point a fast navigation had already removed the overlay it lived in,
+ * and the loader was effectively never seen. CSS keyframes run from first
+ * paint, server-rendered HTML included, and honour prefers-reduced-motion
+ * without a JS branch.
+ */
+const ARCS = [
+  { id: 'l1', d: 'M 380 166.48 A 100 100 0 0 0 380 333.52 Z' },
+  { id: 'r1', d: 'M 620 166.48 A 100 100 0 0 1 620 333.52 Z' },
+  { id: 'l2', d: 'M 315 178.59 A 100 100 0 0 0 315 321.41 Z' },
+  { id: 'r2', d: 'M 685 178.59 A 100 100 0 0 1 685 321.41 Z' },
+  { id: 'l3', d: 'M 265 197.32 A 100 100 0 0 0 265 302.68 Z' },
+  { id: 'r3', d: 'M 735 197.32 A 100 100 0 0 1 735 302.68 Z' },
+] as const
 
-// Per-arc: x-offset slides arcs outward from center on enter/exit
-// custom > 0 → left arc (hidden state shifted right toward center)
-// custom < 0 → right arc (hidden state shifted left toward center)
-// custom = 0 → circle (no x shift)
-const arcVariants: Variants = {
-  hidden: (xOffset: number) => ({ opacity: 0, x: xOffset, scale: 0.85 }),
-  visible: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  },
-  exit: (xOffset: number) => ({
-    opacity: 0,
-    x: xOffset,
-    scale: 0.85,
-    transition: { duration: 0.2, ease: 'easeIn' },
-  }),
-}
+const RING: Record<(typeof ARCS)[number]['id'], 1 | 2 | 3> = { l1: 1, r1: 1, l2: 2, r2: 2, l3: 3, r3: 3 }
 
-export function OrdioMark({ size = 80, color = 'white' }: OrdioMarkProps) {
-  const controls = useAnimation()
-
-  useEffect(() => {
-    const run = async () => {
-      await controls.start('visible')   // stagger arcs in once
-      controls.start('loop')            // then breathe forever
-    }
-    run()
-  }, [controls])
-
+export function OrdioMark({ size = 80, color = 'currentColor', motion = 'assemble', className }: OrdioMarkProps) {
+  const assemble = motion === 'assemble'
+  const pulse = motion === 'pulse'
   return (
     <svg
       width={size}
-      height={size * 0.5}
-      // Cropped viewBox — removes dead space, makes mark fill the element
+      height={Math.round((size * 260) / 900)}
+      // Cropped to the mark's own bounds so `size` is the drawn width.
       viewBox="50 120 900 260"
       fill={color}
       aria-hidden="true"
+      className={cn(motion !== 'still' && 'ord-loader-mark', className)}
     >
-      <motion.g
-        variants={containerVariants}
-        initial="hidden"
-        animate={controls}
-        exit="exit"
-      >
-        {/* Center circle */}
-        <motion.path
-          custom={0}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 500 150 A 100 100 0 1 0 500 350 A 100 100 0 1 0 500 150 Z"
+      <path
+        className={assemble ? 'ord-loader-core' : pulse ? 'ord-pulse-core' : undefined}
+        d="M 500 150 A 100 100 0 1 0 500 350 A 100 100 0 1 0 500 150 Z"
+      />
+      {ARCS.map((arc) => (
+        <path
+          key={arc.id}
+          data-arc={arc.id}
+          data-ring={RING[arc.id]}
+          className={assemble ? 'ord-loader-arc' : pulse ? 'ord-pulse-arc' : undefined}
+          d={arc.d}
         />
-
-        {/* Left arc 1 — innermost */}
-        <motion.path
-          custom={40}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 380 166.48 A 100 100 0 0 0 380 333.52 Z"
-        />
-
-        {/* Right arc 1 — innermost */}
-        <motion.path
-          custom={-40}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 620 166.48 A 100 100 0 0 1 620 333.52 Z"
-        />
-
-        {/* Left arc 2 */}
-        <motion.path
-          custom={60}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 315 178.59 A 100 100 0 0 0 315 321.41 Z"
-        />
-
-        {/* Right arc 2 */}
-        <motion.path
-          custom={-60}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 685 178.59 A 100 100 0 0 1 685 321.41 Z"
-        />
-
-        {/* Left arc 3 — outermost */}
-        <motion.path
-          custom={80}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 265 197.32 A 100 100 0 0 0 265 302.68 Z"
-        />
-
-        {/* Right arc 3 — outermost */}
-        <motion.path
-          custom={-80}
-          variants={arcVariants}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          d="M 735 197.32 A 100 100 0 0 1 735 302.68 Z"
-        />
-      </motion.g>
+      ))}
     </svg>
   )
 }

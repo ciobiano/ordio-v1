@@ -208,6 +208,7 @@ export default function ExportState({
         exporter={exporter}
         transcript={transcript ?? []}
         durationSeconds={audioBuffer?.duration ?? 0}
+        format={format}
         onDownload={onDownload}
         onClose={() => setExportOverlayOpen(false)}
       />
