@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { ClipCandidateSchema, type ClipCandidate } from '@Ordio/shared/schemas';
 
-const MIN_LEN = 30;
-const MAX_LEN = 60;
+export const CLIP_MIN_SEC = 30;
+export const CLIP_MAX_SEC = 60;
 
 /**
  * Parse and sanitize LLM-proposed clip windows.
@@ -15,7 +15,7 @@ export function validateCandidates(raw: unknown, durationSec: number): ClipCandi
   const valid = parsed.data
     .filter((c) => {
       const len = c.end - c.start;
-      return c.start >= 0 && c.end <= durationSec && len >= MIN_LEN && len <= MAX_LEN;
+      return c.start >= 0 && c.end <= durationSec && len >= CLIP_MIN_SEC && len <= CLIP_MAX_SEC;
     })
     .sort((a, b) => a.start - b.start);
 
