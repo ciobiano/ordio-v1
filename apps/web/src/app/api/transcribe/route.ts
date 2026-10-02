@@ -5,7 +5,9 @@ import { fetchMutation } from 'convex/nextjs';
 import { api } from '@Ordio/convex';
 import type { Word } from '@Ordio/shared/schemas';
 import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
+import { ERROR_CATALOG, type ErrorCode } from '@/lib/errors/catalog';
 import { getOpenAITranscriptionFilename } from './audioFile';
+import { providerErrorCode, STATUS_FOR } from './providerError';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -21,6 +23,17 @@ function getClient(): OpenAI {
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
+
+/**
+ * A failure response the client can name. `code` is what the client reads;
+ * `error` is the catalog title, kept for anything that only reads text.
+ */
+function fail(code: ErrorCode, extra: Record<string, unknown> = {}): NextResponse {
+  return NextResponse.json(
+    { error: ERROR_CATALOG[code].title, code, ...extra },
+    { status: STATUS_FOR[code] ?? 500 }
+  );
+}
 
 // This route bills OpenAI per audio-minute, so it is the most expensive thing a
 // caller can trigger. Every other AI route already pairs auth with a per-hour
@@ -147,35 +160,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId, getToken } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return fail('AUTH_REQUIRED');
     }
 
     // The rate limit is an anti-hammering brake; credits are the real spend
     // ceiling. Both, because the limiter also protects the credit ledger from
     // a client looping faster than Convex can settle.
     if (!consumeRateLimit(`transcribe:${userId}`, TRANSCRIBE_PER_HOUR, HOUR_MS)) {
-      return NextResponse.json(
-        { error: 'Too many transcription requests — try again later' },
-        { status: 429 }
-      );
+      return fail('TRANSCRIBE_RATE_LIMITED');
     }
 
-    const formData = await request.formData();
-    const file = formData.get('audio');
+    /* A body that is not multipart at all (or was cut off in transit) throws
+       here, and is the caller's request being malformed, not Whisper failing. */
+    const formData = await request.formData().catch(() => null);
+    const file = formData?.get('audio');
 
-    if (!file || !(file instanceof Blob)) {
-      return NextResponse.json({ error: 'Missing audio file in form data' }, { status: 400 });
+    if (!formData || !file || !(file instanceof Blob) || file.size === 0) {
+      return fail('TRANSCRIBE_BAD_REQUEST');
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'Audio file exceeds 25MB Whisper limit' }, { status: 413 });
+      return fail('TRANSCRIBE_FILE_TOO_LARGE');
     }
 
     // Convex verifies this token itself; the route is only a courier.
     convexToken = (await getToken({ template: 'convex' })) ?? undefined;
     if (!convexToken) {
       console.error('[/api/transcribe] no Convex token — check the Clerk JWT template named "convex"');
-      return NextResponse.json({ error: 'Transcription is unavailable' }, { status: 503 });
+      return fail('TRANSCRIBE_UNAVAILABLE');
     }
 
     const declaredSeconds = parseDeclaredDuration(formData.get('durationSec'));
@@ -183,13 +195,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       api.credits.holdForTranscription,
       { estimatedSeconds: declaredSeconds },
       { token: convexToken }
-    );
+    ).catch((err: unknown) => {
+      console.error('[/api/transcribe] CREDITS_CHECK_FAILED', err);
+      return null;
+    });
+
+    // Nothing is held yet, so there is nothing to return.
+    if (!hold) {
+      return fail('CREDITS_CHECK_FAILED');
+    }
 
     if (!hold.allowed) {
-      return NextResponse.json(
-        { error: 'Out of transcription credits', code: 'INSUFFICIENT_CREDITS', minutes: hold.minutes },
-        { status: 402 }
-      );
+      return fail('INSUFFICIENT_CREDITS', { minutes: hold.minutes });
     }
     held = hold.held;
 
@@ -250,16 +267,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Nobody pays for a transcription that failed.
     await settle(0);
 
-    const message = err instanceof Error ? err.message : 'Transcription failed';
-    console.error('[/api/transcribe]', message);
-
-    if (message.includes('OPENAI_API_KEY')) {
-      // Deployment fault, not the caller's — and the detail stays in the log.
-      return NextResponse.json({ error: 'Transcription is unavailable' }, { status: 503 });
-    }
-
     // Never forward raw SDK/API error text to the client — it can carry request
-    // IDs, org identifiers and provider doc URLs. Full message is logged above.
-    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
+    // IDs, org identifiers and provider doc URLs. The client gets the code; the
+    // full message stays in this log line.
+    const code = providerErrorCode(err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[/api/transcribe] ${code}`, message);
+    return fail(code);
   }
 }

@@ -1,5 +1,16 @@
 import type { Word } from '@Ordio/shared/schemas';
 import { InsufficientCreditsError, transcriptionErrorFor } from './insufficientCredits';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import type { ErrorCode } from '@/lib/errors/catalog';
+
+/** Failures a second identical request would meet identically. */
+const NOT_RETRYABLE = new Set<ErrorCode>([
+  'AUTH_REQUIRED',
+  'TRANSCRIBE_RATE_LIMITED',
+  'TRANSCRIBE_FILE_TOO_LARGE',
+  'TRANSCRIBE_BAD_REQUEST',
+  'TRANSCRIBE_AUDIO_REJECTED',
+]);
 
 /**
  * POST one episode chunk to the existing stateless /api/transcribe route.
@@ -50,6 +61,7 @@ export async function transcribeChunk(
        second round-trip to be refused identically, and buries the one error
        the caller needs to tell apart from a network blip. */
     if (err instanceof InsufficientCreditsError) throw err;
+    if (err instanceof OrdioError && NOT_RETRYABLE.has(err.code)) throw err;
     return attempt();
   }
 }

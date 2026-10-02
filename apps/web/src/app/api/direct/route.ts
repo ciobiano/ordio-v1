@@ -147,10 +147,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[/api/direct]', message);
 
     if (message.includes('OPENAI_API_KEY')) {
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured. Add OPENAI_API_KEY to .env.local' },
-        { status: 500 }
-      );
+      // Deployment fault — the setup hint belongs in the log above, not in
+      // front of a person who cannot act on it.
+      return NextResponse.json({ error: 'The Director is unavailable' }, { status: 503 });
     }
 
     // Never forward raw SDK/API error text to the client — it can include
