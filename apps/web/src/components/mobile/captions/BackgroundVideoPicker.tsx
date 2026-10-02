@@ -6,6 +6,9 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import type { GenericId } from 'convex/values';
 import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import { backgroundCodeFor } from '@/lib/errors/classify';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores';
 import { BACKGROUND_LIBRARY } from '@Ordio/engine/backgrounds/backgroundLibrary';
@@ -81,7 +84,11 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
         headers: { 'Content-Type': 'video/mp4' },
         body: blob,
       });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        throw new OrdioError('BACKGROUND_UPLOAD_FAILED', {
+          message: `Background upload returned HTTP ${res.status}`,
+        });
+      }
       const { storageId } = (await res.json()) as { storageId: string };
       setUploadProgress(95);
       const assetId = await uploadBackground({
@@ -97,8 +104,8 @@ export function BackgroundVideoPicker({ onLocked }: BackgroundVideoPickerProps) 
       setStyle({ background: { type: 'video', source: 'custom', assetId } });
       toast.success('Background added');
     } catch (err) {
-      console.error('[BackgroundVideoPicker]', err);
-      toast.error(err instanceof Error ? err.message : 'Could not add this background');
+      // Never the raw message: the transcoder's wording is not written for people.
+      notifyError(err, { fallback: backgroundCodeFor(err) });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

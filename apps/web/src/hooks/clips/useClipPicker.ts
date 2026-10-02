@@ -17,7 +17,9 @@
 
 import { useCallback, useState } from 'react';
 import { useMutation } from 'convex/react';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import { uploadCodeFor } from '@/lib/errors/classify';
 import type { GenericId } from 'convex/values';
 import { api } from '@Ordio/convex';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
@@ -50,7 +52,11 @@ export function useClipPicker({ episodeFile, episodeWords, onPicked }: UseClipPi
           headers: { 'Content-Type': 'audio/wav' },
           body: blob,
         });
-        if (!uploadRes.ok) throw new Error('Clip upload failed');
+        if (!uploadRes.ok) {
+          throw new OrdioError(uploadCodeFor(uploadRes.status), {
+            message: `Clip upload returned HTTP ${uploadRes.status}`,
+          });
+        }
         const { storageId } = (await uploadRes.json()) as { storageId: string };
 
         const sessionId = await createSession({
@@ -61,8 +67,7 @@ export function useClipPicker({ episodeFile, episodeWords, onPicked }: UseClipPi
         });
         onPicked(sessionId);
       } catch (err) {
-        console.error('[useClipPicker]', err);
-        toast.error('Could not prepare this clip. Try another one.');
+        notifyError(err, { fallback: 'CLIP_PREPARE_FAILED' });
         /* Cleared only on failure. On success the sheet is closing, and
            releasing the lock first would let a second row be pressed
            during the teardown frame. */

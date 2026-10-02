@@ -18,6 +18,11 @@ import {
 } from '@Ordio/engine/media/whisperAudio';
 import type { Word } from '@Ordio/shared/schemas';
 import { expectedTranscribeMs, transcribeProgressAt } from '@/lib/audio/transcribeProgress';
+import { OrdioError, isAbortError, toOrdioError } from '@/lib/errors/OrdioError';
+import { decodeCodeFor, uploadCodeFor } from '@/lib/errors/classify';
+import type { ErrorCode } from '@/lib/errors/catalog';
+import { notifyError } from '@/lib/errors/notify';
+
 interface UseAudioProcessingReturn {
   processingProgress: number;
   processAudio: (blob: Blob) => Promise<string>;
@@ -26,14 +31,43 @@ interface UseAudioProcessingReturn {
 
 export type AudioProcessingFailureStage = 'enhancement' | 'transcription' | 'processing';
 
-export class AudioProcessingError extends Error {
-  stage: AudioProcessingFailureStage;
+/**
+ * A pipeline failure: which step it happened in, and its name.
+ *
+ * `stage` decides what the person is offered (only an enhancement failure
+ * offers turning enhancement off); `code` decides what they are told. The
+ * original failure stays on `cause` — the out-of-credits check reads it.
+ */
+export class AudioProcessingError extends OrdioError {
+  readonly stage: AudioProcessingFailureStage;
 
-  constructor(stage: AudioProcessingFailureStage, message: string, cause?: unknown) {
-    super(message, { cause });
+  constructor(stage: AudioProcessingFailureStage, code: ErrorCode, cause?: unknown) {
+    super(code, { cause });
     this.name = 'AudioProcessingError';
     this.stage = stage;
   }
+}
+
+/**
+ * Run one pipeline step, naming whatever it throws. A named failure keeps its
+ * own code; anything else takes the step's. Cancellation passes through
+ * untouched, because it is not a failure.
+ */
+async function step<T>(
+  stage: AudioProcessingFailureStage,
+  code: ErrorCode,
+  run: () => Promise<T>
+): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if (isAbortError(err) || err instanceof AudioProcessingError) throw err;
+    throw new AudioProcessingError(stage, toOrdioError(err, code).code, err);
+  }
+}
+
+function isSilentTranscript(words: Word[]): boolean {
+  return words.every((w) => w.text.trim().length === 0);
 }
 
 /**
@@ -87,7 +121,9 @@ export function useAudioProcessing(
         const enhanceTier = useProcessingStore.getState().enhanceTier;
         const decodeEnd = enhanceTier !== 'none' ? 15 : 25;
         setProcessingProgress(10);
-        const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
+        const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob).catch((err: unknown) => {
+          throw new AudioProcessingError('processing', decodeCodeFor(err), err);
+        });
         let transcriptionBuffer: AudioBuffer = decoded;
         setAudioBuffer(decoded);
         setAudioBlob(blob);
@@ -104,11 +140,7 @@ export function useAudioProcessing(
               setProcessingProgress(15 + (p / 100) * 25);
             });
             if (!result.ok) {
-              throw new AudioProcessingError(
-                'enhancement',
-                'Audio enhancement failed. Processing stopped before transcription.',
-                new Error(result.error)
-              );
+              throw new AudioProcessingError('enhancement', result.code, new Error(result.error));
             }
             const enhancedCtx = new AudioContext();
             let enhancedBuffer: AudioBuffer;
@@ -117,7 +149,7 @@ export function useAudioProcessing(
               void enhancedCtx.close();
             } catch (decodeErr) {
               void enhancedCtx.close();
-              throw decodeErr;
+              throw new AudioProcessingError('enhancement', 'ENHANCE_OUTPUT_UNREADABLE', decodeErr);
             }
             setAudioBuffer(enhancedBuffer);
             setAudioDuration(enhancedBuffer.duration);
@@ -151,39 +183,47 @@ export function useAudioProcessing(
         if (transcriptionBlob.size > WHISPER_SIZE_LIMIT) {
           try {
             transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
-          } catch {
+          } catch (reduceErr) {
+            // A cancel during compression is a cancel, not a reason to fall back.
+            if (isAbortError(reduceErr)) throw reduceErr;
             // FFmpeg can fail in some production environments; retry with whisper-normalized WAV.
             const fallbackWav = audioBufferToWavBlob(await getWhisperReadyBuffer());
             if (fallbackWav.size <= WHISPER_SIZE_LIMIT) {
               transcriptionBlob = fallbackWav;
             } else {
-              throw new Error('Audio file is too large to transcribe in production');
+              throw new AudioProcessingError('transcription', 'AUDIO_TOO_LARGE_TO_TRANSCRIBE', reduceErr);
             }
           }
         }
 
-        const transcriptionTask = transcriptionRef.current
-          // Decoded duration sizes the credit hold; the server settles against
-          // Whisper's own figure afterwards.
-          .transcribeAudio(transcriptionBlob, decoded.duration)
-          .catch((err) => {
-            throw new AudioProcessingError(
-              'transcription',
-              err instanceof Error ? err.message : 'Transcription failed',
-              err
-            );
-          });
+        // Decoded duration sizes the credit hold; the server settles against
+        // Whisper's own figure afterwards.
+        const transcriptionTask = step('transcription', 'TRANSCRIBE_FAILED', () =>
+          transcriptionRef.current.transcribeAudio(transcriptionBlob, decoded.duration)
+        );
 
         const uploadTask = (async () => {
-          const uploadUrl = await generateUploadUrlRef.current();
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': blob.type },
-            body: blob,
-            signal: abort.signal,
-          });
-          if (!uploadRes.ok) throw new Error('Audio upload failed');
-          const { storageId } = (await uploadRes.json()) as { storageId: string };
+          const uploadUrl = await step('processing', 'UPLOAD_URL_FAILED', () =>
+            generateUploadUrlRef.current()
+          );
+          const uploadRes = await step('processing', 'UPLOAD_FAILED', () =>
+            fetch(uploadUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': blob.type },
+              body: blob,
+              signal: abort.signal,
+            })
+          );
+          if (!uploadRes.ok) {
+            throw new AudioProcessingError(
+              'processing',
+              uploadCodeFor(uploadRes.status),
+              new Error(`Storage upload returned HTTP ${uploadRes.status}`)
+            );
+          }
+          const { storageId } = await step('processing', 'UPLOAD_FAILED', () =>
+            uploadRes.json() as Promise<{ storageId: string }>
+          );
           return storageId as GenericId<'_storage'>;
         })();
 
@@ -211,16 +251,21 @@ export function useAudioProcessing(
           setTranscript(words);
           setTranscriptionSource('whisper');
         }
+        /* Not a failure — a silent take still makes a waveform video — but
+           a video with no captions should never be a surprise. */
+        if (isSilentTranscript(words)) notifyError(new OrdioError('TRANSCRIBE_NO_SPEECH'));
         setProcessingProgress(85);
 
         // Step 4: Create session document → get sessionId
         setProcessingProgress(90);
-        const sessionId = await createSessionRef.current({
-          storageId,
-          mimeType: blob.type || 'audio/webm',
-          durationSec: decoded.duration,
-          transcript: words,
-        });
+        const sessionId = await step('processing', 'SESSION_SAVE_FAILED', () =>
+          createSessionRef.current({
+            storageId,
+            mimeType: blob.type || 'audio/webm',
+            durationSec: decoded.duration,
+            transcript: words,
+          })
+        );
 
         // Step 5: Finalize
         void clearRecordingDraft();
@@ -228,16 +273,14 @@ export function useAudioProcessing(
 
         return sessionId;
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          setCurrentState(stateBeforeProcessing);
-          return '';
-        }
         setCurrentState(stateBeforeProcessing);
-        console.error('[useAudioProcessing]', err);
+        if (isAbortError(err)) return '';
         if (err instanceof AudioProcessingError) {
+          console.error(`[useAudioProcessing] ${err.code}`, err.cause ?? err);
           throw err;
         }
-        throw new AudioProcessingError('processing', 'Audio processing failed', err);
+        console.error('[useAudioProcessing] PROCESSING_FAILED', err);
+        throw new AudioProcessingError('processing', toOrdioError(err, 'PROCESSING_FAILED').code, err);
       } finally {
         abortControllerRef.current = null;
       }

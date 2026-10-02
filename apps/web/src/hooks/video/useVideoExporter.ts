@@ -7,6 +7,8 @@ import type { GenericId } from 'convex/values';
 import type { ConvexReactClient } from 'convex/react';
 import type { Background } from '@Ordio/shared/schemas';
 import { useUIStore, useProcessingStore } from '@/stores';
+import { OrdioError, isAbortError } from '@/lib/errors/OrdioError';
+import { exportCodeFor } from '@/lib/errors/classify';
 import { encodeVideo, hasWebCodecsSupport } from '@Ordio/engine/video';
 import { encodeVideoFFmpeg } from '@Ordio/engine/video';
 import { getCuratedBackground } from '@Ordio/engine/backgrounds/backgroundLibrary';
@@ -71,7 +73,8 @@ interface UseVideoExporterReturn {
   exportProgress: number;
   exportedUrl: string | null;
   exportMimeType: string | null;
-  error: string | null;
+  /** Why the last export stopped, by name. Null while one runs or after success. */
+  error: OrdioError | null;
   startExport: (canvas: HTMLCanvasElement, audioBuffer: AudioBuffer, showWatermark?: boolean) => Promise<void>;
   cancelExport: () => void;
 }
@@ -85,7 +88,7 @@ export function useVideoExporter(): UseVideoExporterReturn {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportedUrl, setExportedUrl] = useState<string | null>(null);
   const [exportMimeType, setExportMimeType] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<OrdioError | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const prevUrlRef = useRef<string | null>(null);
@@ -140,11 +143,16 @@ export function useVideoExporter(): UseVideoExporterReturn {
         setExportMimeType(result.mimeType);
         setExportProgress(100);
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
+        if (isAbortError(err)) {
           // Cancelled by user — not an error
           return;
         }
-        setError(err instanceof Error ? err.message : 'Export failed');
+        const failure = new OrdioError(exportCodeFor(err), {
+          message: err instanceof Error ? err.message : undefined,
+          cause: err,
+        });
+        console.error(`[useVideoExporter] ${failure.code}`, err);
+        setError(failure);
       } finally {
         setIsExporting(false);
         abortRef.current = null;

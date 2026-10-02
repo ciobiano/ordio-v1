@@ -26,14 +26,19 @@ import { useEpisodeIngestion } from '@/hooks/audio/useEpisodeIngestion';
 import {
   validateFile,
   validateEpisodeFile,
-  FILE_ERROR_MESSAGES,
+  FILE_ERROR_CODES,
 } from '@/lib/fileValidation';
 import { isEpisodeFile } from '@/lib/episodeRouting';
+import { OrdioError, toOrdioError } from '@/lib/errors/OrdioError';
+import type { ErrorCode } from '@/lib/errors/catalog';
+import { notifyError } from '@/lib/errors/notify';
 
 // ── Processing alert types ───────────────────────────────────────────
 
 export interface ProcessingAlertState {
   stage: AudioProcessingFailureStage;
+  /** Shown as the banner's reference line, so a report can name it. */
+  code: ErrorCode;
   title: string;
   detail: string;
 }
@@ -51,30 +56,19 @@ function outOfCreditsFrom(error: AudioProcessingError): InsufficientCreditsError
   return error.cause instanceof InsufficientCreditsError ? error.cause : null;
 }
 
+/**
+ * The banner for a failed run. The copy is the failure's own — "Transcription
+ * timed out", "Your recording did not finish uploading" — rather than one line
+ * per stage, which said where it broke but never why.
+ */
 function buildProcessingAlert(error: AudioProcessingError): ProcessingAlertState {
-  if (error.stage === 'enhancement') {
-    return {
-      stage: error.stage,
-      title: 'Enhancement failed',
-      detail:
-        'Processing stopped before transcription. For faster recovery and lower additional AI usage, turn enhancement off and retry.',
-    };
-  }
+  const { title, detail } = error.copy;
+  return { stage: error.stage, code: error.code, title, detail };
+}
 
-  if (error.stage === 'transcription') {
-    return {
-      stage: error.stage,
-      title: 'Transcription failed',
-      detail:
-        'Processing stopped and you were returned to your previous screen. Review your recording or upload and retry when ready.',
-    };
-  }
-
-  return {
-    stage: error.stage,
-    title: 'Processing failed',
-    detail: 'Processing stopped safely. You can adjust settings and retry from this screen.',
-  };
+/** A mic failure as one sentence, for the inline line under the record button. */
+function startErrorText(error: OrdioError): string {
+  return `${error.copy.title}. ${error.copy.detail}`;
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────
@@ -162,11 +156,11 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
   }, [episode.outOfCredits, setUpgradeTarget]);
 
   // Surface live-caption failures once; recording itself is unaffected.
-  const lastLiveErrorRef = useRef<string | null>(null);
+  const lastLiveErrorRef = useRef<OrdioError | null>(null);
   useEffect(() => {
     if (live.liveError && live.liveError !== lastLiveErrorRef.current) {
       lastLiveErrorRef.current = live.liveError;
-      toast.error(live.liveError);
+      notifyError(live.liveError);
     }
   }, [live.liveError]);
 
@@ -185,11 +179,9 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
       setProcessingAlert(buildProcessingAlert(err));
       return;
     }
-    setProcessingAlert({
-      stage: 'processing',
-      title: 'Processing failed',
-      detail: 'Processing stopped safely. You can retry from your previous screen.',
-    });
+    console.error('[useCreateFlow] PROCESSING_FAILED', err);
+    const failure = toOrdioError(err, 'PROCESSING_FAILED');
+    setProcessingAlert({ stage: 'processing', code: failure.code, ...failure.copy });
   }, [setUpgradeTarget]);
 
   // ── Audio level sync ─────────────────────────────────────────────
@@ -228,19 +220,22 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
     setStartError(null);
     transcription.clearTranscript();
     try {
-      const stream = await recorder.startRecording();
-      if (!stream) {
-        const isDenied =
-          recorder.error?.toLowerCase().includes('denied') ||
-          recorder.error?.toLowerCase().includes('permission');
-        if (isDenied) {
+      let stream: MediaStream;
+      try {
+        stream = await recorder.startRecording();
+      } catch (err) {
+        /* The recorder names the failure, so a refusal, a missing device and a
+           device held by another app each get their own advice. This used to
+           read `recorder.error` here — React state, still the previous
+           render's value on this line — so a first refusal was never seen. */
+        const failure = toOrdioError(err, 'MIC_START_FAILED');
+        if (failure.code === 'MIC_PERMISSION_DENIED') {
           setMicDenied(true);
           micPermission.recordDenial();
         } else {
-          setStartError(
-            recorder.error ?? 'Ordio could not open your microphone. Check that no other app is using it.'
-          );
+          setStartError(startErrorText(failure));
         }
+        notifyError(failure);
         return;
       }
       setMicDenied(false);
@@ -254,10 +249,9 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
     } catch (err) {
       /* Callers fire this without awaiting, so an unhandled rejection here
          disappears entirely and the UI simply never changes. */
-      console.error('[useCreateFlow] startRecording', err);
-      setStartError(
-        err instanceof Error ? err.message : 'Recording could not start. Try again.'
-      );
+      const failure = toOrdioError(err, 'MIC_START_FAILED');
+      setStartError(startErrorText(failure));
+      notifyError(failure);
     } finally {
       setIsStarting(false);
     }
@@ -284,6 +278,10 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
 
   const handleProceed = useCallback(async () => {
     if (!recorder.audioBlob) return;
+    if (recorder.audioBlob.size === 0) {
+      notifyError(new OrdioError('RECORDING_EMPTY'));
+      return;
+    }
     setProcessingAlert(null);
     try {
       const sessionId = await processAudio(recorder.audioBlob);
@@ -329,7 +327,7 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
     if (await isEpisodeFile(file)) {
       const episodeError = validateEpisodeFile(file);
       if (episodeError) {
-        toast.error(FILE_ERROR_MESSAGES[episodeError]);
+        notifyError(new OrdioError(FILE_ERROR_CODES[episodeError]));
         return;
       }
       toast.info('Long episode detected — finding your best moments…');
@@ -339,7 +337,7 @@ export function useCreateFlow(options: CreateFlowOptions = {}) {
 
     const error = validateFile(file);
     if (error) {
-      toast.error(FILE_ERROR_MESSAGES[error]);
+      notifyError(new OrdioError(FILE_ERROR_CODES[error]));
       return;
     }
 

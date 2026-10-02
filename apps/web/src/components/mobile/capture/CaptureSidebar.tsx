@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useMutation, usePaginatedQuery } from 'convex/react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Search01Icon, PlusSignIcon, Settings01Icon } from '@hugeicons/core-free-icons';
 import { api } from '@Ordio/convex';
@@ -82,11 +82,11 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
     async (sessionId: (typeof sessions)[number]['id'], title: string) => {
       try {
         await renameSession({ sessionId, title });
-      } catch {
+      } catch (err) {
         // The row has already dropped back to its label by now, and Convex is
         // the source of truth for it — so a failure just means the old name
         // stays put, and the toast is what explains why.
-        toast.error('Could not rename this recording');
+        notifyError(err, { fallback: 'SESSION_RENAME_FAILED' });
       }
     },
     [renameSession]
@@ -97,8 +97,8 @@ export function CaptureSidebar({ onOpenUpload, onClose }: CaptureSidebarProps) {
     setIsDeleting(true);
     try {
       await deleteSession({ sessionId: pendingDelete.id });
-    } catch {
-      toast.error('Failed to delete recording');
+    } catch (err) {
+      notifyError(err, { fallback: 'SESSION_DELETE_FAILED' });
     } finally {
       setIsDeleting(false);
       setPendingDelete(null);

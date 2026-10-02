@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import type { Word } from '@Ordio/shared/schemas';
 import { transcriptionErrorFor } from '@/lib/transcription/insufficientCredits';
+import { toOrdioError } from '@/lib/errors/OrdioError';
 
 export interface UseTranscriptionReturn {
   isTranscribing: boolean;
@@ -48,7 +49,8 @@ export function useTranscription(): UseTranscriptionReturn {
       setTranscript(words);
       return words;
     } catch (err) {
-      const normalizedError = err instanceof Error ? err : new Error('Transcription failed');
+      // A rejected fetch becomes a connection error here, not "failed".
+      const normalizedError = toOrdioError(err, 'TRANSCRIBE_FAILED');
       setError(normalizedError.message);
       throw normalizedError;
     } finally {

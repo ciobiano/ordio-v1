@@ -18,13 +18,14 @@ import type { WaveformVariant, CanvasLayout, FormatVariant, GraphicStyleId } fro
 import type { FeatureKey } from '@/lib/featureGates';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
 import { buildAudioBuffer } from '@/lib/audio/trimGeometry';
+import type { OrdioError } from '@/lib/errors/OrdioError';
 
 interface UseVideoExporterShape {
   isExporting: boolean;
   exportProgress: number;
   exportedUrl: string | null;
   exportMimeType: string | null;
-  error: string | null;
+  error: OrdioError | null;
   startExport: (
     canvas: HTMLCanvasElement,
     audioBuffer: AudioBuffer,

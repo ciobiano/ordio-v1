@@ -2,6 +2,7 @@
  * File upload validation for the Create page.
  * Pure functions — no React, no side effects.
  */
+import type { ErrorCode } from '@/lib/errors/catalog';
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -60,9 +61,10 @@ function isAcceptedFileType(file: File): boolean {
   return ext ? ACCEPTED_EXTENSIONS.has(ext) : false;
 }
 
-export type FileValidationError = 'too_large' | 'unsupported_format' | 'episode_too_large';
+export type FileValidationError = 'empty' | 'too_large' | 'unsupported_format' | 'episode_too_large';
 
 export function validateFile(file: File): FileValidationError | null {
+  if (file.size === 0) return 'empty';
   if (file.size > MAX_FILE_SIZE_BYTES) return 'too_large';
   if (!isAcceptedFileType(file)) return 'unsupported_format';
   return null;
@@ -71,15 +73,18 @@ export function validateFile(file: File): FileValidationError | null {
 export const MAX_EPISODE_FILE_BYTES = 250 * 1024 * 1024; // episodes route, per design
 
 export function validateEpisodeFile(file: File): FileValidationError | null {
+  if (file.size === 0) return 'empty';
   if (file.size > MAX_EPISODE_FILE_BYTES) return 'episode_too_large';
   if (!isAcceptedFileType(file)) return 'unsupported_format';
   return null;
 }
 
-export const FILE_ERROR_MESSAGES: Record<FileValidationError, string> = {
-  too_large: 'File is too large — maximum is 50 MB',
-  unsupported_format: 'Unsupported format — try MP3, M4A, M4B, WAV, WEBM, OGG, FLAC, or MP4',
-  episode_too_large: 'Episode is too large — maximum is 250 MB',
+/** The catalog entry each validation failure is reported as. */
+export const FILE_ERROR_CODES: Record<FileValidationError, ErrorCode> = {
+  empty: 'FILE_EMPTY',
+  too_large: 'FILE_TOO_LARGE',
+  unsupported_format: 'FILE_UNSUPPORTED_FORMAT',
+  episode_too_large: 'EPISODE_FILE_TOO_LARGE',
 };
 
 /**
