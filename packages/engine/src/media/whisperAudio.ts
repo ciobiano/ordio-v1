@@ -152,9 +152,17 @@ export async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: Abo
 
   const compressed = new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
   if (compressed.size > WHISPER_SIZE_LIMIT) {
-    throw new Error('Compressed audio still exceeds production upload limit');
+    throw new WhisperSizeLimitError();
   }
   return compressed;
+}
+
+/** Audio that is still over Whisper's upload limit after compression. */
+export class WhisperSizeLimitError extends Error {
+  constructor() {
+    super('Compressed audio still exceeds production upload limit');
+    this.name = 'WhisperSizeLimitError';
+  }
 }
 
 export { WHISPER_SIZE_LIMIT };
