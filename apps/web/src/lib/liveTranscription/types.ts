@@ -3,6 +3,8 @@
 // always comes from the post-recording /api/transcribe pass. Implementations
 // must therefore fail sideways (emit onError, go silent), never block recording.
 
+import type { OrdioError } from '@/lib/errors/OrdioError';
+
 export interface LivePartialEvent {
   /** Vendor's utterance/item id — deltas for one utterance share an id. */
   itemId: string;
@@ -29,5 +31,5 @@ export interface LiveTranscriber {
   setSuspended(suspended: boolean): void;
   onPartial(cb: (event: LivePartialEvent) => void): void;
   onFinal(cb: (event: LiveFinalEvent) => void): void;
-  onError(cb: (message: string) => void): void;
+  onError(cb: (error: OrdioError) => void): void;
 }

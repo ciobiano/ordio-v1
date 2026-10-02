@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from '@Ordio/engine/video';
 import { getCaptionStylePreset } from '@Ordio/engine';
@@ -141,8 +142,7 @@ export function useCanvasRenderLoop({
       // otherwise log up to 60x/sec since drawCurrentFrame runs every frame.
       if (!hasWarnedRenderErrorRef.current) {
         hasWarnedRenderErrorRef.current = true;
-        console.error('[CanvasPreview] render frame failed', err);
-        toast.error('Preview is temporarily unavailable. Your audio is unaffected.');
+        notifyError(new OrdioError('PREVIEW_RENDER_FAILED', { cause: err }));
       }
       // Intentionally no re-throw and no drawImage this tick — the visible
       // canvas keeps showing whatever the last successful blit painted.

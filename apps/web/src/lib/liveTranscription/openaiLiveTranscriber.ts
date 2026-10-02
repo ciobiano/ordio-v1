@@ -5,6 +5,7 @@ import {
   type FrameGateState,
 } from './frameGate';
 import type { LiveFinalEvent, LivePartialEvent, LiveTranscriber } from './types';
+import { OrdioError } from '@/lib/errors/OrdioError';
 
 const REALTIME_WS_URL = 'wss://api.openai.com/v1/realtime';
 const WORKLET_URL = '/worklets/pcm-transcription-processor.js';
@@ -39,7 +40,9 @@ function pcmFrameToBase64(buffer: ArrayBuffer): string {
 async function mintToken(): Promise<string> {
   const res = await fetch('/api/realtime/transcription-token', { method: 'POST' });
   if (!res.ok) {
-    throw new Error('Live captions unavailable');
+    throw new OrdioError(res.status === 429 ? 'LIVE_CAPTIONS_RATE_LIMITED' : 'LIVE_CAPTIONS_UNAVAILABLE', {
+      message: `Live caption token returned HTTP ${res.status}`,
+    });
   }
   const { token } = (await res.json()) as { token: string };
   return token;
@@ -71,7 +74,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
 
   private partialCb: ((event: LivePartialEvent) => void) | null = null;
   private finalCb: ((event: LiveFinalEvent) => void) | null = null;
-  private errorCb: ((message: string) => void) | null = null;
+  private errorCb: ((error: OrdioError) => void) | null = null;
 
   onPartial(cb: (event: LivePartialEvent) => void): void {
     this.partialCb = cb;
@@ -81,7 +84,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
     this.finalCb = cb;
   }
 
-  onError(cb: (message: string) => void): void {
+  onError(cb: (error: OrdioError) => void): void {
     this.errorCb = cb;
   }
 
@@ -146,7 +149,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
     if (this.sessionTimer) clearTimeout(this.sessionTimer);
     const remaining = this.sessionDeadline - Date.now();
     this.sessionTimer = setTimeout(() => {
-      this.errorCb?.('Live caption session limit reached');
+      this.errorCb?.(new OrdioError('LIVE_CAPTIONS_SESSION_LIMIT'));
       this.stop();
     }, Math.max(remaining, 0));
   }
@@ -159,7 +162,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
       this.ws = ws;
 
       ws.onopen = () => resolve();
-      ws.onerror = () => reject(new Error('Live captions connection failed'));
+      ws.onerror = () => reject(new OrdioError('LIVE_CAPTIONS_CONNECTION_FAILED'));
       ws.onclose = () => {
         if (this.stopped || this.suspended) return;
         void this.reconnect('drop');
@@ -173,7 +176,7 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
     if (this.stopped) return;
     if (reason === 'drop') {
       if (this.reconnectUsed) {
-        this.errorCb?.('Live captions disconnected');
+        this.errorCb?.(new OrdioError('LIVE_CAPTIONS_CONNECTION_FAILED'));
         return;
       }
       this.reconnectUsed = true;
@@ -186,8 +189,8 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
       this.closeSocketOnly();
       await this.openSocket(token);
       this.gateState = INITIAL_GATE_STATE;
-    } catch {
-      this.errorCb?.('Live captions disconnected');
+    } catch (err) {
+      this.errorCb?.(new OrdioError('LIVE_CAPTIONS_CONNECTION_FAILED', { cause: err }));
     }
   }
 
@@ -208,7 +211,12 @@ export class OpenAILiveTranscriber implements LiveTranscriber {
       return;
     }
     if (event.type === 'error') {
-      this.errorCb?.(event.error?.message ?? 'Live transcription error');
+      // The provider's wording is for the log, never the screen.
+      this.errorCb?.(
+        new OrdioError('LIVE_CAPTIONS_UNAVAILABLE', {
+          message: event.error?.message ?? 'Live transcription error',
+        })
+      );
     }
   }
 

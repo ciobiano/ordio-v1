@@ -97,4 +97,20 @@ describe('hooks/audio: useAudioRecorder autosave', () => {
     expect(result.current.state).toBe('idle');
     expect(result.current.audioBlob).toBeNull();
   });
+
+  it('rejects with the named reason when the microphone is refused', async () => {
+    const getUserMedia = navigator.mediaDevices.getUserMedia as ReturnType<typeof vi.fn>;
+    getUserMedia.mockRejectedValueOnce(new DOMException('Permission denied', 'NotAllowedError'));
+    const { result } = renderHook(() => useAudioRecorder());
+
+    /* The reason travels on the rejection: \`error\` is React state, and the
+       caller's next line still sees the previous render's value. */
+    await act(async () => {
+      await expect(result.current.startRecording()).rejects.toMatchObject({
+        code: 'MIC_PERMISSION_DENIED',
+      });
+    });
+    expect(result.current.error?.code).toBe('MIC_PERMISSION_DENIED');
+    expect(result.current.state).toBe('idle');
+  });
 });

@@ -3,9 +3,11 @@
 import { OrdSheet, OrdSheetActions } from '@/components/ui/OrdSheet';
 import { DangerBadge } from '@/components/ui/SheetGlyphs';
 import { sheetButton } from '@/lib/variants';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import { ErrorReference } from '@/lib/errors/notify';
 
 interface EpisodeErrorDialogProps {
-  message: string;
+  error: OrdioError | null;
   partialAvailable: boolean;
   onUsePartial: () => void;
   onDismiss: () => void;
@@ -18,18 +20,24 @@ interface EpisodeErrorDialogProps {
  * proceed with the partial transcript instead of discarding the work.
  */
 export function EpisodeErrorDialog({
-  message,
+  error,
   partialAvailable,
   onUsePartial,
   onDismiss,
 }: EpisodeErrorDialogProps) {
+  const failure = error ?? new OrdioError('EPISODE_FAILED');
   return (
     <OrdSheet
       open
       onOpenChange={(open) => !open && onDismiss()}
       role="alertdialog"
-      title="Something went wrong"
-      description={message}
+      title={failure.copy.title}
+      description={
+        <>
+          {failure.copy.detail}
+          <ErrorReference code={failure.code} />
+        </>
+      }
       icon={<DangerBadge kind="alert" />}
       footer={
         partialAvailable ? (

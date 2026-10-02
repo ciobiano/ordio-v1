@@ -124,7 +124,7 @@ export function MobileCaptureFlow() {
       )}
       {flow.episode.phase === 'error' && (
         <EpisodeErrorDialog
-          message={flow.episode.error ?? 'Something went wrong.'}
+          error={flow.episode.error}
           partialAvailable={flow.episode.partialAvailable}
           onUsePartial={flow.episode.usePartialTranscript}
           onDismiss={flow.episode.cancel}

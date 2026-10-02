@@ -5,6 +5,9 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
 import type { GenericId } from 'convex/values';
 import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import { backgroundCodeFor } from '@/lib/errors/classify';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores';
 import { useFeatureGates } from '@/hooks/auth/useFeatureGates';
@@ -64,11 +67,11 @@ export function BackgroundImagePicker({ onLocked }: BackgroundImagePickerProps) 
   const handleFile = async (file: File | undefined) => {
     if (!file || isUploading) return;
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error('Unsupported format — try JPG, PNG, or WEBP');
+      notifyError(new OrdioError('BACKGROUND_UNSUPPORTED_FORMAT'));
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      toast.error('Image is too large — maximum is 4 MB');
+      notifyError(new OrdioError('BACKGROUND_TOO_LARGE'));
       return;
     }
 
@@ -80,7 +83,11 @@ export function BackgroundImagePicker({ onLocked }: BackgroundImagePickerProps) 
         headers: { 'Content-Type': file.type },
         body: file,
       });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        throw new OrdioError('BACKGROUND_UPLOAD_FAILED', {
+          message: `Background upload returned HTTP ${res.status}`,
+        });
+      }
       const { storageId } = (await res.json()) as { storageId: string };
       const assetId = await uploadBackground({
         storageId: storageId as GenericId<'_storage'>,
@@ -94,8 +101,8 @@ export function BackgroundImagePicker({ onLocked }: BackgroundImagePickerProps) 
       setStyle({ background: { type: 'image', source: 'custom', assetId } });
       toast.success('Background added');
     } catch (err) {
-      console.error('[BackgroundImagePicker]', err);
-      toast.error(err instanceof Error ? err.message : 'Could not add this background');
+      // Never the raw message: the transcoder's wording is not written for people.
+      notifyError(err, { fallback: backgroundCodeFor(err) });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

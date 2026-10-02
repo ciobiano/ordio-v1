@@ -8,6 +8,7 @@
 import { useCallback, useReducer, useRef, useState } from 'react';
 import { OpenAILiveTranscriber } from '@/lib/liveTranscription/openaiLiveTranscriber';
 import type { LiveTranscriber } from '@/lib/liveTranscription/types';
+import { type OrdioError, toOrdioError } from '@/lib/errors/OrdioError';
 
 export interface CaptionState {
   /** Finished utterances, in order. Rendered as committed caption lines. */
@@ -50,7 +51,7 @@ export interface UseLiveTranscriptionReturn {
   /** Committed caption lines plus current interim text, ready to render. */
   committedLines: string[];
   interimText: string;
-  liveError: string | null;
+  liveError: OrdioError | null;
   startLive: (stream: MediaStream) => void;
   stopLive: () => void;
   /** Mirror recording pause/resume so paused speech is never captioned. */
@@ -60,7 +61,7 @@ export interface UseLiveTranscriptionReturn {
 
 export function useLiveTranscription(): UseLiveTranscriptionReturn {
   const [state, dispatch] = useReducer(captionReducer, INITIAL_STATE);
-  const [liveError, setLiveError] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState<OrdioError | null>(null);
   const transcriberRef = useRef<LiveTranscriber | null>(null);
 
   const stopLive = useCallback(() => {
@@ -76,12 +77,12 @@ export function useLiveTranscription(): UseLiveTranscriptionReturn {
       const transcriber = new OpenAILiveTranscriber();
       transcriber.onPartial(({ itemId, delta }) => dispatch({ type: 'partial', itemId, delta }));
       transcriber.onFinal(({ itemId, text }) => dispatch({ type: 'final', itemId, text }));
-      transcriber.onError((message) => setLiveError(message));
+      transcriber.onError((error) => setLiveError(error));
       transcriberRef.current = transcriber;
 
       // Fire-and-forget by design: recording must never wait on captions.
       transcriber.start(stream).catch((err: unknown) => {
-        setLiveError(err instanceof Error ? err.message : 'Live captions unavailable');
+        setLiveError(toOrdioError(err, 'LIVE_CAPTIONS_UNAVAILABLE'));
         transcriberRef.current = null;
       });
     },

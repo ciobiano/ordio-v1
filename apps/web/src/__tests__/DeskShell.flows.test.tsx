@@ -22,7 +22,7 @@ const flow = vi.hoisted(() => ({
   isStarting: false,
   micDenied: false,
   startError: null as string | null,
-  processingAlert: null as { stage: string; title: string; detail: string } | null,
+  processingAlert: null as { stage: string; code: string; title: string; detail: string } | null,
   processingProgress: 0,
   stagedFile: null as File | null,
   fileInputRef: { current: null },
@@ -51,7 +51,7 @@ const flow = vi.hoisted(() => ({
     episodeFile: null as File | null,
     episodeWords: [],
     progress: 0,
-    error: null as string | null,
+    error: null as import('@/lib/errors/OrdioError').OrdioError | null,
     partialAvailable: false,
     cancel: vi.fn(),
     usePartialTranscript: vi.fn(),
@@ -118,6 +118,7 @@ vi.mock('@/components/media/orb/Orb', () => ({
 
 import { DeskShell } from '@/components/desktop/DeskShell';
 import { useDirectorStore } from '@/stores';
+import { OrdioError } from '@/lib/errors/OrdioError';
 
 function reset() {
   flow.currentState = 'idle';
@@ -210,10 +211,11 @@ describe('DeskShell — long episodes', () => {
 
   it('offers the partial transcript when some chunks succeeded', () => {
     flow.episode.phase = 'error';
-    flow.episode.error = 'Chunk 3 failed';
+    flow.episode.error = new OrdioError('EPISODE_PARTIAL_TRANSCRIPT');
     flow.episode.partialAvailable = true;
     render(<DeskShell />);
-    expect(screen.getByText('Chunk 3 failed')).toBeInTheDocument();
+    expect(screen.getAllByText('Part of the episode was not transcribed').length).toBeGreaterThan(0);
+    expect(screen.getByText('Ref: EPISODE_PARTIAL_TRANSCRIPT')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Use what transcribed/i }));
     expect(flow.episode.usePartialTranscript).toHaveBeenCalledTimes(1);
   });
@@ -239,11 +241,13 @@ describe('DeskShell — failures are visible', () => {
   it('surfaces a processing failure with a way to retry without enhancement', () => {
     flow.processingAlert = {
       stage: 'enhancement',
-      title: 'Enhancement failed',
-      detail: 'Processing stopped before transcription.',
+      code: 'ENHANCE_TIMEOUT',
+      title: 'Enhancement took too long',
+      detail: 'The enhancement service did not answer in time.',
     };
     render(<DeskShell />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Enhancement failed');
+    expect(screen.getByRole('alert')).toHaveTextContent('Enhancement took too long');
+    expect(screen.getByRole('alert')).toHaveTextContent('Ref: ENHANCE_TIMEOUT');
     fireEvent.click(screen.getByRole('button', { name: /Turn enhancement off/i }));
     expect(flow.handleDisableEnhancement).toHaveBeenCalledTimes(1);
   });

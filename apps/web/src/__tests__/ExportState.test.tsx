@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ExportState from '@/components/mobile/states/ExportState';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
+import { OrdioError } from '@/lib/errors/OrdioError';
 
 // Covers ExportState's own orchestration logic, which had zero test coverage:
 // the primaryLabel derivation (Export / Retry export / Save) and the export
@@ -74,7 +75,7 @@ function baseProps() {
       exportProgress: 0,
       exportedUrl: null as string | null,
       exportMimeType: null,
-      error: null as string | null,
+      error: null as OrdioError | null,
       startExport: vi.fn().mockResolvedValue(undefined),
       cancelExport: vi.fn(),
     },
@@ -102,7 +103,7 @@ describe('components/soul/states: ExportState', () => {
 
   it('shows "Retry export" after a failed export', () => {
     const props = baseProps();
-    props.exporter.error = 'boom';
+    props.exporter.error = new OrdioError('EXPORT_FAILED');
     render(<ExportState {...props} />);
     expect(screen.getByRole('button', { name: 'Retry export' })).toBeInTheDocument();
   });

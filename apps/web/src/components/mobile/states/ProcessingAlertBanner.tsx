@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type { ProcessingAlertState } from '@/hooks/recording/useCreateFlow';
+import { ErrorReference } from '@/lib/errors/notify';
 
 interface ProcessingAlertBannerProps {
   alert: ProcessingAlertState | null;
@@ -38,6 +39,7 @@ export function ProcessingAlertBanner({
             <AlertTitle className="text-red-50">{alert.title}</AlertTitle>
             <AlertDescription className="text-red-100/90 leading-relaxed">
               {alert.detail}
+              <ErrorReference code={alert.code} />
             </AlertDescription>
             <div className="col-start-2 mt-3 flex flex-wrap justify-end gap-2">
               {alert.stage === 'enhancement' && (

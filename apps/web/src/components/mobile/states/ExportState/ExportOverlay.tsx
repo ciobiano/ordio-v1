@@ -13,6 +13,8 @@ import {
   Share08Icon,
 } from '@hugeicons/core-free-icons'
 import { toast } from 'sonner'
+import { ErrorReference, notifyError } from '@/lib/errors/notify'
+import { OrdioError } from '@/lib/errors/OrdioError'
 import type { Word } from '@Ordio/shared/schemas'
 import { OrdioMark } from '@/components/ui/OrdioMark'
 import { DangerBadge } from '@/components/ui/SheetGlyphs'
@@ -26,7 +28,7 @@ interface ExporterState {
   exportProgress: number
   exportedUrl: string | null
   exportMimeType?: string | null
-  error: string | null
+  error: OrdioError | null
   cancelExport: () => void
 }
 
@@ -198,7 +200,7 @@ function Ready({
       await navigator.clipboard.writeText(captionText)
       toast.success('Caption copied')
     } catch {
-      toast.error('Could not copy — your browser blocked the clipboard')
+      notifyError(new OrdioError('CLIPBOARD_BLOCKED'))
     }
   }
 
@@ -369,9 +371,10 @@ export function ExportOverlay({
             {exporter.error && !exporter.isExporting && (
               <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                 <DangerBadge kind="alert" />
-                <h1 className="m-0 text-[17px] font-semibold text-acid-text-1">The export stopped</h1>
+                <h1 className="m-0 text-[17px] font-semibold text-acid-text-1">{exporter.error.copy.title}</h1>
                 <p role="alert" className="m-0 max-w-75 text-[13px] leading-normal text-acid-text-3">
-                  {exporter.error}
+                  {exporter.error.copy.detail}
+                  <ErrorReference code={exporter.error.code} />
                 </p>
                 <button type="button" onClick={onClose} className={cn(sheetButton({ tone: 'secondary' }), 'mt-2 max-w-60')}>
                   Back to editing
