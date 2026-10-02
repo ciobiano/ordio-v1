@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
 import { cn } from '@/lib/utils';
 import type { Word } from '@Ordio/shared';
 import { sheetButton, sheetOption } from '@/lib/variants';
@@ -133,7 +134,7 @@ export function ExportSheet({ state, words, patch, onClose, onStart }: ExportShe
 
   useEffect(() => {
     if (state.exStage === 'running' && exporter.error) {
-      toast.error(exporter.error);
+      notifyError(exporter.error);
       patch({ exStage: 'setup', exportPct: 0 });
     }
   }, [exporter.error, state.exStage, patch]);

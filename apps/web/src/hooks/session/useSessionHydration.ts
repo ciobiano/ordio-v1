@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
 import { useCaptureStore, useProcessingStore } from '@/stores';
 import { decodeBlobToAudioBuffer } from '@Ordio/engine/media';
 import type { GenericId } from 'convex/values';
@@ -54,6 +55,9 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
     const hydrate = async () => {
       try {
         const res = await fetch(audioUrl);
+        if (!res.ok) {
+          throw new OrdioError('SESSION_LOAD_FAILED', { message: `Audio fetch returned HTTP ${res.status}` });
+        }
         const arrayBuf = await res.arrayBuffer();
         const blob = new Blob([arrayBuf], { type: session.mimeType });
         const { audioBuffer: decoded } = await decodeBlobToAudioBuffer(blob);
@@ -66,8 +70,10 @@ export function useSessionHydration(sessionId: string | null, playback: Playback
           setAudioDuration(decoded.duration);
           setTranscript(session.transcript);
         }
-      } catch {
-        if (sessionIdRef.current === hydratingFor) toast.error('Failed to load this clip.');
+      } catch (err) {
+        if (sessionIdRef.current === hydratingFor) {
+          notifyError(err, { fallback: 'SESSION_LOAD_FAILED' });
+        }
       } finally {
         setIsHydrating(false);
       }

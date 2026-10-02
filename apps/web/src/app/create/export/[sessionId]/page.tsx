@@ -4,7 +4,8 @@ import { use, useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@Ordio/convex';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
 import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import { useVideoExporter, fileExtension } from '@/hooks/video/useVideoExporter';
 import { OrdioMark } from '@/components/ui/OrdioMark';
@@ -72,7 +73,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
   useEffect(() => {
     if (session === undefined) return;
     if (session === null) {
-      toast.error('This recording has expired or could not be found.');
+      notifyError(new OrdioError('SESSION_NOT_FOUND'));
       router.replace('/create');
     }
   }, [session, router]);
@@ -99,6 +100,9 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
     const hydrate = async () => {
       try {
         const res = await fetch(audioUrlResult, { signal: controller.signal });
+        if (!res.ok) {
+          throw new OrdioError('SESSION_LOAD_FAILED', { message: `Audio fetch returned HTTP ${res.status}` });
+        }
         const arrayBuf = await res.arrayBuffer();
         if (controller.signal.aborted) return;
 
@@ -114,7 +118,7 @@ export default function ExportPage({ params }: { params: Promise<{ sessionId: st
         if (controller.signal.aborted || (err as Error)?.name === 'AbortError') return;
         // Let the next visit retry rather than stranding the user on a spinner.
         hydratedSessionRef.current = null;
-        toast.error('Failed to load your recording.');
+        notifyError(err, { fallback: 'SESSION_LOAD_FAILED' });
         router.replace('/create');
       } finally {
         if (!controller.signal.aborted) setIsHydrating(false);

@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { saveRecordingDraft, clearRecordingDraft } from '@/lib/persistence/recordingDraft';
+import { OrdioError } from '@/lib/errors/OrdioError';
+import { classifyMicError } from '@/lib/errors/classify';
 
 type RecorderState = 'idle' | 'recording' | 'paused' | 'stopped';
 
@@ -17,8 +19,15 @@ interface UseAudioRecorderReturn {
   isPaused: boolean;
   recordingTime: number;
   audioBlob: Blob | null;
-  error: string | null;
-  startRecording: (deviceId?: string) => Promise<MediaStream | undefined>;
+  error: OrdioError | null;
+  /**
+   * Resolves with the live stream, or rejects with an `OrdioError` naming why
+   * the microphone could not open. It rejects rather than resolving empty so
+   * the caller reads the reason from the failure itself — `error` is React
+   * state, and is still the previous render's value on the line after the
+   * await.
+   */
+  startRecording: (deviceId?: string) => Promise<MediaStream>;
   stopRecording: () => void;
   /**
    * Stops recording and resolves with the final Blob once MediaRecorder's
@@ -38,7 +47,7 @@ export function useAudioRecorder(
   const [state, setState] = useState<RecorderState>('idle');
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<OrdioError | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
@@ -88,7 +97,7 @@ export function useAudioRecorder(
     saveDraftTimerRef.current = setInterval(persistDraftNow, RECORDING_DRAFT_SAVE_INTERVAL_MS);
   }, [clearSaveDraftTimer, persistDraftNow]);
 
-  const startRecording = useCallback(async (deviceId?: string): Promise<MediaStream | undefined> => {
+  const startRecording = useCallback(async (deviceId?: string): Promise<MediaStream> => {
     try {
       setError(null);
       chunksRef.current = [];
@@ -146,10 +155,17 @@ export function useAudioRecorder(
 
       return stream;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to access microphone';
-      setError(message);
-      return undefined;
+      /* getUserMedia may have succeeded before MediaRecorder refused the
+         stream; without this the mic indicator stays lit with nothing
+         recording. */
+      rawStreamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const failure = new OrdioError(classifyMicError(err), {
+        message: err instanceof Error ? err.message : undefined,
+        cause: err,
+      });
+      setError(failure);
+      throw failure;
     }
   }, [startTimer, clearTimer, startSaveDraftTimer, clearSaveDraftTimer, options]);
 

@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
 import type { Word } from '@Ordio/shared';
 import { buildSentenceSegments } from '@Ordio/engine/captions/display';
 import { usePlayback } from '@/hooks/playback/usePlayback';
@@ -160,8 +160,10 @@ export function DeskShell() {
           true
         );
       } catch (err) {
-        console.error('[DeskShell] bed decode', err);
-        toast.error(`${file.name} could not be read as audio.`);
+        notifyError(err, {
+          fallback: 'BED_UNREADABLE',
+          detail: `${file.name} could not be decoded as audio. Try an MP3 or WAV.`,
+        });
       } finally {
         setBedLoading(false);
       }
@@ -769,7 +771,7 @@ export function DeskShell() {
 
       {flow.episode.phase === 'error' && (
         <DeskEpisodeError
-          message={flow.episode.error ?? 'Something went wrong.'}
+          error={flow.episode.error}
           partialAvailable={flow.episode.partialAvailable}
           onUsePartial={flow.episode.usePartialTranscript}
           onDismiss={flow.episode.cancel}

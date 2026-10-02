@@ -7,7 +7,7 @@ import { useClerk } from '@clerk/nextjs';
 // returns the newer SignUpSignalValue shape, which doesn't expose
 // authenticateWithRedirect the way this custom flow needs.
 import { useSignUp } from '@clerk/nextjs/legacy';
-import { toast } from 'sonner';
+import { notifyError } from '@/lib/errors/notify';
 import { authTraySpinner, paperButton } from '@/lib/variants';
 import { cn } from '@/lib/utils';
 
@@ -74,10 +74,10 @@ export function OnboardingAuthTray({ redirectUrlComplete, className }: Onboardin
           redirectUrl: '/sso-callback',
           redirectUrlComplete,
         });
-      } catch {
+      } catch (err) {
         // Only reachable if the handoff failed — a success navigates away.
         setPending(null);
-        toast.error('Sign-in failed. Please try again.');
+        notifyError(err, { fallback: 'AUTH_SIGN_IN_FAILED' });
       }
     },
     [isLoaded, pending, signUp, redirectUrlComplete]

@@ -6,7 +6,7 @@ import { useUIStore, useProcessingStore, useCaptureStore } from '@/stores';
 import type { UsePlaybackReturn } from '@/hooks/playback/usePlayback';
 
 vi.mock('sonner', () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn() }),
+  toast: Object.assign(vi.fn(), { error: vi.fn(), warning: vi.fn(), info: vi.fn() }),
 }));
 
 vi.mock('convex/react', () => ({
@@ -93,7 +93,12 @@ describe('components/primitives/video: CanvasPreview crash surfacing', () => {
       )
     ).not.toThrow();
 
-    expect(toast.error).toHaveBeenCalledTimes(1);
+    // A preview hiccup is a warning, not an error: audio and export still work.
+    expect(toast.warning).toHaveBeenCalledTimes(1);
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Preview is temporarily unavailable',
+      expect.objectContaining({ id: 'PREVIEW_RENDER_FAILED' })
+    );
   });
 
   it('never blits to the visible canvas when the render errors — true freeze, not a half-composited frame', () => {

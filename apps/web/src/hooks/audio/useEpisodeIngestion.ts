@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
 import { ingestEpisode, EpisodeIngestError } from '@Ordio/engine/media/episodeIngest';
 import { isSparseTranscript } from '@Ordio/engine/media/episodePlan';
@@ -8,6 +7,14 @@ import { InsufficientCreditsError } from '@/lib/transcription/insufficientCredit
 import { mergeChunkTranscripts } from '@/lib/transcription/mergeChunkTranscripts';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
+import { OrdioError, isAbortError, toOrdioError } from '@/lib/errors/OrdioError';
+import type { ErrorCode } from '@/lib/errors/catalog';
+import { notifyError } from '@/lib/errors/notify';
+
+const INGEST_CODES: Record<EpisodeIngestError['code'], ErrorCode> = {
+  too_long: 'EPISODE_TOO_LONG',
+  undecodable: 'EPISODE_UNDECODABLE',
+};
 
 type Phase = 'idle' | 'ingesting' | 'transcribing' | 'finding' | 'picking' | 'error';
 
@@ -17,7 +24,8 @@ export interface UseEpisodeIngestionReturn {
   candidates: ClipCandidate[]; // populated in 'picking'
   episodeFile: File | null; // original file, kept for extractWindow
   episodeWords: Word[]; // merged episode-absolute transcript
-  error: string | null;
+  /** Why the run stopped; set whenever `phase` is 'error'. */
+  error: OrdioError | null;
   partialAvailable: boolean; // a chunk failed twice; offer partial
   /**
    * The run stopped because the balance ran out, not because anything broke.
@@ -46,7 +54,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
   const [candidates, setCandidates] = useState<ClipCandidate[]>([]);
   const [episodeFile, setEpisodeFile] = useState<File | null>(null);
   const [episodeWords, setEpisodeWords] = useState<Word[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<OrdioError | null>(null);
   const [partialAvailable, setPartialAvailable] = useState(false);
   const [outOfCredits, setOutOfCredits] = useState(false);
 
@@ -73,7 +81,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
   const findClips = useCallback(async (words: Word[], durationSec: number, signal: AbortSignal) => {
     setPhase('finding');
     if (isSparseTranscript(words.length, durationSec)) {
-      setError("We couldn't find enough speech in this episode to suggest clips. Music-heavy or mostly instrumental episodes aren't supported yet.");
+      setError(new OrdioError('EPISODE_NO_SPEECH'));
       setPhase('error');
       return;
     }
@@ -90,15 +98,16 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
         found = validateCandidates(raw, durationSec);
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') throw err;
+      if (isAbortError(err)) throw err;
       // fall through to energy fallback
+      console.warn('[useEpisodeIngestion] find-clips failed; using energy fallback', err);
     }
     if (found.length === 0) {
       found = fallbackWindows(energyRef.current, durationSec);
-      if (found.length > 0) toast.info('AI clip selection was unavailable — showing high-energy moments instead.');
+      if (found.length > 0) notifyError(new OrdioError('CLIPS_AI_UNAVAILABLE'));
     }
     if (found.length === 0) {
-      setError('No clip candidates could be generated for this episode.');
+      setError(new OrdioError('EPISODE_NO_CLIPS'));
       setPhase('error');
       return;
     }
@@ -144,7 +153,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
             setOutOfCredits(true);
             if (transcribedRef.current.length > 0) {
               setPartialAvailable(true);
-              setError('You ran out of credits partway through this episode.');
+              setError(new OrdioError('EPISODE_CREDITS_RAN_OUT', { cause: err }));
               setPhase('error');
               return;
             }
@@ -154,7 +163,10 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
           // never silently discard already-spent upload data — offer partial.
           if (transcribedRef.current.length > 0) {
             setPartialAvailable(true);
-            setError('Part of the episode could not be transcribed.');
+            /* Kept as the cause: the log line says which failure it was, the
+               dialog says what is still possible. */
+            console.error('[useEpisodeIngestion] chunk failed', err);
+            setError(new OrdioError('EPISODE_PARTIAL_TRANSCRIPT', { cause: err }));
             setPhase('error');
             return;
           }
@@ -174,14 +186,15 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
         cancel();
         return;
       }
-      const message =
-        err instanceof InsufficientCreditsError
-          ? 'You are out of transcription credits.'
-          : err instanceof EpisodeIngestError
-            ? err.message
-            : 'Episode processing failed. Please try again.';
-      console.error('[useEpisodeIngestion]', err);
-      setError(message);
+      /* A failed chunk keeps its own name — "Transcription timed out", "You
+         are offline" — rather than collapsing into "Episode processing
+         failed", which told the person nothing they could act on. */
+      const failure =
+        err instanceof EpisodeIngestError
+          ? new OrdioError(INGEST_CODES[err.code], { message: err.message, cause: err })
+          : toOrdioError(err, 'EPISODE_FAILED');
+      console.error(`[useEpisodeIngestion] ${failure.code}`, err);
+      setError(failure);
       setPhase('error');
     } finally {
       if (abortRef.current === abort) abortRef.current = null;
@@ -202,7 +215,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
         cancel();
         return;
       }
-      setError('Clip finding failed.');
+      setError(toOrdioError(err, 'EPISODE_FAILED'));
       setPhase('error');
     } finally {
       if (abortRef.current === abort) abortRef.current = null;

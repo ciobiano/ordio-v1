@@ -6,6 +6,8 @@ import { LOOK_PRESETS, resolveLookStyle, type LookPresetId } from '@Ordio/engine
 import type { WaveformVariant } from '@Ordio/engine/types';
 import { useUIStore } from './uiStore';
 import { useProcessingStore } from './processingStore';
+import { OrdioError, toOrdioError } from '@/lib/errors/OrdioError';
+import { directorCodeFor } from '@/lib/errors/classify';
 
 export interface DirectorLook {
   presetId: LookPresetId;
@@ -44,7 +46,7 @@ async function fetchLooks(): Promise<DirectorLook[]> {
 
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? 'Director request failed');
+    throw new OrdioError(directorCodeFor(res.status), { message: body?.error });
   }
 
   const data = (await res.json()) as DirectorResponse;
@@ -67,8 +69,10 @@ export const useDirectorStore = create<DirectorState>((set, get) => ({
       const looks = await fetchLooks();
       set({ looks, isGenerating: false });
     } catch (err) {
+      const failure = toOrdioError(err, 'DIRECTOR_FAILED');
+      console.error(`[directorStore] ${failure.code}`, err);
       set({
-        error: err instanceof Error ? err.message : 'Director request failed',
+        error: `${failure.copy.title}. ${failure.copy.detail}`,
         isGenerating: false,
       });
     }

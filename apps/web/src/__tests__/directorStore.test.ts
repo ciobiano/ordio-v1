@@ -30,9 +30,10 @@ function mockFetchOk(looks = [mockLook(), mockLook({ presetId: 'street-bold' }),
   });
 }
 
-function mockFetchError(message = 'Director request failed') {
+function mockFetchError(message = 'Director request failed', status = 500) {
   global.fetch = vi.fn().mockResolvedValue({
     ok: false,
+    status,
     json: async () => ({ error: message }),
   });
 }
@@ -64,13 +65,14 @@ describe('directorStore', () => {
 
   it('a failed request sets error and leaves looks untouched', async () => {
     useDirectorStore.setState({ looks: null });
-    mockFetchError('Director returned no usable looks');
+    mockFetchError('Director returned no usable looks', 502);
 
     await useDirectorStore.getState().generateLooks();
 
     const { looks, error, isGenerating } = useDirectorStore.getState();
     expect(looks).toBeNull();
-    expect(error).toBe('Director returned no usable looks');
+    // The person sees the catalog copy for the status, never the route's raw text.
+    expect(error).toMatch(/^The Director came back empty\./);
     expect(isGenerating).toBe(false);
   });
 
@@ -84,7 +86,7 @@ describe('directorStore', () => {
 
     // Failure sets error, but doesn't need to preserve stale looks either way —
     // the key invariant is it never silently replaces them with something broken.
-    expect(useDirectorStore.getState().error).toBe('network down');
+    expect(useDirectorStore.getState().error).toMatch(/^The Director could not propose looks\./);
     expect(firstLooks).not.toBeNull();
   });
 

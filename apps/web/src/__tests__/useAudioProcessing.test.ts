@@ -224,7 +224,11 @@ describe('useAudioProcessing', () => {
     const { result } = renderHook(() => useAudioProcessing(mockTranscription));
 
     await act(async () => {
-      await expect(result.current.processAudio(blob)).rejects.toThrow('Audio processing failed');
+      // A failed upload-URL mutation is named, not collapsed into "processing failed".
+      await expect(result.current.processAudio(blob)).rejects.toMatchObject({
+        stage: 'processing',
+        code: 'UPLOAD_URL_FAILED',
+      });
     });
     expect(mockSetCurrentState).toHaveBeenNthCalledWith(1, 'processing');
     expect(mockSetCurrentState).toHaveBeenLastCalledWith('recording');
@@ -304,6 +308,7 @@ describe('useAudioProcessing', () => {
       ok: false,
       blob: new Blob(['fallback'], { type: 'audio/webm' }),
       error: 'Enhancement service unavailable',
+      code: 'ENHANCE_SERVICE_ERROR',
     });
 
     const blob = new Blob(['audio data'], { type: 'audio/webm' });
@@ -314,6 +319,7 @@ describe('useAudioProcessing', () => {
     await act(async () => {
       await expect(result.current.processAudio(blob)).rejects.toMatchObject({
         stage: 'enhancement',
+        code: 'ENHANCE_SERVICE_ERROR',
       });
     });
 

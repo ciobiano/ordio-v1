@@ -22,6 +22,8 @@ import { useClipPicker } from '@/hooks/clips/useClipPicker';
 import { sheetButton } from '@/lib/variants';
 import { cn } from '@/lib/utils';
 import type { ProcessingAlertState } from '@/hooks/recording/useCreateFlow';
+import { ErrorReference } from '@/lib/errors/notify';
+import { OrdioError } from '@/lib/errors/OrdioError';
 import { DeskSheet } from './DeskSheet';
 
 /* The desk's sheet buttons: the same three tones as the phone's sheets, at
@@ -140,25 +142,27 @@ export function DeskEpisodeProgress({
 /* ── Long episode: failed ──────────────────────────────────────────── */
 
 export function DeskEpisodeError({
-  message,
+  error,
   partialAvailable,
   onUsePartial,
   onDismiss,
 }: {
-  message: string;
+  error: OrdioError | null;
   partialAvailable: boolean;
   onUsePartial: () => void;
   onDismiss: () => void;
 }) {
+  const failure = error ?? new OrdioError('EPISODE_FAILED');
   return (
-    <DeskSheet title="Something went wrong" onClose={onDismiss}>
+    <DeskSheet title={failure.copy.title} onClose={onDismiss}>
       <div className="flex flex-col gap-1">
         <span className="text-[17px] font-semibold text-[var(--ord-paper)]">
-          Something went wrong
+          {failure.copy.title}
         </span>
         <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.4] text-[var(--text-muted)]">
-          {message}
+          {failure.copy.detail}
         </span>
+        <ErrorReference code={failure.code} />
       </div>
 
       <div className="flex justify-end gap-2">
@@ -277,6 +281,7 @@ export function DeskProcessingAlert({
         <span className="font-[family-name:var(--font-display)] ord-type-footnote leading-[1.45] text-[var(--text-body)]">
           {alert.detail}
         </span>
+        <ErrorReference code={alert.code} />
       </div>
       <div className="mt-3 flex justify-end gap-2">
         {/* Only offered when enhancement is what failed. Retrying with it off

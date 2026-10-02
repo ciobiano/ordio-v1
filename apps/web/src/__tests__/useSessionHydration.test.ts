@@ -50,7 +50,7 @@ const fetchResolvers: Record<string, (value: unknown) => void> = {};
 global.fetch = vi.fn((url: string) => {
   return new Promise((resolve) => {
     fetchResolvers[url] = () =>
-      resolve({ arrayBuffer: async () => new ArrayBuffer(8) } as unknown as Response);
+      resolve({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) } as unknown as Response);
   });
 }) as unknown as typeof fetch;
 
