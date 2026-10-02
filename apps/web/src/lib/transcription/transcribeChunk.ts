@@ -3,6 +3,17 @@ import { InsufficientCreditsError, transcriptionErrorFor } from './insufficientC
 import { OrdioError } from '@/lib/errors/OrdioError';
 import type { ErrorCode } from '@/lib/errors/catalog';
 
+/**
+ * The route trusts the filename's extension over the MIME type when it tells
+ * Whisper what format the bytes are, so the extension must match the encoding:
+ * MP3 bytes named `.wav` would reach Whisper labelled as WAV.
+ */
+function chunkExtension(blob: Blob): string {
+  if (blob.type.includes('mpeg')) return 'mp3';
+  if (blob.type.includes('wav')) return 'wav';
+  return 'webm';
+}
+
 /** Failures a second identical request would meet identically. */
 const NOT_RETRYABLE = new Set<ErrorCode>([
   'AUTH_REQUIRED',
@@ -32,8 +43,7 @@ export async function transcribeChunk(
 ): Promise<Word[]> {
   const attempt = async (): Promise<Word[]> => {
     const formData = new FormData();
-    const ext = blob.type.includes('webm') ? 'webm' : 'wav';
-    formData.append('audio', blob, `chunk.${ext}`);
+    formData.append('audio', blob, `chunk.${chunkExtension(blob)}`);
     if (durationSec !== undefined && Number.isFinite(durationSec) && durationSec > 0) {
       formData.append('durationSec', String(durationSec));
     }

@@ -135,6 +135,9 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3.3.5
         version: 3.3.5
+      '@mediabunny/mp3-encoder':
+        specifier: 1.34.5
+        version: 1.34.5(mediabunny@1.34.5)
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
@@ -217,6 +220,9 @@ importers:
       '@ffmpeg/ffmpeg':
         specifier: ^0.12.15
         version: 0.12.15
+      '@mediabunny/mp3-encoder':
+        specifier: 1.34.5
+        version: 1.34.5(mediabunny@1.34.5)
       mediabunny:
         specifier: ^1.34.5
         version: 1.34.5
@@ -2282,6 +2288,13 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  /@mediabunny/mp3-encoder@1.34.5(mediabunny@1.34.5):
+    resolution: {integrity: sha512-90Yz73fwTm06ygDOayy8Tb1BimQu6l1O0nBGJNmgTHsJCsY1/indcFUfHx7vT2SSi86D2QcZp4h+BGD3q2LjIA==}
+    peerDependencies:
+      mediabunny: ^1.0.0
+    dependencies:
+      mediabunny: 1.34.5
 
   /@modelcontextprotocol/sdk@1.27.1(zod@3.25.76):
     resolution: {integrity: sha512-sr6GbP+4edBwFndLbM60gf07z0FQ79gaExpnsjMGePXqFcSSb7t6iscpjk9DhFhwd+mTEQrzNafGP8/iGGFYaA==}

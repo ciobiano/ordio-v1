@@ -213,6 +213,10 @@ export const ERROR_CATALOG = {
     'Cannot read this episode',
     'Your browser cannot decode this file. Convert it to MP3 or M4A and try again.'
   ),
+  EPISODE_UNENCODABLE: error(
+    'Cannot prepare this episode',
+    'Your browser cannot encode audio for upload. Update it or try another browser.'
+  ),
   EPISODE_NO_SPEECH: error(
     'Not enough speech to clip',
     'Music-heavy or mostly instrumental episodes are not supported yet.'

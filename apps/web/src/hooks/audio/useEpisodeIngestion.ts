@@ -14,6 +14,7 @@ import { notifyError } from '@/lib/errors/notify';
 const INGEST_CODES: Record<EpisodeIngestError['code'], ErrorCode> = {
   too_long: 'EPISODE_TOO_LONG',
   undecodable: 'EPISODE_UNDECODABLE',
+  unencodable: 'EPISODE_UNENCODABLE',
 };
 
 type Phase = 'idle' | 'ingesting' | 'transcribing' | 'finding' | 'picking' | 'error';

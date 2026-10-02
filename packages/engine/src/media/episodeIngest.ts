@@ -1,8 +1,8 @@
 /**
  * Stream-ingest a long podcast episode: decode window-by-window (never the
  * whole file into memory), downmix each window to mono 16kHz, encode it as
- * an upload-ready chunk (Opus/WebM, WAV fallback), and accumulate per-second
- * energy as a byproduct.
+ * an upload-ready chunk (Opus/WebM, or MP3 where Opus cannot be encoded), and
+ * accumulate per-second energy as a byproduct.
  *
  * NOTE: not unit-testable in jsdom (requires real WebCodecs / OfflineAudioContext
  * decode). Exercised via on-device QA. Only audioCodecSupport.ts has automated tests.
@@ -10,14 +10,13 @@
 import {
   planChunkWindows,
   createEnergyAccumulator,
-  OPUS_CHUNK_SEC,
-  WAV_CHUNK_SEC,
+  CHUNK_SEC,
+  CHUNK_BITRATE_BPS,
   MAX_EPISODE_SEC,
 } from './episodePlan';
 import { detectIngestStrategy, type IngestStrategy } from './audioCodecSupport';
-import { audioBufferToWavBlob } from './whisperAudio';
 
-export type EpisodeIngestErrorCode = 'too_long' | 'undecodable';
+export type EpisodeIngestErrorCode = 'too_long' | 'undecodable' | 'unencodable';
 
 export class EpisodeIngestError extends Error {
   code: EpisodeIngestErrorCode;
@@ -56,21 +55,29 @@ async function toMono16k(buffer: AudioBuffer): Promise<AudioBuffer> {
   return ctx.startRendering();
 }
 
+/**
+ * transcribeChunk names the upload from this type, and the route tells
+ * Whisper the format from that name.
+ */
+const CHUNK_MIME_TYPE: Record<IngestStrategy, string> = {
+  opus: 'audio/webm',
+  mp3: 'audio/mpeg',
+};
+
 async function encodeChunk(mono16k: AudioBuffer, strategy: IngestStrategy): Promise<Blob> {
-  if (strategy === 'wav') return audioBufferToWavBlob(mono16k);
-  const { Output, BufferTarget, WebMOutputFormat, AudioBufferSource, QUALITY_LOW } = await import(
-    'mediabunny'
-  );
-  const output = new Output({ format: new WebMOutputFormat(), target: new BufferTarget() });
-  const source = new AudioBufferSource({ codec: 'opus', bitrate: QUALITY_LOW });
+  const { Output, BufferTarget, WebMOutputFormat, Mp3OutputFormat, AudioBufferSource } =
+    await import('mediabunny');
+  const format = strategy === 'opus' ? new WebMOutputFormat() : new Mp3OutputFormat();
+  const output = new Output({ format, target: new BufferTarget() });
+  const source = new AudioBufferSource({ codec: strategy, bitrate: CHUNK_BITRATE_BPS[strategy] });
   output.addAudioTrack(source);
   await output.start();
   await source.add(mono16k);
   source.close();
   await output.finalize();
   const buffer = (output.target as InstanceType<typeof BufferTarget>).buffer;
-  if (!buffer) throw new Error('Opus encode produced no output');
-  return new Blob([buffer], { type: 'audio/webm' });
+  if (!buffer) throw new Error(`${strategy} encode produced no output`);
+  return new Blob([buffer], { type: CHUNK_MIME_TYPE[strategy] });
 }
 
 /**
@@ -95,8 +102,13 @@ export async function ingestEpisode(
     }
 
     const strategy = await detectIngestStrategy();
-    const chunkSec = strategy === 'opus' ? OPUS_CHUNK_SEC : WAV_CHUNK_SEC;
-    const windows = planChunkWindows(durationSec, chunkSec);
+    if (!strategy) {
+      throw new EpisodeIngestError(
+        'unencodable',
+        'This browser cannot prepare episodes for upload. Try updating it or using another browser.'
+      );
+    }
+    const windows = planChunkWindows(durationSec, CHUNK_SEC);
     const energyAcc = createEnergyAccumulator(durationSec);
     const chunks: Array<{ startSec: number; durationSec: number; blob: Blob }> = [];
 

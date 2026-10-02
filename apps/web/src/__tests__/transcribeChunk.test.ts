@@ -97,4 +97,19 @@ describe('transcribeChunk', () => {
     ).resolves.toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  /* The route tells Whisper the format from the filename's extension before
+     it looks at the MIME type, so a mislabelled chunk is decoded as the wrong
+     format. */
+  it.each([
+    ['audio/webm', 'chunk.webm'],
+    ['audio/mpeg', 'chunk.mp3'],
+  ])('names a %s chunk %s', async (type, filename) => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse);
+    vi.stubGlobal('fetch', fetchMock);
+    await transcribeChunk(new Blob(['x'], { type }), new AbortController().signal, 60);
+
+    const body = fetchMock.mock.calls[0][1].body as FormData;
+    expect((body.get('audio') as File).name).toBe(filename);
+  });
 });
