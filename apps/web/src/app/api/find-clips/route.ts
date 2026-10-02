@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
 import { WordSchema } from '@Ordio/shared/schemas';
+import { sentenceRanges } from '@/lib/clips/sentenceRanges';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
 import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 
@@ -32,25 +33,30 @@ const RequestSchema = z.object({
 
 const MODEL = 'gpt-4o-mini';
 
+/**
+ * Run-ons are broken at this many words so no line hides a long stretch of
+ * time behind one timestamp.
+ */
+const MAX_LINE_WORDS = 40;
+
 function buildPrompt(words: z.infer<typeof WordSchema>[], durationSec: number): string {
-  // Timestamped transcript, one line per ~10s bucket, keeps tokens bounded.
-  const lines: string[] = [];
-  let bucket = -1;
-  let current: string[] = [];
-  for (const w of words) {
-    const b = Math.floor(w.start / 10);
-    if (b !== bucket) {
-      if (current.length) lines.push(`[${bucket * 10}s] ${current.join(' ')}`);
-      bucket = b;
-      current = [];
-    }
-    current.push(w.text);
-  }
-  if (current.length) lines.push(`[${bucket * 10}s] ${current.join(' ')}`);
+  /* One line per sentence, stamped with the time its first word is spoken.
+     These were 10-second buckets, which left the model unable to aim a start
+     closer than ten seconds and guaranteed Clips opening mid-sentence. The
+     client still snaps every candidate onto word boundaries — this just gets
+     the proposal close enough for that snap to land on the sentence meant. */
+  const lines = sentenceRanges(words, MAX_LINE_WORDS).map(
+    ({ first, last }) =>
+      `[${words[first]!.start.toFixed(1)}] ${words
+        .slice(first, last + 1)
+        .map((w) => w.text)
+        .join(' ')}`
+  );
 
   return [
     `You select viral-worthy clips from a podcast transcript (total length ${Math.round(durationSec)}s).`,
     `Find up to 3 self-contained moments of 30-60 seconds each that would hook a listener in the first moment: strong claims, emotional peaks, surprising stories, punchlines.`,
+    `Each transcript line begins with the time, in seconds, its first word is spoken. Start each clip at the start of a line, and end it where a line ends (the start time of the line after it).`,
     `Windows must not overlap and must fit within the episode. If the episode is short, fewer than 3 is fine.`,
     `Return JSON: {"candidates":[{"start":<sec>,"end":<sec>,"hookText":"<the hook phrase, verbatim from transcript>","rationale":"<why this hooks>"}]}`,
     ``,
