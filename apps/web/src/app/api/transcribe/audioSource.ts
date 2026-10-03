@@ -4,57 +4,36 @@ import { z } from 'zod';
 export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
 /**
- * What a transcription request names as its audio.
- *
- * `stored` is the path every current client takes: the audio is already in
- * Convex storage, and the request carries only its ID. Vercel refuses request
- * bodies over 4.5MB, so audio never travels through this route's body.
- *
- * `inline` is the old multipart upload, kept for one deploy so a tab opened
- * before it does not break mid-session. Remove it in the deploy after.
+ * The audio a transcription request names: a file already in Convex storage,
+ * by its ID. Audio never travels in this route's body — Vercel refuses request
+ * bodies over 4.5MB, and fitting under that meant making the audio worse.
  */
-export type AudioSource =
-  | { kind: 'stored'; storageId: string; declaredSeconds: number }
-  | { kind: 'inline'; file: Blob; declaredSeconds: number };
+export interface AudioSource {
+  storageId: string;
+  /**
+   * The caller's declared length, in seconds. Only ever used to size the
+   * credit hold — the settle step reconciles against Whisper's reported
+   * duration, so a caller who under-reports gains one transcription and a
+   * negative balance, not free service.
+   */
+  declaredSeconds: number;
+}
 
-const StoredRequestSchema = z.object({
+const RequestSchema = z.object({
   storageId: z.string().min(1).max(200),
   durationSec: z.number().positive().finite().optional(),
 });
 
 /**
- * Read the caller's declared audio length.
- *
- * Only ever used to size the credit hold — the settle step reconciles against
- * Whisper's reported duration, so a caller who under-reports gains one
- * transcription and a negative balance, not free service.
+ * The request's audio source, or null when the body doesn't name one. A
+ * multipart upload — what clients sent before audio moved to storage — reads
+ * as malformed, and the caller is asked to try again (a reload fixes a tab
+ * still running the old client).
  */
-function parseDeclaredDuration(value: FormDataEntryValue | null): number {
-  if (typeof value !== 'string') return 0;
-  const seconds = Number.parseFloat(value);
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-}
-
-/** The request's audio source, or null when the body names none. */
 export async function readAudioSource(request: Request): Promise<AudioSource | null> {
-  const contentType = request.headers.get('content-type') ?? '';
-
-  if (contentType.includes('application/json')) {
-    const parsed = StoredRequestSchema.safeParse(await request.json().catch(() => null));
-    if (!parsed.success) return null;
-    return {
-      kind: 'stored',
-      storageId: parsed.data.storageId,
-      declaredSeconds: parsed.data.durationSec ?? 0,
-    };
-  }
-
-  /* A body that is not multipart at all (or was cut off in transit) throws
-     here, and is the caller's request being malformed, not Whisper failing. */
-  const formData = await request.formData().catch(() => null);
-  const file = formData?.get('audio');
-  if (!formData || !file || !(file instanceof Blob) || file.size === 0) return null;
-  return { kind: 'inline', file, declaredSeconds: parseDeclaredDuration(formData.get('durationSec')) };
+  const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return null;
+  return { storageId: parsed.data.storageId, declaredSeconds: parsed.data.durationSec ?? 0 };
 }
 
 export class StoredAudioError extends Error {

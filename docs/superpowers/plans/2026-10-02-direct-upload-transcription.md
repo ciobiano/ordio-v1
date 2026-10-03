@@ -162,8 +162,8 @@ Functions:
 
 ### `/api/transcribe`
 
-- Body becomes JSON `{ storageId, durationSec }`. Keep accepting multipart for one
-  deploy, so a stale tab mid-session doesn't break, then remove it.
+- Body becomes JSON `{ storageId, durationSec }`. Multipart was accepted for one
+  deploy so a stale tab mid-session didn't break, and removed on 2026-10-03.
 - After auth and the rate limit: `authorize` → 404 if not the caller's →
   `fetch(url)` with a 25MB cap read from `content-length` → OpenAI as today.
 - The credit hold/settle, `NOT_RETRYABLE` codes and error catalog are unchanged.
