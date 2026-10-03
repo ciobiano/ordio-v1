@@ -12,8 +12,10 @@ import type * as auth from "../auth.js";
 import type * as backgrounds from "../backgrounds.js";
 import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
+import type * as episodes from "../episodes.js";
 import type * as jobs from "../jobs.js";
 import type * as sessions from "../sessions.js";
+import type * as transcription from "../transcription.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -28,8 +30,10 @@ declare const fullApi: ApiFromModules<{
   backgrounds: typeof backgrounds;
   credits: typeof credits;
   crons: typeof crons;
+  episodes: typeof episodes;
   jobs: typeof jobs;
   sessions: typeof sessions;
+  transcription: typeof transcription;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;

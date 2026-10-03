@@ -19,6 +19,13 @@ vi.mock('@Ordio/convex', () => ({
   api: {
     jobs: { generateUploadUrl: 'jobs:generateUploadUrl' },
     sessions: { createSession: 'sessions:createSession' },
+    transcription: { claimUpload: 'transcription:claimUpload' },
+    episodes: {
+      resume: 'episodes:resume',
+      create: 'episodes:create',
+      addChunk: 'episodes:addChunk',
+      saveCandidates: 'episodes:saveCandidates',
+    },
   },
 }));
 

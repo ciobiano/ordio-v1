@@ -11,4 +11,18 @@ crons.interval(
   {}
 );
 
+crons.interval(
+  "cleanup expired episodes",
+  { hours: 1 },
+  internal.episodes.cleanupExpired,
+  {}
+);
+
+crons.interval(
+  "cleanup unclaimed transcription uploads",
+  { hours: 1 },
+  internal.transcription.cleanupExpiredUploads,
+  {}
+);
+
 export default crons;

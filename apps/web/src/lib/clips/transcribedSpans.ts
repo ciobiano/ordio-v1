@@ -45,3 +45,14 @@ export function insideSpans(window: Span, spans: Span[]): boolean {
 export function maskToSpans(energy: number[], spans: Span[]): number[] {
   return energy.map((e, sec) => (spans.some((s) => sec + 0.5 >= s.start && sec + 0.5 <= s.end) ? e : 0));
 }
+
+/**
+ * Whether the spans cover the whole Episode: one span from the start to the
+ * end. A saved Episode that does is finished, and can reopen its Clips
+ * without reading anything again.
+ */
+export function coversWhole(spans: Span[], durationSec: number): boolean {
+  if (spans.length !== 1) return false;
+  const [only] = spans;
+  return only!.start <= SEAM_TOLERANCE_SEC && only!.end >= durationSec - SEAM_TOLERANCE_SEC;
+}

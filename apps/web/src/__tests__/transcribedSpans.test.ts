@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { insideSpans, maskToSpans, transcribedSpans } from '@/lib/clips/transcribedSpans';
+import { coversWhole, insideSpans, maskToSpans, transcribedSpans } from '@/lib/clips/transcribedSpans';
 
 describe('transcribedSpans', () => {
   it('joins chunks that meet at a seam into one span, whatever order they finished in', () => {
@@ -42,5 +42,23 @@ describe('insideSpans', () => {
 describe('maskToSpans', () => {
   it('zeroes the energy of seconds with no transcript', () => {
     expect(maskToSpans([1, 1, 1, 1, 1], [{ start: 1, end: 3 }])).toEqual([0, 1, 1, 0, 0]);
+  });
+});
+
+describe('coversWhole', () => {
+  it('is true for one span from the start to the end', () => {
+    expect(coversWhole([{ start: 0, end: 1799.8 }], 1800)).toBe(true);
+  });
+
+  it('is false while a chunk is missing', () => {
+    expect(coversWhole([{ start: 0, end: 600 }, { start: 1200, end: 1800 }], 1800)).toBe(false);
+  });
+
+  it('is false when the end was never transcribed', () => {
+    expect(coversWhole([{ start: 0, end: 1200 }], 1800)).toBe(false);
+  });
+
+  it('is false with nothing transcribed', () => {
+    expect(coversWhole([], 1800)).toBe(false);
   });
 });

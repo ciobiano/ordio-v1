@@ -43,6 +43,19 @@ export const createSession = mutation({
       .unique();
     const tier = dbUser?.tier ?? "free";
 
+    /* The file was claimed for transcription. Creating the Session hands it
+       over: the Session's own expiry governs it from here, so the claim goes,
+       or the upload sweep would delete a file a Session still plays. A claim
+       held by someone else means this is not the caller's file. */
+    const claim = await ctx.db
+      .query("transcriptionUploads")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
+      .first();
+    if (claim && claim.userId !== user.tokenIdentifier) {
+      throw new Error("Upload not found");
+    }
+    if (claim) await ctx.db.delete(claim._id);
+
     const now = Date.now();
     const retention = RETENTION_MS[tier] ?? RETENTION_MS.free;
 

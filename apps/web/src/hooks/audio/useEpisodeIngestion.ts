@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ClipCandidate, Word } from '@Ordio/shared/schemas';
-import { openEpisode, EpisodeIngestError } from '@Ordio/engine/media/episodeIngest';
+import { openEpisode, EpisodeIngestError, type EpisodeStream } from '@Ordio/engine/media/episodeIngest';
 import { isSparseTranscript } from '@Ordio/engine/media/episodePlan';
 import { transcribeChunk } from '@/lib/transcription/transcribeChunk';
 import { InsufficientCreditsError } from '@/lib/transcription/insufficientCredits';
@@ -8,11 +8,18 @@ import { mergeChunkTranscripts } from '@/lib/transcription/mergeChunkTranscripts
 import { poolMap } from '@/lib/transcription/poolMap';
 import { fallbackWindows } from '@/lib/clips/fallbackWindows';
 import { snapCandidates } from '@/lib/clips/snapCandidates';
-import { insideSpans, maskToSpans, transcribedSpans, type Span } from '@/lib/clips/transcribedSpans';
+import {
+  coversWhole,
+  insideSpans,
+  maskToSpans,
+  transcribedSpans,
+  type Span,
+} from '@/lib/clips/transcribedSpans';
 import { validateCandidates } from '@/lib/clips/validateCandidates';
 import { OrdioError, isAbortError, toOrdioError } from '@/lib/errors/OrdioError';
 import type { ErrorCode } from '@/lib/errors/catalog';
 import { notifyError } from '@/lib/errors/notify';
+import { episodeFingerprint, useEpisodeStorage, type EpisodeId } from '@/hooks/clips/useEpisodeStorage';
 
 const INGEST_CODES: Record<EpisodeIngestError['code'], ErrorCode> = {
   too_long: 'EPISODE_TOO_LONG',
@@ -51,11 +58,15 @@ export interface UseEpisodeIngestionReturn {
 
 /**
  * Orchestrates the long-episode clip-finder pipeline: stream-decode the
- * Episode into pause-aligned chunks, uploading each for transcription as soon
- * as it is ready (up to TRANSCRIBE_CONCURRENCY at once, with retry and
- * partial-failure handling) → merge transcript → find clips (LLM, with energy
- * fallback) → snap them onto sentence boundaries → hand candidates to the
- * picker UI.
+ * Episode into pause-aligned chunks, uploading each to storage and
+ * transcribing it as soon as it is ready (up to TRANSCRIBE_CONCURRENCY at
+ * once, with retry and partial-failure handling) → merge transcript → find
+ * clips (LLM, with energy fallback) → snap them onto sentence boundaries →
+ * hand candidates to the picker UI.
+ *
+ * The run is kept for 7 days (useEpisodeStorage). Dropping the same file
+ * again reopens its Clips at once if it finished, or resumes it — skipping
+ * every chunk already transcribed — if it did not.
  *
  * Pure dependencies (episodePlan, transcribeChunk, poolMap,
  * mergeChunkTranscripts, fallbackWindows, snapCandidates, validateCandidates)
@@ -78,11 +89,14 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
   const transcribedRef = useRef<TranscribedChunk[]>([]);
   const energyRef = useRef<number[]>([]);
   const durationRef = useRef(0);
+  const episodeIdRef = useRef<EpisodeId | null>(null);
+  const storage = useEpisodeStorage();
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     transcribedRef.current = [];
+    episodeIdRef.current = null;
     setPhase('idle');
     setProgress(0);
     setCandidates([]);
@@ -102,7 +116,7 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     durationSec: number,
     covered: Span[],
     signal: AbortSignal
-  ) => {
+  ): Promise<void> => {
     setPhase('finding');
     if (isSparseTranscript(words.length, durationSec)) {
       setError(new OrdioError('EPISODE_NO_SPEECH'));
@@ -126,7 +140,11 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       // fall through to energy fallback
       console.warn('[useEpisodeIngestion] find-clips failed; using energy fallback', err);
     }
-    if (found.length === 0) {
+    /* Only the model's Clips are kept with the Episode. Loudness guesses are
+       a stand-in for when it is down; saved, they would be what every reopen
+       showed, and the model would never be asked again. */
+    const fromModel = found.length > 0;
+    if (!fromModel) {
       found = fallbackWindows(maskToSpans(energyRef.current, covered), durationSec).filter((c) =>
         insideSpans(c, covered)
       );
@@ -142,7 +160,8 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
     setEpisodeWords(words);
     setCandidates(found);
     setPhase('picking');
-  }, []);
+    if (fromModel && episodeIdRef.current) void storage.saveCandidates(episodeIdRef.current, found);
+  }, [storage]);
 
   const startEpisode = useCallback(async (file: File) => {
     // Never two pipelines at once — a second start would double the uploads in flight.
@@ -173,11 +192,38 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       const transcribedFraction = total > 0 ? Math.min(1, transcribedSec / total) : 0;
       setProgress(Math.round(20 * decodedFraction + 70 * transcribedFraction));
     };
+    let episode: EpisodeStream | null = null;
     try {
       setPhase('ingesting');
       setProgress(0);
-      const episode = await openEpisode(file, {
+      episodeIdRef.current = null;
+
+      /* A saved run of this file: its transcribed chunks are kept, not
+         re-read, and if it finished, its Clips reopen without anything else. */
+      const fingerprint = episodeFingerprint(file);
+      const saved = await storage.resume(fingerprint);
+      if (abort.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const savedDone = (saved?.chunks ?? []).filter(
+        (c): c is TranscribedChunk => c.words !== null
+      );
+      transcribed.push(...savedDone);
+      transcribedSec = savedDone.reduce((sum, c) => sum + c.durationSec, 0);
+
+      if (saved) {
+        episodeIdRef.current = saved.episodeId;
+        durationRef.current = saved.durationSec;
+        if (saved.candidates && coversWhole(transcribedSpans(savedDone), saved.durationSec)) {
+          setEpisodeWords(mergeChunkTranscripts(savedDone));
+          setCandidates(saved.candidates);
+          setProgress(100);
+          setPhase('picking');
+          return;
+        }
+      }
+
+      episode = await openEpisode(file, {
         signal: abort.signal,
+        skip: savedDone,
         onProgress: (f) => {
           decodedFraction = f;
           report();
@@ -186,13 +232,17 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       // Opening isn't abortable; a cancelled run must not publish its duration.
       if (abort.signal.aborted) throw new DOMException('Aborted', 'AbortError');
       durationRef.current = episode.durationSec;
+      const episodeId = saved?.episodeId ?? (await storage.create(fingerprint, episode.durationSec));
+      if (abort.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      episodeIdRef.current = episodeId;
 
       const { failure } = await poolMap(
         episode.chunks,
         async (chunk) => {
           setPhase('transcribing');
           try {
-            const words = await transcribeChunk(chunk.blob, abort.signal, chunk.durationSec);
+            const storageId = await storage.storeChunk(episodeId, chunk, abort.signal);
+            const words = await transcribeChunk(storageId, abort.signal, chunk.durationSec);
             return { startSec: chunk.startSec, durationSec: chunk.durationSec, words };
           } catch (err) {
             if (err instanceof InsufficientCreditsError) creditError ??= err;
@@ -262,9 +312,11 @@ export function useEpisodeIngestion(): UseEpisodeIngestionReturn {
       setError(failure);
       setPhase('error');
     } finally {
+      // Every exit releases the file — including ones that never pulled a chunk.
+      episode?.dispose();
       if (abortRef.current === abort) abortRef.current = null;
     }
-  }, [cancel, findClips]);
+  }, [cancel, findClips, storage]);
 
   const usePartialTranscript = useCallback(async () => {
     const merged = mergeChunkTranscripts(transcribedRef.current);

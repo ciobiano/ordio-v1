@@ -88,7 +88,7 @@ export const ERROR_CATALOG = {
   ),
   AUDIO_TOO_LARGE_TO_TRANSCRIBE: error(
     'Audio is too long to transcribe',
-    'Even compressed, it is over the transcription upload limit. Trim it and try again.'
+    'This file needs converting first, and converted it is over the 25 MB limit (about 13 minutes). Trim it, or save it as MP3 or M4A, and try again.'
   ),
 
   // ── Enhancement ────────────────────────────────────────────────────

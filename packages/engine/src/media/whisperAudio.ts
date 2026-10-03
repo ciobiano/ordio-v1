@@ -1,4 +1,18 @@
-const WHISPER_SIZE_LIMIT = 4 * 1024 * 1024; // 4MB - under Vercel 4.5MB limit
+/**
+ * Whisper's own upload limit. Audio reaches Whisper through Convex storage
+ * (see apps/web/src/lib/transcription/storedAudio.ts), so this — not Vercel's
+ * 4.5MB request limit — is the only size ceiling.
+ */
+export const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Whisper resamples everything to 16kHz before it listens (Whisper paper,
+ * §2.2). So 16kHz mono loses nothing Whisper uses, and anything lower removes
+ * speech it would have used: under 8kHz every sound above 4kHz is gone, which
+ * is where "s", "f" and "th" live. Audio for transcription is never resampled
+ * below this, and never lossy-compressed to fit a size limit.
+ */
+export const WHISPER_SAMPLE_RATE = 16_000;
 
 const WHISPER_SUPPORTED_AUDIO_MIME_TYPES = new Set([
   'audio/flac',
@@ -27,39 +41,28 @@ export function shouldTranscodeForWhisper(mimeType: string): boolean {
   return !WHISPER_SUPPORTED_AUDIO_MIME_TYPES.has(normalized);
 }
 
-function pickWhisperWavSampleRate(durationSec: number): number {
-  if (!Number.isFinite(durationSec) || durationSec <= 0) return 16_000;
-  const maxMonoSampleRate = Math.floor((WHISPER_SIZE_LIMIT - 44) / (durationSec * 2));
-  if (maxMonoSampleRate >= 16_000) return 16_000;
-  if (maxMonoSampleRate >= 12_000) return 12_000;
-  if (maxMonoSampleRate >= 8_000) return 8_000;
-  return 8_000;
+/** Size of `durationSec` of 16kHz mono 16-bit WAV, header included. */
+export function whisperWavBytes(durationSec: number): number {
+  return 44 + Math.ceil(Math.max(0, durationSec) * WHISPER_SAMPLE_RATE) * 2;
 }
 
+/** Downmix and resample to 16kHz mono — lossless as far as Whisper can hear. */
 export async function normalizeAudioForWhisper(audioBuffer: AudioBuffer): Promise<AudioBuffer> {
   if (typeof window === 'undefined' || typeof window.OfflineAudioContext === 'undefined') {
     return audioBuffer;
   }
 
-  const targetSampleRate = pickWhisperWavSampleRate(audioBuffer.duration);
   const alreadyOptimized =
-    audioBuffer.numberOfChannels === 1 && audioBuffer.sampleRate === targetSampleRate;
+    audioBuffer.numberOfChannels === 1 && audioBuffer.sampleRate === WHISPER_SAMPLE_RATE;
   if (alreadyOptimized) return audioBuffer;
 
-  const frameCount = Math.max(1, Math.ceil(audioBuffer.duration * targetSampleRate));
-  const offlineCtx = new window.OfflineAudioContext(1, frameCount, targetSampleRate);
+  const frameCount = Math.max(1, Math.ceil(audioBuffer.duration * WHISPER_SAMPLE_RATE));
+  const offlineCtx = new window.OfflineAudioContext(1, frameCount, WHISPER_SAMPLE_RATE);
   const source = offlineCtx.createBufferSource();
   source.buffer = audioBuffer;
   source.connect(offlineCtx.destination);
   source.start(0);
   return offlineCtx.startRendering();
-}
-
-function targetMp3BitrateKbps(durationSec: number): number {
-  const safePayloadBits = Math.max(0, (WHISPER_SIZE_LIMIT - 32 * 1024) * 8); // keep multipart headroom
-  const seconds = Math.max(durationSec, 1);
-  const calculatedKbps = Math.floor(safePayloadBits / seconds / 1000);
-  return Math.max(24, Math.min(96, calculatedKbps));
 }
 
 function audioBufferToWavBytes(audioBuffer: AudioBuffer): ArrayBuffer {
@@ -111,59 +114,3 @@ function audioBufferToWavBytes(audioBuffer: AudioBuffer): ArrayBuffer {
 export function audioBufferToWavBlob(audioBuffer: AudioBuffer): Blob {
   return new Blob([audioBufferToWavBytes(audioBuffer)], { type: 'audio/wav' });
 }
-
-export async function reduceAudioForWhisper(audioBuffer: AudioBuffer, abort: AbortSignal): Promise<Blob> {
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-  const ffmpeg = new FFmpeg();
-
-  const baseUrl = `${window.location.origin}/ffmpeg`;
-  await ffmpeg.load({
-    coreURL: `${baseUrl}/ffmpeg-core.js`,
-    wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
-  });
-
-  const wavBytes = audioBufferToWavBytes(audioBuffer);
-  await ffmpeg.writeFile('input.wav', new Uint8Array(wavBytes));
-
-  const bitrateKbps = targetMp3BitrateKbps(audioBuffer.duration);
-  await ffmpeg.exec([
-    '-i',
-    'input.wav',
-    '-ac',
-    '1',
-    '-ar',
-    '16000',
-    '-acodec',
-    'libmp3lame',
-    '-b:a',
-    `${bitrateKbps}k`,
-    'output.mp3',
-  ]);
-
-  if (abort.aborted) {
-    await ffmpeg.deleteFile('input.wav');
-    await ffmpeg.deleteFile('output.mp3');
-    throw new DOMException('Aborted', 'AbortError');
-  }
-
-  const outputData = (await ffmpeg.readFile('output.mp3')) as Uint8Array;
-  await ffmpeg.deleteFile('input.wav');
-  await ffmpeg.deleteFile('output.mp3');
-
-  const compressed = new Blob([outputData.buffer as ArrayBuffer], { type: 'audio/mp3' });
-  if (compressed.size > WHISPER_SIZE_LIMIT) {
-    throw new WhisperSizeLimitError();
-  }
-  return compressed;
-}
-
-/** Audio that is still over Whisper's upload limit after compression. */
-export class WhisperSizeLimitError extends Error {
-  constructor() {
-    super('Compressed audio still exceeds production upload limit');
-    this.name = 'WhisperSizeLimitError';
-  }
-}
-
-export { WHISPER_SIZE_LIMIT };
-

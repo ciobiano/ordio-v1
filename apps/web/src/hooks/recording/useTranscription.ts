@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type { Word } from '@Ordio/shared/schemas';
-import { transcriptionErrorFor } from '@/lib/transcription/insufficientCredits';
+import { transcribeStoredAudio } from '@/lib/transcription/storedAudio';
 import { toOrdioError } from '@/lib/errors/OrdioError';
 
 export interface UseTranscriptionReturn {
@@ -10,11 +10,13 @@ export interface UseTranscriptionReturn {
   transcript: Word[];
   error: string | null;
   /**
+   * Transcribe audio already uploaded to storage, by its storage ID.
+   *
    * `durationSec` sizes the credit hold. It is not trusted — the server
    * reconciles against the duration Whisper reports — but passing it means an
    * honest caller's hold matches what they actually spend.
    */
-  transcribeAudio: (blob: Blob, durationSec?: number) => Promise<Word[]>;
+  transcribeAudio: (storageId: string, durationSec?: number) => Promise<Word[]>;
   clearTranscript: () => void;
 }
 
@@ -23,29 +25,13 @@ export function useTranscription(): UseTranscriptionReturn {
   const [transcript, setTranscript] = useState<Word[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const transcribeAudio = useCallback(async (blob: Blob, durationSec?: number): Promise<Word[]> => {
+  const transcribeAudio = useCallback(async (storageId: string, durationSec?: number): Promise<Word[]> => {
     setIsTranscribing(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append('audio', blob);
-      if (durationSec !== undefined && Number.isFinite(durationSec)) {
-        formData.append('durationSec', String(durationSec));
-      }
-
-      const res = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const body: unknown = await res.json().catch(() => ({}));
-        // Out of credits is its own error type — callers show an upgrade
-        // prompt for it rather than offering a retry that cannot succeed.
-        throw transcriptionErrorFor(res.status, body);
-      }
-
-      const { words } = (await res.json()) as { words: Word[] };
+      // Out of credits arrives as its own error type — callers show an upgrade
+      // prompt for it rather than offering a retry that cannot succeed.
+      const words = await transcribeStoredAudio(storageId, durationSec);
       setTranscript(words);
       return words;
     } catch (err) {

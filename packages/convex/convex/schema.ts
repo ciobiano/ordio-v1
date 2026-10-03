@@ -1,6 +1,21 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+/** One Word of a Transcript, as Whisper returns it (seconds). */
+export const wordValidator = v.object({
+  text: v.string(),
+  start: v.number(),
+  end: v.number(),
+});
+
+/** A Clip proposed from an Episode, as the find-clips route returns it. */
+export const clipCandidateValidator = v.object({
+  start: v.number(),
+  end: v.number(),
+  hookText: v.string(),
+  rationale: v.string(),
+});
+
 export default defineSchema({
   users: defineTable({
     tokenIdentifier: v.string(), // Clerk ID
@@ -77,5 +92,56 @@ export default defineSchema({
   })
   .index("by_user_id", ["userId"])
   .index("by_user_created", ["userId", "createdAt"])
-  .index("by_expires_at", ["expiresAt"])
+  .index("by_expires_at", ["expiresAt"]),
+
+  /**
+   * An Episode a person has read, kept so dropping the same file again within
+   * EPISODE_RETENTION_MS reopens its Clips without uploading, transcribing or
+   * spending Credits a second time. The original file is not kept — a Clip is
+   * always cut from the file the person drops.
+   */
+  episodes: defineTable({
+    userId: v.string(), // Clerk tokenIdentifier
+    /** name|size|lastModified of the dropped file — how the same file is recognised. */
+    fingerprint: v.string(),
+    durationSec: v.number(),
+    /** Set once Clips are found. */
+    candidates: v.optional(v.array(clipCandidateValidator)),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+  .index("by_user_fingerprint", ["userId", "fingerprint"])
+  .index("by_expires_at", ["expiresAt"]),
+
+  /**
+   * One uploaded part of an Episode. Words live here rather than on the
+   * episode row: a 90-minute Transcript is ~600KB, and a Convex document is
+   * capped at 1MB.
+   */
+  episodeChunks: defineTable({
+    episodeId: v.id("episodes"),
+    userId: v.string(),
+    startSec: v.number(),
+    durationSec: v.number(),
+    storageId: v.id("_storage"),
+    /** Chunk-relative Words; set by /api/transcribe once transcribed. */
+    words: v.optional(v.array(wordValidator)),
+  })
+  .index("by_episode", ["episodeId"])
+  .index("by_storage_id", ["storageId"]),
+
+  /**
+   * Who uploaded a file that /api/transcribe may read. Storage IDs are
+   * unguessable, but the route still refuses to transcribe a file the caller
+   * did not upload. A claim on a Session's own file is removed when the
+   * Session is created; one still standing at `expiresAt` is a file nothing
+   * kept, and the sweep deletes it.
+   */
+  transcriptionUploads: defineTable({
+    userId: v.string(),
+    storageId: v.id("_storage"),
+    expiresAt: v.number(),
+  })
+  .index("by_storage_id", ["storageId"])
+  .index("by_expires_at", ["expiresAt"]),
 });
