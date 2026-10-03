@@ -98,6 +98,13 @@ FLAC was the plan, at roughly half the size. It has no working encoder in Ordio:
 FLAC can be added later as a size optimisation, once either dependency is
 sorted, without changing anything else here.
 
+**Update 2026-10-03: the ffmpeg side is fixed** on `claude/jolly-turing-692942`,
+which pairs the wrapper with `@ffmpeg/core` 0.12.9 (the core `@ffmpeg/ffmpeg`
+0.12.15 was built against). Once that lands, FLAC via ffmpeg becomes possible:
+against that branch's production build in Chromium, `load()` succeeds and
+`-ac 1 -ar 16000 -c:a flac` exits 0 with a valid `fLaC` stream. The cost is
+the 32MB core, downloaded before the first encode.
+
 **Risk: slow uplinks.** Convex upload URLs time out after 2 minutes. A 19MB WAV
 chunk needs an uplink of at least ~1.3Mbps to get in under that. Below that the chunk fails, retries once, and the
 run ends as a partial (kept 7 days, so it resumes later rather than starting over).
