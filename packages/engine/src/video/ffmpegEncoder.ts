@@ -1,3 +1,4 @@
+import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { waveformSampler } from '@Ordio/shared/waveform';
 import { FPS } from '@Ordio/shared/time';
 import { renderFrame, type FrameOptions } from './frameRenderer';
@@ -5,14 +6,32 @@ import { loadFont } from '../loaders';
 import { loadGraphic } from '../loaders';
 import type { EncodeVideoOptions, EncodeResult } from './videoEncoder';
 
+/** Lines ffmpeg.wasm logs at the end of a run whatever happened; never the reason. */
+const NON_REASON_LOG_LINES = new Set(['Aborted()', 'Conversion failed!']);
+
 /**
  * Encode canvas frames + audio into an MP4 file using ffmpeg.wasm.
- * Fallback for browsers without WebCodecs support (Safari <16, older browsers).
+ * Fallback for browsers without WebCodecs support (no `AudioEncoder`: Safari
+ * before 26, older browsers).
  *
  * Progress split: 0–90% = frame rendering, 90–100% = ffmpeg transcode.
  * WASM is loaded lazily on first call — zero bundle impact on the primary path.
  */
 export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<EncodeResult> {
+  // Lazy-load @ffmpeg/ffmpeg — only bundled if this path is reached
+  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+  const ffmpeg = new FFmpeg();
+  try {
+    return await encodeWith(ffmpeg, options);
+  } finally {
+    // Kill the worker whatever happened. It frees the WASM heap holding every
+    // frame, and it is the only way to stop a cancelled transcode: the abort
+    // rejects exec() but the worker would keep encoding.
+    ffmpeg.terminate();
+  }
+}
+
+async function encodeWith(ffmpeg: FFmpeg, options: EncodeVideoOptions): Promise<EncodeResult> {
   const {
     canvas,
     audioBuffer,
@@ -29,17 +48,21 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
     backgroundImage,
   } = options;
 
-  // Lazy-load @ffmpeg/ffmpeg — only bundled if this path is reached
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-
-  const ffmpeg = new FFmpeg();
+  // A failed run resolves with a non-zero exit code; the log says why.
+  let lastLogLine = '';
+  ffmpeg.on('log', ({ message }) => {
+    if (!NON_REASON_LOG_LINES.has(message)) lastLogLine = message;
+  });
 
   // Load WASM from self-hosted public/ffmpeg/ (same-origin, no CORS needed)
   const baseUrl = `${window.location.origin}/ffmpeg`;
-  await ffmpeg.load({
-    coreURL: `${baseUrl}/ffmpeg-core.js`,
-    wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
-  });
+  await ffmpeg.load(
+    {
+      coreURL: `${baseUrl}/ffmpeg-core.js`,
+      wasmURL: `${baseUrl}/ffmpeg-core.wasm`,
+    },
+    { signal }
+  );
 
   // Load font before rendering
   await loadFont(style.fontFamily);
@@ -97,35 +120,41 @@ export async function encodeVideoFFmpeg(options: EncodeVideoOptions): Promise<En
   // Write audio as WAV
   await ffmpeg.writeFile('audio.wav', audioBufferToWav(audioBuffer));
 
+  // exec() only hears an abort that happens after it starts.
+  if (signal?.aborted) {
+    throw new DOMException('Export cancelled', 'AbortError');
+  }
+
   // Transcode: frames + audio → MP4
-  await ffmpeg.exec([
-    '-framerate',
-    String(FPS),
-    '-i',
-    'frame%06d.jpg',
-    '-i',
-    'audio.wav',
-    '-c:v',
-    'libx264',
-    '-c:a',
-    'aac',
-    '-pix_fmt',
-    'yuv420p',
-    '-shortest',
-    'output.mp4',
-  ]);
+  const exitCode = await ffmpeg.exec(
+    [
+      '-framerate',
+      String(FPS),
+      '-i',
+      'frame%06d.jpg',
+      '-i',
+      'audio.wav',
+      '-c:v',
+      'libx264',
+      '-c:a',
+      'aac',
+      '-pix_fmt',
+      'yuv420p',
+      '-shortest',
+      'output.mp4',
+    ],
+    -1,
+    { signal }
+  );
+  if (exitCode !== 0) {
+    throw new Error(`ffmpeg exited with code ${exitCode}: ${lastLogLine}`);
+  }
 
   onProgress?.(1.0);
 
-  // Read output and clean up virtual FS
+  // No virtual-FS cleanup: terminating the worker frees all of it.
   const data = (await ffmpeg.readFile('output.mp4')) as Uint8Array;
   const blob = new Blob([data.buffer as ArrayBuffer], { type: 'video/mp4' });
-
-  await ffmpeg.deleteFile('audio.wav');
-  await ffmpeg.deleteFile('output.mp4');
-  for (let i = 0; i < totalFrames; i++) {
-    await ffmpeg.deleteFile(`frame${String(i).padStart(6, '0')}.jpg`);
-  }
 
   return { blob, mimeType: 'video/mp4' };
 }
