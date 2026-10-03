@@ -9,12 +9,7 @@ import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 import { ERROR_CATALOG, type ErrorCode } from '@/lib/errors/catalog';
 import { getOpenAITranscriptionFilename } from './audioFile';
 import { providerErrorCode, STATUS_FOR } from './providerError';
-import {
-  MAX_AUDIO_BYTES,
-  StoredAudioError,
-  downloadStoredAudio,
-  readAudioSource,
-} from './audioSource';
+import { StoredAudioError, downloadStoredAudio, readAudioSource } from './audioSource';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -166,9 +161,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!source) {
       return fail('TRANSCRIBE_BAD_REQUEST');
     }
-    if (source.kind === 'inline' && source.file.size > MAX_AUDIO_BYTES) {
-      return fail('TRANSCRIBE_FILE_TOO_LARGE');
-    }
 
     // Convex verifies this token itself; the route is only a courier.
     convexToken = (await getToken({ template: 'convex' })) ?? undefined;
@@ -180,35 +172,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     /* Ownership is checked by Convex against the caller's own token, before
        anything is held or downloaded. A file the caller did not upload reads
        exactly like one that does not exist. */
-    let loadAudio: () => Promise<Blob>;
-    let chunkId: string | null = null;
-    if (source.kind === 'inline') {
-      loadAudio = async () => source.file;
-    } else {
-      const storageId = source.storageId as GenericId<'_storage'>;
-      const authorized = await fetchQuery(
-        api.transcription.authorize,
-        { storageId },
-        { token: convexToken }
-      ).catch((err: unknown) => {
-        console.error('[/api/transcribe] authorize failed', err);
-        return undefined;
-      });
-      if (authorized === undefined) {
-        return fail('TRANSCRIBE_UNAVAILABLE');
-      }
-      if (!authorized) {
-        return fail('TRANSCRIBE_BAD_REQUEST');
-      }
-      /* Already transcribed: the first attempt's response was lost (a timeout,
-         a dropped connection) but its Words were saved. Answer with those —
-         transcribing again would bill the same audio twice. */
-      if (authorized.words) {
-        return NextResponse.json({ words: authorized.words });
-      }
-      loadAudio = () => downloadStoredAudio(authorized.url);
-      chunkId = authorized.chunkId;
+    const authorized = await fetchQuery(
+      api.transcription.authorize,
+      { storageId: source.storageId as GenericId<'_storage'> },
+      { token: convexToken }
+    ).catch((err: unknown) => {
+      console.error('[/api/transcribe] authorize failed', err);
+      return undefined;
+    });
+    if (authorized === undefined) {
+      return fail('TRANSCRIBE_UNAVAILABLE');
     }
+    if (!authorized) {
+      return fail('TRANSCRIBE_BAD_REQUEST');
+    }
+    /* Already transcribed: the first attempt's response was lost (a timeout,
+       a dropped connection) but its Words were saved. Answer with those —
+       transcribing again would bill the same audio twice. */
+    if (authorized.words) {
+      return NextResponse.json({ words: authorized.words });
+    }
+    const { chunkId } = authorized;
 
     const hold = await fetchMutation(
       api.credits.holdForTranscription,
@@ -231,7 +215,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     let file: Blob;
     try {
-      file = await loadAudio();
+      file = await downloadStoredAudio(authorized.url);
     } catch (err) {
       await settle(0);
       console.error('[/api/transcribe] stored audio unavailable', err);

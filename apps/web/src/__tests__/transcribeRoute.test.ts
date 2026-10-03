@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Blob as NodeBlob } from 'node:buffer';
 import { NextRequest } from 'next/server';
 
 const { createTranscription, fetchQuery, fetchMutation } = vi.hoisted(() => ({
@@ -197,12 +196,11 @@ describe('POST /api/transcribe — stored audio', () => {
   });
 });
 
-describe('POST /api/transcribe — inline upload (one deploy of overlap)', () => {
-  it('still transcribes a multipart upload from a tab opened before the deploy', async () => {
-    /* jsdom swaps in its own Blob, and the route's \`instanceof Blob\` would
-       then reject the File Node parses out of the body. In production the
-       route runs on Node, so this test gives it Node's Blob back. */
-    vi.stubGlobal('Blob', NodeBlob);
+describe('POST /api/transcribe — old multipart uploads', () => {
+  /* Audio used to travel in the request body. Clients now send a storage ID;
+     an old tab that still posts the file is refused before anything is
+     authorized or charged, and a reload puts it on the new client. */
+  it('refuses a multipart upload without charging anything', async () => {
     const boundary = 'ordio-test-boundary';
     const body = [
       `--${boundary}`,
@@ -210,10 +208,6 @@ describe('POST /api/transcribe — inline upload (one deploy of overlap)', () =>
       'Content-Type: audio/webm',
       '',
       'fake-audio-bytes',
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="durationSec"',
-      '',
-      '2',
       `--${boundary}--`,
       '',
     ].join('\r\n');
@@ -225,8 +219,10 @@ describe('POST /api/transcribe — inline upload (one deploy of overlap)', () =>
       })
     );
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('TRANSCRIBE_BAD_REQUEST');
     expect(fetchQuery).not.toHaveBeenCalled();
-    expect(mutationCalls('credits:hold')[0]![1]).toEqual({ estimatedSeconds: 2 });
+    expect(mutationCalls('credits:hold')).toHaveLength(0);
+    expect(createTranscription).not.toHaveBeenCalled();
   });
 });
