@@ -1,8 +1,13 @@
 /**
  * Stream-ingest a long podcast episode: decode window-by-window (never the
  * whole file into memory), downmix each window to mono 16kHz, cut it at a
- * pause, encode it as an upload-ready chunk (Opus/WebM, WAV fallback), and
- * accumulate per-second energy as a byproduct.
+ * pause, encode it as lossless WAV, and accumulate per-second energy as a
+ * byproduct.
+ *
+ * WAV, not Opus or MP3: 16kHz mono is exactly what Whisper listens to, so it
+ * loses nothing, and no browser needs an encoder to produce it. Chunks reach
+ * Whisper through Convex storage, so their size is bounded by Whisper's 25MB,
+ * not by a request-body limit.
  *
  * NOTE: not unit-testable in jsdom (requires real WebCodecs / OfflineAudioContext
  * decode). Exercised via on-device QA. The window planning and cut-finding it
@@ -13,12 +18,11 @@ import {
   nextWindowEnd,
   findQuietCut,
   createEnergyAccumulator,
+  resumeStep,
   CUT_SEARCH_SEC,
-  OPUS_CHUNK_SEC,
-  WAV_CHUNK_SEC,
+  CHUNK_SEC,
   MAX_EPISODE_SEC,
 } from './episodePlan';
-import { detectIngestStrategy, type IngestStrategy } from './audioCodecSupport';
 import { audioBufferToWavBlob } from './whisperAudio';
 
 export type EpisodeIngestErrorCode = 'too_long' | 'undecodable';
@@ -50,15 +54,24 @@ export interface EpisodeChunk {
 
 export interface EpisodeStream {
   durationSec: number;
-  strategy: IngestStrategy;
   /**
    * Decodes lazily: each chunk is decoded only when it is pulled, so a
    * consumer busy uploading holds the decoder back rather than letting it race
    * ahead. The input is disposed when the generator finishes, fails, or is
-   * stopped early with `return()` — so the caller must iterate it.
+   * stopped early with `return()`.
    */
   chunks: AsyncGenerator<EpisodeChunk, void, undefined>;
-  /** Per-second energy (0–1) for everything decoded so far. */
+  /**
+   * Release the file. Safe to call more than once, and required on any path
+   * that may never pull a chunk: a generator that never started skips its
+   * own cleanup, even when `return()` is called on it.
+   */
+  dispose: () => void;
+  /**
+   * Per-second energy (0–1) for everything decoded so far. Windows skipped on
+   * resume are not decoded, so they read as silence here; energy only feeds
+   * the fallback when the model proposes no Clips.
+   */
   energy: () => number[];
 }
 
@@ -89,23 +102,6 @@ function sliceMono(buffer: AudioBuffer, fromSec: number, toSec: number): AudioBu
   });
   out.copyToChannel(buffer.getChannelData(0).subarray(from, to), 0);
   return out;
-}
-
-async function encodeChunk(mono16k: AudioBuffer, strategy: IngestStrategy): Promise<Blob> {
-  if (strategy === 'wav') return audioBufferToWavBlob(mono16k);
-  const { Output, BufferTarget, WebMOutputFormat, AudioBufferSource, QUALITY_LOW } = await import(
-    'mediabunny'
-  );
-  const output = new Output({ format: new WebMOutputFormat(), target: new BufferTarget() });
-  const source = new AudioBufferSource({ codec: 'opus', bitrate: QUALITY_LOW });
-  output.addAudioTrack(source);
-  await output.start();
-  await source.add(mono16k);
-  source.close();
-  await output.finalize();
-  const buffer = (output.target as InstanceType<typeof BufferTarget>).buffer;
-  if (!buffer) throw new Error('Opus encode produced no output');
-  return new Blob([buffer], { type: 'audio/webm' });
 }
 
 /**
@@ -148,13 +144,21 @@ async function decodeWindow(
  */
 export async function openEpisode(
   file: File,
-  opts: { signal: AbortSignal; onProgress?: (fraction: number) => void }
+  opts: {
+    signal: AbortSignal;
+    onProgress?: (fraction: number) => void;
+    /**
+     * Chunks a previous run of this file already transcribed. Their windows
+     * are skipped — not decoded, not yielded — and the next window starts
+     * where each one ended.
+     */
+    skip?: Array<{ startSec: number; durationSec: number }>;
+  }
 ): Promise<EpisodeStream> {
   const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   let track: InputAudioTrack;
   let durationSec: number;
-  let strategy: IngestStrategy;
   try {
     const primary = await input.getPrimaryAudioTrack();
     if (!primary || !(await primary.canDecode())) {
@@ -165,44 +169,58 @@ export async function openEpisode(
     if (durationSec > MAX_EPISODE_SEC) {
       throw new EpisodeIngestError('too_long', 'Episodes longer than 90 minutes are not supported.');
     }
-    strategy = await detectIngestStrategy();
   } catch (err) {
     input.dispose();
     throw err;
   }
 
-  const chunkSec = strategy === 'opus' ? OPUS_CHUNK_SEC : WAV_CHUNK_SEC;
+  const skip = opts.skip ?? [];
   const energyAcc = createEnergyAccumulator(durationSec);
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    input.dispose();
+  };
 
   async function* chunks(): AsyncGenerator<EpisodeChunk, void, undefined> {
     try {
       let start = 0;
       while (start < durationSec) {
         throwIfAborted(opts.signal);
-        const { end, isLast } = nextWindowEnd(start, durationSec, chunkSec);
+        const step = resumeStep(start, skip);
+        if ('skipTo' in step) {
+          start = step.skipTo;
+          opts.onProgress?.(Math.min(1, start / durationSec));
+          continue;
+        }
+        const planned = nextWindowEnd(start, durationSec, CHUNK_SEC);
+        // A saved chunk begins inside this window: end exactly at it, not at a pause.
+        const { stopAt } = step;
+        const stopsAtSaved = stopAt !== null && stopAt < planned.end;
+        const end = stopsAtSaved ? stopAt : planned.end;
+        const cutAtEnd = planned.isLast || stopsAtSaved;
         const decoded = await decodeWindow(track, start, end, opts.signal);
         // The container overstated its duration — there is nothing left to read.
         if (!decoded) return;
 
         const { startSec, mono } = decoded;
-        const cutSec = isLast
+        const cutSec = cutAtEnd
           ? mono.duration
           : findQuietCut(mono.getChannelData(0), TARGET_RATE, CUT_SEARCH_SEC);
         const piece = sliceMono(mono, 0, cutSec);
 
         energyAcc.add(piece.getChannelData(0), startSec, TARGET_RATE);
-        // finalize() isn't interruptible either; same prompt-discard check.
-        const blob = await encodeChunk(piece, strategy);
-        throwIfAborted(opts.signal);
+        const blob = audioBufferToWavBlob(piece);
 
         start = startSec + piece.duration;
         opts.onProgress?.(Math.min(1, start / durationSec));
         yield { startSec, durationSec: piece.duration, blob };
       }
     } finally {
-      input.dispose();
+      dispose();
     }
   }
 
-  return { durationSec, strategy, chunks: chunks(), energy: () => energyAcc.finish() };
+  return { durationSec, chunks: chunks(), energy: () => energyAcc.finish(), dispose };
 }

@@ -1,5 +1,6 @@
 import type { Word } from '@Ordio/shared/schemas';
-import { InsufficientCreditsError, transcriptionErrorFor } from './insufficientCredits';
+import { InsufficientCreditsError } from './insufficientCredits';
+import { transcribeStoredAudio } from './storedAudio';
 import { OrdioError } from '@/lib/errors/OrdioError';
 import type { ErrorCode } from '@/lib/errors/catalog';
 
@@ -13,7 +14,7 @@ const NOT_RETRYABLE = new Set<ErrorCode>([
 ]);
 
 /**
- * POST one episode chunk to the existing stateless /api/transcribe route.
+ * Transcribe one Episode chunk that is already in storage, by its ID.
  * Retries once on failure (network or 5xx); aborts propagate immediately.
  *
  * `durationSec` sizes the credit hold. Omitting it does not make the chunk
@@ -26,32 +27,11 @@ const NOT_RETRYABLE = new Set<ErrorCode>([
  * chunk it can no longer afford instead of overdrawing past all of them.
  */
 export async function transcribeChunk(
-  blob: Blob,
+  storageId: string,
   signal: AbortSignal,
   durationSec?: number
 ): Promise<Word[]> {
-  const attempt = async (): Promise<Word[]> => {
-    const formData = new FormData();
-    const ext = blob.type.includes('webm') ? 'webm' : 'wav';
-    formData.append('audio', blob, `chunk.${ext}`);
-    if (durationSec !== undefined && Number.isFinite(durationSec) && durationSec > 0) {
-      formData.append('durationSec', String(durationSec));
-    }
-    const res = await fetch('/api/transcribe', { method: 'POST', body: formData, signal });
-    if (!res.ok) {
-      /* A proxy or edge failure returns HTML, not JSON, so the body is read
-         defensively — the status alone is enough to classify the failure. */
-      let body: unknown = {};
-      try {
-        body = await res.json();
-      } catch {
-        body = {};
-      }
-      throw transcriptionErrorFor(res.status, body);
-    }
-    const { words } = (await res.json()) as { words: Word[] };
-    return words;
-  };
+  const attempt = () => transcribeStoredAudio(storageId, durationSec, signal);
 
   try {
     return await attempt();

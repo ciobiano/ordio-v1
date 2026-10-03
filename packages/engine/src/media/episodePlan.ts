@@ -6,8 +6,14 @@
 export const MAX_EPISODE_SEC = 90 * 60; // design: hard reject above 90 min
 /** Files longer than this route to the episode pipeline instead of processAudio. */
 export const EPISODE_ROUTE_THRESHOLD_SEC = 15 * 60;
-export const OPUS_CHUNK_SEC = 600; // ~10 min per design
-export const WAV_CHUNK_SEC = 300; // ~5 min on WAV fallback
+/**
+ * One chunk per ~10 minutes, as lossless 16kHz mono WAV. At that rate the
+ * largest chunk — a full window plus an absorbed tail — is ~22MB, inside
+ * Whisper's 25MB. It travels through Convex storage, not a request body, so
+ * Vercel's 4.5MB limit doesn't apply. Ten minutes also keeps a 90-minute
+ * Episode at 9–10 requests against `/api/transcribe`'s 15 an hour.
+ */
+export const CHUNK_SEC = 600;
 const SPARSE_WORDS_PER_MIN = 30;
 
 /**
@@ -80,6 +86,41 @@ export function findQuietCut(samples: Float32Array, sampleRate: number, searchSe
   }
   const centreSample = (firstFrame + best) * frameLen + (CUT_SPAN_FRAMES * frameLen) / 2;
   return centreSample / sampleRate;
+}
+
+/**
+ * Float drift allowed between a resumed run's position and a saved chunk's
+ * edge. Pause-aligned cuts are deterministic for the same file and decoder,
+ * so a resumed run lands on the saved edges to within a decoded packet.
+ */
+export const RESUME_MATCH_SEC = 0.5;
+
+/**
+ * Where a resumed run goes next from `start`, given what a previous run saved.
+ *
+ * - `skipTo`: `start` is inside a saved chunk. Jump to its end, decoding nothing.
+ * - `stopAt`: where the next saved chunk begins (null if none). A new window
+ *   must end exactly there. A different decoder — another browser — can cut
+ *   in different places, and a window running into a saved chunk would have
+ *   the overlap transcribed, billed and merged twice.
+ */
+export function resumeStep(
+  start: number,
+  saved: Array<{ startSec: number; durationSec: number }>
+): { skipTo: number } | { stopAt: number | null } {
+  for (const chunk of saved) {
+    const end = chunk.startSec + chunk.durationSec;
+    if (start >= chunk.startSec - RESUME_MATCH_SEC && start < end - RESUME_MATCH_SEC) {
+      return { skipTo: end };
+    }
+  }
+  let stopAt: number | null = null;
+  for (const chunk of saved) {
+    if (chunk.startSec > start + RESUME_MATCH_SEC && (stopAt === null || chunk.startSec < stopAt)) {
+      stopAt = chunk.startSec;
+    }
+  }
+  return { stopAt };
 }
 
 export function isSparseTranscript(wordCount: number, durationSec: number): boolean {

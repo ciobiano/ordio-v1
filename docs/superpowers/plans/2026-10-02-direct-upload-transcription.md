@@ -1,6 +1,8 @@
 # Direct-to-storage transcription, and Episodes kept for 7 days
 
-**Status:** plan, not started. Waits on PR #35 (MP3 fallback) landing in `main`.
+**Status:** built on `claude/direct-upload-transcription` (2026-10-03). PR #35 (MP3
+fallback) was closed in favour of this. **Built with WAV, not FLAC:** see
+"Why WAV, not FLAC" below.
 
 ## Why
 
@@ -45,17 +47,17 @@ and all of them go:
 | WAV squeezed to 12kHz | recordings needing conversion, past ~2:11 | always 16kHz |
 | WAV squeezed to 8kHz | the same, past ~2:55; also when ffmpeg fails | always 16kHz |
 | MP3 at whatever bitrate fits 4MB | recordings over 4MB (~37kbps for 15 min) | the original file, untouched |
-| Opus at ~38kbps | Episode chunks | 16kHz FLAC, WAV fallback |
-| MP3 at 32kbps (PR #35) | Episode chunks without Opus | 16kHz FLAC, WAV fallback |
+| Opus at ~38kbps | Episode chunks | 16kHz WAV |
+| MP3 at 32kbps (PR #35) | Episode chunks without Opus | 16kHz WAV |
 
 **Recordings** (≤15 min; longer ones route to Episodes):
 
 1. Send the original file untouched when Whisper accepts its type and it is ≤25MB.
    This is the common case, with no re-encoding at all.
-2. Otherwise 16kHz mono WAV, which is lossless and fits 25MB up to ~13 min.
-3. Otherwise 16kHz mono FLAC through the ffmpeg.wasm already in the repo:
-   lossless, roughly half of WAV, so it fits every ≤15-min recording. FLAC can't
-   be encoded through WebCodecs in any browser, which is why it isn't step 2.
+2. Otherwise 16kHz mono WAV, which is lossless and fits 25MB up to ~13.6 min.
+3. A recording that needs converting and is longer than that fails with
+   `AUDIO_TOO_LARGE_TO_TRANSCRIBE`, which says to trim it or save it as MP3/M4A.
+   Before this change, the same failure came at ~4.4 min.
 
 **Episodes:** the one place where lossless costs something real.
 
@@ -71,18 +73,33 @@ All of these are also uploaded from the person's phone, nine chunks per 90 minut
 **Decided 2026-10-02: Episodes are lossless too.** No measurement was run to
 show lossy is safe, so it isn't used:
 
-1. **16kHz mono FLAC** through ffmpeg.wasm: ~10MB per 10-min chunk (est.).
-2. **16kHz mono WAV** when ffmpeg fails: 19.2MB per chunk, 22MB with the 90s tail
-   absorbed, still under OpenAI's 25MB.
-3. Never Opus or MP3 for transcription. Today's Opus path and PR #35's MP3 path
-   are replaced, and `@mediabunny/mp3-encoder` comes out again.
+1. **16kHz mono WAV:** 19.2MB per 10-min chunk, 22MB with the 90s tail absorbed,
+   still under OpenAI's 25MB. No encoder needed, so it works in every browser,
+   old Safari included.
+2. Never Opus or MP3 for transcription. The Opus path and `audioCodecSupport.ts`
+   are gone; PR #35's MP3 path never landed.
 
-FLAC isn't available from WebCodecs in any browser, so it has to be ffmpeg.wasm.
-That is already shipped for recordings, and is a one-time cached download.
+### Why WAV, not FLAC
 
-**Risk: slow uplinks.** Convex upload URLs time out after 2 minutes. A ~10MB FLAC
-chunk needs an uplink of at least ~0.7Mbps to get in under that; a 19MB WAV
-fallback chunk needs ~1.3Mbps. Below that the chunk fails, retries once, and the
+FLAC was the plan, at roughly half the size. It has no working encoder in Ordio:
+
+- **WebCodecs can't encode FLAC** in any browser.
+- **ffmpeg.wasm can never load in Ordio.** `@ffmpeg/ffmpeg` is 0.12, but the
+  core copied to `public/ffmpeg` comes from `@ffmpeg/core-st` 0.11. The 0.12
+  worker calls `ffmpeg.setLogger()` right after creating the core, and the 0.11
+  core has no `setLogger`, `exec` or `reset` (checked by instantiating it in Node,
+  2026-10-02). So `load()` always throws. This is also why recordings over 4MB
+  always fell back to the 8kHz WAV. It almost certainly breaks the Safari
+  video-export fallback (`packages/engine/src/video/ffmpegEncoder.ts`) too;
+  that is a separate fix.
+- **`@mediabunny/flac-encoder`** starts at mediabunny 1.36; Ordio is on 1.34.5,
+  and encoders ship in lockstep. Bumping mediabunny touches video export.
+
+FLAC can be added later as a size optimisation, once either dependency is
+sorted, without changing anything else here.
+
+**Risk: slow uplinks.** Convex upload URLs time out after 2 minutes. A 19MB WAV
+chunk needs an uplink of at least ~1.3Mbps to get in under that. Below that the chunk fails, retries once, and the
 run ends as a partial (kept 7 days, so it resumes later rather than starting over).
 Shorter chunks would avoid the timeout, but 5-minute chunks make a 90-minute
 Episode 18 requests against `/api/transcribe`'s 15/hour. Fixing that means
@@ -163,8 +180,7 @@ Functions:
 
 - Upload once to Convex, as it already does for the Session, and `uploads.claim` it.
 - Transcribe by that `storageId` when the file is ≤25MB and a Whisper-supported type.
-- Otherwise follow the lossless ladder in the quality rule (16kHz WAV, then FLAC),
-  upload that copy, and transcribe it.
+- Otherwise upload a 16kHz mono WAV copy and transcribe that.
 - Delete `pickWhisperWavSampleRate`, `targetMp3BitrateKbps`, the 4MB
   `WHISPER_SIZE_LIMIT`, and the 8kHz fallback WAV.
 - The `uploads` row for a recording expires after 1 hour, but the sweep must not
@@ -174,10 +190,10 @@ Functions:
 
 ## Costs
 
-- **Storage:** a 90-minute Episode is ~90MB as FLAC chunks (est.), so Convex's
-  free 1GB holds ~11 live Episodes, then $0.033/GB: about 0.3¢ per Episode-week.
+- **Storage:** a 90-minute Episode is ~173MB as WAV chunks, so Convex's free 1GB
+  holds ~5 live Episodes, then $0.033/GB: about 0.6¢ per Episode-week.
 - **Egress:** every transcription reads its file once from Convex. The free 1GB/month
-  is ~11 Episodes' worth of FLAC, then $0.132/GB: about 1.2¢ per Episode.
+  is ~5 Episodes' worth of WAV, then $0.132/GB: about 2.3¢ per Episode.
 - Requests to `/api/transcribe` and credit spend are unchanged.
 
 ## Deploy order

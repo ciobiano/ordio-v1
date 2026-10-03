@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { auth } from '@clerk/nextjs/server';
-import { fetchMutation } from 'convex/nextjs';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@Ordio/convex';
+import type { GenericId } from 'convex/values';
 import type { Word } from '@Ordio/shared/schemas';
 import { consumeRateLimit } from '@/lib/liveTranscription/rateLimit';
 import { ERROR_CATALOG, type ErrorCode } from '@/lib/errors/catalog';
 import { getOpenAITranscriptionFilename } from './audioFile';
 import { providerErrorCode, STATUS_FOR } from './providerError';
+import {
+  MAX_AUDIO_BYTES,
+  StoredAudioError,
+  downloadStoredAudio,
+  readAudioSource,
+} from './audioSource';
 
 // Lazy-init — never instantiate at module level (breaks `next build`)
 let openai: OpenAI | null = null;
@@ -21,8 +28,6 @@ function getClient(): OpenAI {
   }
   return openai;
 }
-
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper limit
 
 /**
  * A failure response the client can name. `code` is what the client reads;
@@ -45,19 +50,6 @@ function fail(code: ErrorCode, extra: Record<string, unknown> = {}): NextRespons
 // per warm serverless instance. Raise it if support ever sees a genuine 429.
 const TRANSCRIBE_PER_HOUR = 15;
 const HOUR_MS = 60 * 60 * 1000;
-
-/**
- * Read the caller's declared audio length from the form.
- *
- * Only ever used to size the credit hold — the settle step reconciles against
- * Whisper's reported duration, so a caller who under-reports gains one
- * transcription and a negative balance, not free service.
- */
-function parseDeclaredDuration(value: FormDataEntryValue | null): number {
-  if (typeof value !== 'string') return 0;
-  const seconds = Number.parseFloat(value);
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-}
 
 interface WhisperWord {
   word: string;
@@ -170,16 +162,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fail('TRANSCRIBE_RATE_LIMITED');
     }
 
-    /* A body that is not multipart at all (or was cut off in transit) throws
-       here, and is the caller's request being malformed, not Whisper failing. */
-    const formData = await request.formData().catch(() => null);
-    const file = formData?.get('audio');
-
-    if (!formData || !file || !(file instanceof Blob) || file.size === 0) {
+    const source = await readAudioSource(request);
+    if (!source) {
       return fail('TRANSCRIBE_BAD_REQUEST');
     }
-
-    if (file.size > MAX_FILE_SIZE) {
+    if (source.kind === 'inline' && source.file.size > MAX_AUDIO_BYTES) {
       return fail('TRANSCRIBE_FILE_TOO_LARGE');
     }
 
@@ -190,10 +177,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fail('TRANSCRIBE_UNAVAILABLE');
     }
 
-    const declaredSeconds = parseDeclaredDuration(formData.get('durationSec'));
+    /* Ownership is checked by Convex against the caller's own token, before
+       anything is held or downloaded. A file the caller did not upload reads
+       exactly like one that does not exist. */
+    let loadAudio: () => Promise<Blob>;
+    let chunkId: string | null = null;
+    if (source.kind === 'inline') {
+      loadAudio = async () => source.file;
+    } else {
+      const storageId = source.storageId as GenericId<'_storage'>;
+      const authorized = await fetchQuery(
+        api.transcription.authorize,
+        { storageId },
+        { token: convexToken }
+      ).catch((err: unknown) => {
+        console.error('[/api/transcribe] authorize failed', err);
+        return undefined;
+      });
+      if (authorized === undefined) {
+        return fail('TRANSCRIBE_UNAVAILABLE');
+      }
+      if (!authorized) {
+        return fail('TRANSCRIBE_BAD_REQUEST');
+      }
+      /* Already transcribed: the first attempt's response was lost (a timeout,
+         a dropped connection) but its Words were saved. Answer with those —
+         transcribing again would bill the same audio twice. */
+      if (authorized.words) {
+        return NextResponse.json({ words: authorized.words });
+      }
+      loadAudio = () => downloadStoredAudio(authorized.url);
+      chunkId = authorized.chunkId;
+    }
+
     const hold = await fetchMutation(
       api.credits.holdForTranscription,
-      { estimatedSeconds: declaredSeconds },
+      { estimatedSeconds: source.declaredSeconds },
       { token: convexToken }
     ).catch((err: unknown) => {
       console.error('[/api/transcribe] CREDITS_CHECK_FAILED', err);
@@ -209,6 +228,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fail('INSUFFICIENT_CREDITS', { minutes: hold.minutes });
     }
     held = hold.held;
+
+    let file: Blob;
+    try {
+      file = await loadAudio();
+    } catch (err) {
+      await settle(0);
+      console.error('[/api/transcribe] stored audio unavailable', err);
+      return fail(
+        err instanceof StoredAudioError && err.reason === 'too_large'
+          ? 'TRANSCRIBE_FILE_TOO_LARGE'
+          : 'TRANSCRIBE_FAILED'
+      );
+    }
 
     const client = getClient();
 
@@ -262,6 +294,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         : validWords.map((w) => ({ text: w.word.trim(), start: w.start, end: w.end }));
 
     await settle(actualSeconds);
+
+    /* An Episode chunk keeps its Words in Convex, written here rather than by
+       the browser: the transcription is paid for the moment Whisper returns,
+       and must survive the tab closing before this response arrives. Saving
+       is best-effort — the Words still go back in the response. */
+    if (chunkId) {
+      const save = () =>
+        fetchMutation(
+          api.transcription.saveChunkWords,
+          { chunkId: chunkId as GenericId<'episodeChunks'>, words },
+          { token: convexToken }
+        );
+      await save()
+        .catch(save)
+        .catch((err: unknown) => {
+          console.error('[/api/transcribe] could not save chunk words', err);
+        });
+    }
     return NextResponse.json({ words });
   } catch (err) {
     // Nobody pays for a transcription that failed.

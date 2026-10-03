@@ -98,6 +98,13 @@ vi.mock('@Ordio/convex', () => ({
     jobs: { generateUploadUrl: 'x' },
     credits: { getMyCredits: 'x' },
     backgrounds: { getBackgroundUrl: 'x', listMyBackgrounds: 'x', uploadBackground: 'x' },
+    transcription: { claimUpload: 'transcription:claimUpload' },
+    episodes: {
+      resume: 'episodes:resume',
+      create: 'episodes:create',
+      addChunk: 'episodes:addChunk',
+      saveCandidates: 'episodes:saveCandidates',
+    },
   },
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));

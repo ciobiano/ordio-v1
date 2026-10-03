@@ -16,8 +16,16 @@ vi.mock('@Ordio/convex', () => ({
   api: {
     jobs: { generateUploadUrl: 'jobs:generateUploadUrl' },
     sessions: { createSession: 'sessions:createSession' },
+    transcription: { claimUpload: 'transcription:claimUpload' },
   },
 }));
+
+/** Every Blob that was uploaded to storage, in order. */
+function uploadedBodies(): Blob[] {
+  return (global.fetch as Mock).mock.calls
+    .map(([, init]) => (init as RequestInit | undefined)?.body)
+    .filter((body): body is Blob => body instanceof Blob);
+}
 
 // Store mock state — defined at module scope so they're stable across tests
 const mockSetCurrentState = vi.fn();
@@ -93,6 +101,8 @@ describe('useAudioProcessing', () => {
   beforeEach(async () => {
     // Reset call counts but preserve mock implementations
     vi.clearAllMocks();
+    const convexReactModule = await import('convex/react');
+    (convexReactModule.useMutation as unknown as Mock).mockImplementation(() => vi.fn());
     mockCurrentState = 'idle';
     const channel = new Float32Array(44_100);
     channel.fill(0.1);
@@ -234,6 +244,46 @@ describe('useAudioProcessing', () => {
     expect(mockSetCurrentState).toHaveBeenLastCalledWith('recording');
   });
 
+  /* Audio reaches Whisper through storage, never a request body, so a file
+     Whisper accepts is transcribed exactly as recorded: uploaded once, and the
+     Session keeps that same file. */
+  it('uploads a supported Recording once and transcribes that same file', async () => {
+    const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
+    const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
+    const mockClaimUpload = vi.fn().mockResolvedValue('claim_1');
+
+    const convexReact = await import('convex/react');
+    const useMutationMock = convexReact.useMutation as unknown as Mock;
+    useMutationMock.mockImplementation((ref: string) =>
+      ref === 'jobs:generateUploadUrl'
+        ? mockGenerateUploadUrl
+        : ref === 'sessions:createSession'
+          ? mockCreateSession
+          : mockClaimUpload
+    );
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ storageId: 'storage_abc' }),
+    });
+
+    const blob = new Blob(['audio data'], { type: 'audio/webm' });
+    blob.arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+
+    const { result } = renderHook(() => useAudioProcessing(mockTranscription));
+
+    await act(async () => {
+      await result.current.processAudio(blob);
+    });
+
+    expect(uploadedBodies()).toEqual([blob]);
+    expect(mockClaimUpload).toHaveBeenCalledWith({ storageId: 'storage_abc' });
+    expect(mockTranscription.transcribeAudio).toHaveBeenCalledWith('storage_abc', 1);
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({ storageId: 'storage_abc' })
+    );
+  });
+
   it('transcodes unsupported video mime types to wav before transcription', async () => {
     const mockGenerateUploadUrl = vi.fn().mockResolvedValue('https://upload.convex.cloud/abc');
     const mockCreateSession = vi.fn().mockResolvedValue('abc123sessionId');
@@ -258,9 +308,9 @@ describe('useAudioProcessing', () => {
       await result.current.processAudio(blob);
     });
 
-    const transcribeArg = (mockTranscription.transcribeAudio as Mock).mock.calls[0]?.[0] as Blob;
-    expect(transcribeArg).toBeInstanceOf(Blob);
-    expect(transcribeArg.type).toBe('audio/wav');
+    // The Session keeps the original; Whisper gets a 16kHz WAV of it, uploaded beside it.
+    expect(uploadedBodies().map((b) => b.type)).toEqual([blob.type, 'audio/wav']);
+    expect(mockTranscription.transcribeAudio).toHaveBeenCalledWith('storage_abc', 1);
   });
 
   it('transcodes unknown mime uploads to wav before transcription', async () => {
@@ -287,9 +337,9 @@ describe('useAudioProcessing', () => {
       await result.current.processAudio(blob);
     });
 
-    const transcribeArg = (mockTranscription.transcribeAudio as Mock).mock.calls[0]?.[0] as Blob;
-    expect(transcribeArg).toBeInstanceOf(Blob);
-    expect(transcribeArg.type).toBe('audio/wav');
+    // The Session keeps the original; Whisper gets a 16kHz WAV of it, uploaded beside it.
+    expect(uploadedBodies().map((b) => b.type)).toEqual([blob.type, 'audio/wav']);
+    expect(mockTranscription.transcribeAudio).toHaveBeenCalledWith('storage_abc', 1);
   });
 
   it('stops processing immediately when enhancement fails', async () => {

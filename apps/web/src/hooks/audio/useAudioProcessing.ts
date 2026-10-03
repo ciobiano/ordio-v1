@@ -12,14 +12,14 @@ import type { UseTranscriptionReturn } from '@/hooks/recording/useTranscription'
 import {
   audioBufferToWavBlob,
   normalizeAudioForWhisper,
-  reduceAudioForWhisper,
   shouldTranscodeForWhisper,
-  WHISPER_SIZE_LIMIT,
+  WHISPER_MAX_BYTES,
 } from '@Ordio/engine/media/whisperAudio';
+import { uploadAudio } from '@/lib/transcription/storedAudio';
 import type { Word } from '@Ordio/shared/schemas';
 import { expectedTranscribeMs, transcribeProgressAt } from '@/lib/audio/transcribeProgress';
 import { OrdioError, isAbortError, toOrdioError } from '@/lib/errors/OrdioError';
-import { decodeCodeFor, uploadCodeFor } from '@/lib/errors/classify';
+import { decodeCodeFor } from '@/lib/errors/classify';
 import type { ErrorCode } from '@/lib/errors/catalog';
 import { notifyError } from '@/lib/errors/notify';
 
@@ -106,6 +106,11 @@ export function useAudioProcessing(
   const createSessionRef = useRef(createSession);
   createSessionRef.current = createSession;
 
+  // Declared after the two above: tests hand out mutations in call order.
+  const claimUpload = useMutation(api.transcription.claimUpload);
+  const claimUploadRef = useRef(claimUpload);
+  claimUploadRef.current = claimUpload;
+
   const processAudio = useCallback(
     async (inputBlob: Blob): Promise<string> => {
       const stateBeforeProcessing: AppPhase = currentState === 'processing' ? 'idle' : currentState;
@@ -166,66 +171,35 @@ export function useAudioProcessing(
         const baseTranscribe = enhanceTier !== 'none' ? 40 : 25;
         setProcessingProgress(baseTranscribe + 5);
 
-        const shouldTranscode = shouldTranscodeForWhisper(rawBlob.type);
-        let whisperReadyBuffer: AudioBuffer | null = null;
-        const getWhisperReadyBuffer = async (): Promise<AudioBuffer> => {
-          if (!whisperReadyBuffer) {
-            whisperReadyBuffer = await normalizeAudioForWhisper(transcriptionBuffer);
-          }
-          return whisperReadyBuffer;
-        };
-        let transcriptionBlob: Blob;
-        if (shouldTranscode) {
-          transcriptionBlob = audioBufferToWavBlob(await getWhisperReadyBuffer());
-        } else {
-          transcriptionBlob = rawBlob;
-        }
-        if (transcriptionBlob.size > WHISPER_SIZE_LIMIT) {
-          try {
-            transcriptionBlob = await reduceAudioForWhisper(transcriptionBuffer, abort.signal);
-          } catch (reduceErr) {
-            // A cancel during compression is a cancel, not a reason to fall back.
-            if (isAbortError(reduceErr)) throw reduceErr;
-            // FFmpeg can fail in some production environments; retry with whisper-normalized WAV.
-            const fallbackWav = audioBufferToWavBlob(await getWhisperReadyBuffer());
-            if (fallbackWav.size <= WHISPER_SIZE_LIMIT) {
-              transcriptionBlob = fallbackWav;
-            } else {
-              throw new AudioProcessingError('transcription', 'AUDIO_TOO_LARGE_TO_TRANSCRIBE', reduceErr);
-            }
+        /* Upload once, to storage, and claim it so /api/transcribe will read
+           it. The Session keeps this same file. */
+        const upload = (audio: Blob) =>
+          step('processing', 'UPLOAD_FAILED', async () => {
+            const id = await uploadAudio(audio, () => generateUploadUrlRef.current(), abort.signal);
+            await claimUploadRef.current({ storageId: id as GenericId<'_storage'> });
+            return id as GenericId<'_storage'>;
+          });
+
+        /* Whisper hears the original Recording untouched wherever it can take
+           it; otherwise a 16kHz mono WAV of it, which is lossless as far as
+           Whisper can hear. Nothing is resampled lower or compressed to fit a
+           size limit — the 4.5MB request limit that once forced that is gone,
+           because audio no longer travels through the request. */
+        let transcriptionSource: Blob = rawBlob;
+        if (shouldTranscodeForWhisper(rawBlob.type) || rawBlob.size > WHISPER_MAX_BYTES) {
+          transcriptionSource = audioBufferToWavBlob(await normalizeAudioForWhisper(transcriptionBuffer));
+          if (transcriptionSource.size > WHISPER_MAX_BYTES) {
+            throw new AudioProcessingError('transcription', 'AUDIO_TOO_LARGE_TO_TRANSCRIBE');
           }
         }
 
+        const uploadTask = upload(blob);
         // Decoded duration sizes the credit hold; the server settles against
         // Whisper's own figure afterwards.
-        const transcriptionTask = step('transcription', 'TRANSCRIBE_FAILED', () =>
-          transcriptionRef.current.transcribeAudio(transcriptionBlob, decoded.duration)
-        );
-
-        const uploadTask = (async () => {
-          const uploadUrl = await step('processing', 'UPLOAD_URL_FAILED', () =>
-            generateUploadUrlRef.current()
-          );
-          const uploadRes = await step('processing', 'UPLOAD_FAILED', () =>
-            fetch(uploadUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': blob.type },
-              body: blob,
-              signal: abort.signal,
-            })
-          );
-          if (!uploadRes.ok) {
-            throw new AudioProcessingError(
-              'processing',
-              uploadCodeFor(uploadRes.status),
-              new Error(`Storage upload returned HTTP ${uploadRes.status}`)
-            );
-          }
-          const { storageId } = await step('processing', 'UPLOAD_FAILED', () =>
-            uploadRes.json() as Promise<{ storageId: string }>
-          );
-          return storageId as GenericId<'_storage'>;
-        })();
+        const transcriptionTask = step('transcription', 'TRANSCRIBE_FAILED', async () => {
+          const id = transcriptionSource === blob ? await uploadTask : await upload(transcriptionSource);
+          return transcriptionRef.current.transcribeAudio(id, decoded.duration);
+        });
 
         /* Whisper reports nothing until it returns, so this step is projected
            from the audio length rather than left as a 40-point hold. The

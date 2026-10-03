@@ -7,9 +7,22 @@ const okResponse = { ok: true, json: async () => ({ words: [{ text: 'hi', start:
 afterEach(() => vi.unstubAllGlobals());
 
 describe('transcribeChunk', () => {
+  /* Audio never travels in the request: Vercel refuses bodies over 4.5MB.
+     The chunk is already in storage and the route is sent its ID. */
+  it('sends only the storage ID, as JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse);
+    vi.stubGlobal('fetch', fetchMock);
+    await transcribeChunk('storage_1', new AbortController().signal, 600);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/transcribe');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(typeof init.body).toBe('string');
+  });
+
   it('returns words on success', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse));
-    const words = await transcribeChunk(new Blob(['x'], { type: 'audio/webm' }), new AbortController().signal);
+    const words = await transcribeChunk('storage_1', new AbortController().signal);
     expect(words).toEqual([{ text: 'hi', start: 0, end: 1 }]);
   });
 
@@ -18,7 +31,7 @@ describe('transcribeChunk', () => {
       .mockResolvedValueOnce({ ok: false, status: 500 })
       .mockResolvedValueOnce(okResponse);
     vi.stubGlobal('fetch', fetchMock);
-    const words = await transcribeChunk(new Blob(['x']), new AbortController().signal);
+    const words = await transcribeChunk('storage_1', new AbortController().signal);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(words).toHaveLength(1);
   });
@@ -26,14 +39,14 @@ describe('transcribeChunk', () => {
   it('throws after two failures', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     await expect(
-      transcribeChunk(new Blob(['x']), new AbortController().signal)
+      transcribeChunk('storage_1', new AbortController().signal)
     ).rejects.toThrow('Transcription failed (500)');
   });
 
   it('does not retry on abort', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
     vi.stubGlobal('fetch', fetchMock);
-    await expect(transcribeChunk(new Blob(['x']), new AbortController().signal)).rejects.toThrow('Aborted');
+    await expect(transcribeChunk('storage_1', new AbortController().signal)).rejects.toThrow('Aborted');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -44,19 +57,19 @@ describe('transcribeChunk', () => {
   it('declares the chunk length so the hold matches the work', async () => {
     const fetchMock = vi.fn().mockResolvedValue(okResponse);
     vi.stubGlobal('fetch', fetchMock);
-    await transcribeChunk(new Blob(['x']), new AbortController().signal, 300);
+    await transcribeChunk('storage_1', new AbortController().signal, 300);
 
-    const body = fetchMock.mock.calls[0][1].body as FormData;
-    expect(body.get('durationSec')).toBe('300');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body).toEqual({ storageId: 'storage_1', durationSec: 300 });
   });
 
   it('omits the length rather than declaring a nonsense one', async () => {
     const fetchMock = vi.fn().mockResolvedValue(okResponse);
     vi.stubGlobal('fetch', fetchMock);
-    await transcribeChunk(new Blob(['x']), new AbortController().signal, 0);
+    await transcribeChunk('storage_1', new AbortController().signal, 0);
 
-    const body = fetchMock.mock.calls[0][1].body as FormData;
-    expect(body.get('durationSec')).toBeNull();
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body).toEqual({ storageId: 'storage_1' });
   });
 
   it('surfaces running out of credits as its own error, not a generic failure', async () => {
@@ -69,7 +82,7 @@ describe('transcribeChunk', () => {
       })
     );
     await expect(
-      transcribeChunk(new Blob(['x']), new AbortController().signal, 60)
+      transcribeChunk('storage_1', new AbortController().signal, 60)
     ).rejects.toBeInstanceOf(InsufficientCreditsError);
   });
 
@@ -82,7 +95,7 @@ describe('transcribeChunk', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     await expect(
-      transcribeChunk(new Blob(['x']), new AbortController().signal, 60)
+      transcribeChunk('storage_1', new AbortController().signal, 60)
     ).rejects.toBeInstanceOf(InsufficientCreditsError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -93,7 +106,7 @@ describe('transcribeChunk', () => {
       .mockResolvedValueOnce(okResponse);
     vi.stubGlobal('fetch', fetchMock);
     await expect(
-      transcribeChunk(new Blob(['x']), new AbortController().signal, 60)
+      transcribeChunk('storage_1', new AbortController().signal, 60)
     ).resolves.toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
