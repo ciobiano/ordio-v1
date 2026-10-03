@@ -10,10 +10,12 @@ const vadWebDist = path.dirname(
   require.resolve('@ricky0123/vad-web/dist/vad.worklet.bundle.min.js')
 );
 const onnxDist = path.dirname(require.resolve('onnxruntime-web'));
-const ffmpegCoreDist = path.join(
-  path.dirname(require.resolve('@ffmpeg/core-st/package.json')),
-  'dist'
-);
+// The ffmpeg.wasm core has to be the build @ffmpeg/ffmpeg was made against
+// (its CORE_VERSION), and the UMD one: webpack turns the wrapper's module
+// worker into a classic worker, which can only importScripts() the core.
+// `require` resolves to the UMD build.
+const ffmpegCoreJs = require.resolve('@ffmpeg/core');
+const ffmpegCoreWasm = require.resolve('@ffmpeg/core/wasm');
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -21,8 +23,10 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Cross-origin isolation — required for SharedArrayBuffer, which
-          // ffmpeg.wasm needs on the Safari export path.
+          // Cross-origin isolation, which is what makes SharedArrayBuffer
+          // available. ffmpeg.wasm no longer needs it (Ordio ships the
+          // single-thread core); onnxruntime-web uses it to run VAD on
+          // several threads.
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
 
@@ -92,11 +96,11 @@ const nextConfig: NextConfig = {
             to: '../public/vad/[name][ext]',
           },
           {
-            from: path.join(ffmpegCoreDist, 'ffmpeg-core.js'),
+            from: ffmpegCoreJs,
             to: '../public/ffmpeg/ffmpeg-core.js',
           },
           {
-            from: path.join(ffmpegCoreDist, 'ffmpeg-core.wasm'),
+            from: ffmpegCoreWasm,
             to: '../public/ffmpeg/ffmpeg-core.wasm',
           },
         ],

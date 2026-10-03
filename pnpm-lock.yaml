@@ -56,9 +56,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^7.0.4
         version: 7.0.4(next@15.5.12)(react-dom@19.2.3)(react@19.2.3)
-      '@ffmpeg/core-st':
-        specifier: ^0.11.1
-        version: 0.11.1
+      '@ffmpeg/core':
+        specifier: 0.12.9
+        version: 0.12.9
       '@ffmpeg/ffmpeg':
         specifier: ^0.12.15
         version: 0.12.15
@@ -1862,8 +1862,9 @@ packages:
         optional: true
     dev: true
 
-  /@ffmpeg/core-st@0.11.1:
-    resolution: {integrity: sha512-8R0kdXjQjjOgVaChDMUx/abrTD5/g9JFnuZLqB+lvzJbfNpNEFEZPxFR1Fu4eoON+fVq3K3URVKZcHEEGKZVTQ==}
+  /@ffmpeg/core@0.12.9:
+    resolution: {integrity: sha512-nvkst/Y9OZtTkKhK53zUrIwmu5Ot+4NvXFOcl/CLQxrJwv22s4+tEMRaB24aa3UlTJoFi0H9+6vzqcBHoDGkZA==}
+    engines: {node: '>=16.x'}
     dev: false
 
   /@ffmpeg/ffmpeg@0.12.15:
